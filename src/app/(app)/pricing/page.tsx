@@ -23,7 +23,7 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto">
       <div className="text-center mb-12">
-        <h2 className="font-headline text-4xl font-bold">Size Uygun Planı Bulun</h2>
+        <h2 className="font-sans text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">Size Uygun Planı Bulun</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
           Fotoğraflarınız hakkında yapay zeka destekli geri bildirimler almak ve bir fotoğrafçı olarak gelişiminizi hızlandırmak için token satın alın.
         </p>
@@ -37,7 +37,7 @@ export default function PricingPage() {
               </Badge>
             )}
             <CardHeader className="text-center">
-              <CardTitle className="font-headline text-3xl flex items-center justify-center gap-2">
+              <CardTitle className="font-sans text-3xl flex items-center justify-center gap-2">
                 <Gem className="h-7 w-7 text-primary" /> {pkg.tokens} Token
               </CardTitle>
               <CardDescription className="text-4xl font-bold pt-4">

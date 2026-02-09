@@ -52,9 +52,9 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
   if (!photo) return null;
 
   const improvements = [
-    { icon: Lightbulb, color: 'text-yellow-500' },
-    { icon: LayoutPanelLeft, color: 'text-blue-500' },
-    { icon: Heart, color: 'text-red-500' },
+    { icon: Lightbulb, color: 'text-amber-400' },
+    { icon: LayoutPanelLeft, color: 'text-blue-400' },
+    { icon: Heart, color: 'text-rose-400' },
   ];
 
   return (
@@ -72,7 +72,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
         <ScrollArea className="md:w-1/2 w-full">
           <div className="p-6 space-y-6">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
+              <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
             </DialogHeader>
             
             {photo.aiFeedback ? (

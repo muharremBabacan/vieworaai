@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export default function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-2 text-primary", className)}>
       <svg
         width="28"
         height="28"
@@ -18,11 +18,11 @@ export default function Logo({ className }: { className?: string }) {
         <path
           d="M12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6ZM12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16Z"
           fill="currentColor"
-          className="text-accent"
+          className="opacity-50"
         />
         <circle cx="12" cy="12" r="2" fill="currentColor" />
       </svg>
-      <span className="font-headline text-xl font-semibold tracking-wider">
+      <span className="font-sans text-xl font-semibold tracking-wider bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
         Viewora
       </span>
     </div>

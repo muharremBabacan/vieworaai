@@ -72,7 +72,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   isActive={pathname === item.href}
                   tooltip={{
                     children: item.label,
-                    className: 'font-body'
+                    className: 'font-sans'
                   }}
                 >
                   <Link href={item.href}>
@@ -86,7 +86,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
+        <header className="flex h-14 items-center gap-4 border-b bg-card/70 px-4 lg:h-[60px] lg:px-6">
             <Button
               variant="outline"
               size="icon"
@@ -97,13 +97,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="sr-only">Navigasyon menüsünü aç/kapa</span>
             </Button>
           <div className="w-full flex-1">
-            <h1 className="font-headline text-xl font-semibold">
+            <h1 className="font-sans text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
               {navItems.find(item => item.href === pathname)?.label}
             </h1>
           </div>
           <UserNav />
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </SidebarInset>

@@ -22,7 +22,7 @@ function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovements
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline text-xl font-semibold">Derecelendirme</CardTitle>
+        <CardTitle className="font-sans text-xl font-semibold">Derecelendirme</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         <div className="flex flex-col items-center justify-center space-y-2">
@@ -57,9 +57,9 @@ function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovements
 
 function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovementsOutput }) {
   const improvements = [
-    { icon: Lightbulb, color: 'text-yellow-500' },
-    { icon: LayoutPanelLeft, color: 'text-blue-500' },
-    { icon: Heart, color: 'text-red-500' },
+    { icon: Lightbulb, color: 'text-amber-400' },
+    { icon: LayoutPanelLeft, color: 'text-blue-400' },
+    { icon: Heart, color: 'text-rose-400' },
   ];
 
   return (
@@ -67,13 +67,13 @@ function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovements
       {result.rating && <AnalysisRating rating={result.rating} />}
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-headline text-xl font-semibold mb-4">YZ Analizi</h3>
+          <h3 className="font-sans text-xl font-semibold mb-4">YZ Analizi</h3>
           <p className="text-muted-foreground">{result.analysis}</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-headline text-xl font-semibold mb-4">İyileştirme İpuçları</h3>
+          <h3 className="font-sans text-xl font-semibold mb-4">İyileştirme İpuçları</h3>
           <ul className="space-y-4">
             {result.improvements.map((tip, index) => {
               const Icon = improvements[index % improvements.length].icon;

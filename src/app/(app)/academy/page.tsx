@@ -31,7 +31,7 @@ function LessonCard({ lesson }: { lesson: (typeof lessons)[0] }) {
         </div>
       </CardHeader>
       <CardContent className="p-6 flex-grow">
-        <CardTitle className="font-headline text-xl mb-2">{lesson.title}</CardTitle>
+        <CardTitle className="font-sans text-xl mb-2">{lesson.title}</CardTitle>
         <p className="text-muted-foreground text-sm">{lesson.content}</p>
       </CardContent>
       <CardFooter className="p-6 pt-0">
