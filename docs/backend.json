@@ -29,7 +29,22 @@
         },
         "xp": {
           "type": "number",
-          "description": "User's experience points."
+          "description": "User's experience points for gamification."
+        },
+        "level": {
+          "type": "string",
+          "description": "User's current level in the gamification system."
+        },
+        "interests": {
+          "type": "array",
+          "description": "User's selected photography interests.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "onboarded": {
+          "type": "boolean",
+          "description": "Flag to check if the user has completed the onboarding process."
         }
       },
       "required": [
@@ -38,7 +53,9 @@
         "name",
         "tokenBalance",
         "planLevel",
-        "xp"
+        "xp",
+        "level",
+        "onboarded"
       ]
     },
     "Photo": {
@@ -237,3 +254,4 @@
     "reasoning": "The Firestore data structure is designed to support the Viewora AI Coach application's features, focusing on secure access, scalability, and maintainability. The key principle is Authorization Independence, achieved through denormalization. The structure is segregated to provide homogeneous security postures across collections.\n\n*   **Users (Private Data):** User data is stored under `/users/{userId}` ensuring only the authenticated user can access their own data. Path-based ownership simplifies security rules.\n*   **Photos (User-Owned Data):** Photos analyzed by the AI are stored under `/users/{userId}/photos/{photoId}`. This hierarchical structure maintains the 1:N relationship between Users and Photos. The `userId` is denormalized into the `Photo` document to enforce authorization independence.\n*   **Lessons (Public Data):** Lessons are stored in the `/lessons/{lessonId}` collection.  These are globally accessible so no user-specific authorization is applied.\n*   **Transactions (User-Owned Data):** Transaction data is stored under `/users/{userId}/transactions/{transactionId}`. This structure allows tracking of each user's transactions and follows the 1:N relationship between Users and Transactions. The `userId` is denormalized into the `Transaction` document to enforce authorization independence.\n\nThis design supports the required QAPs by:\n\n1.  **Authorization Independence:** Denormalizing `userId` into the `photos` and `transactions` collections eliminates the need for `get()` calls in security rules, enabling atomic operations.\n2.  **QAPs (Rules are not Filters):**  The structure enables secure `list` operations. Listing photos is secure as all photos under `/users/{userId}/photos/{photoId}` belong to the authenticated user. Similarly, listing transactions is secure as all transactions under `/users/{userId}/transactions/{transactionId}` belong to the authenticated user.\n3.  **Clarity of Intent (Debuggability):** The structure makes authorization intent explicit.  The use of path-based ownership for user-specific data clearly indicates that access is controlled by the user's ID."
   }
 }
+    

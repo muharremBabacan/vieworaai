@@ -12,7 +12,9 @@ import {
 import Logo from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { User as UserProfile } from '@/types';
 
 const navItems = [
   {
@@ -45,6 +47,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   React.useEffect(() => {
     if (!isUserLoading && !user) {
@@ -52,7 +62,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  React.useEffect(() => {
+    // Redirect if profile is loaded and user is not onboarded.
+    // This covers new users (onboarded: false) and old users (onboarded: undefined).
+    if (userProfile && !userProfile.onboarded) {
+      router.replace('/onboarding');
+    }
+  }, [userProfile, router]);
+  
+  // Show loader while auth state is loading, or user profile is loading,
+  // or while we are about to redirect to onboarding.
+  if (isUserLoading || !user || isProfileLoading || (userProfile && !userProfile.onboarded)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -67,7 +87,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-card/70 px-4 backdrop-blur-sm sm:px-6">
           <div className="flex items-center gap-4">
-              <Link href="/">
+              <Link href="/academy">
                 <Logo />
               </Link>
           </div>
@@ -107,3 +127,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+    

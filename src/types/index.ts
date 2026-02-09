@@ -7,6 +7,9 @@ export type User = {
   tokenBalance: number;
   planLevel: 'Temel' | 'Orta' | 'Pro';
   xp: number;
+  level: string;
+  interests: string[];
+  onboarded: boolean;
 };
 
 export type Photo = {
@@ -33,3 +36,5 @@ export type Package = {
   currency: string;
   isBestValue: boolean;
 };
+
+    

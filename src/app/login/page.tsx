@@ -34,7 +34,6 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
 
-      // Check for user profile and create if not exists
       const userRef = doc(firestore, 'users', firebaseUser.uid);
       const docSnap = await getDoc(userRef);
 
@@ -43,14 +42,16 @@ export default function LoginPage() {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
           name: firebaseUser.displayName || 'İsimsiz Sanatçı',
-          tokenBalance: 10, // Initial free tokens
+          tokenBalance: 10,
           planLevel: 'Temel',
           xp: 0,
+          level: 'Yeni Başlayan',
+          interests: [],
+          onboarded: false,
         });
       }
       router.push('/academy');
     } catch (error: any) {
-      // Don't show an error toast if the user simply closed the popup
       if (error.code === 'auth/popup-closed-by-user') {
         console.info('Sign-in popup closed by user.');
         return;
@@ -105,3 +106,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
