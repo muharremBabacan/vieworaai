@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4">
@@ -36,6 +37,7 @@ export default function LoginPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleSignIn = async (providerName: 'google' | 'microsoft') => {
     const provider =
@@ -64,7 +66,11 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (error) {
       console.error(`Sign in with ${providerName} failed`, error);
-      // Here you could show a toast to the user
+      toast({
+        variant: 'destructive',
+        title: 'Giriş Başarısız',
+        description: 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
+      });
     }
   };
 
