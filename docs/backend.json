@@ -1,0 +1,240 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Viewora AI Coach application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "tokenBalance": {
+          "type": "number",
+          "description": "Number of tokens the user currently has."
+        },
+        "planLevel": {
+          "type": "string",
+          "description": "The user's current plan level (Basic, Mid, Pro)."
+        },
+        "xp": {
+          "type": "number",
+          "description": "User's experience points."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "tokenBalance",
+        "planLevel",
+        "xp"
+      ]
+    },
+    "Photo": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Photo",
+      "type": "object",
+      "description": "Represents a photo analyzed by the AI Coach.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the photo entity."
+        },
+        "imageURL": {
+          "type": "string",
+          "description": "URL of the image."
+        },
+        "aiFeedback": {
+          "type": "string",
+          "description": "AI feedback on the photo."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Photo)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the photo was analyzed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "imageURL",
+        "aiFeedback",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "Lesson": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lesson",
+      "type": "object",
+      "description": "Represents a lesson in the Viewora Academy.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lesson entity."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the lesson (e.g., Composition, Lighting)."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the lesson."
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the lesson."
+        },
+        "imageURL": {
+          "type": "string",
+          "description": "URL of the image associated with the lesson."
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "title",
+        "content",
+        "imageURL"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a transaction (purchase or gift) of tokens.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Transaction)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of tokens involved in the transaction."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of transaction (Purchase or Gift)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the transaction."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "Timestamp of when the transaction occured.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "amount",
+        "type",
+        "status",
+        "transactionDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Accessible only by the user. Uses path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/photos/{photoId}",
+        "definition": {
+          "entityName": "Photo",
+          "schema": {
+            "$ref": "#/backend/entities/Photo"
+          },
+          "description": "Stores photos analyzed by the AI Coach, associated with a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "photoId",
+              "description": "The unique identifier for the photo."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/lessons/{lessonId}",
+        "definition": {
+          "entityName": "Lesson",
+          "schema": {
+            "$ref": "#/backend/entities/Lesson"
+          },
+          "description": "Stores lessons in the Viewora Academy. Publicly accessible.",
+          "params": [
+            {
+              "name": "lessonId",
+              "description": "The unique identifier for the lesson."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction records for each user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for the transaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the Viewora AI Coach application's features, focusing on secure access, scalability, and maintainability. The key principle is Authorization Independence, achieved through denormalization. The structure is segregated to provide homogeneous security postures across collections.\n\n*   **Users (Private Data):** User data is stored under `/users/{userId}` ensuring only the authenticated user can access their own data. Path-based ownership simplifies security rules.\n*   **Photos (User-Owned Data):** Photos analyzed by the AI are stored under `/users/{userId}/photos/{photoId}`. This hierarchical structure maintains the 1:N relationship between Users and Photos. The `userId` is denormalized into the `Photo` document to enforce authorization independence.\n*   **Lessons (Public Data):** Lessons are stored in the `/lessons/{lessonId}` collection.  These are globally accessible so no user-specific authorization is applied.\n*   **Transactions (User-Owned Data):** Transaction data is stored under `/users/{userId}/transactions/{transactionId}`. This structure allows tracking of each user's transactions and follows the 1:N relationship between Users and Transactions. The `userId` is denormalized into the `Transaction` document to enforce authorization independence.\n\nThis design supports the required QAPs by:\n\n1.  **Authorization Independence:** Denormalizing `userId` into the `photos` and `transactions` collections eliminates the need for `get()` calls in security rules, enabling atomic operations.\n2.  **QAPs (Rules are not Filters):**  The structure enables secure `list` operations. Listing photos is secure as all photos under `/users/{userId}/photos/{photoId}` belong to the authenticated user. Similarly, listing transactions is secure as all transactions under `/users/{userId}/transactions/{transactionId}` belong to the authenticated user.\n3.  **Clarity of Intent (Debuggability):** The structure makes authorization intent explicit.  The use of path-based ownership for user-specific data clearly indicates that access is controlled by the user's ID."
+  }
+}

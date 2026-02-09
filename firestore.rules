@@ -1,0 +1,131 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model, where users have complete control over their own data, but cannot access the data of other users. It segregates public content from private user data to simplify security and queries.
+ *
+ * Data Structure: The data is organized hierarchically. All private user information, including their profile, photos, and transactions, is nested under a top-level `/users/{userId}` path. Publicly accessible content, such as lessons, resides in a separate top-level `/lessons` collection.
+ *
+ * Key Security Decisions:
+ * - User data is private: All documents and subcollections under `/users/{userId}` are only accessible by the authenticated user whose UID matches `{userId}`.
+ * - Public data is read-only: The `/lessons` collection is readable by anyone, but write operations are disabled to prevent tampering. All content must be added or modified by trusted backend processes.
+ * - User listing is disallowed: To protect user privacy, it is not possible to query or list the top-level `/users` collection.
+ * - Default posture is denial: Any operation not explicitly granted is denied.
+ *
+ * Denormalization for Authorization: To ensure fast and secure authorization, user-owned documents in subcollections (like `photos` and `transactions`) must contain a `userId` field. This avoids costly `get()` calls to parent documents and allows rules to atomically verify ownership on creation and updates.
+ *
+ * Structural Segregation: The ruleset leverages separate collections for data with different security requirements. Private data (`/users/{userId}/...`) is kept distinct from public data (`/lessons`), which is a more secure and performant pattern than filtering a single collection with a boolean flag.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    // --------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for establishing document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership on an existing document. Used for update/delete operations.
+     * CRITICAL: Verifies the document exists (`resource != null`) before checking ownership.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the `id` field within a user document matches the document's ID
+     * in the path, ensuring relational integrity.
+     */
+    function hasMatchingUserId(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Validates that an incoming subcollection document contains a `userId` field
+     * that matches the parent user's document ID. This is critical for associating
+     * data correctly on creation.
+     */
+    function hasCorrectParentId(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * Enforces immutability of the parent `userId` field on a subcollection document
+     * during an update operation.
+     */
+    function isUserIdImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * @description Stores user profiles. A user can create their own profile, can only read/update their own profile, and cannot delete it. Listing all users is forbidden.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user with UID 'user123' creates their own profile at `/users/user123`.
+     * @deny (get) User 'user456' tries to read the profile at `/users/user123`.
+     * @principle Restricts access to a user's own data tree and allows self-creation of a root user document.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && hasMatchingUserId(userId);
+      allow update: if isExistingOwner(userId) && hasMatchingUserId(userId);
+      allow delete: if false;
+
+      /**
+       * @description Stores photos belonging to a user. Only the owner can manage their photos.
+       * @path /users/{userId}/photos/{photoId}
+       * @allow (create) User 'user123' creates a new photo document under their own path `/users/user123/photos/photo_abc`.
+       * @deny (list) User 'user456' tries to list photos under `/users/user123/photos`.
+       * @principle Enforces document ownership for all operations within a user's private subcollection.
+       */
+      match /photos/{photoId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasCorrectParentId(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Stores transaction records for a user. These are highly sensitive and only accessible by the owner.
+       * @path /users/{userId}/transactions/{transactionId}
+       * @allow (get) User 'user123' reads a transaction at `/users/user123/transactions/txn_xyz`.
+       * @deny (update) User 'user456' tries to update a transaction at `/users/user123/transactions/txn_xyz`.
+       * @principle Enforces strict ownership on sensitive financial data and validates relational integrity.
+       */
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasCorrectParentId(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    /**
+     * @description Stores public lesson content. This data is readable by anyone, including unauthenticated users, but cannot be modified from the client.
+     * @path /lessons/{lessonId}
+     * @allow (get) Any user, signed in or not, reads a lesson at `/lessons/composition101`.
+     * @deny (create) Any user attempts to create a new lesson document.
+     * @principle Provides public read-only access for shared content. Writes are disabled to protect data integrity.
+     */
+    match /lessons/{lessonId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
