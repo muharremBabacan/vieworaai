@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star } from 'lucide-react';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
