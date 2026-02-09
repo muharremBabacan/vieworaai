@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { Gem, LogOut, VenetianMask } from 'lucide-react';
+import { Gem, LogOut, Award } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -84,7 +84,7 @@ export function UserNav() {
           </div>
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
              <div className="flex items-center gap-2 text-muted-foreground">
-              <VenetianMask className="h-4 w-4" />
+              <Award className="h-4 w-4" />
               <span>Seviye</span>
             </div>
             <Badge variant={userProfile.planLevel === 'Pro' ? 'default' : 'secondary'} className="capitalize">{userProfile.level}</Badge>
