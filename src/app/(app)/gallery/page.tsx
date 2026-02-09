@@ -210,8 +210,8 @@ export default function GalleryPage() {
       {(photos.length > 0 || isLoading) && (
         <Tabs defaultValue="top-rated" className="w-full">
           <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-            <TabsTrigger value="top-rated">En Beğenilenler</TabsTrigger>
-            <TabsTrigger value="newest">En Yeniler</TabsTrigger>
+            <TabsTrigger value="top-rated">Puana Göre</TabsTrigger>
+            <TabsTrigger value="newest">Tarihe Göre</TabsTrigger>
           </TabsList>
           {isLoading ? (
             <div className="mt-6">
@@ -238,5 +238,3 @@ export default function GalleryPage() {
     </div>
   );
 }
-
-    
