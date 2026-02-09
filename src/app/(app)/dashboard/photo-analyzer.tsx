@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, updateDoc, collection, addDoc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -170,71 +170,86 @@ export default function PhotoAnalyzer() {
     }
 
     startTransition(async () => {
+      let analysisResult: AnalyzePhotoAndSuggestImprovementsOutput;
       try {
-        const analysisResult = await analyzePhotoAndSuggestImprovements({
+        analysisResult = await analyzePhotoAndSuggestImprovements({
           photoDataUri: preview,
         });
-        setResult(analysisResult);
-
-        // --- Save Photo to Firestore ---
-        const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
-        await addDoc(photosCollectionRef, {
-          imageUrl: preview,
-          imageHint: '', // No hint for user uploads
-          aiFeedback: analysisResult,
-          createdAt: new Date().toISOString(),
-        });
-        
-        // --- Oyunlaştırma Mantığı ---
-        const xpFromAnalysis = 25;
-        const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
-        const totalXpGained = xpFromAnalysis + bonusXp;
-
-        const currentLevel = getLevelFromXp(userProfile.xp);
-        const newXp = userProfile.xp + totalXpGained;
-        const newLevel = getLevelFromXp(newXp);
-        
-        const updatePayload: any = {
-          tokenBalance: userProfile.tokenBalance - 1,
-          xp: newXp
-        };
-
-        if (newLevel.name !== currentLevel.name) {
-          updatePayload.level = newLevel.name;
-        }
-
-        await updateDoc(userDocRef, updatePayload);
-
-        toast({
-          title: 'XP Kazandın!',
-          description: `Analiz için ${xpFromAnalysis} XP kazandın.`,
-        });
-        if(bonusXp > 0) {
-           setTimeout(() => {
-             toast({
-                title: '✨ Bonus!',
-                description: `Yüksek puan için +${bonusXp} bonus XP kazandın!`,
-              });
-           }, 100);
-        }
-        if (updatePayload.level) {
-           setTimeout(() => {
-              toast({
-                title: '🎉 Seviye Atladın!',
-                description: `Tebrikler! Yeni seviyen: ${updatePayload.level}`,
-              });
-           }, 200);
-        }
-        // --- Oyunlaştırma Mantığı Sonu ---
-
       } catch (error) {
         console.error('Analiz başarısız:', error);
         toast({
           variant: 'destructive',
           title: 'Analiz Başarısız',
-          description: 'Bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.',
+          description: 'YZ analizi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
         });
+        return;
       }
+      setResult(analysisResult);
+
+      // --- Save Photo to Firestore ---
+      const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
+      const photoData = {
+          userId: authUser.uid, // Security Rule FIX
+          imageUrl: preview,
+          imageHint: '', // No hint for user uploads
+          aiFeedback: analysisResult,
+          createdAt: new Date().toISOString(),
+      };
+      addDoc(photosCollectionRef, photoData).catch((error) => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: photosCollectionRef.path,
+              operation: 'create',
+              requestResourceData: photoData,
+          }));
+      });
+      
+      // --- Oyunlaştırma Mantığı ---
+      const xpFromAnalysis = 25;
+      const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
+      const totalXpGained = xpFromAnalysis + bonusXp;
+
+      const currentLevel = getLevelFromXp(userProfile.xp);
+      const newXp = userProfile.xp + totalXpGained;
+      const newLevel = getLevelFromXp(newXp);
+      
+      const updatePayload: any = {
+        tokenBalance: userProfile.tokenBalance - 1,
+        xp: newXp
+      };
+
+      if (newLevel.name !== currentLevel.name) {
+        updatePayload.level = newLevel.name;
+      }
+
+      updateDoc(userDocRef, updatePayload).catch((error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: updatePayload,
+        }));
+      });
+
+      toast({
+        title: 'XP Kazandın!',
+        description: `Analiz için ${xpFromAnalysis} XP kazandın.`,
+      });
+      if(bonusXp > 0) {
+          setTimeout(() => {
+            toast({
+              title: '✨ Bonus!',
+              description: `Yüksek puan için +${bonusXp} bonus XP kazandın!`,
+            });
+          }, 100);
+      }
+      if (updatePayload.level) {
+          setTimeout(() => {
+            toast({
+              title: '🎉 Seviye Atladın!',
+              description: `Tebrikler! Yeni seviyen: ${updatePayload.level}`,
+            });
+          }, 200);
+      }
+      // --- Oyunlaştırma Mantığı Sonu ---
     });
   };
 
@@ -324,5 +339,3 @@ export default function PhotoAnalyzer() {
     </div>
   );
 }
-
-    
