@@ -156,8 +156,7 @@
   },
   "auth": {
     "providers": [
-      "google.com",
-      "microsoft.com"
+      "google.com"
     ]
   },
   "firestore": {

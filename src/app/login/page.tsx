@@ -4,7 +4,6 @@ import { useAuth, useFirestore } from '@/firebase';
 import {
   GoogleAuthProvider,
   signInWithPopup,
-  OAuthProvider,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -22,28 +21,14 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const MicrosoftIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21" className="mr-2 h-4 w-4">
-        <title>Microsoft</title>
-        <path fill="#f25022" d="M1 1h9v9H1z"/>
-        <path fill="#00a4ef" d="M1 11h9v9H1z"/>
-        <path fill="#7fba00" d="M11 1h9v9h-9z"/>
-        <path fill="#ffb900" d="M11 11h9v9h-9z"/>
-    </svg>
-);
-
-
 export default function LoginPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleSignIn = async (providerName: 'google' | 'microsoft') => {
-    const provider =
-      providerName === 'google'
-        ? new GoogleAuthProvider()
-        : new OAuthProvider('microsoft.com');
+  const handleSignIn = async (providerName: 'google') => {
+    const provider = new GoogleAuthProvider();
 
     try {
       const result = await signInWithPopup(auth, provider);
@@ -74,7 +59,10 @@ export default function LoginPage() {
       console.error(`Sign in with ${providerName} failed`, error);
       
       let description = 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
-      if (error.code === 'auth/unauthorized-domain') {
+      if (error.code === 'auth/operation-not-allowed') {
+        description = 'Lütfen Firebase projenizde Google ile girişi etkinleştirdiğinizden emin olun.'
+      }
+      else if (error.code === 'auth/unauthorized-domain') {
         description = 'Bu domain, Firebase projenizde yetkilendirilmemiş. Lütfen Firebase konsolundan yetkilendirin.';
       } else if (error.message) {
         description = error.message;
@@ -108,14 +96,6 @@ export default function LoginPage() {
           >
             <GoogleIcon />
             Google ile Giriş Yap
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => handleSignIn('microsoft')}
-          >
-            <MicrosoftIcon />
-            Microsoft ile Giriş Yap
           </Button>
         </div>
         <p className="px-8 text-center text-xs text-muted-foreground">
