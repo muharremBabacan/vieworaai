@@ -1,3 +1,82 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "landing-hero",
+      "description": "A stunning landscape photo at sunset, showcasing mountains and a lake.",
+      "imageUrl": "https://images.unsplash.com/photo-1745251476737-f6c89c5b2248?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsYW5kc2NhcGUlMjBwaG90b3xlbnwwfHx8fDE3NzA2Njc1NjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "landscape photo"
+    },
+    {
+      "id": "gallery-1",
+      "description": "A close-up portrait of a person with interesting lighting.",
+      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdHxlbnwwfHx8fDE3NzA1OTE5MTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait"
+    },
+    {
+      "id": "gallery-2",
+      "description": "A bustling street scene in a city at night.",
+      "imageUrl": "https://images.unsplash.com/photo-1599557041284-7e2a15610388?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzdHJlZXQlMjBwaG90b2dyYXBoeXxlbnwwfHx8fDE3NzA2MzQzNDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "street photography"
+    },
+    {
+      "id": "gallery-3",
+      "description": "A serene nature shot of a forest.",
+      "imageUrl": "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxuYXR1cmUlMjBmb3Jlc3R8ZW58MHx8fHwxNzcwNjAyNjcyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "nature forest"
+    },
+    {
+      "id": "gallery-4",
+      "description": "An abstract architectural photo with strong lines.",
+      "imageUrl": "https://images.unsplash.com/photo-1575330734740-21b22ac7bf5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhYnN0cmFjdCUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3NzA2MDY0MzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract architecture"
+    },
+    {
+      "id": "gallery-5",
+      "description": "A dramatic black and white landscape.",
+      "imageUrl": "https://images.unsplash.com/photo-1542400275-f0f2796b253f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxibGFjayUyMHdoaXRlfGVufDB8fHx8MTc3MDY2NzU2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black white"
+    },
+    {
+      "id": "gallery-6",
+      "description": "A high-fashion studio portrait.",
+      "imageUrl": "https://images.unsplash.com/photo-1578476719994-464aef88d2da?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmYXNoaW9uJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcwNjAwMjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fashion portrait"
+    },
+    {
+      "id": "gallery-7",
+      "description": "A vibrant food photography shot from above.",
+      "imageUrl": "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmb29kJTIwcGhvdG9ncmFwaHl8ZW58MHx8fHwxNzcwNTU5NzA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "food photography"
+    },
+    {
+      "id": "gallery-8",
+      "description": "A travel photo of an exotic location.",
+      "imageUrl": "https://images.unsplash.com/photo-1606922183036-62e19495eaab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx0cmF2ZWwlMjBkZXN0aW5hdGlvbnxlbnwwfHx8fDE3NzA2MTg1ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "travel destination"
+    },
+    {
+      "id": "academy-composition",
+      "description": "A photo demonstrating the rule of thirds in composition.",
+      "imageUrl": "https://images.unsplash.com/photo-1663427840251-d81f1434dc35?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxydWxlJTIwdGhpcmRzfGVufDB8fHx8MTc3MDY2NzU2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rule thirds"
+    },
+    {
+      "id": "academy-light",
+      "description": "A portrait taken during the golden hour with warm light.",
+      "imageUrl": "https://images.unsplash.com/photo-1496614932623-0a3a9743552e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxnb2xkZW4lMjBob3VyfGVufDB8fHx8MTc3MDY2NzU2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "golden hour"
+    },
+    {
+      "id": "academy-technique",
+      "description": "A long exposure shot of city traffic at night.",
+      "imageUrl": "https://images.unsplash.com/photo-1447966531936-911738a2a722?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxsb25nJTIwZXhwb3N1cmV8ZW58MHx8fHwxNzcwNjY3NTY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "long exposure"
+    },
+    {
+      "id": "user-avatar",
+      "description": "Avatar for the sample user.",
+      "imageUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBmYWNlfGVufDB8fHx8MTc3MDY1MTEzMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person face"
+    }
+  ]
 }
