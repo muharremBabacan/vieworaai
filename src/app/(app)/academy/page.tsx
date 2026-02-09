@@ -8,11 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Check, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import type { User as UserProfile } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { getLevelFromXp } from '@/lib/gamification';
 
-function LessonCard({ lesson }: { lesson: (typeof lessons)[0] }) {
+function LessonCard({ lesson, onLearn }: { lesson: (typeof lessons)[0]; onLearn: (xp: number) => void; }) {
   const [isLearned, setIsLearned] = useState(false);
+  const xpForLesson = 15;
 
   const handleLearn = () => {
+    if (isLearned) return;
+    onLearn(xpForLesson);
     setIsLearned(true);
   };
 
@@ -44,7 +52,7 @@ function LessonCard({ lesson }: { lesson: (typeof lessons)[0] }) {
           {isLearned ? (
             <>
               <Check className="mr-2 h-4 w-4" />
-              Öğrenildi!
+              Öğrenildi! (+{xpForLesson} XP)
             </>
           ) : (
              <>
@@ -59,11 +67,61 @@ function LessonCard({ lesson }: { lesson: (typeof lessons)[0] }) {
 }
 
 export default function AcademyPage() {
+  const { toast } = useToast();
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [authUser, firestore]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+  const handleLearn = async (xpToAdd: number) => {
+    if (!userProfile || !userDocRef) return;
+
+    const currentLevel = getLevelFromXp(userProfile.xp);
+    const newXp = userProfile.xp + xpToAdd;
+    const newLevel = getLevelFromXp(newXp);
+
+    const updatePayload: Partial<UserProfile> = { xp: newXp };
+
+    if (newLevel.name !== currentLevel.name) {
+      updatePayload.level = newLevel.name;
+    }
+
+    try {
+      await updateDoc(userDocRef, updatePayload);
+      toast({
+        title: 'XP Kazandın!',
+        description: `Bu dersten ${xpToAdd} XP kazandın.`,
+      });
+
+      if (updatePayload.level) {
+         setTimeout(() => {
+            toast({
+              title: '🎉 Seviye Atladın!',
+              description: `Tebrikler! Yeni seviyen: ${updatePayload.level}`,
+            });
+         }, 100);
+      }
+    } catch (error) {
+      console.error("Failed to update XP:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Hata',
+        description: 'XP güncellenirken bir sorun oluştu.',
+      });
+    }
+  };
+
+
   return (
     <div className="container mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {lessons.map((lesson) => (
-          <LessonCard key={lesson.id} lesson={lesson} />
+          <LessonCard key={lesson.id} lesson={lesson} onLearn={handleLearn} />
         ))}
       </div>
     </div>

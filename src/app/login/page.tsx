@@ -45,12 +45,17 @@ export default function LoginPage() {
           tokenBalance: 10,
           planLevel: 'Temel',
           xp: 0,
-          level: 'Yeni Başlayan',
+          level: 'Meraklı Göz', // Starting gamification level
           interests: [],
           onboarded: false,
         });
       }
-      router.push('/profile');
+      // Redirect to onboarding if they haven't done it, otherwise to their profile.
+      if (docSnap.exists() && docSnap.data().onboarded) {
+        router.push('/profile');
+      } else {
+        router.push('/onboarding');
+      }
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user') {
         console.info('Sign-in popup closed by user.');

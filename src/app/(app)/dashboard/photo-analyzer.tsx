@@ -10,9 +10,11 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
+import { getLevelFromXp } from '@/lib/gamification';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovementsOutput['rating'] }) {
   const data = [
@@ -173,9 +175,49 @@ export default function PhotoAnalyzer() {
           photoDataUri: preview,
         });
         setResult(analysisResult);
-        updateDocumentNonBlocking(userDocRef, {
+        
+        // --- Gamification Logic ---
+        const xpFromAnalysis = 25;
+        const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
+        const totalXpGained = xpFromAnalysis + bonusXp;
+
+        const currentLevel = getLevelFromXp(userProfile.xp);
+        const newXp = userProfile.xp + totalXpGained;
+        const newLevel = getLevelFromXp(newXp);
+        
+        const updatePayload: any = {
           tokenBalance: userProfile.tokenBalance - 1,
+          xp: newXp
+        };
+
+        if (newLevel.name !== currentLevel.name) {
+          updatePayload.level = newLevel.name;
+        }
+
+        await updateDoc(userDocRef, updatePayload);
+
+        toast({
+          title: 'XP Kazandın!',
+          description: `Analiz için ${xpFromAnalysis} XP kazandın.`,
         });
+        if(bonusXp > 0) {
+           setTimeout(() => {
+             toast({
+                title: '✨ Bonus!',
+                description: `Yüksek puan için +${bonusXp} bonus XP kazandın!`,
+              });
+           }, 100);
+        }
+        if (updatePayload.level) {
+           setTimeout(() => {
+              toast({
+                title: '🎉 Seviye Atladın!',
+                description: `Tebrikler! Yeni seviyen: ${updatePayload.level}`,
+              });
+           }, 200);
+        }
+        // --- End Gamification Logic ---
+
       } catch (error) {
         console.error('Analiz başarısız:', error);
         toast({
@@ -272,8 +314,4 @@ export default function PhotoAnalyzer() {
       {result && <AnalysisResult result={result} />}
     </div>
   );
-}
-
-function Skeleton({className}: {className?: string}) {
-  return <div className={cn("animate-pulse rounded-md bg-muted/50", className)} />;
 }

@@ -8,9 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { Award, Gem, Camera, Tag, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { levels, getLevelFromXp } from '@/lib/gamification';
 
 // Dummy data for now
-const xpForNextLevel = 250;
 const photoCount = 0; // Replace with real data later
 
 export default function ProfilePage() {
@@ -34,7 +34,17 @@ export default function ProfilePage() {
         )
     }
 
-    const xpPercentage = (userProfile.xp / xpForNextLevel) * 100;
+    const currentLevelInfo = getLevelFromXp(userProfile.xp);
+    const nextLevelInfo = levels[levels.indexOf(currentLevelInfo) + 1];
+
+    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.maxXp;
+    const xpInCurrentLevel = userProfile.xp - currentLevelInfo.minXp;
+    const xpRangeOfCurrentLevel = (nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.maxXp) - currentLevelInfo.minXp;
+    
+    // Handle the final level case to prevent division by zero or weird percentages
+    const xpPercentage = xpRangeOfCurrentLevel > 0 ? (xpInCurrentLevel / xpRangeOfCurrentLevel) * 100 : 100;
+    const xpToNext = nextLevelInfo ? xpForNextLevel - userProfile.xp : 0;
+
 
     return (
         <div className="container mx-auto">
@@ -50,10 +60,14 @@ export default function ProfilePage() {
                         <div>
                             <div className="flex justify-between items-center mb-1">
                                 <span className="text-sm text-muted-foreground">Deneyim Puanı (XP)</span>
-                                <span className="text-sm font-bold">{userProfile.xp} / {xpForNextLevel}</span>
+                                <span className="text-sm font-bold">{userProfile.xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
                             </div>
                             <Progress value={xpPercentage} />
-                            <p className="text-xs text-muted-foreground mt-1">Sonraki seviye için {xpForNextLevel > userProfile.xp ? xpForNextLevel - userProfile.xp : 0} XP daha.</p>
+                            {xpToNext > 0 ? (
+                                <p className="text-xs text-muted-foreground mt-1">Sonraki seviye için {xpToNext} XP daha.</p>
+                            ) : (
+                                <p className="text-xs text-muted-foreground mt-1">Tebrikler! En yüksek seviyeye ulaştınız!</p>
+                            )}
                         </div>
                         
                         <div className="flex items-center justify-between rounded-lg border p-4">
@@ -75,9 +89,9 @@ export default function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-2">
-                            {userProfile.interests.map(interest => (
+                            {userProfile.interests && userProfile.interests.length > 0 ? userProfile.interests.map(interest => (
                                 <Badge key={interest} variant="secondary">{interest}</Badge>
-                            ))}
+                            )) : <p className="text-sm text-muted-foreground">Henüz ilgi alanı seçmediniz.</p>}
                         </div>
                     </CardContent>
                 </Card>

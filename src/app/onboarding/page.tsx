@@ -27,10 +27,10 @@ const photographyInterests = [
   'Mimari',
 ];
 
-const skillLevels: {id: User['planLevel'], name: string, description: string}[] = [
-    { id: 'Temel', name: 'Yeni Başlıyorum', description: 'Fotoğrafçılığın temellerini öğrenmek istiyorum.' },
-    { id: 'Orta', name: 'Deneyimliyim', description: 'Becerilerimi geliştirmek ve yeni teknikler keşfetmek istiyorum.' },
-    { id: 'Pro', name: 'Profesyonelim', description: 'İş akışımı hızlandırmak ve sanatsal vizyonumu zorlamak istiyorum.' },
+const skillLevels: {id: User['planLevel'], name: string, description: string, xp: number, levelName: string}[] = [
+    { id: 'Temel', name: 'Yeni Başlıyorum', description: 'Fotoğrafçılığın temellerini öğrenmek istiyorum.', xp: 0, levelName: 'Meraklı Göz'},
+    { id: 'Orta', name: 'Deneyimliyim', description: 'Becerilerimi geliştirmek ve yeni teknikler keşfetmek istiyorum.', xp: 100, levelName: 'Gelişen Kadraj' },
+    { id: 'Pro', name: 'Profesyonelim', description: 'İş akışımı hızlandırmak ve sanatsal vizyonumu zorlamak istiyorum.', xp: 250, levelName: 'Yetkin Vizör' },
 ]
 
 
@@ -56,7 +56,7 @@ export default function OnboardingPage() {
     );
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!userDocRef) {
       toast({
         variant: 'destructive',
@@ -83,16 +83,23 @@ export default function OnboardingPage() {
 
     setIsUpdating(true);
     
-    const levelName = skillLevels.find(l => l.id === selectedLevel)?.name || 'Yeni Başlayan';
+    const skill = skillLevels.find(l => l.id === selectedLevel);
+    if (!skill) {
+      // This should not happen if a level is selected
+      setIsUpdating(false);
+      return;
+    }
     
-    updateDoc(userDocRef, {
-      planLevel: selectedLevel,
-      level: levelName,
-      interests: selectedInterests,
-      onboarded: true,
-    }).then(() => {
+    try {
+      await updateDoc(userDocRef, {
+        planLevel: selectedLevel,
+        level: skill.levelName,
+        xp: skill.xp,
+        interests: selectedInterests,
+        onboarded: true,
+      });
       router.replace('/profile');
-    }).catch((error) => {
+    } catch (error) {
       console.error("Onboarding update failed:", error);
       toast({
         variant: 'destructive',
@@ -100,7 +107,7 @@ export default function OnboardingPage() {
         description: 'Bilgileriniz kaydedilemedi. Lütfen tekrar deneyin.',
       });
       setIsUpdating(false);
-    });
+    }
   };
 
   return (
