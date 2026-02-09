@@ -1,7 +1,7 @@
 'use client';
 
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,9 +9,6 @@ import { Award, Gem, Camera, Tag, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { levels, getLevelFromXp } from '@/lib/gamification';
-
-// Dummy data for now
-const photoCount = 0; // Replace with real data later
 
 export default function ProfilePage() {
     const { user: authUser, isUserLoading } = useUser();
@@ -23,8 +20,18 @@ export default function ProfilePage() {
     }, [authUser, firestore]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+    
+    const photosQuery = useMemoFirebase(() => {
+        if (!authUser) return null;
+        return collection(firestore, 'users', authUser.uid, 'photos');
+    }, [authUser, firestore]);
 
-    if (isUserLoading || isProfileLoading || !userProfile) {
+    const { data: userPhotos, isLoading: arePhotosLoading } = useCollection(photosQuery);
+    
+    const photoCount = userPhotos?.length ?? 0;
+
+
+    if (isUserLoading || isProfileLoading || !userProfile || (authUser && arePhotosLoading)) {
         return (
             <div className="container mx-auto space-y-6">
                 <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
@@ -128,3 +135,5 @@ export default function ProfilePage() {
         </div>
     )
 }
+
+    

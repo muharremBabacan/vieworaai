@@ -27,8 +27,8 @@ const navItems = [
   {
     href: '/gallery',
     icon: GalleryVertical,
-    label: 'Sanat Galerisi',
-    shortLabel: 'Galeri'
+    label: 'Fotoğraflarım',
+    shortLabel: 'Fotoğraflar'
   },
   {
     href: '/dashboard',
@@ -134,3 +134,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+    

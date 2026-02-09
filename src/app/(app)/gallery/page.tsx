@@ -1,7 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { photos } from '@/lib/data';
 import type { Photo } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -15,7 +14,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -123,7 +124,7 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
           onClick={() => onPhotoClick(photo)}
         >
           <CardContent className="p-0 aspect-w-1 aspect-h-1">
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full aspect-square">
               <Image
                 src={photo.imageUrl}
                 alt={`Kullanıcı fotoğrafı ${photo.id}`}
@@ -148,8 +149,31 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
   );
 }
 
+
+function GallerySkeleton() {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="aspect-square">
+                    <Skeleton className="w-full h-full" />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+
 export default function GalleryPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+
+  const photosQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'));
+  }, [user, firestore]);
+  
+  const { data: userPhotos, isLoading } = useCollection<Photo>(photosQuery);
 
   const openDialog = (photo: Photo) => {
     setSelectedPhoto(photo);
@@ -158,6 +182,8 @@ export default function GalleryPage() {
   const closeDialog = () => {
     setSelectedPhoto(null);
   };
+
+  const photos = userPhotos || [];
 
   const sortedByRating = useMemo(() => {
     return [...photos].sort((a, b) => {
@@ -168,26 +194,42 @@ export default function GalleryPage() {
         }
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, []);
-
-  const sortedByDate = useMemo(() => {
-     return [...photos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, []);
+  }, [photos]);
+  
+  const sortedByDate = photos; // Already sorted by query
 
   return (
     <div className="container mx-auto">
-      <Tabs defaultValue="top-rated" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-          <TabsTrigger value="top-rated">En Beğenilenler</TabsTrigger>
-          <TabsTrigger value="newest">En Yeniler</TabsTrigger>
-        </TabsList>
-        <TabsContent value="top-rated" className="mt-6">
-            <PhotoGrid photos={sortedByRating} onPhotoClick={openDialog} />
-        </TabsContent>
-        <TabsContent value="newest" className="mt-6">
-            <PhotoGrid photos={sortedByDate} onPhotoClick={openDialog} />
-        </TabsContent>
-      </Tabs>
+      {photos.length === 0 && !isLoading && (
+        <div className="text-center py-20">
+          <h3 className="text-xl font-semibold">Henüz hiç fotoğraf analiz etmediniz.</h3>
+          <p className="text-muted-foreground mt-2">YZ Koçu'nu kullanarak ilk fotoğrafınızı analiz edin ve buraya eklensin!</p>
+        </div>
+      )}
+
+      {(photos.length > 0 || isLoading) && (
+        <Tabs defaultValue="top-rated" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+            <TabsTrigger value="top-rated">En Beğenilenler</TabsTrigger>
+            <TabsTrigger value="newest">En Yeniler</TabsTrigger>
+          </TabsList>
+          {isLoading ? (
+            <div className="mt-6">
+                <GallerySkeleton />
+            </div>
+          ) : (
+            <>
+              <TabsContent value="top-rated" className="mt-6">
+                  <PhotoGrid photos={sortedByRating} onPhotoClick={openDialog} />
+              </TabsContent>
+              <TabsContent value="newest" className="mt-6">
+                  <PhotoGrid photos={sortedByDate} onPhotoClick={openDialog} />
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
+      )}
+
       <PhotoDetailDialog 
         photo={selectedPhoto} 
         isOpen={!!selectedPhoto}
@@ -196,3 +238,5 @@ export default function GalleryPage() {
     </div>
   );
 }
+
+    

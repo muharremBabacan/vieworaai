@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -159,7 +159,7 @@ export default function PhotoAnalyzer() {
   };
   
   const handleAnalyze = () => {
-    if (!file || !preview || !userProfile || !userDocRef) return;
+    if (!file || !preview || !userProfile || !userDocRef || !authUser) return;
     if (userProfile.tokenBalance < 1) {
       toast({
         variant: 'destructive',
@@ -175,6 +175,15 @@ export default function PhotoAnalyzer() {
           photoDataUri: preview,
         });
         setResult(analysisResult);
+
+        // --- Save Photo to Firestore ---
+        const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
+        await addDoc(photosCollectionRef, {
+          imageUrl: preview,
+          imageHint: '', // No hint for user uploads
+          aiFeedback: analysisResult,
+          createdAt: new Date().toISOString(),
+        });
         
         // --- Oyunlaştırma Mantığı ---
         const xpFromAnalysis = 25;
@@ -315,3 +324,5 @@ export default function PhotoAnalyzer() {
     </div>
   );
 }
+
+    
