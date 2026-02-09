@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { photos } from '@/lib/data';
 import type { Photo } from '@/types';
@@ -14,6 +14,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -111,6 +113,41 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
   );
 }
 
+function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (photo: Photo) => void }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {photos.map((photo) => (
+        <Card
+          key={photo.id}
+          className="overflow-hidden cursor-pointer group"
+          onClick={() => onPhotoClick(photo)}
+        >
+          <CardContent className="p-0 aspect-w-1 aspect-h-1">
+            <div className="relative w-full h-full">
+              <Image
+                src={photo.imageUrl}
+                alt={`Kullanıcı fotoğrafı ${photo.id}`}
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                data-ai-hint={photo.imageHint}
+              />
+               {photo.aiFeedback?.rating && (
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  <Star className="h-3 w-3 text-yellow-400" />
+                  <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <span className="text-white font-semibold">Detayları Gör</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function GalleryPage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
@@ -122,38 +159,35 @@ export default function GalleryPage() {
     setSelectedPhoto(null);
   };
 
+  const sortedByRating = useMemo(() => {
+    return [...photos].sort((a, b) => {
+        const ratingA = a.aiFeedback?.rating.overall ?? 0;
+        const ratingB = b.aiFeedback?.rating.overall ?? 0;
+        if (ratingB !== ratingA) {
+          return ratingB - ratingA;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, []);
+
+  const sortedByDate = useMemo(() => {
+     return [...photos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, []);
+
   return (
     <div className="container mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {photos.map((photo) => (
-          <Card
-            key={photo.id}
-            className="overflow-hidden cursor-pointer group"
-            onClick={() => openDialog(photo)}
-          >
-            <CardContent className="p-0 aspect-w-1 aspect-h-1">
-              <div className="relative w-full h-full">
-                <Image
-                  src={photo.imageUrl}
-                  alt={`Kullanıcı fotoğrafı ${photo.id}`}
-                  fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  data-ai-hint={photo.imageHint}
-                />
-                 {photo.aiFeedback?.rating && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    <Star className="h-3 w-3 text-yellow-400" />
-                    <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <span className="text-white font-semibold">Detayları Gör</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Tabs defaultValue="top-rated" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+          <TabsTrigger value="top-rated">En Beğenilenler</TabsTrigger>
+          <TabsTrigger value="newest">En Yeniler</TabsTrigger>
+        </TabsList>
+        <TabsContent value="top-rated" className="mt-6">
+            <PhotoGrid photos={sortedByRating} onPhotoClick={openDialog} />
+        </TabsContent>
+        <TabsContent value="newest" className="mt-6">
+            <PhotoGrid photos={sortedByDate} onPhotoClick={openDialog} />
+        </TabsContent>
+      </Tabs>
       <PhotoDetailDialog 
         photo={selectedPhoto} 
         isOpen={!!selectedPhoto}
