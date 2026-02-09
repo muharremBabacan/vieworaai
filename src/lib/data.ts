@@ -1,16 +1,7 @@
-import type { User, Photo, Lesson, Package } from '@/types';
+import type { Photo, Lesson, Package } from '@/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const findImage = (id: string) => PlaceHolderImages.find((img) => img.id === id);
-
-export const user: User = {
-  name: 'Ali Veli',
-  email: 'ali.veli@example.com',
-  avatarUrl: findImage('user-avatar')?.imageUrl ?? 'https://picsum.photos/seed/301/100/100',
-  tokenBalance: 10,
-  planLevel: 'Temel',
-  xp: 0,
-};
 
 export const photos: Photo[] = [
   {

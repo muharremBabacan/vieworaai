@@ -1,9 +1,9 @@
 import type { AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 
 export type User = {
+  id: string;
   name: string;
   email: string;
-  avatarUrl: string;
   tokenBalance: number;
   planLevel: 'Temel' | 'Orta' | 'Pro';
   xp: number;

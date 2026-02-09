@@ -9,8 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 'lucide-react';
-import { user } from '@/lib/data';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { User as UserProfile } from '@/types';
 
 function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovementsOutput['rating'] }) {
   const data = [
@@ -103,6 +105,16 @@ export default function PhotoAnalyzer() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [authUser, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
   const handleFileChange = (selectedFile: File | null) => {
     if (selectedFile && selectedFile.type.startsWith('image/')) {
       setFile(selectedFile);
@@ -145,8 +157,8 @@ export default function PhotoAnalyzer() {
   };
   
   const handleAnalyze = () => {
-    if (!file || !preview) return;
-    if (user.tokenBalance < 1) {
+    if (!file || !preview || !userProfile || !userDocRef) return;
+    if (userProfile.tokenBalance < 1) {
       toast({
         variant: 'destructive',
         title: 'Yetersiz Token',
@@ -161,8 +173,9 @@ export default function PhotoAnalyzer() {
           photoDataUri: preview,
         });
         setResult(analysisResult);
-        // Here you would typically update the user's token balance in the database
-        user.tokenBalance -= 1; 
+        updateDocumentNonBlocking(userDocRef, {
+          tokenBalance: userProfile.tokenBalance - 1,
+        });
       } catch (error) {
         console.error('Analiz başarısız:', error);
         toast({
@@ -182,6 +195,8 @@ export default function PhotoAnalyzer() {
       fileInputRef.current.value = '';
     }
   };
+
+  const canAnalyze = !isPending && !isProfileLoading && userProfile && userProfile.tokenBalance >= 1;
 
   return (
     <div className="space-y-8">
@@ -228,7 +243,7 @@ export default function PhotoAnalyzer() {
               </Button>
             </div>
             <div className="p-6">
-              <Button onClick={handleAnalyze} disabled={isPending || user.tokenBalance < 1} className="w-full" size="lg">
+              <Button onClick={handleAnalyze} disabled={!canAnalyze} className="w-full" size="lg">
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -5,15 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Check, Gem, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { user } from '@/lib/data';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { User as UserProfile } from '@/types';
 
 export default function PricingPage() {
   const { toast } = useToast();
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [authUser, firestore]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const handlePurchase = (tokens: number) => {
-    // In a real app, this would trigger a payment flow with Stripe/Iyzico.
+    if (!userDocRef || !userProfile) return;
+    // In a real app, this would trigger a payment flow.
     // Here, we just simulate a successful purchase.
-    user.tokenBalance += tokens;
+    updateDocumentNonBlocking(userDocRef, {
+      tokenBalance: userProfile.tokenBalance + tokens,
+    });
     toast({
       title: 'Satın Alma Başarılı!',
       description: `${tokens} token hesabınıza eklendi.`,
@@ -57,6 +71,7 @@ export default function PricingPage() {
                 className="w-full" 
                 variant={pkg.isBestValue ? 'default' : 'outline'}
                 onClick={() => handlePurchase(pkg.tokens)}
+                disabled={!userProfile}
               >
                 Hemen Satın Al
               </Button>
