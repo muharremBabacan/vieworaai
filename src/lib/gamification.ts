@@ -13,10 +13,13 @@ export const levels: Level[] = [
 ];
 
 export function getLevelFromXp(xp: number): Level {
-  // Find the level where the user's XP is within the min/max range.
-  // The find will return the first match, which works because the array is sorted by minXp.
-  const currentLevel = levels.find(l => xp >= l.minXp && xp <= l.maxXp);
+  // Seviyeyi, kullanıcının XP'sinin min/max aralığında olduğu yeri bularak bulur.
+  // Bulma işlemi ilk eşleşmeyi döndürür, bu da dizi minXp'ye göre sıralandığı için çalışır.
+  const currentLevel = levels.find(l => xp >= l.minXp && xp < l.maxXp);
+
+  // Eğer bir seviye bulunamazsa (örneğin, 1000'den fazla XP), son seviyeyi döndür.
+  if (xp >= 1000) return levels[levels.length - 1];
   
-  // If for some reason a level isn't found (e.g., negative XP), default to the first level.
+  // Eğer bir seviye bulunamazsa (örneğin, negatif XP), ilk seviyeye varsayılan olarak ayarla.
   return currentLevel || levels[0];
 }

@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Check, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@/types';
+import { levels } from '@/lib/gamification';
 
 const photographyInterests = [
   'Ürün & E-ticaret',
@@ -28,9 +29,9 @@ const photographyInterests = [
 ];
 
 const skillLevels: {id: User['planLevel'], name: string, description: string, xp: number, levelName: string}[] = [
-    { id: 'Temel', name: 'Yeni Başlıyorum', description: 'Fotoğrafçılığın temellerini öğrenmek istiyorum.', xp: 0, levelName: 'Meraklı Göz'},
-    { id: 'Orta', name: 'Deneyimliyim', description: 'Becerilerimi geliştirmek ve yeni teknikler keşfetmek istiyorum.', xp: 100, levelName: 'Gelişen Kadraj' },
-    { id: 'Pro', name: 'Profesyonelim', description: 'İş akışımı hızlandırmak ve sanatsal vizyonumu zorlamak istiyorum.', xp: 250, levelName: 'Yetkin Vizör' },
+    { id: 'Temel', name: 'Yeni Başlıyorum', description: 'Fotoğrafçılığın temellerini öğrenmek istiyorum.', xp: 0, levelName: levels[0].name},
+    { id: 'Orta', name: 'Deneyimliyim', description: 'Becerilerimi geliştirmek ve yeni teknikler keşfetmek istiyorum.', xp: 100, levelName: levels[1].name },
+    { id: 'Pro', name: 'Profesyonelim', description: 'İş akışımı hızlandırmak ve sanatsal vizyonumu zorlamak istiyorum.', xp: 250, levelName: levels[2].name },
 ]
 
 

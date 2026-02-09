@@ -176,7 +176,7 @@ export default function PhotoAnalyzer() {
         });
         setResult(analysisResult);
         
-        // --- Gamification Logic ---
+        // --- Oyunlaştırma Mantığı ---
         const xpFromAnalysis = 25;
         const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
         const totalXpGained = xpFromAnalysis + bonusXp;
@@ -216,7 +216,7 @@ export default function PhotoAnalyzer() {
               });
            }, 200);
         }
-        // --- End Gamification Logic ---
+        // --- Oyunlaştırma Mantığı Sonu ---
 
       } catch (error) {
         console.error('Analiz başarısız:', error);

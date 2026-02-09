@@ -26,7 +26,7 @@ export default function ProfilePage() {
 
     if (isUserLoading || isProfileLoading || !userProfile) {
         return (
-            <div className="space-y-6">
+            <div className="container mx-auto space-y-6">
                 <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
                 <Card><CardContent className="p-6"><Skeleton className="h-24" /></CardContent></Card>
                 <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
@@ -35,13 +35,13 @@ export default function ProfilePage() {
     }
 
     const currentLevelInfo = getLevelFromXp(userProfile.xp);
-    const nextLevelInfo = levels[levels.indexOf(currentLevelInfo) + 1];
+    const nextLevelIndex = levels.findIndex(l => l.name === currentLevelInfo.name) + 1;
+    const nextLevelInfo = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
 
     const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.maxXp;
     const xpInCurrentLevel = userProfile.xp - currentLevelInfo.minXp;
-    const xpRangeOfCurrentLevel = (nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.maxXp) - currentLevelInfo.minXp;
+    const xpRangeOfCurrentLevel = (nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.minXp) - currentLevelInfo.minXp;
     
-    // Handle the final level case to prevent division by zero or weird percentages
     const xpPercentage = xpRangeOfCurrentLevel > 0 ? (xpInCurrentLevel / xpRangeOfCurrentLevel) * 100 : 100;
     const xpToNext = nextLevelInfo ? xpForNextLevel - userProfile.xp : 0;
 
@@ -63,8 +63,8 @@ export default function ProfilePage() {
                                 <span className="text-sm font-bold">{userProfile.xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
                             </div>
                             <Progress value={xpPercentage} />
-                            {xpToNext > 0 ? (
-                                <p className="text-xs text-muted-foreground mt-1">Sonraki seviye için {xpToNext} XP daha.</p>
+                            {xpToNext > 0 && nextLevelInfo ? (
+                                <p className="text-xs text-muted-foreground mt-1">{nextLevelInfo.name} seviyesi için {xpToNext} XP daha.</p>
                             ) : (
                                 <p className="text-xs text-muted-foreground mt-1">Tebrikler! En yüksek seviyeye ulaştınız!</p>
                             )}
