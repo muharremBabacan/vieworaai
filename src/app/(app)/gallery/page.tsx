@@ -30,7 +30,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
         <div className="md:w-1/2 w-full relative aspect-square md:aspect-auto">
           <Image
             src={photo.imageUrl}
-            alt="Analyzed photo"
+            alt="Analiz edilen fotoğraf"
             fill
             className="object-contain"
             data-ai-hint={photo.imageHint}
@@ -39,16 +39,16 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
         <ScrollArea className="md:w-1/2 w-full">
           <div className="p-6">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl mb-4">AI Feedback</DialogTitle>
+              <DialogTitle className="font-headline text-2xl mb-4">YZ Geri Bildirimi</DialogTitle>
             </DialogHeader>
             {photo.aiFeedback ? (
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-semibold text-lg mb-2">Analysis</h4>
+                  <h4 className="font-semibold text-lg mb-2">Analiz</h4>
                   <DialogDescription>{photo.aiFeedback.analysis}</DialogDescription>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-2">Improvement Tips</h4>
+                  <h4 className="font-semibold text-lg mb-2">İyileştirme İpuçları</h4>
                   <ul className="space-y-4">
                     {photo.aiFeedback.improvements.map((tip, index) => {
                       const Icon = improvements[index % improvements.length].icon;
@@ -65,7 +65,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               </div>
             ) : (
               <div className="text-center py-10">
-                <p className="text-muted-foreground">No analysis available for this photo.</p>
+                <p className="text-muted-foreground">Bu fotoğraf için analiz mevcut değil.</p>
               </div>
             )}
           </div>
@@ -99,13 +99,13 @@ export default function GalleryPage() {
               <div className="relative w-full h-full">
                 <Image
                   src={photo.imageUrl}
-                  alt={`User photo ${photo.id}`}
+                  alt={`Kullanıcı fotoğrafı ${photo.id}`}
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   data-ai-hint={photo.imageHint}
                 />
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <span className="text-white font-semibold">View Details</span>
+                  <span className="text-white font-semibold">Detayları Gör</span>
                 </div>
               </div>
             </CardContent>

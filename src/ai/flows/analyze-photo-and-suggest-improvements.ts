@@ -1,10 +1,10 @@
 'use server';
 /**
- * @fileOverview An AI agent that analyzes a photo and suggests improvements.
+ * @fileOverview Bir fotoğrafı analiz eden ve iyileştirmeler öneren bir YZ ajanı.
  *
- * - analyzePhotoAndSuggestImprovements - A function that handles the photo analysis and improvement suggestion process.
- * - AnalyzePhotoAndSuggestImprovementsInput - The input type for the analyzePhotoAndSuggestImprovements function.
- * - AnalyzePhotoAndSuggestImprovementsOutput - The return type for the analyzePhotoAndSuggestImprovements function.
+ * - analyzePhotoAndSuggestImprovements - Fotoğraf analizi ve iyileştirme önerisi sürecini yöneten bir fonksiyon.
+ * - AnalyzePhotoAndSuggestImprovementsInput - analyzePhotoAndSuggestImprovements fonksiyonu için girdi türü.
+ * - AnalyzePhotoAndSuggestImprovementsOutput - analyzePhotoAndSuggestImprovements fonksiyonu için dönüş türü.
  */
 
 import {ai} from '@/ai/genkit';
@@ -14,16 +14,16 @@ const AnalyzePhotoAndSuggestImprovementsInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo to be analyzed, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "Analiz edilecek bir fotoğraf, bir MIME türü içermesi ve Base64 kodlaması kullanması gereken bir veri URI'si olarak. Beklenen format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type AnalyzePhotoAndSuggestImprovementsInput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsInputSchema>;
 
 const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
-  analysis: z.string().describe('The overall analysis of the photo.'),
+  analysis: z.string().describe('Fotoğrafın genel analizi.'),
   improvements: z
     .array(z.string())
-    .describe('A list of concrete suggestions for improvement.'),
+    .describe('İyileştirme için somut önerilerin bir listesi.'),
 });
 export type AnalyzePhotoAndSuggestImprovementsOutput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsOutputSchema>;
 
@@ -37,11 +37,11 @@ const analyzePhotoAndSuggestImprovementsPrompt = ai.definePrompt({
   name: 'analyzePhotoAndSuggestImprovementsPrompt',
   input: {schema: AnalyzePhotoAndSuggestImprovementsInputSchema},
   output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
-  prompt: `You are an expert photography coach, providing guidance to photographers on how to improve their skills.
+  prompt: `Sen, fotoğrafçılara yeteneklerini nasıl geliştirebilecekleri konusunda rehberlik eden uzman bir fotoğrafçılık koçusun.
 
-You will analyze the provided photo in terms of its light, composition, emotional impact and technique. Provide 3 concrete suggestions on how the user can improve their photography skills.
+Sunulan fotoğrafı ışık, kompozisyon, duygusal etki ve teknik açılarından analiz edeceksin. Kullanıcının fotoğrafçılık becerilerini geliştirmesi için 3 somut öneride bulun.
 
-Photo: {{media url=photoDataUri}}`,
+Fotoğraf: {{media url=photoDataUri}}`,
 });
 
 const analyzePhotoAndSuggestImprovementsFlow = ai.defineFlow(

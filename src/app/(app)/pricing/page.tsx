@@ -15,17 +15,17 @@ export default function PricingPage() {
     // Here, we just simulate a successful purchase.
     user.tokenBalance += tokens;
     toast({
-      title: 'Purchase Successful!',
-      description: `${tokens} tokens have been added to your account.`,
+      title: 'Satın Alma Başarılı!',
+      description: `${tokens} token hesabınıza eklendi.`,
     });
   };
 
   return (
     <div className="container mx-auto">
       <div className="text-center mb-12">
-        <h2 className="font-headline text-4xl font-bold">Find a Plan That's Right for You</h2>
+        <h2 className="font-headline text-4xl font-bold">Size Uygun Planı Bulun</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Purchase tokens to get AI-powered feedback on your photos and accelerate your growth as a photographer.
+          Fotoğraflarınız hakkında yapay zeka destekli geri bildirimler almak ve bir fotoğrafçı olarak gelişiminizi hızlandırmak için token satın alın.
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -33,12 +33,12 @@ export default function PricingPage() {
           <Card key={pkg.id} className={`flex flex-col ${pkg.isBestValue ? 'border-primary ring-2 ring-primary' : ''}`}>
             {pkg.isBestValue && (
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Star className="mr-2 h-4 w-4" /> Best Value
+                <Star className="mr-2 h-4 w-4" /> En İyi Teklif
               </Badge>
             )}
             <CardHeader className="text-center">
               <CardTitle className="font-headline text-3xl flex items-center justify-center gap-2">
-                <Gem className="h-7 w-7 text-primary" /> {pkg.tokens} Tokens
+                <Gem className="h-7 w-7 text-primary" /> {pkg.tokens} Token
               </CardTitle>
               <CardDescription className="text-4xl font-bold pt-4">
                 {pkg.price} <span className="text-lg font-normal text-muted-foreground">{pkg.currency}</span>
@@ -47,9 +47,9 @@ export default function PricingPage() {
             <CardContent className="flex-grow">
               {/* You can add more details about each package here */}
               <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Detailed AI Analysis</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Actionable Feedback</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Access to Art Gallery</li>
+                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Detaylı YZ Analizi</li>
+                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Uygulanabilir Geri Bildirim</li>
+                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Sanat Galerisine Erişim</li>
               </ul>
             </CardContent>
             <CardFooter>
@@ -58,7 +58,7 @@ export default function PricingPage() {
                 variant={pkg.isBestValue ? 'default' : 'outline'}
                 onClick={() => handlePurchase(pkg.tokens)}
               >
-                Purchase Now
+                Hemen Satın Al
               </Button>
             </CardFooter>
           </Card>

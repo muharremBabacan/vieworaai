@@ -5,7 +5,7 @@ export type User = {
   email: string;
   avatarUrl: string;
   tokenBalance: number;
-  planLevel: 'Basic' | 'Mid' | 'Pro';
+  planLevel: 'Temel' | 'Orta' | 'Pro';
   xp: number;
 };
 
@@ -19,7 +19,7 @@ export type Photo = {
 
 export type Lesson = {
   id: string;
-  category: 'Composition' | 'Lighting' | 'Technique';
+  category: 'Kompozisyon' | 'Işık' | 'Teknik';
   title: string;
   content: string;
   imageUrl: string;

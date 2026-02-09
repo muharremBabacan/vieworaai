@@ -44,12 +44,12 @@ function LessonCard({ lesson }: { lesson: (typeof lessons)[0] }) {
           {isLearned ? (
             <>
               <Check className="mr-2 h-4 w-4" />
-              Learned!
+              Öğrenildi!
             </>
           ) : (
              <>
               <BookOpen className="mr-2 h-4 w-4" />
-              Mark as Learned
+              Öğrenildi Olarak İşaretle
             </>
           )}
         </Button>

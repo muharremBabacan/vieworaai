@@ -4,11 +4,11 @@ import { PlaceHolderImages } from './placeholder-images';
 const findImage = (id: string) => PlaceHolderImages.find((img) => img.id === id);
 
 export const user: User = {
-  name: 'Alex Doe',
-  email: 'alex.doe@example.com',
+  name: 'Ali Veli',
+  email: 'ali.veli@example.com',
   avatarUrl: findImage('user-avatar')?.imageUrl ?? 'https://picsum.photos/seed/301/100/100',
   tokenBalance: 10,
-  planLevel: 'Basic',
+  planLevel: 'Temel',
   xp: 0,
 };
 
@@ -16,13 +16,13 @@ export const photos: Photo[] = [
   {
     id: '1',
     imageUrl: findImage('gallery-1')?.imageUrl ?? '',
-    imageHint: findImage('gallery-1')?.imageHint ?? 'portrait',
+    imageHint: findImage('gallery-1')?.imageHint ?? 'portre',
     aiFeedback: {
-      analysis: 'This is a strong portrait with dramatic lighting. The play of shadow and light on the subject\'s face creates a sense of depth and mystery. The composition is tight, focusing the viewer\'s attention effectively.',
+      analysis: 'Bu, dramatik ışıklandırmaya sahip güçlü bir portre. Konunun yüzündeki ışık ve gölge oyunu, derinlik ve gizem hissi yaratıyor. Kompozisyon sıkı, izleyicinin dikkatini etkili bir şekilde odaklıyor.',
       improvements: [
-        'Experiment with a softer key light to create a different mood.',
-        'Consider using a reflector to fill in some of the shadows for a less dramatic look.',
-        'Try a different angle, perhaps from slightly below, to convey a sense of power.',
+        'Farklı bir ruh hali yaratmak için daha yumuşak bir anahtar ışıkla denemeler yapın.',
+        'Daha az dramatik bir görünüm için gölgelerin bir kısmını doldurmak amacıyla bir yansıtıcı kullanmayı düşünün.',
+        'Güç hissi vermek için belki biraz aşağıdan farklı bir açı deneyin.',
       ],
     },
     createdAt: '2023-10-26T10:00:00Z',
@@ -30,34 +30,34 @@ export const photos: Photo[] = [
   {
     id: '2',
     imageUrl: findImage('gallery-2')?.imageUrl ?? '',
-    imageHint: findImage('gallery-2')?.imageHint ?? 'street photography',
+    imageHint: findImage('gallery-2')?.imageHint ?? 'sokak fotoğrafçılığı',
     aiFeedback: null,
     createdAt: '2023-10-24T18:30:00Z',
   },
   {
     id: '3',
     imageUrl: findImage('gallery-3')?.imageUrl ?? '',
-    imageHint: findImage('gallery-3')?.imageHint ?? 'nature forest',
+    imageHint: findImage('gallery-3')?.imageHint ?? 'doğa orman',
     aiFeedback: null,
     createdAt: '2023-10-22T14:15:00Z',
   },
     {
     id: '4',
     imageUrl: findImage('gallery-4')?.imageUrl ?? '',
-    imageHint: findImage('gallery-4')?.imageHint ?? 'abstract architecture',
+    imageHint: findImage('gallery-4')?.imageHint ?? 'soyut mimari',
     aiFeedback: null,
     createdAt: '2023-10-20T09:00:00Z',
   },
   {
     id: '5',
     imageUrl: findImage('gallery-5')?.imageUrl ?? '',
-    imageHint: findImage('gallery-5')?.imageHint ?? 'black white',
+    imageHint: findImage('gallery-5')?.imageHint ?? 'siyah beyaz',
     aiFeedback: {
-      analysis: 'A powerful black and white landscape. The high contrast and stark composition create a raw and emotional image. The leading lines of the mountains guide the eye through the frame.',
+      analysis: 'Güçlü bir siyah beyaz manzara. Yüksek kontrast ve sade kompozisyon, ham ve duygusal bir görüntü yaratıyor. Dağların öncü çizgileri, gözü çerçevenin içinden geçiriyor.',
       improvements: [
-        'Try a longer exposure to smooth out the water and create a more ethereal feel.',
-        'In post-processing, experiment with dodging and burning to enhance the contrast in specific areas.',
-        'Explore different perspectives of this scene, perhaps a wider angle to include more of the sky.',
+        'Suyu pürüzsüzleştirmek ve daha ruhani bir his yaratmak için daha uzun bir pozlama deneyin.',
+        'Post-prodüksiyonda, belirli alanlardaki kontrastı artırmak için soldurma ve yakma (dodging and burning) ile denemeler yapın.',
+        'Bu sahnenin farklı perspektiflerini keşfedin, belki gökyüzünü daha fazla dahil etmek için daha geniş bir açı kullanın.',
       ],
     },
     createdAt: '2023-10-18T12:45:00Z',
@@ -65,7 +65,7 @@ export const photos: Photo[] = [
     {
     id: '6',
     imageUrl: findImage('gallery-6')?.imageUrl ?? '',
-    imageHint: findImage('gallery-6')?.imageHint ?? 'fashion portrait',
+    imageHint: findImage('gallery-6')?.imageHint ?? 'moda portre',
     aiFeedback: null,
     createdAt: '2023-10-15T16:20:00Z',
   },
@@ -74,27 +74,27 @@ export const photos: Photo[] = [
 export const lessons: Lesson[] = [
   {
     id: '1',
-    category: 'Composition',
-    title: 'The Rule of Thirds',
-    content: 'Imagine your frame is divided into a 3x3 grid. Placing key elements along these lines or at their intersections creates more balanced and engaging photos.',
+    category: 'Kompozisyon',
+    title: 'Üçler Kuralı',
+    content: 'Karenizin 3x3\'lük bir ızgaraya bölündüğünü hayal edin. Anahtar unsurları bu çizgiler boyunca veya kesişim noktalarına yerleştirmek, daha dengeli ve ilgi çekici fotoğraflar oluşturur.',
     imageUrl: findImage('academy-composition')?.imageUrl ?? '',
-    imageHint: findImage('academy-composition')?.imageHint ?? 'rule thirds',
+    imageHint: findImage('academy-composition')?.imageHint ?? 'üçler kuralı',
   },
   {
     id: '2',
-    category: 'Lighting',
-    title: 'Mastering Golden Hour',
-    content: 'The period shortly after sunrise or before sunset is called the "golden hour." The soft, warm, diffused light is incredibly flattering for portraits and landscapes.',
+    category: 'Işık',
+    title: 'Altın Saatte Ustalaşma',
+    content: 'Gündoğumundan hemen sonraki veya günbatımından hemen önceki dönem "altın saat" olarak adlandırılır. Yumuşak, sıcak, dağınık ışık, portreler ve manzaralar için inanılmaz derecede gurur okşayıcıdır.',
     imageUrl: findImage('academy-light')?.imageUrl ?? '',
-    imageHint: findImage('academy-light')?.imageHint ?? 'golden hour',
+    imageHint: findImage('academy-light')?.imageHint ?? 'altın saat',
   },
   {
     id: '3',
-    category: 'Technique',
-    title: 'Exploring Long Exposure',
-    content: 'Using a slow shutter speed can blur moving elements, creating dreamy effects with water, clouds, or city lights. A tripod is essential for this technique.',
+    category: 'Teknik',
+    title: 'Uzun Pozlamayı Keşfetme',
+    content: 'Yavaş bir enstantane hızı kullanmak, hareketli öğeleri bulanıklaştırarak su, bulutlar veya şehir ışıkları ile rüya gibi efektler yaratabilir. Bu teknik için bir tripod şarttır.',
     imageUrl: findImage('academy-technique')?.imageUrl ?? '',
-    imageHint: findImage('academy-technique')?.imageHint ?? 'long exposure',
+    imageHint: findImage('academy-technique')?.imageHint ?? 'uzun pozlama',
   },
 ];
 

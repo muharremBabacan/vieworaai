@@ -45,14 +45,14 @@ export function UserNav() {
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Gem className="h-4 w-4" />
-              <span>Tokens</span>
+              <span>Tokenlar</span>
             </div>
             <span className="font-semibold">{user.tokenBalance}</span>
           </div>
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
              <div className="flex items-center gap-2 text-muted-foreground">
               <VenetianMask className="h-4 w-4" />
-              <span>Tier</span>
+              <span>Seviye</span>
             </div>
             <Badge variant={user.planLevel === 'Pro' ? 'default' : 'secondary'} className="capitalize">{user.planLevel}</Badge>
           </div>
@@ -60,7 +60,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Çıkış Yap</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -22,13 +22,13 @@ function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovements
     <div className="space-y-6">
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-headline text-xl font-semibold mb-4">AI Analysis</h3>
+          <h3 className="font-headline text-xl font-semibold mb-4">YZ Analizi</h3>
           <p className="text-muted-foreground">{result.analysis}</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-headline text-xl font-semibold mb-4">Improvement Tips</h3>
+          <h3 className="font-headline text-xl font-semibold mb-4">İyileştirme İpuçları</h3>
           <ul className="space-y-4">
             {result.improvements.map((tip, index) => {
               const Icon = improvements[index % improvements.length].icon;
@@ -70,8 +70,8 @@ export default function PhotoAnalyzer() {
     } else if (selectedFile) {
       toast({
         variant: 'destructive',
-        title: 'Invalid File Type',
-        description: 'Please upload an image file (e.g., JPG, PNG).',
+        title: 'Geçersiz Dosya Türü',
+        description: 'Lütfen bir resim dosyası yükleyin (örn: JPG, PNG).',
       });
     }
   };
@@ -104,8 +104,8 @@ export default function PhotoAnalyzer() {
     if (user.tokenBalance < 1) {
       toast({
         variant: 'destructive',
-        title: 'Insufficient Tokens',
-        description: 'You need at least 1 token to analyze a photo.',
+        title: 'Yetersiz Token',
+        description: 'Bir fotoğrafı analiz etmek için en az 1 tokene ihtiyacınız var.',
       });
       return;
     }
@@ -119,11 +119,11 @@ export default function PhotoAnalyzer() {
         // Here you would typically update the user's token balance in the database
         user.tokenBalance -= 1; 
       } catch (error) {
-        console.error('Analysis failed:', error);
+        console.error('Analiz başarısız:', error);
         toast({
           variant: 'destructive',
-          title: 'Analysis Failed',
-          description: 'Something went wrong. Please try again later.',
+          title: 'Analiz Başarısız',
+          description: 'Bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.',
         });
       }
     });
@@ -161,9 +161,9 @@ export default function PhotoAnalyzer() {
           <div className="space-y-4">
             <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
             <p className="text-muted-foreground">
-              <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+              <span className="font-semibold text-primary">Yüklemek için tıklayın</span> veya sürükleyip bırakın
             </p>
-            <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
+            <p className="text-xs text-muted-foreground">PNG, JPG, GIF 10MB'a kadar</p>
           </div>
         </div>
       )}
@@ -187,12 +187,12 @@ export default function PhotoAnalyzer() {
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
+                    Analiz ediliyor...
                   </>
                 ) : (
                   <>
                     <Zap className="mr-2 h-4 w-4" />
-                    Analyze Photo (1 Token)
+                    Fotoğrafı Analiz Et (1 Token)
                   </>
                 )}
               </Button>

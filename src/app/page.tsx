@@ -35,15 +35,15 @@ export default function LandingPage() {
           <div className="mx-auto max-w-2xl h-full flex flex-col justify-end pb-24 sm:pb-32 lg:pb-40">
             <div className="text-center">
               <h1 className="font-headline text-4xl font-bold tracking-tight text-white sm:text-6xl">
-                Unlock Your Artistic Vision
+                Sanatsal Vizyonunuzun Kilidini Açın
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-300">
-                Viewora is your personal AI photography coach. Get expert feedback on your photos to refine your technique and elevate your art.
+                Viewora, sizin kişisel yapay zeka fotoğrafçılık koçunuzdur. Tekniğinizi geliştirmek ve sanatınızı bir üst seviyeye taşımak için fotoğraflarınız hakkında uzman geri bildirimleri alın.
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 <Button asChild size="lg">
                   <Link href="/dashboard">
-                    Get Started <ArrowRight className="ml-2" />
+                    Başlayın <ArrowRight className="ml-2" />
                   </Link>
                 </Button>
               </div>

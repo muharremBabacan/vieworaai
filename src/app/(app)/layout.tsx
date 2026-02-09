@@ -32,22 +32,22 @@ const navItems = [
   {
     href: '/dashboard',
     icon: Sparkles,
-    label: 'AI Coach',
+    label: 'Yapay Zeka Koçu',
   },
   {
     href: '/gallery',
     icon: GalleryVertical,
-    label: 'Art Gallery',
+    label: 'Sanat Galerisi',
   },
   {
     href: '/academy',
     icon: GraduationCap,
-    label: 'Viewora Academy',
+    label: 'Viewora Akademisi',
   },
   {
     href: '/pricing',
     icon: Coins,
-    label: 'Get Tokens',
+    label: 'Token Satın Al',
   },
 ];
 
@@ -94,7 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onClick={() => setOpen(!open)}
             >
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle navigation menu</span>
+              <span className="sr-only">Navigasyon menüsünü aç/kapa</span>
             </Button>
           <div className="w-full flex-1">
             <h1 className="font-headline text-xl font-semibold">
