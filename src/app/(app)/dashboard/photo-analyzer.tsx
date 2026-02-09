@@ -5,11 +5,55 @@ import Image from 'next/image';
 import { analyzePhotoAndSuggestImprovements } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 'lucide-react';
 import { user } from '@/lib/data';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
+
+function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovementsOutput['rating'] }) {
+  const data = [
+    { subject: 'Işık', score: rating.lighting, fullMark: 10 },
+    { subject: 'Kompozisyon', score: rating.composition, fullMark: 10 },
+    { subject: 'Duygu', score: rating.emotion, fullMark: 10 },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline text-xl font-semibold">Derecelendirme</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div className="flex flex-col items-center justify-center space-y-2">
+          <h4 className="text-lg font-medium text-muted-foreground">Genel Puan</h4>
+          <div className="flex items-baseline">
+            <p className="text-6xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
+            <span className="text-2xl text-muted-foreground">/10</span>
+          </div>
+        </div>
+        <div className="w-full h-52">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+              <PolarGrid stroke="hsl(var(--border))"/>
+              <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 14 }} />
+              <PolarRadiusAxis angle={90} domain={[0, 10]} tick={false} axisLine={false} />
+              <Radar name="Puan" dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  borderColor: 'hsl(var(--border))',
+                  borderRadius: 'var(--radius)',
+                }}
+                cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovementsOutput }) {
   const improvements = [
@@ -20,6 +64,7 @@ function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovements
 
   return (
     <div className="space-y-6">
+      {result.rating && <AnalysisRating rating={result.rating} />}
       <Card>
         <CardContent className="p-6">
           <h3 className="font-headline text-xl font-semibold mb-4">YZ Analizi</h3>
@@ -203,6 +248,7 @@ export default function PhotoAnalyzer() {
 
       {isPending && (
          <div className="space-y-6">
+          <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
           <Card><CardContent className="p-6"><Skeleton className="h-24" /></CardContent></Card>
           <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
         </div>

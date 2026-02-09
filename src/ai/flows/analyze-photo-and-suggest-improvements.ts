@@ -24,6 +24,16 @@ const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
   improvements: z
     .array(z.string())
     .describe('İyileştirme için somut önerilerin bir listesi.'),
+  rating: z
+    .object({
+      lighting: z.number().describe('Işık kullanımı için 1-10 arası puan.'),
+      composition: z
+        .number()
+        .describe('Kompozisyon için 1-10 arası puan.'),
+      emotion: z.number().describe('Duygusal etki için 1-10 arası puan.'),
+      overall: z.number().describe('Genel olarak 1-10 arası puan.'),
+    })
+    .describe('Fotoğraf için kriterlere göre puanlama.'),
 });
 export type AnalyzePhotoAndSuggestImprovementsOutput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsOutputSchema>;
 
@@ -39,7 +49,16 @@ const analyzePhotoAndSuggestImprovementsPrompt = ai.definePrompt({
   output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
   prompt: `Sen, fotoğrafçılara yeteneklerini nasıl geliştirebilecekleri konusunda rehberlik eden uzman bir fotoğrafçılık koçusun.
 
-Sunulan fotoğrafı ışık, kompozisyon, duygusal etki ve teknik açılarından analiz edeceksin. Kullanıcının fotoğrafçılık becerilerini geliştirmesi için 3 somut öneride bulun.
+Sunulan fotoğrafı ışık, kompozisyon, duygusal etki ve teknik açılarından analiz edeceksin.
+
+Analizine dayanarak, aşağıdaki kriterlerin her biri için 1'den 10'a kadar bir puan ver:
+- Işık: Işığın etkin kullanımı, pozlama ve yarattığı atmosfer.
+- Kompozisyon: Üçler kuralı, öncü çizgiler, denge gibi kompozisyonel elementlerin kullanımı.
+- Duygusal Etki: Fotoğrafın izleyicide uyandırdığı his veya anlattığı hikaye.
+
+Bu üç puana dayanarak bir de genel bir puan ver. Puanları 'rating' objesi içinde döndür.
+
+Son olarak, kullanıcının fotoğrafçılık becerilerini geliştirmesi için 3 somut öneride bulun.
 
 Fotoğraf: {{media url=photoDataUri}}`,
 });
