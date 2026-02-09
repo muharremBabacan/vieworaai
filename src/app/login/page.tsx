@@ -56,20 +56,34 @@ export default function LoginPage() {
       if (!docSnap.exists()) {
         await setDoc(userRef, {
           id: firebaseUser.uid,
-          email: firebaseUser.email,
-          name: firebaseUser.displayName,
+          email: firebaseUser.email || '',
+          name: firebaseUser.displayName || 'Kullanıcı',
           tokenBalance: 10, // Initial free tokens
           planLevel: 'Temel',
           xp: 0,
         });
       }
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
+      // Don't show an error toast if the user simply closed the popup
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.info('Sign-in popup closed by user.');
+        return;
+      }
+      
       console.error(`Sign in with ${providerName} failed`, error);
+      
+      let description = 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
+      if (error.code === 'auth/unauthorized-domain') {
+        description = 'Bu domain, Firebase projenizde yetkilendirilmemiş. Lütfen Firebase konsolundan yetkilendirin.';
+      } else if (error.message) {
+        description = error.message;
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Giriş Başarısız',
-        description: 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
+        description: description,
       });
     }
   };
