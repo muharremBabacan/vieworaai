@@ -16,7 +16,7 @@ const GoogleIcon = () => (
     <title>Google</title>
     <path
       d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.36 1.67-4.01 1.67-3.41 0-6.18-2.79-6.18-6.18S6.71 7.64 10.12 7.64c1.78 0 3.03.71 3.73 1.39l2.75-2.75C15.43 5.09 13.01 4 10.12 4A8.25 8.25 0 0 0 1.87 12a8.25 8.25 0 0 0 8.25 8.25c2.43 0 4.58-.81 6.18-2.43a6.92 6.92 0 0 0 2.1-5.01c0-.52-.05-.98-.12-1.42Z"
-      fill="#4285F4"
+      fill="currentColor"
     />
   </svg>
 );
@@ -41,14 +41,14 @@ export default function LoginPage() {
       if (!docSnap.exists()) {
         await setDoc(userRef, {
           id: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          name: firebaseUser.displayName || 'Kullanıcı',
+          email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
+          name: firebaseUser.displayName || 'İsimsiz Sanatçı',
           tokenBalance: 10, // Initial free tokens
           planLevel: 'Temel',
           xp: 0,
         });
       }
-      router.push('/dashboard');
+      router.push('/academy');
     } catch (error: any) {
       // Don't show an error toast if the user simply closed the popup
       if (error.code === 'auth/popup-closed-by-user') {
@@ -85,7 +85,7 @@ export default function LoginPage() {
             Hesap oluşturun veya giriş yapın
            </h1>
            <p className="text-sm text-muted-foreground">
-            Devam etmek için bir sağlayıcı seçin.
+            Devam etmek için Google ile giriş yapın.
            </p>
          </div>
         <div className="grid gap-4">

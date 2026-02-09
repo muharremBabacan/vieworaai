@@ -16,10 +16,10 @@ import { useUser } from '@/firebase';
 
 const navItems = [
   {
-    href: '/dashboard',
-    icon: Sparkles,
-    label: 'Yapay Zeka Koçu',
-    shortLabel: 'Koç'
+    href: '/academy',
+    icon: GraduationCap,
+    label: 'Viewora Akademisi',
+    shortLabel: 'Akademi'
   },
   {
     href: '/gallery',
@@ -28,10 +28,10 @@ const navItems = [
     shortLabel: 'Galeri'
   },
   {
-    href: '/academy',
-    icon: GraduationCap,
-    label: 'Viewora Akademisi',
-    shortLabel: 'Akademi'
+    href: '/dashboard',
+    icon: Sparkles,
+    label: 'Yapay Zeka Koçu',
+    shortLabel: 'Koç'
   },
   {
     href: '/pricing',
