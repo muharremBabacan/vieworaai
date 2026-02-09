@@ -87,7 +87,7 @@ export function UserNav() {
               <VenetianMask className="h-4 w-4" />
               <span>Seviye</span>
             </div>
-            <Badge variant={userProfile.planLevel === 'Pro' ? 'default' : 'secondary'} className="capitalize">{userProfile.planLevel}</Badge>
+            <Badge variant={userProfile.planLevel === 'Pro' ? 'default' : 'secondary'} className="capitalize">{userProfile.level}</Badge>
           </div>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
