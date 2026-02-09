@@ -91,7 +91,7 @@ export default function OnboardingPage() {
       interests: selectedInterests,
       onboarded: true,
     }).then(() => {
-      router.replace('/academy');
+      router.replace('/profile');
     }).catch((error) => {
       console.error("Onboarding update failed:", error);
       toast({

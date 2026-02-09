@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Sparkles,
   Coins,
+  User as UserIcon,
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -34,6 +35,12 @@ const navItems = [
     icon: Sparkles,
     label: 'Yapay Zeka Koçu',
     shortLabel: 'Koç'
+  },
+  {
+    href: '/profile',
+    icon: UserIcon,
+    label: 'Profilim',
+    shortLabel: 'Profil'
   },
   {
     href: '/pricing',
@@ -106,7 +113,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/90 backdrop-blur-sm">
-        <div className="mx-auto grid h-16 max-w-md grid-cols-4">
+        <div className="mx-auto grid h-16 max-w-md grid-cols-5">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -127,5 +134,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-    

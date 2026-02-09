@@ -50,7 +50,7 @@ export default function LoginPage() {
           onboarded: false,
         });
       }
-      router.push('/academy');
+      router.push('/profile');
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user') {
         console.info('Sign-in popup closed by user.');
@@ -106,5 +106,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
