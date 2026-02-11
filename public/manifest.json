@@ -1,23 +1,42 @@
 {
   "name": "Viewora YZ Koçu",
   "short_name": "Viewora",
-  "description": "Fotoğrafçılık becerilerinizi geliştirmek için yapay zeka destekli koçluk.",
-  "start_url": "/",
+  "description": "Fotoğrafçılık becerilerinizi geliştirmek için yapay zeka destekli koçluk ve akademi.",
+  "id": "/?source=pwa",
+  "start_url": "/?standalone=true",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0c0e18",
   "theme_color": "#4338ca",
+  "categories": ["education", "photo"],
   "icons": [
     {
       "src": "/logo_192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/logo_512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "YZ Koçu",
+      "short_name": "Koç",
+      "description": "Hemen bir fotoğraf analiz et",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon_analiz.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Akademi",
+      "short_name": "Akademi",
+      "description": "Eğitim modüllerine göz at",
+      "url": "/academy",
+      "icons": [{ "src": "/icon_akademi.png", "sizes": "192x192" }]
     }
   ]
 }
