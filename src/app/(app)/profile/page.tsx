@@ -37,11 +37,13 @@ export default function ProfilePage() {
     useEffect(() => {
         if (!userProfile || !userDocRef || !authUser) return;
 
+        const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+        
         const lastRefillDate = new Date(userProfile.weekly_free_refill_date);
         const sevenDaysAgo = addDays(new Date(), -7);
 
-        if (isBefore(lastRefillDate, sevenDaysAgo) && (userProfile.auro_balance ?? 0) < 10) {
-            const refillAmount = 10 - (userProfile.auro_balance ?? 0);
+        if (isBefore(lastRefillDate, sevenDaysAgo) && auroBalance < 10) {
+            const refillAmount = 10 - auroBalance;
             const newAuroBalance = 10;
             
             updateDocumentNonBlocking(userDocRef, {
@@ -75,27 +77,24 @@ export default function ProfilePage() {
             </div>
         )
     }
+    
+    // Robustly handle potentially missing or non-numeric values to prevent NaN errors.
+    const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
+    const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+    const interests = userProfile.interests ?? [];
 
-    // Fallback for potentially missing fields to prevent rendering NaN
-    const safeUserProfile = {
-        ...userProfile,
-        current_xp: userProfile.current_xp ?? 0,
-        auro_balance: userProfile.auro_balance ?? 0,
-        interests: userProfile.interests ?? [],
-    };
-
-    const currentLevelInfo = getLevelFromXp(safeUserProfile.current_xp);
+    const currentLevelInfo = getLevelFromXp(currentXp);
     const nextLevelIndex = levels.findIndex(l => l.name === currentLevelInfo.name) + 1;
     const nextLevelInfo = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
 
-    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : safeUserProfile.current_xp;
+    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : currentXp;
     const xpBaseForCurrentLevel = currentLevelInfo.minXp;
     
-    const xpInCurrentLevel = safeUserProfile.current_xp - xpBaseForCurrentLevel;
+    const xpInCurrentLevel = currentXp - xpBaseForCurrentLevel;
     const xpRangeOfCurrentLevel = nextLevelInfo ? nextLevelInfo.minXp - xpBaseForCurrentLevel : 0;
     
     const xpPercentage = xpRangeOfCurrentLevel > 0 ? Math.min((xpInCurrentLevel / xpRangeOfCurrentLevel) * 100, 100) : 100;
-    const xpToNext = nextLevelInfo ? xpForNextLevel - safeUserProfile.current_xp : 0;
+    const xpToNext = nextLevelInfo ? xpForNextLevel - currentXp : 0;
 
 
     return (
@@ -118,7 +117,7 @@ export default function ProfilePage() {
                         <div>
                             <div className="flex justify-between items-center mb-1">
                                 <span className="text-sm text-muted-foreground">Deneyim Puanı (XP)</span>
-                                <span className="text-sm font-bold">{safeUserProfile.current_xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
+                                <span className="text-sm font-bold">{currentXp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
                             </div>
                             <Progress value={xpPercentage} />
                             {nextLevelInfo ? (
@@ -133,7 +132,7 @@ export default function ProfilePage() {
                                 <Gem className="h-5 w-5 text-cyan-400"/>
                                 <span className="text-muted-foreground">Auro Bakiyesi</span>
                             </div>
-                            <span className="text-lg font-bold">{safeUserProfile.auro_balance}</span>
+                            <span className="text-lg font-bold">{auroBalance}</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -147,7 +146,7 @@ export default function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-2">
-                            {safeUserProfile.interests.length > 0 ? safeUserProfile.interests.map(interest => (
+                            {interests.length > 0 ? interests.map(interest => (
                                 <Badge key={interest} variant="secondary">{interest}</Badge>
                             )) : <p className="text-sm text-muted-foreground">Henüz ilgi alanı seçmediniz.</p>}
                         </div>
