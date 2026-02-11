@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Check, Gem, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { User as UserProfile } from '@/types';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import type { User as UserProfile, Package } from '@/types';
 
 export default function PricingPage() {
   const { toast } = useToast();
@@ -21,17 +21,47 @@ export default function PricingPage() {
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
-  const handlePurchase = (tokens: number) => {
-    if (!userDocRef || !userProfile) return;
-    // In a real app, this would trigger a payment flow.
-    // Here, we just simulate a successful purchase.
-    updateDocumentNonBlocking(userDocRef, {
-      tokenBalance: userProfile.tokenBalance + tokens,
-    });
+  const handlePurchase = (pkg: Package) => {
+    if (!userDocRef || !userProfile || !authUser) return;
+    
+    // --- GERÇEK UYGULAMA İÇİN NOT ---
+    // Bu kısım, gerçek bir ödeme entegrasyonu için bir başlangıç noktasıdır.
+    // 1. Bu fonksiyon, sizin oluşturacağınız bir backend API'sine istek göndermelidir. (Örn: /api/create-payment)
+    // 2. Backend, iyzico API'si ile güvenli bir şekilde konuşarak bir ödeme linki oluşturmalıdır.
+    // 3. Backend'den dönen ödeme linkine kullanıcı yönlendirilir.
+    // 4. Ödeme başarılı olduğunda, iyzico'dan gelen bir webhook ile backend'iniz tetiklenir ve işlem kaydı oluşturulur.
+    // 5. Backend, Firestore'daki kullanıcının token sayısını güvenli bir şekilde günceller.
+    
+    // Şimdilik, ödeme akışını SİMÜLE EDİYORUZ.
     toast({
-      title: 'Satın Alma Başarılı!',
-      description: `${tokens} token hesabınıza eklendi.`,
+      title: 'Ödeme Sağlayıcıya Yönlendiriliyor...',
+      description: `Bu bir simülasyondur. Gerçek uygulamada iyzico'ya yönlendirileceksiniz.`,
     });
+
+    // Simülasyon: 2 saniye sonra token ekle ve işlem kaydı oluştur
+    setTimeout(() => {
+        // 1. Token bakiyesini güncelle
+        updateDocumentNonBlocking(userDocRef, {
+          tokenBalance: userProfile.tokenBalance + pkg.tokens,
+        });
+
+        // 2. İşlem kaydı oluştur (simülasyon)
+        const transactionsCollectionRef = collection(firestore, 'users', authUser.uid, 'transactions');
+        const transactionData = {
+          userId: authUser.uid,
+          amount: pkg.tokens,
+          type: 'Purchase',
+          status: 'Completed',
+          transactionDate: new Date().toISOString(),
+        };
+        addDocumentNonBlocking(transactionsCollectionRef, transactionData);
+
+        // 3. Kullanıcıyı bilgilendir
+        toast({
+          title: 'Satın Alma Başarılı!',
+          description: `${pkg.tokens} token hesabınıza eklendi.`,
+        });
+    }, 2000);
   };
 
   return (
@@ -70,7 +100,7 @@ export default function PricingPage() {
               <Button 
                 className="w-full" 
                 variant={pkg.isBestValue ? 'default' : 'outline'}
-                onClick={() => handlePurchase(pkg.tokens)}
+                onClick={() => handlePurchase(pkg)}
                 disabled={!userProfile}
               >
                 Hemen Satın Al

@@ -14,6 +14,7 @@ export type User = {
 
 export type Photo = {
   id: string;
+  userId?: string; // Added to satisfy security rules on creation
   imageUrl: string;
   imageHint: string;
   aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
@@ -37,4 +38,11 @@ export type Package = {
   isBestValue: boolean;
 };
 
-    
+export type Transaction = {
+    id: string;
+    userId: string;
+    amount: number;
+    type: 'Purchase' | 'Gift';
+    status: 'Completed' | 'Pending' | 'Failed';
+    transactionDate: string;
+};
