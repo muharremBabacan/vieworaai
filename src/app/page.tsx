@@ -34,7 +34,7 @@ export default function LandingPage() {
 
           <div className="mx-auto max-w-2xl h-full flex flex-col justify-end pb-24 sm:pb-32 lg:pb-40">
             <div className="text-center">
-              <h1 className="font-sans text-4xl font-bold tracking-tight sm:text-6xl bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="font-sans text-4xl font-bold tracking-tight sm:text-6xl bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
                 Sanatsal Vizyonunuzun Kilidini Açın
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-300">

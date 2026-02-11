@@ -12,7 +12,7 @@ export default function Logo({ className }: { className?: string }) {
       >
         <defs>
           <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="0%" stopColor="#22d3ee" />
             <stop offset="100%" stopColor="#9333ea" />
           </linearGradient>
         </defs>
@@ -42,7 +42,7 @@ export default function Logo({ className }: { className?: string }) {
         <circle cx="23.2" cy="22.4" r="1.5" fill="url(#logo-gradient)" />
         <path d="M23.2 22.4L25 24.2" stroke="url(#logo-gradient)" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
-      <span className="font-sans text-xl font-semibold tracking-wider bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+      <span className="font-sans text-xl font-semibold tracking-wider bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
         Viewora
       </span>
     </div>

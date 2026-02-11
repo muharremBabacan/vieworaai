@@ -105,7 +105,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8">
           <div className="mb-6">
-              <h1 className="font-sans text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="font-sans text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
                   {navItems.find(item => pathname.startsWith(item.href))?.label}
               </h1>
           </div>
