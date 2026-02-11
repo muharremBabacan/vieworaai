@@ -45,8 +45,8 @@ const navItems = [
   {
     href: '/pricing',
     icon: Coins,
-    label: 'Token Satın Al',
-    shortLabel: 'Token'
+    label: 'Aura Satın Al',
+    shortLabel: 'Aura'
   },
 ];
 
@@ -134,5 +134,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-    

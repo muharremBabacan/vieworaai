@@ -42,15 +42,17 @@ export default function LoginPage() {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
           name: firebaseUser.displayName || 'İsimsiz Sanatçı',
-          tokenBalance: 10,
-          planLevel: 'Temel',
-          xp: 0,
-          level: 'Meraklı Göz', // Starting gamification level
+          aura_balance: 20, // Hoş geldin hediyesi: 10 analiz (20 Aura)
+          current_xp: 0,
+          level_name: 'Neuner',
+          is_mentor: false,
+          weekly_free_refill_date: new Date().toISOString(),
+          completed_modules: [],
           interests: [],
           onboarded: false,
         });
       }
-      // Redirect to onboarding if they haven't done it, otherwise to their profile.
+      // Kullanıcıyı onboarding'i yapmadıysa oraya, yaptıysa profiline yönlendir.
       if (docSnap.exists() && docSnap.data().onboarded) {
         router.push('/profile');
       } else {

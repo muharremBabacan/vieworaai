@@ -1,18 +1,21 @@
 'use client';
-
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useEffect } from 'react';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Award, Gem, Camera, Tag, Trophy } from 'lucide-react';
+import { Award, Gem, Camera, Tag, Trophy, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { levels, getLevelFromXp } from '@/lib/gamification';
+import { useToast } from '@/hooks/use-toast';
+import { addDays, isBefore } from 'date-fns';
 
 export default function ProfilePage() {
     const { user: authUser, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
 
     const userDocRef = useMemoFirebase(() => {
         if (!authUser) return null;
@@ -30,6 +33,38 @@ export default function ProfilePage() {
     
     const photoCount = userPhotos?.length ?? 0;
 
+    // Haftalık Aura Yenileme Mantığı
+    useEffect(() => {
+        if (!userProfile || !userDocRef || !authUser) return;
+
+        const lastRefillDate = new Date(userProfile.weekly_free_refill_date);
+        const sevenDaysAgo = addDays(new Date(), -7);
+
+        if (isBefore(lastRefillDate, sevenDaysAgo) && userProfile.aura_balance < 10) {
+            const refillAmount = 10 - userProfile.aura_balance;
+            const newAuraBalance = 10;
+            
+            updateDocumentNonBlocking(userDocRef, {
+                aura_balance: newAuraBalance,
+                weekly_free_refill_date: new Date().toISOString()
+            });
+
+            const transactionsCollectionRef = collection(firestore, 'users', authUser.uid, 'transactions');
+            addDocumentNonBlocking(transactionsCollectionRef, {
+                userId: authUser.uid,
+                amount: refillAmount,
+                type: 'Refill',
+                status: 'Completed',
+                transactionDate: new Date().toISOString(),
+            });
+            
+            toast({
+                title: '✨ Haftalık Hediye!',
+                description: `Aura bakiyeniz 10'a tamamlandı.`
+            });
+        }
+    }, [userProfile, userDocRef, authUser, firestore, toast]);
+
 
     if (isUserLoading || isProfileLoading || !userProfile || (authUser && arePhotosLoading)) {
         return (
@@ -41,16 +76,16 @@ export default function ProfilePage() {
         )
     }
 
-    const currentLevelInfo = getLevelFromXp(userProfile.xp);
+    const currentLevelInfo = getLevelFromXp(userProfile.current_xp);
     const nextLevelIndex = levels.findIndex(l => l.name === currentLevelInfo.name) + 1;
     const nextLevelInfo = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
 
-    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.maxXp;
-    const xpInCurrentLevel = userProfile.xp - currentLevelInfo.minXp;
-    const xpRangeOfCurrentLevel = (nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.minXp) - currentLevelInfo.minXp;
+    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.minXp;
+    const xpInCurrentLevel = userProfile.current_xp - currentLevelInfo.minXp;
+    const xpRangeOfCurrentLevel = (nextLevelInfo ? nextLevelInfo.minXp - currentLevelInfo.minXp : 0);
     
     const xpPercentage = xpRangeOfCurrentLevel > 0 ? (xpInCurrentLevel / xpRangeOfCurrentLevel) * 100 : 100;
-    const xpToNext = nextLevelInfo ? xpForNextLevel - userProfile.xp : 0;
+    const xpToNext = nextLevelInfo ? xpForNextLevel - userProfile.current_xp : 0;
 
 
     return (
@@ -58,16 +93,24 @@ export default function ProfilePage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card className="lg:col-span-1">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-3">
-                            <Award className="h-6 w-6 text-primary" />
-                            <span>Seviye: {userProfile.level}</span>
+                        <CardTitle className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                             <Award className="h-6 w-6 text-primary" />
+                             <span>Seviye: {userProfile.level_name}</span>
+                           </div>
+                           {userProfile.is_mentor && (
+                             <Badge variant="default" className="bg-amber-500 text-black">
+                               <ShieldCheck className="mr-2 h-4 w-4" />
+                               Mentor
+                             </Badge>
+                           )}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
                             <div className="flex justify-between items-center mb-1">
                                 <span className="text-sm text-muted-foreground">Deneyim Puanı (XP)</span>
-                                <span className="text-sm font-bold">{userProfile.xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
+                                <span className="text-sm font-bold">{userProfile.current_xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
                             </div>
                             <Progress value={xpPercentage} />
                             {xpToNext > 0 && nextLevelInfo ? (
@@ -79,10 +122,10 @@ export default function ProfilePage() {
                         
                         <div className="flex items-center justify-between rounded-lg border p-4">
                             <div className="flex items-center gap-3">
-                                <Gem className="h-5 w-5 text-blue-400"/>
-                                <span className="text-muted-foreground">Token Bakiyesi</span>
+                                <Gem className="h-5 w-5 text-cyan-400"/>
+                                <span className="text-muted-foreground">Aura Bakiyesi</span>
                             </div>
-                            <span className="text-lg font-bold">{userProfile.tokenBalance}</span>
+                            <span className="text-lg font-bold">{userProfile.aura_balance}</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -112,7 +155,7 @@ export default function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Yüklenen Fotoğraf</span>
+                            <span className="text-muted-foreground">Analiz Edilen Fotoğraf</span>
                             <span className="text-lg font-bold">{photoCount}</span>
                         </div>
                          {/* More stats can go here */}
@@ -125,7 +168,7 @@ export default function ProfilePage() {
                             <Trophy className="h-6 w-6 text-primary" />
                             <span>Yaklaşan Yarışmalar</span>
                         </CardTitle>
-                        <CardDescription>Becerilerini sergile ve ödüller kazan!</CardDescription>
+                        <CardDescription>Becerilerini sergile, XP ve Aura kazan!</CardDescription>
                     </CardHeader>
                     <CardContent className="text-center py-10">
                         <p className="text-muted-foreground">Şu anda aktif bir yarışma bulunmuyor. Takipte kalın!</p>
@@ -135,5 +178,3 @@ export default function ProfilePage() {
         </div>
     )
 }
-
-    

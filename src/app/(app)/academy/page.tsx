@@ -14,14 +14,13 @@ import type { User as UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
 
-function LessonCard({ lesson, onLearn }: { lesson: (typeof lessons)[0]; onLearn: (xp: number) => void; }) {
-  const [isLearned, setIsLearned] = useState(false);
-  const xpForLesson = 15;
+function LessonCard({ lesson, onLearn, isCompleted }: { lesson: (typeof lessons)[0]; onLearn: (lessonId: string, xp: number, aura: number) => void; isCompleted: boolean; }) {
+  const xpForLesson = 10;
+  const auraForLesson = 2;
 
   const handleLearn = () => {
-    if (isLearned) return;
-    onLearn(xpForLesson);
-    setIsLearned(true);
+    if (isCompleted) return;
+    onLearn(lesson.id, xpForLesson, auraForLesson);
   };
 
   return (
@@ -45,19 +44,19 @@ function LessonCard({ lesson, onLearn }: { lesson: (typeof lessons)[0]; onLearn:
       <CardFooter className="p-6 pt-0">
         <Button
           onClick={handleLearn}
-          disabled={isLearned}
+          disabled={isCompleted}
           className="w-full"
-          variant={isLearned ? 'secondary' : 'default'}
+          variant={isCompleted ? 'secondary' : 'default'}
         >
-          {isLearned ? (
+          {isCompleted ? (
             <>
               <Check className="mr-2 h-4 w-4" />
-              Öğrenildi! (+{xpForLesson} XP)
+              Öğrenildi!
             </>
           ) : (
              <>
               <BookOpen className="mr-2 h-4 w-4" />
-              Öğrenildi Olarak İşaretle
+              Öğrenildi Olarak İşaretle (+{xpForLesson} XP, +{auraForLesson} Aura)
             </>
           )}
         </Button>
@@ -78,40 +77,57 @@ export default function AcademyPage() {
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
-  const handleLearn = async (xpToAdd: number) => {
+  const handleLearn = async (lessonId: string, xpToAdd: number, auraToAdd: number) => {
     if (!userProfile || !userDocRef) return;
+    if (userProfile.completed_modules?.includes(lessonId)) return; // Already completed
 
-    const currentLevel = getLevelFromXp(userProfile.xp);
-    const newXp = userProfile.xp + xpToAdd;
+    const currentLevel = getLevelFromXp(userProfile.current_xp);
+    const newXp = userProfile.current_xp + xpToAdd;
     const newLevel = getLevelFromXp(newXp);
+    const newAura = userProfile.aura_balance + auraToAdd;
 
-    const updatePayload: Partial<UserProfile> = { xp: newXp };
+    const updatePayload: Partial<UserProfile> = {
+      current_xp: newXp,
+      aura_balance: newAura,
+      completed_modules: [...(userProfile.completed_modules || []), lessonId],
+    };
 
     if (newLevel.name !== currentLevel.name) {
-      updatePayload.level = newLevel.name;
+      updatePayload.level_name = newLevel.name;
+      if (newLevel.isMentor) {
+        updatePayload.is_mentor = true;
+      }
     }
 
     try {
       await updateDoc(userDocRef, updatePayload);
       toast({
-        title: 'XP Kazandın!',
-        description: `Bu dersten ${xpToAdd} XP kazandın.`,
+        title: 'Ödül Kazandın!',
+        description: `Bu dersten ${xpToAdd} XP ve ${auraToAdd} Aura kazandın.`,
       });
 
-      if (updatePayload.level) {
-         setTimeout(() => {
+      if (updatePayload.level_name) {
+        setTimeout(() => {
+          toast({
+            title: '🎉 Seviye Atladın!',
+            description: `Tebrikler! Yeni seviyen: ${updatePayload.level_name}`,
+          });
+        }, 100);
+        if (updatePayload.is_mentor) {
+          setTimeout(() => {
             toast({
-              title: '🎉 Seviye Atladın!',
-              description: `Tebrikler! Yeni seviyen: ${updatePayload.level}`,
+              title: '👑 Mentor Oldun!',
+              description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.',
             });
-         }, 100);
+          }, 200);
+        }
       }
     } catch (error) {
-      console.error("Failed to update XP:", error);
+      console.error("Failed to update user profile:", error);
       toast({
         variant: 'destructive',
         title: 'Hata',
-        description: 'XP güncellenirken bir sorun oluştu.',
+        description: 'Profilin güncellenirken bir sorun oluştu.',
       });
     }
   };
@@ -121,7 +137,12 @@ export default function AcademyPage() {
     <div className="container mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {lessons.map((lesson) => (
-          <LessonCard key={lesson.id} lesson={lesson} onLearn={handleLearn} />
+          <LessonCard 
+            key={lesson.id} 
+            lesson={lesson} 
+            onLearn={handleLearn}
+            isCompleted={userProfile?.completed_modules?.includes(lesson.id) || false}
+          />
         ))}
       </div>
     </div>

@@ -160,11 +160,11 @@ export default function PhotoAnalyzer() {
   
   const handleAnalyze = () => {
     if (!file || !preview || !userProfile || !userDocRef || !authUser) return;
-    if (userProfile.tokenBalance < 1) {
+    if (userProfile.aura_balance < 2) {
       toast({
         variant: 'destructive',
-        title: 'Yetersiz Token',
-        description: 'Bir fotoğrafı analiz etmek için en az 1 tokene ihtiyacınız var.',
+        title: 'Yetersiz Aura',
+        description: 'Bir fotoğrafı analiz etmek için en az 2 Aura\'ya ihtiyacınız var.',
       });
       return;
     }
@@ -203,22 +203,25 @@ export default function PhotoAnalyzer() {
           }));
       });
       
-      // --- Oyunlaştırma Mantığı ---
-      const xpFromAnalysis = 25;
+      // --- Gamification Logic ---
+      const xpFromAnalysis = 15;
       const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
       const totalXpGained = xpFromAnalysis + bonusXp;
 
-      const currentLevel = getLevelFromXp(userProfile.xp);
-      const newXp = userProfile.xp + totalXpGained;
+      const currentLevel = getLevelFromXp(userProfile.current_xp);
+      const newXp = userProfile.current_xp + totalXpGained;
       const newLevel = getLevelFromXp(newXp);
       
-      const updatePayload: any = {
-        tokenBalance: userProfile.tokenBalance - 1,
-        xp: newXp
+      const updatePayload: Partial<UserProfile> = {
+        aura_balance: userProfile.aura_balance - 2,
+        current_xp: newXp
       };
 
       if (newLevel.name !== currentLevel.name) {
-        updatePayload.level = newLevel.name;
+        updatePayload.level_name = newLevel.name;
+        if (newLevel.isMentor) {
+            updatePayload.is_mentor = true;
+        }
       }
 
       updateDoc(userDocRef, updatePayload).catch((error) => {
@@ -241,15 +244,23 @@ export default function PhotoAnalyzer() {
             });
           }, 100);
       }
-      if (updatePayload.level) {
+      if (updatePayload.level_name) {
           setTimeout(() => {
             toast({
               title: '🎉 Seviye Atladın!',
-              description: `Tebrikler! Yeni seviyen: ${updatePayload.level}`,
+              description: `Tebrikler! Yeni seviyen: ${updatePayload.level_name}`,
             });
           }, 200);
+           if (updatePayload.is_mentor) {
+            setTimeout(() => {
+                toast({
+                  title: '👑 Mentor Oldun!',
+                  description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.',
+                });
+              }, 300);
+          }
       }
-      // --- Oyunlaştırma Mantığı Sonu ---
+      // --- Gamification Logic End ---
     });
   };
 
@@ -262,7 +273,7 @@ export default function PhotoAnalyzer() {
     }
   };
 
-  const canAnalyze = !isPending && !isProfileLoading && userProfile && userProfile.tokenBalance >= 1;
+  const canAnalyze = !isPending && !isProfileLoading && userProfile && userProfile.aura_balance >= 2;
 
   return (
     <div className="space-y-8">
@@ -318,7 +329,7 @@ export default function PhotoAnalyzer() {
                 ) : (
                   <>
                     <Zap className="mr-2 h-4 w-4" />
-                    Fotoğrafı Analiz Et (1 Token)
+                    Fotoğrafı Analiz Et (2 Aura)
                   </>
                 )}
               </Button>

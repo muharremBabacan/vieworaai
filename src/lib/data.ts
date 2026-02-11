@@ -102,7 +102,7 @@ export const lessons: Lesson[] = [
 ];
 
 export const packages: Package[] = [
-  { id: '1', tokens: 20, price: 100, currency: 'TL', isBestValue: false },
-  { id: '2', tokens: 50, price: 200, currency: 'TL', isBestValue: true },
-  { id: '3', tokens: 150, price: 500, currency: 'TL', isBestValue: false },
+  { id: '1', aura: 20, price: 100, currency: 'TL', isBestValue: false },
+  { id: '2', aura: 50, price: 200, currency: 'TL', isBestValue: true },
+  { id: '3', aura: 150, price: 500, currency: 'TL', isBestValue: false },
 ];

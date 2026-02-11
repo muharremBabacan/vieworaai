@@ -1,13 +1,17 @@
+'use client';
+
 import type { AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 
 export type User = {
   id: string;
   name: string | null;
   email: string | null;
-  tokenBalance: number;
-  planLevel: 'Temel' | 'Orta' | 'Pro';
-  xp: number;
-  level: string;
+  aura_balance: number; // Renamed from tokenBalance
+  current_xp: number; // Renamed from xp
+  level_name: string; // Renamed from level
+  is_mentor?: boolean; // New
+  weekly_free_refill_date: string; // New
+  completed_modules: string[]; // New
   interests: string[];
   onboarded: boolean;
 };
@@ -32,7 +36,7 @@ export type Lesson = {
 
 export type Package = {
   id: string;
-  tokens: number;
+  aura: number;
   price: number;
   currency: string;
   isBestValue: boolean;
@@ -42,7 +46,7 @@ export type Transaction = {
     id: string;
     userId: string;
     amount: number;
-    type: 'Purchase' | 'Gift';
+    type: 'Purchase' | 'Gift' | 'Refill';
     status: 'Completed' | 'Pending' | 'Failed';
     transactionDate: string;
 };

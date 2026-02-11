@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { Gem, LogOut, Award } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -77,17 +77,20 @@ export function UserNav() {
         <DropdownMenuGroup>
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Gem className="h-4 w-4" />
-              <span>Tokenlar</span>
+              <Gem className="h-4 w-4 text-cyan-400" />
+              <span>Aura</span>
             </div>
-            <span className="font-semibold">{userProfile.tokenBalance}</span>
+            <span className="font-semibold">{userProfile.aura_balance}</span>
           </div>
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
              <div className="flex items-center gap-2 text-muted-foreground">
               <Award className="h-4 w-4" />
               <span>Seviye</span>
             </div>
-            <Badge variant={userProfile.planLevel === 'Pro' ? 'default' : 'secondary'} className="capitalize">{userProfile.level}</Badge>
+            <Badge variant={userProfile.is_mentor ? 'default' : 'secondary'} className="capitalize">
+              {userProfile.is_mentor && <ShieldCheck className="mr-1 h-3 w-3"/>}
+              {userProfile.level_name}
+            </Badge>
           </div>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

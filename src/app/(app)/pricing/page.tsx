@@ -30,7 +30,7 @@ export default function PricingPage() {
     // 2. Backend, iyzico API'si ile güvenli bir şekilde konuşarak bir ödeme linki oluşturmalıdır.
     // 3. Backend'den dönen ödeme linkine kullanıcı yönlendirilir.
     // 4. Ödeme başarılı olduğunda, iyzico'dan gelen bir webhook ile backend'iniz tetiklenir ve işlem kaydı oluşturulur.
-    // 5. Backend, Firestore'daki kullanıcının token sayısını güvenli bir şekilde günceller.
+    // 5. Backend, Firestore'daki kullanıcının Aura bakiyesini güvenli bir şekilde günceller.
     
     // Şimdilik, ödeme akışını SİMÜLE EDİYORUZ.
     toast({
@@ -38,18 +38,18 @@ export default function PricingPage() {
       description: `Bu bir simülasyondur. Gerçek uygulamada iyzico'ya yönlendirileceksiniz.`,
     });
 
-    // Simülasyon: 2 saniye sonra token ekle ve işlem kaydı oluştur
+    // Simülasyon: 2 saniye sonra Aura ekle ve işlem kaydı oluştur
     setTimeout(() => {
-        // 1. Token bakiyesini güncelle
+        // 1. Aura bakiyesini güncelle
         updateDocumentNonBlocking(userDocRef, {
-          tokenBalance: userProfile.tokenBalance + pkg.tokens,
+          aura_balance: userProfile.aura_balance + pkg.aura,
         });
 
         // 2. İşlem kaydı oluştur (simülasyon)
         const transactionsCollectionRef = collection(firestore, 'users', authUser.uid, 'transactions');
         const transactionData = {
           userId: authUser.uid,
-          amount: pkg.tokens,
+          amount: pkg.aura,
           type: 'Purchase',
           status: 'Completed',
           transactionDate: new Date().toISOString(),
@@ -59,7 +59,7 @@ export default function PricingPage() {
         // 3. Kullanıcıyı bilgilendir
         toast({
           title: 'Satın Alma Başarılı!',
-          description: `${pkg.tokens} token hesabınıza eklendi.`,
+          description: `${pkg.aura} Aura hesabınıza eklendi.`,
         });
     }, 2000);
   };
@@ -67,9 +67,9 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto">
       <div className="text-center mb-12">
-        <h2 className="font-sans text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">Size Uygun Planı Bulun</h2>
+        <h2 className="font-sans text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">Aura Paketleri</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Fotoğraflarınız hakkında yapay zeka destekli geri bildirimler almak ve bir fotoğrafçı olarak gelişiminizi hızlandırmak için token satın alın.
+          Fotoğraflarınız hakkında yapay zeka destekli geri bildirimler almak ve bir fotoğrafçı olarak gelişiminizi hızlandırmak için Aura satın alın.
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -82,7 +82,7 @@ export default function PricingPage() {
             )}
             <CardHeader className="text-center">
               <CardTitle className="font-sans text-3xl flex items-center justify-center gap-2">
-                <Gem className="h-7 w-7 text-primary" /> {pkg.tokens} Token
+                <Gem className="h-7 w-7 text-primary" /> {pkg.aura} Aura
               </CardTitle>
               <CardDescription className="text-4xl font-bold pt-4">
                 {pkg.price} <span className="text-lg font-normal text-muted-foreground">{pkg.currency}</span>

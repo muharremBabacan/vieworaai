@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the Viewora AI Coach application.",
+      "description": "Represents a user of the Viewora AI Coach application, including their economic and progression state.",
       "properties": {
         "id": {
           "type": "string",
@@ -19,21 +19,33 @@
           "type": "string",
           "description": "User's full name."
         },
-        "tokenBalance": {
+        "aura_balance": {
           "type": "number",
-          "description": "Number of tokens the user currently has."
+          "description": "User's current balance of Aura, the in-app currency."
         },
-        "planLevel": {
-          "type": "string",
-          "description": "The user's current plan level (Basic, Mid, Pro)."
-        },
-        "xp": {
+        "current_xp": {
           "type": "number",
-          "description": "User's experience points for gamification."
+          "description": "User's current experience points."
         },
-        "level": {
+        "level_name": {
           "type": "string",
-          "description": "User's current level in the gamification system."
+          "description": "User's current level name in the gamification system (e.g., Neuner, Vexer)."
+        },
+        "is_mentor": {
+            "type": "boolean",
+            "description": "Flag that indicates if the user has reached the 'Vexer' level and gained mentor status."
+        },
+        "weekly_free_refill_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp tracking the last weekly free Aura refill."
+        },
+        "completed_modules": {
+            "type": "array",
+            "description": "An array of IDs for the academy modules the user has completed.",
+            "items": {
+                "type": "string"
+            }
         },
         "interests": {
           "type": "array",
@@ -51,11 +63,12 @@
         "id",
         "email",
         "name",
-        "tokenBalance",
-        "planLevel",
-        "xp",
-        "level",
-        "onboarded"
+        "aura_balance",
+        "current_xp",
+        "level_name",
+        "onboarded",
+        "completed_modules",
+        "weekly_free_refill_date"
       ]
     },
     "Photo": {
@@ -133,7 +146,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a transaction (purchase or gift) of tokens.",
+      "description": "Represents a transaction (purchase, gift, or refill) of Aura.",
       "properties": {
         "id": {
           "type": "string",
@@ -145,11 +158,11 @@
         },
         "amount": {
           "type": "number",
-          "description": "Amount of tokens involved in the transaction."
+          "description": "Amount of Aura involved in the transaction."
         },
         "type": {
           "type": "string",
-          "description": "Type of transaction (Purchase or Gift)."
+          "description": "Type of transaction (Purchase, Gift, Refill)."
         },
         "status": {
           "type": "string",
@@ -254,4 +267,3 @@
     "reasoning": "The Firestore data structure is designed to support the Viewora AI Coach application's features, focusing on secure access, scalability, and maintainability. The key principle is Authorization Independence, achieved through denormalization. The structure is segregated to provide homogeneous security postures across collections.\n\n*   **Users (Private Data):** User data is stored under `/users/{userId}` ensuring only the authenticated user can access their own data. Path-based ownership simplifies security rules.\n*   **Photos (User-Owned Data):** Photos analyzed by the AI are stored under `/users/{userId}/photos/{photoId}`. This hierarchical structure maintains the 1:N relationship between Users and Photos. The `userId` is denormalized into the `Photo` document to enforce authorization independence.\n*   **Lessons (Public Data):** Lessons are stored in the `/lessons/{lessonId}` collection.  These are globally accessible so no user-specific authorization is applied.\n*   **Transactions (User-Owned Data):** Transaction data is stored under `/users/{userId}/transactions/{transactionId}`. This structure allows tracking of each user's transactions and follows the 1:N relationship between Users and Transactions. The `userId` is denormalized into the `Transaction` document to enforce authorization independence.\n\nThis design supports the required QAPs by:\n\n1.  **Authorization Independence:** Denormalizing `userId` into the `photos` and `transactions` collections eliminates the need for `get()` calls in security rules, enabling atomic operations.\n2.  **QAPs (Rules are not Filters):**  The structure enables secure `list` operations. Listing photos is secure as all photos under `/users/{userId}/photos/{photoId}` belong to the authenticated user. Similarly, listing transactions is secure as all transactions under `/users/{userId}/transactions/{transactionId}` belong to the authenticated user.\n3.  **Clarity of Intent (Debuggability):** The structure makes authorization intent explicit.  The use of path-based ownership for user-specific data clearly indicates that access is controlled by the user's ID."
   }
 }
-    
