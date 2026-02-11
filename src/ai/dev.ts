@@ -1,4 +1,2 @@
-import { config } from 'dotenv';
-config();
-
-import '@/ai/flows/analyze-photo-and-suggest-improvements.ts';
+// This file is intentionally left empty.
+// The AI flows it previously imported have been disabled or removed.

@@ -1,76 +1,64 @@
 'use server';
 /**
- * @fileOverview Bir fotoğrafı analiz eden ve iyileştirmeler öneren bir YZ ajanı.
+ * @fileOverview A placeholder for the photo analysis feature.
  *
- * - analyzePhotoAndSuggestImprovements - Fotoğraf analizi ve iyileştirme önerisi sürecini yöneten bir fonksiyon.
- * - AnalyzePhotoAndSuggestImprovementsInput - analyzePhotoAndSuggestImprovements fonksiyonu için girdi türü.
- * - AnalyzePhotoAndSuggestImprovementsOutput - analyzePhotoAndSuggestImprovements fonksiyonu için dönüş türü.
+ * - analyzePhotoAndSuggestImprovements - A function that returns placeholder analysis data.
+ * - AnalyzePhotoAndSuggestImprovementsInput - The input type for the analyzePhotoAndSuggestImprovements function.
+ * - AnalyzePhotoAndSuggestImprovementsOutput - The return type for the analyzePhotoAndSuggestImprovements function.
  */
 
-import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+// Schemas and types remain to avoid breaking imports in other files.
 const AnalyzePhotoAndSuggestImprovementsInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "Analiz edilecek bir fotoğraf, bir MIME türü içermesi ve Base64 kodlaması kullanması gereken bir veri URI'si olarak. Beklenen format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type AnalyzePhotoAndSuggestImprovementsInput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsInputSchema>;
 
 const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
-  analysis: z.string().describe('Fotoğrafın genel analizi.'),
+  analysis: z.string().describe('The overall analysis of the photo.'),
   improvements: z
     .array(z.string())
-    .describe('İyileştirme için somut önerilerin bir listesi.'),
+    .describe('A list of concrete suggestions for improvement.'),
   rating: z
     .object({
-      lighting: z.number().describe('Işık kullanımı için 1-10 arası puan.'),
+      lighting: z.number().describe('A rating for lighting from 1-10.'),
       composition: z
         .number()
-        .describe('Kompozisyon için 1-10 arası puan.'),
-      emotion: z.number().describe('Duygusal etki için 1-10 arası puan.'),
-      overall: z.number().describe('Genel olarak 1-10 arası puan.'),
+        .describe('A rating for composition from 1-10.'),
+      emotion: z.number().describe('A rating for emotional impact from 1-10.'),
+      overall: z.number().describe('An overall rating from 1-10.'),
     })
-    .describe('Fotoğraf için kriterlere göre puanlama.'),
+    .describe('A rating for the photo based on criteria.'),
 });
 export type AnalyzePhotoAndSuggestImprovementsOutput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsOutputSchema>;
 
+
+/**
+ * This is a placeholder function that returns a mock analysis result.
+ * The original Genkit AI flow has been removed to "clean" the file.
+ * The application will no longer call the AI model for analysis.
+ */
 export async function analyzePhotoAndSuggestImprovements(
   input: AnalyzePhotoAndSuggestImprovementsInput
 ): Promise<AnalyzePhotoAndSuggestImprovementsOutput> {
-  return analyzePhotoAndSuggestImprovementsFlow(input);
+  // Return a hardcoded placeholder response.
+  return {
+    analysis: 'Bu, temizlenmiş bir yer tutucu analizdir. Yapay zeka işlevi devre dışı bırakıldı.',
+    improvements: [
+      'Bu, bir yer tutucu ipucudur.',
+      'Yapay zeka akışı kaldırıldığı için gerçek bir öneri üretilmedi.',
+      'Bu dosyayı eski haline getirerek özelliği yeniden etkinleştirebilirsiniz.',
+    ],
+    rating: {
+      lighting: 5,
+      composition: 5,
+      emotion: 5,
+      overall: 5,
+    },
+  };
 }
-
-const analyzePhotoAndSuggestImprovementsPrompt = ai.definePrompt({
-  name: 'analyzePhotoAndSuggestImprovementsPrompt',
-  input: {schema: AnalyzePhotoAndSuggestImprovementsInputSchema},
-  output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
-  prompt: `Sen, fotoğrafçılara yeteneklerini nasıl geliştirebilecekleri konusunda rehberlik eden uzman bir fotoğrafçılık koçusun.
-
-Sunulan fotoğrafı ışık, kompozisyon, duygusal etki ve teknik açılarından analiz edeceksin.
-
-Analizine dayanarak, aşağıdaki kriterlerin her biri için 1'den 10'a kadar bir puan ver:
-- Işık: Işığın etkin kullanımı, pozlama ve yarattığı atmosfer.
-- Kompozisyon: Üçler kuralı, öncü çizgiler, denge gibi kompozisyonel elementlerin kullanımı.
-- Duygusal Etki: Fotoğrafın izleyicide uyandırdığı his veya anlattığı hikaye.
-
-Bu üç puana dayanarak bir de genel bir puan ver. Puanları 'rating' objesi içinde döndür.
-
-Son olarak, kullanıcının fotoğrafçılık becerilerini geliştirmesi için 3 somut öneride bulun.
-
-Fotoğraf: {{media url=photoDataUri}}`,
-});
-
-const analyzePhotoAndSuggestImprovementsFlow = ai.defineFlow(
-  {
-    name: 'analyzePhotoAndSuggestImprovementsFlow',
-    inputSchema: AnalyzePhotoAndSuggestImprovementsInputSchema,
-    outputSchema: AnalyzePhotoAndSuggestImprovementsOutputSchema,
-  },
-  async input => {
-    const {output} = await analyzePhotoAndSuggestImprovementsPrompt(input);
-    return output!;
-  }
-);
