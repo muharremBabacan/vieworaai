@@ -2,7 +2,7 @@
 import { packages } from '@/lib/data';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Gem, Star } from 'lucide-react';
+import { Gem, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
@@ -30,7 +30,7 @@ export default function PricingPage() {
     // 2. Backend, iyzico API'si ile güvenli bir şekilde konuşarak bir ödeme linki oluşturmalıdır.
     // 3. Backend'den dönen ödeme linkine kullanıcı yönlendirilir.
     // 4. Ödeme başarılı olduğunda, iyzico'dan gelen bir webhook ile backend'iniz tetiklenir ve işlem kaydı oluşturulur.
-    // 5. Backend, Firestore'daki kullanıcının Aura bakiyesini güvenli bir şekilde günceller.
+    // 5. Backend, Firestore'daki kullanıcının Auro bakiyesini güvenli bir şekilde günceller.
     
     // Şimdilik, ödeme akışını SİMÜLE EDİYORUZ.
     toast({
@@ -38,18 +38,18 @@ export default function PricingPage() {
       description: `Bu bir simülasyondur. Gerçek uygulamada iyzico'ya yönlendirileceksiniz.`,
     });
 
-    // Simülasyon: 2 saniye sonra Aura ekle ve işlem kaydı oluştur
+    // Simülasyon: 2 saniye sonra Auro ekle ve işlem kaydı oluştur
     setTimeout(() => {
-        // 1. Aura bakiyesini güncelle
+        // 1. Auro bakiyesini güncelle
         updateDocumentNonBlocking(userDocRef, {
-          aura_balance: userProfile.aura_balance + pkg.aura,
+          auro_balance: userProfile.auro_balance + pkg.auro,
         });
 
         // 2. İşlem kaydı oluştur (simülasyon)
         const transactionsCollectionRef = collection(firestore, 'users', authUser.uid, 'transactions');
         const transactionData = {
           userId: authUser.uid,
-          amount: pkg.aura,
+          amount: pkg.auro,
           type: 'Purchase',
           status: 'Completed',
           transactionDate: new Date().toISOString(),
@@ -59,7 +59,7 @@ export default function PricingPage() {
         // 3. Kullanıcıyı bilgilendir
         toast({
           title: 'Satın Alma Başarılı!',
-          description: `${pkg.aura} Aura hesabınıza eklendi.`,
+          description: `${pkg.auro} Auro hesabınıza eklendi.`,
         });
     }, 2000);
   };
@@ -67,38 +67,41 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto">
       <div className="text-center mb-12">
-        <h2 className="font-sans text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">Aura Paketleri</h2>
+        <h2 className="font-sans text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">Auro Paketleri</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Fotoğraflarınız hakkında yapay zeka destekli geri bildirimler almak ve bir fotoğrafçı olarak gelişiminizi hızlandırmak için Aura satın alın.
+          Yeteneklerinizi bir üst seviyeye taşımak ve sanatsal vizyonunuzun kilidini açmak için Auro satın alın.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
         {packages.map((pkg) => (
           <Card key={pkg.id} className={`flex flex-col ${pkg.isBestValue ? 'border-primary ring-2 ring-primary' : ''}`}>
             {pkg.isBestValue && (
-              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                 <Star className="mr-2 h-4 w-4" /> En İyi Teklif
               </Badge>
             )}
-            <CardHeader className="text-center">
-              <CardTitle className="font-sans text-3xl flex items-center justify-center gap-2">
-                <Gem className="h-7 w-7 text-primary" /> {pkg.aura} Aura
-              </CardTitle>
-              <CardDescription className="text-4xl font-bold pt-4">
-                {pkg.price} <span className="text-lg font-normal text-muted-foreground">{pkg.currency}</span>
-              </CardDescription>
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="font-sans text-2xl">{pkg.name}</CardTitle>
+              <CardDescription className="text-primary font-semibold">{pkg.target}</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow">
-              {/* You can add more details about each package here */}
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Detaylı YZ Analizi</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Uygulanabilir Geri Bildirim</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 mr-2 text-green-500" />Sanat Galerisine Erişim</li>
-              </ul>
+            <CardContent className="flex-grow flex flex-col items-center text-center justify-between">
+                <div className="flex items-baseline justify-center my-6">
+                    <span className="text-5xl font-extrabold tracking-tight">{pkg.auro}</span>
+                    <span className="ml-2 text-xl font-medium text-muted-foreground flex items-center gap-1">
+                        <Gem className="h-5 w-5 text-cyan-400"/>
+                        Auro
+                    </span>
+                </div>
+                <p className="text-muted-foreground italic mb-6">"{pkg.slogan}"</p>
+                <div className="text-4xl font-bold">
+                    {pkg.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className="text-lg font-normal text-muted-foreground ml-1">{pkg.currency}</span>
+                </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="p-6">
               <Button 
                 className="w-full" 
+                size="lg"
                 variant={pkg.isBestValue ? 'default' : 'outline'}
                 onClick={() => handlePurchase(pkg)}
                 disabled={!userProfile}

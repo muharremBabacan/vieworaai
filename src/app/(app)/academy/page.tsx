@@ -14,13 +14,13 @@ import type { User as UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
 
-function LessonCard({ lesson, onLearn, isCompleted }: { lesson: (typeof lessons)[0]; onLearn: (lessonId: string, xp: number, aura: number) => void; isCompleted: boolean; }) {
+function LessonCard({ lesson, onLearn, isCompleted }: { lesson: (typeof lessons)[0]; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
   const xpForLesson = 10;
-  const auraForLesson = 2;
+  const auroForLesson = 2;
 
   const handleLearn = () => {
     if (isCompleted) return;
-    onLearn(lesson.id, xpForLesson, auraForLesson);
+    onLearn(lesson.id, xpForLesson, auroForLesson);
   };
 
   return (
@@ -56,7 +56,7 @@ function LessonCard({ lesson, onLearn, isCompleted }: { lesson: (typeof lessons)
           ) : (
              <>
               <BookOpen className="mr-2 h-4 w-4" />
-              Öğrenildi Olarak İşaretle (+{xpForLesson} XP, +{auraForLesson} Aura)
+              Öğrenildi Olarak İşaretle (+{xpForLesson} XP, +{auroForLesson} Auro)
             </>
           )}
         </Button>
@@ -77,18 +77,18 @@ export default function AcademyPage() {
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
-  const handleLearn = async (lessonId: string, xpToAdd: number, auraToAdd: number) => {
+  const handleLearn = async (lessonId: string, xpToAdd: number, auroToAdd: number) => {
     if (!userProfile || !userDocRef) return;
     if (userProfile.completed_modules?.includes(lessonId)) return; // Already completed
 
     const currentLevel = getLevelFromXp(userProfile.current_xp);
     const newXp = userProfile.current_xp + xpToAdd;
     const newLevel = getLevelFromXp(newXp);
-    const newAura = userProfile.aura_balance + auraToAdd;
+    const newAuro = userProfile.auro_balance + auroToAdd;
 
     const updatePayload: Partial<UserProfile> = {
       current_xp: newXp,
-      aura_balance: newAura,
+      auro_balance: newAuro,
       completed_modules: [...(userProfile.completed_modules || []), lessonId],
     };
 
@@ -103,7 +103,7 @@ export default function AcademyPage() {
       await updateDoc(userDocRef, updatePayload);
       toast({
         title: 'Ödül Kazandın!',
-        description: `Bu dersten ${xpToAdd} XP ve ${auraToAdd} Aura kazandın.`,
+        description: `Bu dersten ${xpToAdd} XP ve ${auroToAdd} Auro kazandın.`,
       });
 
       if (updatePayload.level_name) {

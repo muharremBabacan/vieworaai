@@ -19,9 +19,9 @@
           "type": "string",
           "description": "User's full name."
         },
-        "aura_balance": {
+        "auro_balance": {
           "type": "number",
-          "description": "User's current balance of Aura, the in-app currency."
+          "description": "User's current balance of Auro, the in-app currency."
         },
         "current_xp": {
           "type": "number",
@@ -38,7 +38,7 @@
         "weekly_free_refill_date": {
             "type": "string",
             "format": "date-time",
-            "description": "Timestamp tracking the last weekly free Aura refill."
+            "description": "Timestamp tracking the last weekly free Auro refill."
         },
         "completed_modules": {
             "type": "array",
@@ -63,7 +63,7 @@
         "id",
         "email",
         "name",
-        "aura_balance",
+        "auro_balance",
         "current_xp",
         "level_name",
         "onboarded",
@@ -146,7 +146,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a transaction (purchase, gift, or refill) of Aura.",
+      "description": "Represents a transaction (purchase, gift, or refill) of Auro.",
       "properties": {
         "id": {
           "type": "string",
@@ -158,7 +158,7 @@
         },
         "amount": {
           "type": "number",
-          "description": "Amount of Aura involved in the transaction."
+          "description": "Amount of Auro involved in the transaction."
         },
         "type": {
           "type": "string",

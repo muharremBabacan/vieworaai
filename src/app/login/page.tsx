@@ -42,7 +42,7 @@ export default function LoginPage() {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
           name: firebaseUser.displayName || 'İsimsiz Sanatçı',
-          aura_balance: 20, // Hoş geldin hediyesi: 10 analiz (20 Aura)
+          auro_balance: 20, // Hoş geldin hediyesi: 10 analiz (20 Auro)
           current_xp: 0,
           level_name: 'Neuner',
           is_mentor: false,

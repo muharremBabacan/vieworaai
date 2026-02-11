@@ -78,9 +78,9 @@ export function UserNav() {
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Gem className="h-4 w-4 text-cyan-400" />
-              <span>Aura</span>
+              <span>Auro</span>
             </div>
-            <span className="font-semibold">{userProfile.aura_balance}</span>
+            <span className="font-semibold">{userProfile.auro_balance}</span>
           </div>
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
              <div className="flex items-center gap-2 text-muted-foreground">

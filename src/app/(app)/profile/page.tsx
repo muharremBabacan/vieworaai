@@ -33,19 +33,19 @@ export default function ProfilePage() {
     
     const photoCount = userPhotos?.length ?? 0;
 
-    // Haftalık Aura Yenileme Mantığı
+    // Haftalık Auro Yenileme Mantığı
     useEffect(() => {
         if (!userProfile || !userDocRef || !authUser) return;
 
         const lastRefillDate = new Date(userProfile.weekly_free_refill_date);
         const sevenDaysAgo = addDays(new Date(), -7);
 
-        if (isBefore(lastRefillDate, sevenDaysAgo) && userProfile.aura_balance < 10) {
-            const refillAmount = 10 - userProfile.aura_balance;
-            const newAuraBalance = 10;
+        if (isBefore(lastRefillDate, sevenDaysAgo) && userProfile.auro_balance < 10) {
+            const refillAmount = 10 - userProfile.auro_balance;
+            const newAuroBalance = 10;
             
             updateDocumentNonBlocking(userDocRef, {
-                aura_balance: newAuraBalance,
+                auro_balance: newAuroBalance,
                 weekly_free_refill_date: new Date().toISOString()
             });
 
@@ -60,7 +60,7 @@ export default function ProfilePage() {
             
             toast({
                 title: '✨ Haftalık Hediye!',
-                description: `Aura bakiyeniz 10'a tamamlandı.`
+                description: `Auro bakiyeniz 10'a tamamlandı.`
             });
         }
     }, [userProfile, userDocRef, authUser, firestore, toast]);
@@ -123,9 +123,9 @@ export default function ProfilePage() {
                         <div className="flex items-center justify-between rounded-lg border p-4">
                             <div className="flex items-center gap-3">
                                 <Gem className="h-5 w-5 text-cyan-400"/>
-                                <span className="text-muted-foreground">Aura Bakiyesi</span>
+                                <span className="text-muted-foreground">Auro Bakiyesi</span>
                             </div>
-                            <span className="text-lg font-bold">{userProfile.aura_balance}</span>
+                            <span className="text-lg font-bold">{userProfile.auro_balance}</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -168,7 +168,7 @@ export default function ProfilePage() {
                             <Trophy className="h-6 w-6 text-primary" />
                             <span>Yaklaşan Yarışmalar</span>
                         </CardTitle>
-                        <CardDescription>Becerilerini sergile, XP ve Aura kazan!</CardDescription>
+                        <CardDescription>Becerilerini sergile, XP ve Auro kazan!</CardDescription>
                     </CardHeader>
                     <CardContent className="text-center py-10">
                         <p className="text-muted-foreground">Şu anda aktif bir yarışma bulunmuyor. Takipte kalın!</p>

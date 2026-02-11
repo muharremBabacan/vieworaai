@@ -45,8 +45,8 @@ const navItems = [
   {
     href: '/pricing',
     icon: Coins,
-    label: 'Aura Satın Al',
-    shortLabel: 'Aura'
+    label: 'Auro Satın Al',
+    shortLabel: 'Auro'
   },
 ];
 

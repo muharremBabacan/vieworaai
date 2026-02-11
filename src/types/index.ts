@@ -6,7 +6,7 @@ export type User = {
   id: string;
   name: string | null;
   email: string | null;
-  aura_balance: number; // Renamed from tokenBalance
+  auro_balance: number; // Renamed from aura_balance
   current_xp: number; // Renamed from xp
   level_name: string; // Renamed from level
   is_mentor?: boolean; // New
@@ -36,7 +36,10 @@ export type Lesson = {
 
 export type Package = {
   id: string;
-  aura: number;
+  name: string;
+  target: string;
+  slogan: string;
+  auro: number;
   price: number;
   currency: string;
   isBestValue: boolean;

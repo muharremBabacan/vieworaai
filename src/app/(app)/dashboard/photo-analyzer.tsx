@@ -160,11 +160,11 @@ export default function PhotoAnalyzer() {
   
   const handleAnalyze = () => {
     if (!file || !preview || !userProfile || !userDocRef || !authUser) return;
-    if (userProfile.aura_balance < 2) {
+    if (userProfile.auro_balance < 2) {
       toast({
         variant: 'destructive',
-        title: 'Yetersiz Aura',
-        description: 'Bir fotoğrafı analiz etmek için en az 2 Aura\'ya ihtiyacınız var.',
+        title: 'Yetersiz Auro',
+        description: 'Bir fotoğrafı analiz etmek için en az 2 Auro\'ya ihtiyacınız var.',
       });
       return;
     }
@@ -213,7 +213,7 @@ export default function PhotoAnalyzer() {
       const newLevel = getLevelFromXp(newXp);
       
       const updatePayload: Partial<UserProfile> = {
-        aura_balance: userProfile.aura_balance - 2,
+        auro_balance: userProfile.auro_balance - 2,
         current_xp: newXp
       };
 
@@ -273,7 +273,7 @@ export default function PhotoAnalyzer() {
     }
   };
 
-  const canAnalyze = !isPending && !isProfileLoading && userProfile && userProfile.aura_balance >= 2;
+  const canAnalyze = !isPending && !isProfileLoading && userProfile && userProfile.auro_balance >= 2;
 
   return (
     <div className="space-y-8">
@@ -329,7 +329,7 @@ export default function PhotoAnalyzer() {
                 ) : (
                   <>
                     <Zap className="mr-2 h-4 w-4" />
-                    Fotoğrafı Analiz Et (2 Aura)
+                    Fotoğrafı Analiz Et (2 Auro)
                   </>
                 )}
               </Button>
