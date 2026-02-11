@@ -81,10 +81,13 @@ export default function AcademyPage() {
     if (!userProfile || !userDocRef) return;
     if (userProfile.completed_modules?.includes(lessonId)) return; // Already completed
 
-    const currentLevel = getLevelFromXp(userProfile.current_xp);
-    const newXp = userProfile.current_xp + xpToAdd;
+    const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
+    const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+    
+    const currentLevel = getLevelFromXp(currentXp);
+    const newXp = currentXp + xpToAdd;
     const newLevel = getLevelFromXp(newXp);
-    const newAuro = userProfile.auro_balance + auroToAdd;
+    const newAuro = currentAuro + auroToAdd;
 
     const updatePayload: Partial<UserProfile> = {
       current_xp: newXp,
