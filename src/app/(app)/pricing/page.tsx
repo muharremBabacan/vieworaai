@@ -40,9 +40,12 @@ export default function PricingPage() {
 
     // Simülasyon: 2 saniye sonra Auro ekle ve işlem kaydı oluştur
     setTimeout(() => {
+        // Robustly handle potentially non-numeric values
+        const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+
         // 1. Auro bakiyesini güncelle
         updateDocumentNonBlocking(userDocRef, {
-          auro_balance: userProfile.auro_balance + pkg.auro,
+          auro_balance: currentAuro + pkg.auro,
         });
 
         // 2. İşlem kaydı oluştur (simülasyon)

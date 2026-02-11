@@ -160,7 +160,12 @@ export default function PhotoAnalyzer() {
   
   const handleAnalyze = () => {
     if (!file || !preview || !userProfile || !userDocRef || !authUser) return;
-    if (userProfile.auro_balance < 2) {
+
+    // Robustly handle potentially non-numeric values
+    const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+    const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
+
+    if (currentAuro < 2) {
       toast({
         variant: 'destructive',
         title: 'Yetersiz Auro',
@@ -208,12 +213,12 @@ export default function PhotoAnalyzer() {
       const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
       const totalXpGained = xpFromAnalysis + bonusXp;
 
-      const currentLevel = getLevelFromXp(userProfile.current_xp);
-      const newXp = userProfile.current_xp + totalXpGained;
+      const currentLevel = getLevelFromXp(currentXp);
+      const newXp = currentXp + totalXpGained;
       const newLevel = getLevelFromXp(newXp);
       
       const updatePayload: Partial<UserProfile> = {
-        auro_balance: userProfile.auro_balance - 2,
+        auro_balance: currentAuro - 2,
         current_xp: newXp
       };
 
@@ -273,7 +278,8 @@ export default function PhotoAnalyzer() {
     }
   };
 
-  const canAnalyze = !isPending && !isProfileLoading && userProfile && userProfile.auro_balance >= 2;
+  const currentAuro = userProfile ? (Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0) : 0;
+  const canAnalyze = !isPending && !isProfileLoading && userProfile && currentAuro >= 2;
 
   return (
     <div className="space-y-8">
