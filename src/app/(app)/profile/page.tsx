@@ -80,11 +80,13 @@ export default function ProfilePage() {
     const nextLevelIndex = levels.findIndex(l => l.name === currentLevelInfo.name) + 1;
     const nextLevelInfo = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
 
-    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : currentLevelInfo.minXp;
-    const xpInCurrentLevel = userProfile.current_xp - currentLevelInfo.minXp;
-    const xpRangeOfCurrentLevel = (nextLevelInfo ? nextLevelInfo.minXp - currentLevelInfo.minXp : 0);
+    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : userProfile.current_xp;
+    const xpBaseForCurrentLevel = currentLevelInfo.minXp;
     
-    const xpPercentage = xpRangeOfCurrentLevel > 0 ? (xpInCurrentLevel / xpRangeOfCurrentLevel) * 100 : 100;
+    const xpInCurrentLevel = userProfile.current_xp - xpBaseForCurrentLevel;
+    const xpRangeOfCurrentLevel = nextLevelInfo ? nextLevelInfo.minXp - xpBaseForCurrentLevel : 0;
+    
+    const xpPercentage = xpRangeOfCurrentLevel > 0 ? Math.min((xpInCurrentLevel / xpRangeOfCurrentLevel) * 100, 100) : 100;
     const xpToNext = nextLevelInfo ? xpForNextLevel - userProfile.current_xp : 0;
 
 
@@ -96,14 +98,12 @@ export default function ProfilePage() {
                         <CardTitle className="flex items-center justify-between">
                            <div className="flex items-center gap-3">
                              <Award className="h-6 w-6 text-primary" />
-                             <span>Seviye: {userProfile.level_name}</span>
+                             <span>Seviye</span>
                            </div>
-                           {userProfile.is_mentor && (
-                             <Badge variant="default" className="bg-amber-500 text-black">
-                               <ShieldCheck className="mr-2 h-4 w-4" />
-                               Mentor
-                             </Badge>
-                           )}
+                           <Badge variant={currentLevelInfo.isMentor ? 'default' : 'secondary'} className={`capitalize ${currentLevelInfo.isMentor ? 'bg-amber-500 text-black' : ''}`}>
+                               {currentLevelInfo.isMentor && <ShieldCheck className="mr-2 h-4 w-4"/>}
+                               {currentLevelInfo.name}
+                           </Badge>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -113,7 +113,7 @@ export default function ProfilePage() {
                                 <span className="text-sm font-bold">{userProfile.current_xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
                             </div>
                             <Progress value={xpPercentage} />
-                            {xpToNext > 0 && nextLevelInfo ? (
+                            {nextLevelInfo ? (
                                 <p className="text-xs text-muted-foreground mt-1">{nextLevelInfo.name} seviyesi için {xpToNext} XP daha.</p>
                             ) : (
                                 <p className="text-xs text-muted-foreground mt-1">Tebrikler! En yüksek seviyeye ulaştınız!</p>
