@@ -40,8 +40,8 @@ export default function ProfilePage() {
         const lastRefillDate = new Date(userProfile.weekly_free_refill_date);
         const sevenDaysAgo = addDays(new Date(), -7);
 
-        if (isBefore(lastRefillDate, sevenDaysAgo) && userProfile.auro_balance < 10) {
-            const refillAmount = 10 - userProfile.auro_balance;
+        if (isBefore(lastRefillDate, sevenDaysAgo) && (userProfile.auro_balance ?? 0) < 10) {
+            const refillAmount = 10 - (userProfile.auro_balance ?? 0);
             const newAuroBalance = 10;
             
             updateDocumentNonBlocking(userDocRef, {
@@ -76,18 +76,26 @@ export default function ProfilePage() {
         )
     }
 
-    const currentLevelInfo = getLevelFromXp(userProfile.current_xp);
+    // Fallback for potentially missing fields to prevent rendering NaN
+    const safeUserProfile = {
+        ...userProfile,
+        current_xp: userProfile.current_xp ?? 0,
+        auro_balance: userProfile.auro_balance ?? 0,
+        interests: userProfile.interests ?? [],
+    };
+
+    const currentLevelInfo = getLevelFromXp(safeUserProfile.current_xp);
     const nextLevelIndex = levels.findIndex(l => l.name === currentLevelInfo.name) + 1;
     const nextLevelInfo = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
 
-    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : userProfile.current_xp;
+    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : safeUserProfile.current_xp;
     const xpBaseForCurrentLevel = currentLevelInfo.minXp;
     
-    const xpInCurrentLevel = userProfile.current_xp - xpBaseForCurrentLevel;
+    const xpInCurrentLevel = safeUserProfile.current_xp - xpBaseForCurrentLevel;
     const xpRangeOfCurrentLevel = nextLevelInfo ? nextLevelInfo.minXp - xpBaseForCurrentLevel : 0;
     
     const xpPercentage = xpRangeOfCurrentLevel > 0 ? Math.min((xpInCurrentLevel / xpRangeOfCurrentLevel) * 100, 100) : 100;
-    const xpToNext = nextLevelInfo ? xpForNextLevel - userProfile.current_xp : 0;
+    const xpToNext = nextLevelInfo ? xpForNextLevel - safeUserProfile.current_xp : 0;
 
 
     return (
@@ -110,7 +118,7 @@ export default function ProfilePage() {
                         <div>
                             <div className="flex justify-between items-center mb-1">
                                 <span className="text-sm text-muted-foreground">Deneyim Puanı (XP)</span>
-                                <span className="text-sm font-bold">{userProfile.current_xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
+                                <span className="text-sm font-bold">{safeUserProfile.current_xp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
                             </div>
                             <Progress value={xpPercentage} />
                             {nextLevelInfo ? (
@@ -125,7 +133,7 @@ export default function ProfilePage() {
                                 <Gem className="h-5 w-5 text-cyan-400"/>
                                 <span className="text-muted-foreground">Auro Bakiyesi</span>
                             </div>
-                            <span className="text-lg font-bold">{userProfile.auro_balance}</span>
+                            <span className="text-lg font-bold">{safeUserProfile.auro_balance}</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -139,7 +147,7 @@ export default function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-2">
-                            {userProfile.interests && userProfile.interests.length > 0 ? userProfile.interests.map(interest => (
+                            {safeUserProfile.interests.length > 0 ? safeUserProfile.interests.map(interest => (
                                 <Badge key={interest} variant="secondary">{interest}</Badge>
                             )) : <p className="text-sm text-muted-foreground">Henüz ilgi alanı seçmediniz.</p>}
                         </div>
