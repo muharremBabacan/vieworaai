@@ -1,2 +1,2 @@
-// This file is intentionally left empty.
-// The AI flows it previously imported have been disabled or removed.
+// This file is used by Genkit for local development runs.
+// Production flows are imported and used directly as server actions.
