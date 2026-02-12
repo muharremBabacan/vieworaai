@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -167,8 +167,14 @@ export default function ExplorePage() {
 
   const publicPhotosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Sort by overall rating descending, then by creation date descending as a tie-breaker
-    return query(collection(firestore, 'public_photos'), orderBy('aiFeedback.rating.overall', 'desc'), orderBy('createdAt', 'desc'));
+    // Filter for photos with a rating and sort them.
+    // This prevents crashes when unrated photos are in the public_photos collection.
+    return query(
+      collection(firestore, 'public_photos'), 
+      where('aiFeedback.rating.overall', '>=', 0),
+      orderBy('aiFeedback.rating.overall', 'desc'), 
+      orderBy('createdAt', 'desc')
+    );
   }, [firestore]);
   
   const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
