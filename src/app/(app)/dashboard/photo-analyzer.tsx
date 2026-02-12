@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { useUser, useFirestore, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, updateDoc, collection, addDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -200,6 +200,9 @@ export default function PhotoAnalyzer() {
         analysisResult = await analyzePhotoAndSuggestImprovements({
           photoDataUri: preview,
         });
+        if (!analysisResult?.rating) {
+            throw new Error("AI analysis did not return a rating.");
+        }
       } catch (error) {
         console.error('Analiz başarısız:', error);
         toast({
@@ -221,13 +224,7 @@ export default function PhotoAnalyzer() {
           createdAt: new Date().toISOString(),
           isSubmittedToPublic: false,
       };
-      addDoc(photosCollectionRef, photoData).catch((error) => {
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-              path: photosCollectionRef.path,
-              operation: 'create',
-              requestResourceData: photoData,
-          }));
-      });
+      addDocumentNonBlocking(photosCollectionRef, photoData);
       
       // 4. Gamification Logic
       const xpFromAnalysis = 15;
@@ -250,13 +247,7 @@ export default function PhotoAnalyzer() {
         }
       }
 
-      updateDoc(userDocRef, updatePayload).catch((error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: userDocRef.path,
-            operation: 'update',
-            requestResourceData: updatePayload,
-        }));
-      });
+      updateDocumentNonBlocking(userDocRef, updatePayload);
 
       toast({
         title: 'XP Kazandın!',
