@@ -5,7 +5,7 @@
  *
  * Key Security Decisions:
  * - User data is private: All documents and subcollections under `/users/{userId}` are only accessible by the authenticated user whose UID matches `{userId}`.
- * - Public data is read-only: The `/lessons`, `/competitions`, and `/public_photos` collections are readable by anyone, but write operations are disabled to prevent tampering. All content must be added or modified by trusted backend processes.
+ * - Public data is read-only for authenticated users: The `/lessons`, `/competitions`, and `/public_photos` collections are readable by any signed-in user, but write operations are disabled from the client-side to prevent tampering.
  * - User listing is disallowed: To protect user privacy, it is not possible to query or list the top-level `/users` collection.
  * - Default posture is denial: Any operation not explicitly granted is denied.
  *
@@ -115,34 +115,34 @@ service cloud.firestore {
     }
 
     /**
-     * @description Stores public lesson content. This data is readable by anyone, including unauthenticated users, but cannot be modified from the client.
+     * @description Stores public lesson content. This data is readable by any signed-in user, but cannot be modified from the client.
      * @path /lessons/{lessonId}
-     * @allow (get) Any user, signed in or not, reads a lesson at `/lessons/composition101`.
+     * @allow (get) Any signed-in user reads a lesson at `/lessons/composition101`.
      * @deny (create) Any user attempts to create a new lesson document.
-     * @principle Provides public read-only access for shared content. Writes are disabled to protect data integrity.
+     * @principle Provides public read-only access for shared content to authenticated users. Writes are disabled to protect data integrity.
      */
     match /lessons/{lessonId} {
-      allow get: if true;
-      allow list: if true;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
       allow create, update, delete: if false;
     }
     
     /**
-     * @description Stores public photography competitions. Readable by all, but client-side writes are forbidden to maintain data integrity.
+     * @description Stores public photography competitions. Readable by all signed-in users, but client-side writes are forbidden.
      * @path /competitions/{competitionId}
      */
     match /competitions/{competitionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // Admin-only, blocked for now
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Stores curated, high-quality photos for public viewing. Readable by all, but client-side writes are forbidden.
+     * @description Stores curated, high-quality photos for public viewing. Readable by all signed-in users, but client-side writes are forbidden.
      * @path /public_photos/{photoId}
      */
     match /public_photos/{photoId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // Admin/backend-only
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
     }
     
     /**
