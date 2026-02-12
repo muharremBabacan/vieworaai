@@ -12,6 +12,7 @@ import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useUser, useFirestore, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, updateDoc, collection, addDoc } from 'firebase/firestore';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -161,7 +162,6 @@ export default function PhotoAnalyzer() {
   const handleAnalyze = () => {
     if (!file || !preview || !userProfile || !userDocRef || !authUser) return;
 
-    // Robustly handle potentially non-numeric values
     const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
     const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
 
@@ -175,6 +175,26 @@ export default function PhotoAnalyzer() {
     }
 
     startTransition(async () => {
+      // 1. Upload to Storage
+      const storage = getStorage();
+      const filePath = `user-uploads/${authUser.uid}/${Date.now()}-${file.name}`;
+      const imageRef = storageRef(storage, filePath);
+      
+      let downloadURL;
+      try {
+        await uploadBytes(imageRef, file);
+        downloadURL = await getDownloadURL(imageRef);
+      } catch (storageError) {
+          console.error("Storage upload failed:", storageError);
+          toast({
+            variant: 'destructive',
+            title: 'Yükleme Başarısız',
+            description: 'Fotoğrafınız depolanamadı. Lütfen Firebase Storage kurallarınızı kontrol edin.',
+          });
+          return;
+      }
+
+      // 2. Analyze with AI
       let analysisResult: AnalyzePhotoAndSuggestImprovementsOutput;
       try {
         analysisResult = await analyzePhotoAndSuggestImprovements({
@@ -191,14 +211,15 @@ export default function PhotoAnalyzer() {
       }
       setResult(analysisResult);
 
-      // --- Save Photo to Firestore ---
+      // 3. Save Photo to Firestore with Storage URL
       const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
       const photoData = {
-          userId: authUser.uid, // Security Rule FIX
-          imageUrl: preview,
-          imageHint: '', // No hint for user uploads
+          userId: authUser.uid,
+          imageUrl: downloadURL, // Use the public URL from Storage
+          imageHint: '', 
           aiFeedback: analysisResult,
           createdAt: new Date().toISOString(),
+          isSubmittedToPublic: false,
       };
       addDoc(photosCollectionRef, photoData).catch((error) => {
           errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -208,7 +229,7 @@ export default function PhotoAnalyzer() {
           }));
       });
       
-      // --- Gamification Logic ---
+      // 4. Gamification Logic
       const xpFromAnalysis = 15;
       const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
       const totalXpGained = xpFromAnalysis + bonusXp;
@@ -265,7 +286,6 @@ export default function PhotoAnalyzer() {
               }, 300);
           }
       }
-      // --- Gamification Logic End ---
     });
   };
 
@@ -326,7 +346,7 @@ export default function PhotoAnalyzer() {
               </Button>
             </div>
             <div className="p-6">
-              <Button onClick={handleAnalyze} disabled={!canAnalyze} className="w-full" size="lg">
+              <Button onClick={handleAnalyze} disabled={!canAnalyze || !file} className="w-full" size="lg">
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
