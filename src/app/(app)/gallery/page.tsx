@@ -66,11 +66,13 @@ function PhotoDetailDialog({
     userProfile: UserProfile | null,
     userDocRef: DocumentReference | null,
 }) {
-  if (!photo) return null;
-
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!photo) {
+    return null;
+  }
 
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
