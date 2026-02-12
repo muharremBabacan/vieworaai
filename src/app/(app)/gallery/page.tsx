@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import type { Photo } from '@/types';
+import type { Photo, User as UserProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -12,11 +12,13 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, CheckCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc, DocumentReference } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -51,14 +53,64 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
 }
 
 
-function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+function PhotoDetailDialog({ 
+    photo, 
+    isOpen, 
+    onOpenChange,
+    userProfile,
+    userDocRef,
+}: { 
+    photo: Photo | null, 
+    isOpen: boolean, 
+    onOpenChange: (open: boolean) => void 
+    userProfile: UserProfile | null,
+    userDocRef: DocumentReference | null,
+}) {
   if (!photo) return null;
+
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
     { icon: Heart, color: 'text-rose-400' },
   ];
+
+  const handleSubmitToPublic = () => {
+    if (!photo || !userProfile || !userDocRef || !photo.userId) return;
+    
+    const submissionCost = 5;
+    const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+
+    if (currentAuro < submissionCost) {
+        toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Sergiye göndermek için ${submissionCost} Auro gereklidir.` });
+        return;
+    }
+
+    setIsSubmitting(true);
+
+    // 1. Copy photo to public_photos, excluding unnecessary fields
+    const publicPhotosCollectionRef = collection(firestore, 'public_photos');
+    const { id, isSubmittedToPublic, ...publicPhotoData } = photo;
+    addDocumentNonBlocking(publicPhotosCollectionRef, publicPhotoData);
+
+    // 2. Update user's Auro balance
+    updateDocumentNonBlocking(userDocRef, {
+        auro_balance: currentAuro - submissionCost,
+    });
+
+    // 3. Mark the original photo as submitted
+    const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+    updateDocumentNonBlocking(originalPhotoRef, {
+        isSubmittedToPublic: true,
+    });
+    
+    toast({ title: 'Başarılı!', description: 'Fotoğrafınız sergiye gönderildi.' });
+    onOpenChange(false); 
+    setIsSubmitting(false);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -108,6 +160,19 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               </div>
             )}
           </div>
+          {photo.aiFeedback && !photo.isSubmittedToPublic && (
+            <div className="p-6 border-t">
+                <Button className="w-full" onClick={handleSubmitToPublic} disabled={isSubmitting || !userProfile}>
+                     {isSubmitting ? <Loader2 className="animate-spin" /> : <Rocket />}
+                    Sergiye Gönder (5 Auro)
+                </Button>
+            </div>
+          )}
+           {photo.isSubmittedToPublic && (
+               <div className="p-6 text-center text-sm text-green-400 font-semibold border-t">
+                   <CheckCircle className="inline-block mr-2 h-4 w-4" /> Bu fotoğraf zaten sergide!
+               </div>
+           )}
         </ScrollArea>
       </DialogContent>
     </Dialog>
@@ -175,6 +240,14 @@ export default function GalleryPage() {
   
   const { data: userPhotos, isLoading } = useCollection<Photo>(photosQuery);
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+
   const openDialog = (photo: Photo) => {
     setSelectedPhoto(photo);
   };
@@ -234,6 +307,8 @@ export default function GalleryPage() {
         photo={selectedPhoto} 
         isOpen={!!selectedPhoto}
         onOpenChange={(open) => !open && closeDialog()}
+        userProfile={userProfile}
+        userDocRef={userDocRef}
       />
     </div>
   );

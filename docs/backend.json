@@ -86,7 +86,7 @@
           "description": "URL of the image."
         },
         "aiFeedback": {
-          "type": "string",
+          "type": "object",
           "description": "AI feedback on the photo."
         },
         "userId": {
@@ -97,6 +97,10 @@
           "type": "string",
           "description": "Timestamp of when the photo was analyzed.",
           "format": "date-time"
+        },
+        "isSubmittedToPublic": {
+          "type": "boolean",
+          "description": "Flag to check if the photo has been submitted to the public gallery."
         }
       },
       "required": [

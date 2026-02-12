@@ -23,6 +23,7 @@ export type Photo = {
   imageHint: string;
   aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
   createdAt: string;
+  isSubmittedToPublic?: boolean;
 };
 
 export type Lesson = {

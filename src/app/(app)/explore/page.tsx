@@ -12,8 +12,11 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star } from 'lucide-react';
-import { publicPhotos } from '@/lib/data'; // Fetch public photos
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -146,12 +149,29 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
   );
 }
 
+function ExploreSkeleton() {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="aspect-square">
+                    <Skeleton className="w-full h-full" />
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export default function ExplorePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const firestore = useFirestore();
+
+  const publicPhotosQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Sort by overall rating descending, then by creation date descending as a tie-breaker
+    return query(collection(firestore, 'public_photos'), orderBy('aiFeedback.rating.overall', 'desc'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
   
-  // For now, we use static data. Later, this could come from a Firestore query
-  // to a `public_photos` collection.
-  const photos = publicPhotos;
+  const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
 
   const openDialog = (photo: Photo) => {
     setSelectedPhoto(photo);
@@ -164,11 +184,23 @@ export default function ExplorePage() {
   return (
     <div className="container mx-auto">
         <div className="text-left mb-8">
-            <h2 className="text-2xl font-bold tracking-tight">Haftanın En İyileri</h2>
-            <p className="text-muted-foreground mt-1">Topluluk tarafından en çok beğenilen ve en yüksek puan alan fotoğraflar.</p>
+            <h2 className="text-2xl font-bold tracking-tight">Sergi Salonu</h2>
+            <p className="text-muted-foreground mt-1">Topluluk tarafından sergiye gönderilen en iyi fotoğraflar.</p>
         </div>
 
-        <PhotoGrid photos={photos} onPhotoClick={openDialog} />
+        {isLoading && <ExploreSkeleton />}
+
+        {!isLoading && photos && photos.length > 0 && (
+            <PhotoGrid photos={photos} onPhotoClick={openDialog} />
+        )}
+
+        {!isLoading && (!photos || photos.length === 0) && (
+            <div className="text-center py-20 rounded-lg border border-dashed">
+                <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-xl font-semibold">Sergi Salonu Henüz Boş</h3>
+                <p className="text-muted-foreground mt-2">Galerinizden bir fotoğrafı sergiye gönderen ilk kişi siz olun!</p>
+            </div>
+        )}
 
         <PhotoDetailDialog 
             photo={selectedPhoto} 
