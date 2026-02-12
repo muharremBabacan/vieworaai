@@ -1,64 +1,66 @@
 'use server';
 /**
- * @fileOverview A placeholder for the photo analysis feature.
+ * @fileOverview A photo analysis AI agent that provides feedback and ratings.
  *
- * - analyzePhotoAndSuggestImprovements - A function that returns placeholder analysis data.
+ * - analyzePhotoAndSuggestImprovements - A function that handles the photo analysis process.
  * - AnalyzePhotoAndSuggestImprovementsInput - The input type for the analyzePhotoAndSuggestImprovements function.
  * - AnalyzePhotoAndSuggestImprovementsOutput - The return type for the analyzePhotoAndSuggestImprovements function.
  */
 
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-// Schemas and types remain to avoid breaking imports in other files.
 const AnalyzePhotoAndSuggestImprovementsInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type AnalyzePhotoAndSuggestImprovementsInput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsInputSchema>;
 
 const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
-  analysis: z.string().describe('The overall analysis of the photo.'),
+  analysis: z.string().describe('Provide a comprehensive, constructive, and friendly analysis of the photo, as if you were a photography coach. Discuss the strengths and weaknesses of the image in Turkish.'),
   improvements: z
     .array(z.string())
-    .describe('A list of concrete suggestions for improvement.'),
+    .describe('Provide a list of 3 concrete, actionable suggestions for improvement in Turkish.'),
   rating: z
     .object({
-      lighting: z.number().describe('A rating for lighting from 1-10.'),
-      composition: z
-        .number()
-        .describe('A rating for composition from 1-10.'),
-      emotion: z.number().describe('A rating for emotional impact from 1-10.'),
-      overall: z.number().describe('An overall rating from 1-10.'),
+      lighting: z.number().min(1).max(10).describe('Rate the lighting on a scale of 1-10.'),
+      composition: z.number().min(1).max(10).describe('Rate the composition on a scale of 1-10.'),
+      emotion: z.number().min(1).max(10).describe('Rate the emotional impact or storytelling on a scale of 1-10.'),
+      overall: z.number().min(1).max(10).describe('Provide an overall rating for the photo on a scale of 1-10, based on the other criteria.'),
     })
-    .describe('A rating for the photo based on criteria.'),
+    .describe('Provide ratings for the photo based on the specified criteria.'),
 });
 export type AnalyzePhotoAndSuggestImprovementsOutput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsOutputSchema>;
 
-
-/**
- * This is a placeholder function that returns a mock analysis result.
- * The original Genkit AI flow has been removed to "clean" the file.
- * The application will no longer call the AI model for analysis.
- */
+// The main function that the application calls.
 export async function analyzePhotoAndSuggestImprovements(
   input: AnalyzePhotoAndSuggestImprovementsInput
 ): Promise<AnalyzePhotoAndSuggestImprovementsOutput> {
-  // Return a hardcoded placeholder response.
-  return {
-    analysis: 'Bu, temizlenmiş bir yer tutucu analizdir. Yapay zeka işlevi devre dışı bırakıldı.',
-    improvements: [
-      'Bu, bir yer tutucu ipucudur.',
-      'Yapay zeka akışı kaldırıldığı için gerçek bir öneri üretilmedi.',
-      'Bu dosyayı eski haline getirerek özelliği yeniden etkinleştirebilirsiniz.',
-    ],
-    rating: {
-      lighting: 5,
-      composition: 5,
-      emotion: 5,
-      overall: 5,
-    },
-  };
+  return analysisFlow(input);
 }
+
+const analysisPrompt = ai.definePrompt({
+  name: 'photoAnalysisPrompt',
+  input: {schema: AnalyzePhotoAndSuggestImprovementsInputSchema},
+  output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
+  prompt: `You are a world-class photography coach named Viewora AI. Your tone is encouraging, insightful, and professional. Analyze the provided photograph and respond in Turkish.
+
+  Your task is to provide a detailed analysis, actionable improvement tips, and a rating based on the following criteria: lighting, composition, and emotional impact.
+
+  Analyze the photo provided: {{media url=photoDataUri}}`,
+});
+
+const analysisFlow = ai.defineFlow(
+  {
+    name: 'analysisFlow',
+    inputSchema: AnalyzePhotoAndSuggestImprovementsInputSchema,
+    outputSchema: AnalyzePhotoAndSuggestImprovementsOutputSchema,
+  },
+  async (input) => {
+    const {output} = await analysisPrompt(input);
+    return output!;
+  }
+);
