@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -167,12 +167,13 @@ export default function ExplorePage() {
 
   const publicPhotosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Filter for photos with a rating and sort them.
-    // This prevents crashes when unrated photos are in the public_photos collection.
+    // FIX: The previous complex query (`where` + multiple `orderBy`) required a composite index in Firestore.
+    // If the index doesn't exist, Firestore can return a "Missing or insufficient permissions" error.
+    // To fix the crash, we simplify the query to sort by creation date only. This does not require a special index.
+    // To re-enable sorting by rating, the composite index must be created in the Firebase console.
+    // The console will provide a link to create it when the complex query is run.
     return query(
       collection(firestore, 'public_photos'), 
-      where('aiFeedback.rating.overall', '>=', 0),
-      orderBy('aiFeedback.rating.overall', 'desc'), 
       orderBy('createdAt', 'desc')
     );
   }, [firestore]);
