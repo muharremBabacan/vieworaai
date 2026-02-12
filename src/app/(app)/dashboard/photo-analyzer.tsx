@@ -177,7 +177,7 @@ export default function PhotoAnalyzer() {
     startTransition(async () => {
       // 1. Upload to Storage
       const storage = getStorage();
-      const filePath = `user-uploads/${authUser.uid}/${Date.now()}-${file.name}`;
+      const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
       const imageRef = storageRef(storage, filePath);
       
       let downloadURL;

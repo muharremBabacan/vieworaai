@@ -3,11 +3,10 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // User-specific uploads
-    // A user can read, write, and delete files inside their own folder.
-    // This allows them to upload for analysis and view their own gallery.
-    // Other users can still view images via download URLs if they have them
-    // (e.g., from the public_photos collection in Firestore).
-    match /user-uploads/{userId}/{allPaths=**} {
+    // A user can read, write, and delete files inside their own "uploads" folder.
+    // This allows them to upload for analysis and manage their own gallery.
+    // This rule is aligned with the path structure used in the client-side code for consistency.
+    match /users/{userId}/uploads/{allPaths=**} {
       allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
   }
