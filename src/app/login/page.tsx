@@ -67,7 +67,9 @@ export default function LoginPage() {
       console.error(`Sign in with ${providerName} failed`, error);
       
       let description = 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
-      if (error.code === 'auth/operation-not-allowed') {
+      if (error.code === 'auth/requests-to-this-api-identitytoolkit-method-google.cloud.identitytoolkit.v1.projectconfigservice.getprojectconfig-are-blocked.') {
+        description = 'Kimlik doğrulama servisleri projenizde etkin değil. Lütfen Google Cloud Console\'da "Identity Toolkit API"yi etkinleştirin.';
+      } else if (error.code === 'auth/operation-not-allowed') {
         description = 'Lütfen Firebase projenizde Google ile girişi etkinleştirdiğinizden emin olun.'
       }
       else if (error.code === 'auth/unauthorized-domain') {
