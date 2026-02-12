@@ -1,4 +1,4 @@
-import type { Photo, Lesson, Package } from '@/types';
+import type { Photo, Lesson, Package, Competition } from '@/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const findImage = (id: string) => PlaceHolderImages.find((img) => img.id === id);
@@ -132,4 +132,85 @@ export const packages: Package[] = [
     currency: 'TL',
     isBestValue: false,
   },
+];
+
+
+export const publicPhotos: Photo[] = [
+  {
+    id: 'pub-5',
+    imageUrl: findImage('gallery-5')?.imageUrl ?? '',
+    imageHint: findImage('gallery-5')?.imageHint ?? 'siyah beyaz',
+    aiFeedback: {
+      analysis: 'Güçlü bir siyah beyaz manzara. Yüksek kontrast ve sade kompozisyon, ham ve duygusal bir görüntü yaratıyor. Dağların öncü çizgileri, gözü çerçevenin içinden geçiriyor.',
+      improvements: [
+        'Suyu pürüzsüzleştirmek ve daha ruhani bir his yaratmak için daha uzun bir pozlama deneyin.',
+        'Post-prodüksiyonda, belirli alanlardaki kontrastı artırmak için soldurma ve yakma (dodging and burning) ile denemeler yapın.',
+        'Bu sahnenin farklı perspektiflerini keşfedin, belki gökyüzünü daha fazla dahil etmek için daha geniş bir açı kullanın.',
+      ],
+      rating: { lighting: 8, composition: 9, emotion: 8, overall: 8.5 },
+    },
+    createdAt: '2023-10-18T12:45:00Z',
+  },
+  {
+    id: 'pub-1',
+    imageUrl: findImage('gallery-1')?.imageUrl ?? '',
+    imageHint: findImage('gallery-1')?.imageHint ?? 'portre',
+    aiFeedback: {
+      analysis: 'Bu, dramatik ışıklandırmaya sahip güçlü bir portre. Konunun yüzündeki ışık ve gölge oyunu, derinlik ve gizem hissi yaratıyor. Kompozisyon sıkı, izleyicinin dikkatini etkili bir şekilde odaklıyor.',
+      improvements: [
+        'Farklı bir ruh hali yaratmak için daha yumuşak bir anahtar ışıkla denemeler yapın.',
+        'Daha az dramatik bir görünüm için gölgelerin bir kısmını doldurmak amacıyla bir yansıtıcı kullanmayı düşünün.',
+        'Güç hissi vermek için belki biraz aşağıdan farklı bir açı deneyin.',
+      ],
+      rating: { lighting: 9, composition: 8, emotion: 7, overall: 8.0 },
+    },
+    createdAt: '2023-10-26T10:00:00Z',
+  },
+   {
+    id: 'pub-8',
+    imageUrl: findImage('gallery-8')?.imageUrl ?? '',
+    imageHint: findImage('gallery-8')?.imageHint ?? 'travel destination',
+    aiFeedback: {
+      analysis: 'Canlı ve davetkar bir seyahat fotoğrafı. Renkler doygun ve kompozisyon izleyiciyi sahnenin içine çekiyor. Işık, mimari detayları güzel bir şekilde vurguluyor.',
+      improvements: ['Gökyüzünde daha fazla detay ortaya çıkarmak için bir polarize filtre kullanın.', 'Hikayeye bir insan unsuru eklemeyi düşünün.', 'Farklı bir zaman diliminde, örneğin altın saatte çekim yapmayı deneyin.'],
+      rating: { lighting: 8, composition: 8, emotion: 9, overall: 8.7 },
+    },
+    createdAt: '2023-11-05T11:00:00Z',
+  },
+  {
+    id: 'pub-4',
+    imageUrl: findImage('gallery-4')?.imageUrl ?? '',
+    imageHint: findImage('gallery-4')?.imageHint ?? 'soyut mimari',
+    aiFeedback: {
+      analysis: 'Güçlü çizgilere ve tekrarlanan desenlere sahip ilgi çekici bir soyut mimari çekim. Tek renkli yaklaşım, forma ve dokuya odaklanmayı sağlıyor.',
+      improvements: ['Simetriyi daha da vurgulamak için kompozisyonu merkezlemeyi deneyin.', 'Gölge ve ışık arasındaki kontrastı artırarak daha fazla drama katın.', 'Binanın farklı bir bölümünden alışılmadık bir açı arayın.'],
+      rating: { lighting: 9, composition: 9, emotion: 6, overall: 8.2 },
+    },
+    createdAt: '2023-11-02T09:30:00Z',
+  }
+];
+
+export const competitions: Competition[] = [
+    {
+        id: '1',
+        title: 'Gecenin Işıkları',
+        description: 'Şehrinizin gece manzarasını yakalayın. Neon ışıklar, ışık izleri ve mimari aydınlatmalarla yaratıcılığınızı gösterin.',
+        theme: 'Gece Fotoğrafçılığı',
+        prize: '150 Auro + Ana Sayfada Sergilenme',
+        startDate: '2024-08-01T00:00:00Z',
+        endDate: '2024-08-31T23:59:59Z',
+        imageUrl: findImage('gallery-2')?.imageUrl ?? '',
+        imageHint: 'sokak fotoğrafçılığı gece',
+    },
+    {
+        id: '2',
+        title: 'Doğanın Portresi',
+        description: 'Doğanın ham güzelliğini ve sakinliğini yansıtan en iyi manzara fotoğrafınızı gönderin. Dağlar, ormanlar, denizler...',
+        theme: 'Manzara',
+        prize: '150 Auro + Ana Sayfada Sergilenme',
+        startDate: '2024-09-01T00:00:00Z',
+        endDate: '2024-09-30T23:59:59Z',
+        imageUrl: findImage('gallery-3')?.imageUrl ?? '',
+        imageHint: 'doğa orman',
+    }
 ];

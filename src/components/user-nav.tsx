@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { Gem, LogOut, Award, ShieldCheck } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck, User as UserIcon, Coins } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -84,6 +85,21 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+           <DropdownMenuItem asChild>
+             <Link href="/profile">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Profilim</span>
+              </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/pricing">
+              <Coins className="mr-2 h-4 w-4" />
+              <span>Auro Satın Al</span>
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+         <DropdownMenuGroup>
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Gem className="h-4 w-4 text-cyan-400" />

@@ -53,3 +53,24 @@ export type Transaction = {
     status: 'Completed' | 'Pending' | 'Failed';
     transactionDate: string;
 };
+
+export type Competition = {
+  id: string;
+  title: string;
+  description: string;
+  theme: string;
+  prize: string;
+  startDate: string;
+  endDate: string;
+  imageUrl: string;
+  imageHint: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  text: string;
+  userId: string;
+  userName: string;
+  userAvatar: string | null;
+  timestamp: string; // ISO string
+};

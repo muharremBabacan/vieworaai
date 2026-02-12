@@ -7,8 +7,8 @@ import {
   GalleryVertical,
   GraduationCap,
   Sparkles,
-  Coins,
-  User as UserIcon,
+  Compass,
+  Trophy,
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -25,10 +25,10 @@ const navItems = [
     shortLabel: 'Akademi'
   },
   {
-    href: '/gallery',
-    icon: GalleryVertical,
-    label: 'Fotoğraflarım',
-    shortLabel: 'Fotoğraflar'
+    href: '/explore',
+    icon: Compass,
+    label: 'Keşfet',
+    shortLabel: 'Keşfet'
   },
   {
     href: '/dashboard',
@@ -37,16 +37,16 @@ const navItems = [
     shortLabel: 'Koç'
   },
   {
-    href: '/profile',
-    icon: UserIcon,
-    label: 'Profilim',
-    shortLabel: 'Profil'
+    href: '/competitions',
+    icon: Trophy,
+    label: 'Yarışmalar',
+    shortLabel: 'Yarışma'
   },
   {
-    href: '/pricing',
-    icon: Coins,
-    label: 'Auro Satın Al',
-    shortLabel: 'Auro'
+    href: '/gallery',
+    icon: GalleryVertical,
+    label: 'Fotoğraflarım',
+    shortLabel: 'Galerim'
   },
 ];
 

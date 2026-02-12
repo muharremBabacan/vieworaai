@@ -1,0 +1,180 @@
+'use client';
+import { useState } from 'react';
+import Image from 'next/image';
+import type { Photo } from '@/types';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { Lightbulb, LayoutPanelLeft, Heart, Star } from 'lucide-react';
+import { publicPhotos } from '@/lib/data'; // Fetch public photos
+
+function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
+  const ratingItems = [
+      { label: 'Işık', value: rating.lighting },
+      { label: 'Kompozisyon', value: rating.composition },
+      { label: 'Duygu', value: rating.emotion },
+  ];
+  return (
+      <div>
+          <h4 className="font-semibold text-lg mb-3">Puanlama</h4>
+          <div className="flex items-center gap-6 rounded-lg border p-4">
+              <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Genel</p>
+                  <p className="text-4xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
+              </div>
+              <div className="flex-1 space-y-2">
+                  {ratingItems.map(item => (
+                      <div key={item.label} className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">{item.label}</span>
+                          <div className="flex items-center gap-2">
+                               <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                                  <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
+                              </div>
+                              <span className="text-sm font-semibold w-6 text-right">{item.value}</span>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      </div>
+  )
+}
+
+
+function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+  if (!photo) return null;
+
+  const improvements = [
+    { icon: Lightbulb, color: 'text-amber-400' },
+    { icon: LayoutPanelLeft, color: 'text-blue-400' },
+    { icon: Heart, color: 'text-rose-400' },
+  ];
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0">
+        <div className="md:w-1/2 w-full relative aspect-square md:aspect-auto">
+          <Image
+            src={photo.imageUrl}
+            alt="Analiz edilen fotoğraf"
+            fill
+            className="object-contain"
+            data-ai-hint={photo.imageHint}
+          />
+        </div>
+        <ScrollArea className="md:w-1/2 w-full">
+          <div className="p-6 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
+            </DialogHeader>
+            
+            {photo.aiFeedback ? (
+              <>
+                {photo.aiFeedback.rating && <RatingDisplay rating={photo.aiFeedback.rating} />}
+                
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">Analiz</h4>
+                  <DialogDescription>{photo.aiFeedback.analysis}</DialogDescription>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">İyileştirme İpuçları</h4>
+                  <ul className="space-y-4">
+                    {photo.aiFeedback.improvements.map((tip, index) => {
+                      const Icon = improvements[index % improvements.length].icon;
+                      const color = improvements[index % improvements.length].color;
+                      return (
+                         <li key={index} className="flex items-start gap-3">
+                          <Icon className={cn("h-5 w-5 mt-0.5 flex-shrink-0", color)} />
+                          <span className="text-sm text-muted-foreground">{tip}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-muted-foreground">Bu fotoğraf için analiz mevcut değil.</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (photo: Photo) => void }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {photos.map((photo) => (
+        <Card
+          key={photo.id}
+          className="overflow-hidden cursor-pointer group"
+          onClick={() => onPhotoClick(photo)}
+        >
+          <CardContent className="p-0 aspect-w-1 aspect-h-1">
+            <div className="relative w-full h-full aspect-square">
+              <Image
+                src={photo.imageUrl}
+                alt={`Kullanıcı fotoğrafı ${photo.id}`}
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                data-ai-hint={photo.imageHint}
+              />
+               {photo.aiFeedback?.rating && (
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  <Star className="h-3 w-3 text-yellow-400" />
+                  <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <span className="text-white font-semibold">Detayları Gör</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export default function ExplorePage() {
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  
+  // For now, we use static data. Later, this could come from a Firestore query
+  // to a `public_photos` collection.
+  const photos = publicPhotos;
+
+  const openDialog = (photo: Photo) => {
+    setSelectedPhoto(photo);
+  };
+
+  const closeDialog = () => {
+    setSelectedPhoto(null);
+  };
+  
+  return (
+    <div className="container mx-auto">
+        <div className="text-left mb-8">
+            <h2 className="text-2xl font-bold tracking-tight">Haftanın En İyileri</h2>
+            <p className="text-muted-foreground mt-1">Topluluk tarafından en çok beğenilen ve en yüksek puan alan fotoğraflar.</p>
+        </div>
+
+        <PhotoGrid photos={photos} onPhotoClick={openDialog} />
+
+        <PhotoDetailDialog 
+            photo={selectedPhoto} 
+            isOpen={!!selectedPhoto}
+            onOpenChange={(open) => !open && closeDialog()}
+        />
+    </div>
+  );
+}

@@ -182,6 +182,76 @@
         "status",
         "transactionDate"
       ]
+    },
+    "Competition": {
+      "title": "Competition",
+      "type": "object",
+      "description": "Represents a photography competition.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "theme": {
+          "type": "string"
+        },
+        "prize": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "startDate",
+        "endDate"
+      ]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "type": "object",
+      "description": "Represents a single message in a chat room.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string"
+        },
+        "userAvatar": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "userId",
+        "userName",
+        "timestamp"
+      ]
     }
   },
   "auth": {
@@ -262,8 +332,60 @@
             }
           ]
         }
+      },
+      {
+        "path": "/competitions/{competitionId}",
+        "definition": {
+          "entityName": "Competition",
+          "schema": {
+            "$ref": "#/backend/entities/Competition"
+          },
+          "description": "Stores details about photography competitions. Publicly readable.",
+          "params": [
+            {
+              "name": "competitionId",
+              "description": "The unique identifier for the competition."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/public_photos/{photoId}",
+        "definition": {
+          "entityName": "Photo",
+          "schema": {
+            "$ref": "#/backend/entities/Photo"
+          },
+          "description": "A collection of photos curated for public viewing (e.g., top-rated). Publicly readable.",
+          "params": [
+            {
+              "name": "photoId",
+              "description": "The unique identifier for the photo."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chat_rooms/{roomId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "Stores messages within a specific chat room.",
+          "params": [
+            {
+              "name": "roomId",
+              "description": "The unique ID for the chat room."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique ID for the message."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the Viewora AI Coach application's features, focusing on secure access, scalability, and maintainability. The key principle is Authorization Independence, achieved through denormalization. The structure is segregated to provide homogeneous security postures across collections.\n\n*   **Users (Private Data):** User data is stored under `/users/{userId}` ensuring only the authenticated user can access their own data. Path-based ownership simplifies security rules.\n*   **Photos (User-Owned Data):** Photos analyzed by the AI are stored under `/users/{userId}/photos/{photoId}`. This hierarchical structure maintains the 1:N relationship between Users and Photos. The `userId` is denormalized into the `Photo` document to enforce authorization independence.\n*   **Lessons (Public Data):** Lessons are stored in the `/lessons/{lessonId}` collection.  These are globally accessible so no user-specific authorization is applied.\n*   **Transactions (User-Owned Data):** Transaction data is stored under `/users/{userId}/transactions/{transactionId}`. This structure allows tracking of each user's transactions and follows the 1:N relationship between Users and Transactions. The `userId` is denormalized into the `Transaction` document to enforce authorization independence.\n\nThis design supports the required QAPs by:\n\n1.  **Authorization Independence:** Denormalizing `userId` into the `photos` and `transactions` collections eliminates the need for `get()` calls in security rules, enabling atomic operations.\n2.  **QAPs (Rules are not Filters):**  The structure enables secure `list` operations. Listing photos is secure as all photos under `/users/{userId}/photos/{photoId}` belong to the authenticated user. Similarly, listing transactions is secure as all transactions under `/users/{userId}/transactions/{transactionId}` belong to the authenticated user.\n3.  **Clarity of Intent (Debuggability):** The structure makes authorization intent explicit.  The use of path-based ownership for user-specific data clearly indicates that access is controlled by the user's ID."
+    "reasoning": "The Firestore data structure is designed to support the Viewora AI Coach application's features, focusing on secure access, scalability, and maintainability. The key principle is Authorization Independence, achieved through denormalization. The structure is segregated to provide homogeneous security postures across collections.\n\n*   **Users (Private Data):** User data is stored under `/users/{userId}` ensuring only the authenticated user can access their own data. Path-based ownership simplifies security rules.\n*   **Photos (User-Owned Data):** Photos analyzed by the AI are stored under `/users/{userId}/photos/{photoId}`. This hierarchical structure maintains the 1:N relationship between Users and Photos. The `userId` is denormalized into the `Photo` document to enforce authorization independence.\n*   **Lessons (Public Data):** Lessons are stored in the `/lessons/{lessonId}` collection.  These are globally accessible so no user-specific authorization is applied.\n*   **Transactions (User-Owned Data):** Transaction data is stored under `/users/{userId}/transactions/{transactionId}`. This structure allows tracking of each user's transactions and follows the 1:N relationship between Users and Transactions. The `userId` is denormalized into the `Transaction` document to enforce authorization independence.\n*   **Competitions & Public Photos (Public Data):** The `/competitions` and `/public_photos` collections store publicly accessible content. They are separated to allow global read access without compromising user data privacy.\n*   **Chat Rooms (Semi-Private Data):** Chat messages are stored under `/chat_rooms/{roomId}/messages/{messageId}`. This allows signed-in users to participate in chats without being tied to a specific user's private data tree.\n\nThis design supports the required QAPs by:\n\n1.  **Authorization Independence:** Denormalizing `userId` into the `photos` and `transactions` collections eliminates the need for `get()` calls in security rules, enabling atomic operations.\n2.  **QAPs (Rules are not Filters):**  The structure enables secure `list` operations. Listing photos is secure as all photos under `/users/{userId}/photos/{photoId}` belong to the authenticated user. Similarly, listing transactions is secure as all transactions under `/users/{userId}/transactions/{transactionId}` belong to the authenticated user. Public collections are safe to list.\n3.  **Clarity of Intent (Debuggability):** The structure makes authorization intent explicit.  The use of path-based ownership for user-specific data clearly indicates that access is controlled by the user's ID."
   }
 }
