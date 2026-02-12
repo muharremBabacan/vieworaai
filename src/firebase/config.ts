@@ -1,8 +1,9 @@
 export const firebaseConfig = {
-  "projectId": "studio-8632782825-fce99",
-  "appId": "1:1093513393552:web:73dcc66ac9684e5237ef15",
-  "apiKey": "AIzaSyCIyLeBksCYIYDkUdq522hlMnvSKBq3VZw",
-  "authDomain": "studio-8632782825-fce99.firebaseapp.com",
-  "measurementId": "",
+  "projectId": "viewora-photo",
+  "appId": "1:1093513393552:web:65a6f20e4395a1215b2447",
+  "apiKey": "AIzaSyArCkWAaym7ybDnhCvNMJZMhs8IULCxhpc",
+  "authDomain": "viewora-photo.firebaseapp.com",
+  "measurementId": "G-5G3XPEX156",
+  "storageBucket": "viewora-photo.appspot.com",
   "messagingSenderId": "1093513393552"
 };

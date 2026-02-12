@@ -17,14 +17,14 @@ export default function PricingPage() {
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
-    if (!authUser) return null;
+    if (!authUser || !firestore) return null;
     return doc(firestore, 'users', authUser.uid);
   }, [authUser, firestore]);
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const handlePurchase = (pkg: Package) => {
-    if (!userDocRef || !userProfile || !authUser || purchasingId) return;
+    if (!userDocRef || !userProfile || !authUser || purchasingId || !firestore) return;
     
     setPurchasingId(pkg.id);
     

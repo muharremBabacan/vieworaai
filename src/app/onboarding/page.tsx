@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import Logo from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,7 @@ export default function OnboardingPage() {
   const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
@@ -66,21 +66,12 @@ export default function OnboardingPage() {
 
     setIsUpdating(true);
     
-    try {
-      await updateDoc(userDocRef, {
-        interests: selectedInterests,
-        onboarded: true,
-      });
-      router.replace('/profile');
-    } catch (error) {
-      console.error("Onboarding update failed:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Güncelleme Başarısız',
-        description: 'Bilgileriniz kaydedilemedi. Lütfen tekrar deneyin.',
-      });
-      setIsUpdating(false);
-    }
+    updateDocumentNonBlocking(userDocRef, {
+      interests: selectedInterests,
+      onboarded: true,
+    });
+    // Non-blocking, so we can navigate away immediately
+    router.replace('/profile');
   };
 
   return (

@@ -18,14 +18,14 @@ export default function ProfilePage() {
     const { toast } = useToast();
 
     const userDocRef = useMemoFirebase(() => {
-        if (!authUser) return null;
+        if (!authUser || !firestore) return null;
         return doc(firestore, 'users', authUser.uid);
     }, [authUser, firestore]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
     
     const photosQuery = useMemoFirebase(() => {
-        if (!authUser) return null;
+        if (!authUser || !firestore) return null;
         return collection(firestore, 'users', authUser.uid, 'photos');
     }, [authUser, firestore]);
 
@@ -35,11 +35,15 @@ export default function ProfilePage() {
 
     // Haftalık Auro Yenileme Mantığı
     useEffect(() => {
-        if (!userProfile || !userDocRef || !authUser) return;
+        if (!userProfile || !userDocRef || !authUser || !firestore) return;
 
         const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
         
-        const lastRefillDate = new Date(userProfile.weekly_free_refill_date);
+        // Ensure weekly_free_refill_date is a valid date string before creating a Date object
+        const lastRefillDateStr = userProfile.weekly_free_refill_date;
+        if (!lastRefillDateStr || typeof lastRefillDateStr !== 'string') return;
+        
+        const lastRefillDate = new Date(lastRefillDateStr);
         const sevenDaysAgo = addDays(new Date(), -7);
 
         if (isBefore(lastRefillDate, sevenDaysAgo) && auroBalance < 10) {

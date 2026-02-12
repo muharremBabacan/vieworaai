@@ -52,7 +52,6 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
   )
 }
 
-
 function PhotoDetailDialog({ 
     photo, 
     isOpen, 
@@ -69,11 +68,7 @@ function PhotoDetailDialog({
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!photo) {
-    return null;
-  }
-
+  
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
@@ -81,7 +76,7 @@ function PhotoDetailDialog({
   ];
 
   const handleSubmitToPublic = () => {
-    if (!photo || !userProfile || !userDocRef || !photo.userId) return;
+    if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
     
     const submissionCost = 5;
     const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
@@ -113,6 +108,10 @@ function PhotoDetailDialog({
     onOpenChange(false); 
     setIsSubmitting(false);
   };
+  
+  if (!photo) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -236,14 +235,14 @@ export default function GalleryPage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
   const photosQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'));
   }, [user, firestore]);
   
   const { data: userPhotos, isLoading } = useCollection<Photo>(photosQuery);
 
   const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 

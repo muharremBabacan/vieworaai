@@ -28,7 +28,7 @@ export function UserNav() {
   const router = useRouter();
 
   const userDocRef = useMemoFirebase(() => {
-      if (!authUser) return null;
+      if (!authUser || !firestore) return null;
       return doc(firestore, 'users', authUser.uid);
   }, [authUser, firestore]);
 

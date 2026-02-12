@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Check, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -77,7 +77,7 @@ export default function AcademyPage() {
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
-  const handleLearn = async (lessonId: string, xpToAdd: number, auroToAdd: number) => {
+  const handleLearn = (lessonId: string, xpToAdd: number, auroToAdd: number) => {
     if (!userProfile || !userDocRef) return;
     if (userProfile.completed_modules?.includes(lessonId)) return; // Already completed
 
@@ -102,36 +102,27 @@ export default function AcademyPage() {
       }
     }
 
-    try {
-      await updateDoc(userDocRef, updatePayload);
-      toast({
-        title: 'Ödül Kazandın!',
-        description: `Bu dersten ${xpToAdd} XP ve ${auroToAdd} Auro kazandın.`,
-      });
+    updateDocumentNonBlocking(userDocRef, updatePayload);
+    toast({
+      title: 'Ödül Kazandın!',
+      description: `Bu dersten ${xpToAdd} XP ve ${auroToAdd} Auro kazandın.`,
+    });
 
-      if (updatePayload.level_name) {
+    if (updatePayload.level_name) {
+      setTimeout(() => {
+        toast({
+          title: '🎉 Seviye Atladın!',
+          description: `Tebrikler! Yeni seviyen: ${updatePayload.level_name}`,
+        });
+      }, 100);
+      if (updatePayload.is_mentor) {
         setTimeout(() => {
           toast({
-            title: '🎉 Seviye Atladın!',
-            description: `Tebrikler! Yeni seviyen: ${updatePayload.level_name}`,
+            title: '👑 Mentor Oldun!',
+            description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.',
           });
-        }, 100);
-        if (updatePayload.is_mentor) {
-          setTimeout(() => {
-            toast({
-              title: '👑 Mentor Oldun!',
-              description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.',
-            });
-          }, 200);
-        }
+        }, 200);
       }
-    } catch (error) {
-      console.error("Failed to update user profile:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Hata',
-        description: 'Profilin güncellenirken bir sorun oluştu.',
-      });
     }
   };
 
