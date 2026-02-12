@@ -1,8 +1,9 @@
 'use client';
+import { useState } from 'react';
 import { packages } from '@/lib/data';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gem, Star } from 'lucide-react';
+import { Gem, Star, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
@@ -13,6 +14,7 @@ export default function PricingPage() {
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
+  const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!authUser) return null;
@@ -22,7 +24,9 @@ export default function PricingPage() {
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const handlePurchase = (pkg: Package) => {
-    if (!userDocRef || !userProfile || !authUser) return;
+    if (!userDocRef || !userProfile || !authUser || purchasingId) return;
+    
+    setPurchasingId(pkg.id);
     
     // --- GERÇEK UYGULAMA İÇİN NOT ---
     // Bu kısım, gerçek bir ödeme entegrasyonu için bir başlangıç noktasıdır.
@@ -64,6 +68,8 @@ export default function PricingPage() {
           title: 'Satın Alma Başarılı!',
           description: `${pkg.auro} Auro hesabınıza eklendi.`,
         });
+
+        setPurchasingId(null);
     }, 2000);
   };
 
@@ -107,9 +113,16 @@ export default function PricingPage() {
                 size="lg"
                 variant={pkg.isBestValue ? 'default' : 'outline'}
                 onClick={() => handlePurchase(pkg)}
-                disabled={!userProfile}
+                disabled={!userProfile || !!purchasingId}
               >
-                Hemen Satın Al
+                {purchasingId === pkg.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    İşleniyor...
+                  </>
+                ) : (
+                  'Hemen Satın Al'
+                )}
               </Button>
             </CardFooter>
           </Card>
