@@ -62,8 +62,8 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0">
-        <div className="md:w-1/2 w-full relative aspect-square md:aspect-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
+        <div className="md:w-5/12 w-full relative aspect-video md:aspect-auto">
           <Image
             src={photo.imageUrl}
             alt="Analiz edilen fotoğraf"
@@ -73,7 +73,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
             data-ai-hint={photo.tags?.join(' ')}
           />
         </div>
-        <div className="md:w-1/2 w-full overflow-y-auto">
+        <div className="md:w-7/12 w-full overflow-y-auto">
           <div className="p-6 space-y-6">
             <DialogHeader>
               <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>

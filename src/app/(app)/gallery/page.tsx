@@ -203,40 +203,37 @@ function PhotoDetailDialog({
     setIsSubmitting(false);
   };
   
-  const handleWithdrawFromPublic = async () => {
+  const handleWithdrawFromPublic = () => {
       if (!photo || !photo.userId || !firestore) return;
       setIsProcessing(true);
 
-      try {
-          // This is a read, so it must be awaited.
-          const publicPhotosQuery = query(
-              collection(firestore, 'public_photos'), 
-              where('imageUrl', '==', photo.imageUrl),
-              where('userId', '==', photo.userId),
-              limit(1)
-          );
-          const querySnapshot = await getDocs(publicPhotosQuery);
+      const publicPhotosQuery = query(
+          collection(firestore, 'public_photos'), 
+          where('imageUrl', '==', photo.imageUrl),
+          where('userId', '==', photo.userId),
+          limit(1)
+      );
 
-          // These are mutations, use fire-and-forget non-blocking wrappers.
-          // This avoids awaiting and lets the UI update reactively.
+      // We need to `await` the read operation to find the document.
+      getDocs(publicPhotosQuery).then(querySnapshot => {
+          // Once we have the doc, we can use non-blocking writes.
           querySnapshot.forEach(docSnapshot => {
               deleteDocumentNonBlocking(docSnapshot.ref);
           });
 
-          const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+          const privatePhotoRef = doc(firestore, 'users', photo.userId!, 'photos', photo.id);
           updateDocumentNonBlocking(privatePhotoRef, {
               isSubmittedToPublic: false,
           });
 
           toast({ title: 'Başarılı', description: 'Fotoğraf sergiden kaldırıldı.' });
-      } catch (error) {
+      }).catch(error => {
           console.error("Error withdrawing photo:", error);
-           // This catch will now only trigger for the `getDocs` read operation.
           toast({ variant: 'destructive', title: 'Hata', description: 'Fotoğraf sergiden kaldırılamadı.' });
-      } finally {
+      }).finally(() => {
           setIsProcessing(false);
           closeAll();
-      }
+      });
   };
 
   if (!photo) {
@@ -248,8 +245,8 @@ function PhotoDetailDialog({
   return (
     <>
     <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(false)}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0">
-        <div className="md:w-1/2 w-full relative aspect-square md:aspect-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
+        <div className="md:w-5/12 w-full relative aspect-video md:aspect-auto">
           <Image
             src={photo.imageUrl}
             alt="Analiz edilen fotoğraf"
@@ -259,7 +256,7 @@ function PhotoDetailDialog({
             data-ai-hint={photo.tags?.join(' ')}
           />
         </div>
-        <div className="md:w-1/2 w-full overflow-y-auto">
+        <div className="md:w-7/12 w-full overflow-y-auto">
           <div className="p-6 space-y-6">
              <DialogHeader>
               <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
