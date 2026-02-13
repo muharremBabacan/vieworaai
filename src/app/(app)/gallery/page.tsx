@@ -23,10 +23,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, CheckCircle, Clock, Zap, Trash2, Undo2 } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Trash2, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from "firebase/storage";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -200,6 +200,7 @@ function PhotoDetailDialog({
     setIsSubmitting(true);
 
     const publicPhotosCollectionRef = collection(firestore, 'public_photos');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, isSubmittedToPublic, ...publicPhotoData } = photo;
     addDocumentNonBlocking(publicPhotosCollectionRef, publicPhotoData);
 
@@ -249,54 +250,69 @@ function PhotoDetailDialog({
       }
   };
 
-  const handleDeletePhoto = () => {
-      if (!photo || !photo.userId || !firestore) return;
-      
-      setIsProcessing(true);
+  const handleDeletePhoto = async () => {
+    if (!photo || !photo.userId || !firestore) return;
 
-      // 1. Delete private document (non-blocking)
+    setIsProcessing(true);
+
+    try {
+      // Adım 1: Firestore'daki veritabanı kayıtlarını (hem public hem private) sil.
+      const deleteDbPromises: Promise<void>[] = [];
+
+      // Private kaydı silme listesine ekle
       const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-      deleteDocumentNonBlocking(privatePhotoRef);
-      
-      // 2. If it was public, delete from public collection (non-blocking)
+      deleteDbPromises.push(deleteDoc(privatePhotoRef));
+
+      // Public kaydı varsa, onu da silme listesine ekle
       if (photo.isSubmittedToPublic) {
-          const publicPhotosQuery = query(
-              collection(firestore, 'public_photos'), 
-              where('imageUrl', '==', photo.imageUrl),
-              where('userId', '==', photo.userId),
-              limit(1)
-          );
-          getDocs(publicPhotosQuery).then(querySnapshot => {
-              querySnapshot.forEach(docSnapshot => {
-                  deleteDocumentNonBlocking(docSnapshot.ref);
-              });
-          });
+        const publicPhotosQuery = query(
+          collection(firestore, 'public_photos'),
+          where('imageUrl', '==', photo.imageUrl),
+          where('userId', '==', photo.userId)
+        );
+        const querySnapshot = await getDocs(publicPhotosQuery);
+        querySnapshot.forEach(docSnapshot => {
+          deleteDbPromises.push(deleteDoc(docSnapshot.ref));
+        });
       }
       
-      // 3. Delete from Storage - this promise's resolution will drive the UI feedback
-      const storage = getStorage();
-      const imageRef = storageRef(storage, photo.imageUrl);
+      // Tüm veritabanı silme işlemlerini aynı anda başlat ve bekle
+      await Promise.all(deleteDbPromises);
 
-      deleteObject(imageRef)
-        .then(() => {
-            toast({ title: 'Başarılı!', description: 'Fotoğrafınız kalıcı olarak silindi.' });
-        })
-        .catch((error: any) => {
-            console.error("Storage deletion failed:", error);
-            if (error.code === 'storage/object-not-found') {
-                 toast({ title: 'Galeriden Silindi', description: 'Fotoğraf galeriden kaldırıldı (Depodaki dosya zaten mevcut değildi).' });
-            } else {
-                toast({ 
-                    variant: 'destructive', 
-                    title: 'Silme Hatası', 
-                    description: 'Fotoğraf galeriden kaldırıldı ancak depodan silinirken bir hata oluştu.' 
-                });
-            }
-        })
-        .finally(() => {
-            setIsProcessing(false);
-            closeAll();
+      // Adım 2: Storage'dan dosyayı sil.
+      // Eğer filePath varsa onu kullan, yoksa (eski veriler için) imageUrl'den dene.
+      if (photo.filePath) {
+        const storage = getStorage();
+        const imageRef = storageRef(storage, photo.filePath);
+        await deleteObject(imageRef);
+      } else {
+        // Fallback for old data that doesn't have filePath
+        console.warn(`filePath not found for photo ${photo.id}. Attempting to delete from URL. This may fail.`);
+        const storage = getStorage();
+        const imageRef = storageRef(storage, photo.imageUrl);
+        await deleteObject(imageRef);
+      }
+
+      toast({ title: 'Başarılı!', description: 'Fotoğrafınız kalıcı olarak silindi.' });
+
+    } catch (error: any) {
+      console.error("Silme işlemi başarısız:", error);
+      if (error.code === 'storage/object-not-found') {
+        toast({
+          title: 'Kayıt Silindi',
+          description: 'Veritabanı kayıtları silindi ancak depodaki dosya zaten mevcut değildi veya bulunamadı.'
         });
+      } else {
+         toast({
+            variant: 'destructive',
+            title: 'Silme Başarısız',
+            description: `Fotoğraf silinirken bir hata oluştu: ${error.message}`
+        });
+      }
+    } finally {
+      setIsProcessing(false);
+      closeAll();
+    }
   };
 
   if (!photo) {

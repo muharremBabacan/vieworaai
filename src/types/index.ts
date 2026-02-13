@@ -20,6 +20,7 @@ export type Photo = {
   id: string;
   userId?: string; // Added to satisfy security rules on creation
   imageUrl: string;
+  filePath?: string; // Path in Firebase Storage
   tags?: string[];
   aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
   createdAt: string;
@@ -56,7 +57,7 @@ export type Transaction = {
 };
 
 export type Competition = {
-  id: string;
+  id:string;
   title: string;
   description: string;
   theme: string;
