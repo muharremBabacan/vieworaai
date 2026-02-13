@@ -249,34 +249,54 @@ function PhotoDetailDialog({
       }
   };
 
-  const handleDeletePhoto = async () => {
+  const handleDeletePhoto = () => {
       if (!photo || !photo.userId || !firestore) return;
+      
       setIsProcessing(true);
+
+      // 1. Delete private document (non-blocking)
+      const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+      deleteDocumentNonBlocking(privatePhotoRef);
       
-      // 1. Delete Firestore document
-      const photoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-      deleteDocumentNonBlocking(photoRef);
-      
-      // If it was public, also delete from public collection
+      // 2. If it was public, delete from public collection (non-blocking)
       if (photo.isSubmittedToPublic) {
-          handleWithdrawFromPublic(); // This handles its own state and toasts, maybe not ideal
+          const publicPhotosQuery = query(
+              collection(firestore, 'public_photos'), 
+              where('imageUrl', '==', photo.imageUrl),
+              where('userId', '==', photo.userId),
+              limit(1)
+          );
+          getDocs(publicPhotosQuery).then(querySnapshot => {
+              querySnapshot.forEach(docSnapshot => {
+                  deleteDocumentNonBlocking(docSnapshot.ref);
+              });
+          });
       }
       
-      // 2. Delete from Storage
+      // 3. Delete from Storage - this promise's resolution will drive the UI feedback
       const storage = getStorage();
       const imageRef = storageRef(storage, photo.imageUrl);
 
-      try {
-          await deleteObject(imageRef);
-          toast({ title: 'Silindi', description: 'Fotoğrafınız kalıcı olarak silindi.' });
-      } catch (error) {
-          console.error("Error deleting from storage:", error);
-          // If Firestore doc is gone, user won't see it anyway. Log error.
-          toast({ title: 'Silindi', description: 'Fotoğraf galerinizden kaldırıldı.' });
-      } finally {
-          setIsProcessing(false);
-          closeAll();
-      }
+      deleteObject(imageRef)
+        .then(() => {
+            toast({ title: 'Başarılı!', description: 'Fotoğrafınız kalıcı olarak silindi.' });
+        })
+        .catch((error: any) => {
+            console.error("Storage deletion failed:", error);
+            if (error.code === 'storage/object-not-found') {
+                 toast({ title: 'Galeriden Silindi', description: 'Fotoğraf galeriden kaldırıldı (Depodaki dosya zaten mevcut değildi).' });
+            } else {
+                toast({ 
+                    variant: 'destructive', 
+                    title: 'Silme Hatası', 
+                    description: 'Fotoğraf galeriden kaldırıldı ancak depodan silinirken bir hata oluştu.' 
+                });
+            }
+        })
+        .finally(() => {
+            setIsProcessing(false);
+            closeAll();
+        });
   };
 
   if (!photo) {
