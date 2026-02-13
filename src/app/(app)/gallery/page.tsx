@@ -495,21 +495,19 @@ export default function GalleryPage() {
         <>
             {allTags.length > 0 && !isLoading && (
                 <div className="mb-6 -mx-4 sm:-mx-6">
-                    <div className="overflow-x-auto pb-2 no-scrollbar">
-                        <div className="flex w-max space-x-2 px-4 sm:px-6 whitespace-nowrap">
-                            {allTags.map((tag) => (
-                                <Button
-                                    key={tag}
-                                    variant={activeFilter === tag ? 'default' : 'secondary'}
-                                    size="sm"
-                                    onClick={() => setActiveFilter(tag)}
-                                    className="rounded-full capitalize h-8 px-4"
-                                >
-                                    {tag === 'Sergidekiler' && <Rocket className="mr-2 h-4 w-4" />}
-                                    {tag}
-                                </Button>
-                            ))}
-                        </div>
+                    <div className="flex items-center space-x-2 overflow-x-auto pb-2 no-scrollbar px-4 sm:px-6">
+                        {allTags.map((tag) => (
+                            <Button
+                                key={tag}
+                                variant={activeFilter === tag ? 'default' : 'secondary'}
+                                size="sm"
+                                onClick={() => setActiveFilter(tag)}
+                                className="rounded-full capitalize h-8 px-4 flex-shrink-0 whitespace-nowrap"
+                            >
+                                {tag === 'Sergidekiler' && <Rocket className="mr-2 h-4 w-4" />}
+                                {tag}
+                            </Button>
+                        ))}
                     </div>
                 </div>
             )}
