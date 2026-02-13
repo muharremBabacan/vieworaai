@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, BookOpen, Camera, Info, Target, FileText, Bot } from 'lucide-react';
+import { Check, BookOpen, Camera, Info, Target, FileText, Bot, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, useCollection } from '@/firebase';
@@ -18,9 +18,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 
-function LessonCard({ lesson, onLearn, isCompleted }: { lesson: AcademyLesson; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
+function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
+  if (!lesson) return null;
+
   const xpForLesson = 10;
   const auroForLesson = 2;
 
@@ -31,74 +39,116 @@ function LessonCard({ lesson, onLearn, isCompleted }: { lesson: AcademyLesson; o
 
   const accordionItems = [
     { value: 'objective', trigger: 'Öğrenim Hedefi', content: lesson.learningObjective, icon: Target },
+    { value: 'theory', trigger: 'Teori', content: lesson.theory, icon: FileText },
     { value: 'criteria', trigger: 'Başarı Kriterleri', content: <ul className="list-disc space-y-2 pl-5">{lesson.analysisCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul>, icon: Info },
     { value: 'task', trigger: 'Pratik Görevi', content: lesson.practiceTask, icon: Camera },
     { value: 'auro', trigger: 'Auro Notu', content: lesson.auroNote, icon: Bot },
   ];
 
   return (
-    <Card className="flex flex-col overflow-hidden h-full">
-      <CardHeader className="p-0 relative h-48">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
+        <div className="md:w-1/2 w-full relative aspect-square md:aspect-auto">
+           <Image
+            src={lesson.imageUrl}
+            alt={lesson.title}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover md:rounded-l-lg"
+            data-ai-hint={lesson.imageHint}
+          />
+           <div className="absolute top-4 left-4">
+            <Badge variant="secondary">{lesson.category}</Badge>
+          </div>
+        </div>
+        <ScrollArea className="md:w-1/2 w-full">
+            <div className='p-6 flex flex-col h-full'>
+              <DialogHeader className="mb-4">
+                <CardTitle className="font-sans text-2xl">{lesson.title}</CardTitle>
+              </DialogHeader>
+
+              <div className="flex-grow">
+                <Accordion type="single" collapsible className="w-full" defaultValue="objective">
+                  {accordionItems.map(item => (
+                    <AccordionItem value={item.value} key={item.value}>
+                      <AccordionTrigger>
+                        <div className='flex items-center gap-2'>
+                          <item.icon className="h-4 w-4" />
+                          {item.trigger}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-2 text-sm text-muted-foreground">
+                        {item.content}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+              
+              <div className="mt-6">
+                <Button
+                  onClick={handleLearn}
+                  disabled={isCompleted}
+                  className="w-full"
+                  size="lg"
+                  variant={isCompleted ? 'secondary' : 'default'}
+                >
+                  {isCompleted ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Öğrenildi!
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Dersi Tamamla (+{xpForLesson} XP, +{auroForLesson} Auro)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; onSelect: () => void; isCompleted: boolean; }) {
+  return (
+    <Card onClick={onSelect} className="overflow-hidden cursor-pointer group h-full flex flex-col">
+       <CardHeader className="p-0 relative aspect-video">
         <Image
           src={lesson.imageUrl}
           alt={lesson.title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
           data-ai-hint={lesson.imageHint}
         />
-        <div className="absolute top-4 left-4">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+         {isCompleted && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity duration-300">
+            <Check className="h-16 w-16 text-white/80" />
+          </div>
+        )}
+        <div className="absolute bottom-4 left-4">
           <Badge variant="secondary">{lesson.category}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-6 flex-grow flex flex-col">
-        <CardTitle className="font-sans text-xl mb-2">{lesson.title}</CardTitle>
-        <p className="text-muted-foreground text-sm flex-grow">{lesson.theory}</p>
-        
-        <Accordion type="single" collapsible className="w-full mt-4">
-          {accordionItems.map(item => (
-            <AccordionItem value={item.value} key={item.value}>
-              <AccordionTrigger className="text-sm">
-                <div className='flex items-center gap-2'>
-                  <item.icon className="h-4 w-4" />
-                  {item.trigger}
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 text-sm text-muted-foreground">
-                {item.content}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+       <CardContent className="p-4 flex-grow flex items-center">
+        <CardTitle className="font-sans text-base line-clamp-2 leading-snug">{lesson.title}</CardTitle>
       </CardContent>
-      <CardFooter className="p-6 pt-0">
-        <Button
-          onClick={handleLearn}
-          disabled={isCompleted}
-          className="w-full"
-          variant={isCompleted ? 'secondary' : 'default'}
-        >
-          {isCompleted ? (
-            <>
-              <Check className="mr-2 h-4 w-4" />
-              Öğrenildi!
-            </>
-          ) : (
-             <>
-              <BookOpen className="mr-2 h-4 w-4" />
-              Öğrenildi Olarak İşaretle (+{xpForLesson} XP, +{auroForLesson} Auro)
-            </>
-          )}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
+
 
 export default function AcademyPage() {
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
+  const [selectedLesson, setSelectedLesson] = useState<AcademyLesson | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!authUser) return null;
@@ -166,20 +216,16 @@ export default function AcademyPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="flex flex-col overflow-hidden h-full">
-                <CardHeader className="p-0 relative h-48">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+                <CardHeader className="p-0 relative aspect-video">
                     <Skeleton className="w-full h-full"/>
                 </CardHeader>
-                <CardContent className="p-6 flex-grow">
-                    <Skeleton className="h-6 w-3/4 mb-4"/>
-                    <Skeleton className="h-4 w-full mb-2"/>
-                    <Skeleton className="h-4 w-5/6"/>
+                <CardContent className="p-4">
+                    <Skeleton className="h-5 w-3/4 mb-1"/>
+                    <Skeleton className="h-5 w-5/6"/>
                 </CardContent>
-                 <CardFooter className="p-6 pt-0">
-                    <Skeleton className="h-10 w-full"/>
-                </CardFooter>
             </Card>
           ))}
         </div>
@@ -196,17 +242,25 @@ export default function AcademyPage() {
             <p className="text-muted-foreground mt-2">Profil sayfasından yönetici aracıyla günlük dersleri oluşturun.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {lessons.map((lesson) => (
             <LessonCard 
               key={lesson.id} 
               lesson={lesson} 
-              onLearn={handleLearn}
+              onSelect={() => setSelectedLesson(lesson)}
               isCompleted={userProfile?.completed_modules?.includes(lesson.id) || false}
             />
           ))}
         </div>
       )}
+
+      <LessonDetailDialog
+        lesson={selectedLesson}
+        isOpen={!!selectedLesson}
+        onOpenChange={(isOpen) => { if (!isOpen) setSelectedLesson(null); }}
+        onLearn={handleLearn}
+        isCompleted={!!selectedLesson && (userProfile?.completed_modules?.includes(selectedLesson.id) || false)}
+      />
     </div>
   );
 }
