@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -495,8 +495,8 @@ export default function GalleryPage() {
         <>
             {allTags.length > 0 && !isLoading && (
                 <div className="mb-6 -mx-4 sm:-mx-6">
-                    <ScrollArea className="w-full whitespace-nowrap">
-                        <div className="flex w-max space-x-2 px-4 sm:px-6">
+                    <div className="overflow-x-auto pb-2">
+                        <div className="flex w-max space-x-2 px-4 sm:px-6 whitespace-nowrap">
                             {allTags.map((tag) => (
                                 <Button
                                     key={tag}
@@ -510,8 +510,7 @@ export default function GalleryPage() {
                                 </Button>
                             ))}
                         </div>
-                        <ScrollBar orientation="horizontal" className="h-2" />
-                    </ScrollArea>
+                    </div>
                 </div>
             )}
 
