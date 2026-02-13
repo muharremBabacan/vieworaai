@@ -1,34 +1,7 @@
-import type { Lesson, Package, Competition } from '@/types';
+import type { Package, Competition } from '@/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const findImage = (id: string) => PlaceHolderImages.find((img) => img.id === id);
-
-export const lessons: Lesson[] = [
-  {
-    id: '1',
-    category: 'Kompozisyon',
-    title: 'Üçler Kuralı',
-    content: 'Karenizin 3x3\'lük bir ızgaraya bölündüğünü hayal edin. Anahtar unsurları bu çizgiler boyunca veya kesişim noktalarına yerleştirmek, daha dengeli ve ilgi çekici fotoğraflar oluşturur.',
-    imageUrl: findImage('academy-composition')?.imageUrl ?? '',
-    imageHint: findImage('academy-composition')?.imageHint ?? 'üçler kuralı',
-  },
-  {
-    id: '2',
-    category: 'Işık',
-    title: 'Altın Saatte Ustalaşma',
-    content: 'Gündoğumundan hemen sonraki veya günbatımından hemen önceki dönem "altın saat" olarak adlandırılır. Yumuşak, sıcak, dağınık ışık, portreler ve manzaralar için inanılmaz derecede gurur okşayıcıdır.',
-    imageUrl: findImage('academy-light')?.imageUrl ?? '',
-    imageHint: findImage('academy-light')?.imageHint ?? 'altın saat',
-  },
-  {
-    id: '3',
-    category: 'Teknik',
-    title: 'Uzun Pozlamayı Keşfetme',
-    content: 'Yavaş bir enstantane hızı kullanmak, hareketli öğeleri bulanıklaştırarak su, bulutlar veya şehir ışıkları ile rüya gibi efektler yaratabilir. Bu teknik için bir tripod şarttır.',
-    imageUrl: findImage('academy-technique')?.imageUrl ?? '',
-    imageHint: findImage('academy-technique')?.imageHint ?? 'uzun pozlama',
-  },
-];
 
 export const packages: Package[] = [
   {

@@ -1,16 +1,96 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Award, Gem, Camera, Tag, Trophy, ShieldCheck } from 'lucide-react';
+import { Award, Gem, Camera, Tag, Trophy, ShieldCheck, Settings, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { levels, getLevelFromXp } from '@/lib/gamification';
 import { useToast } from '@/hooks/use-toast';
 import { addDays, isBefore } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { generateDailyLessons, type GeneratedLesson } from '@/ai/flows/generate-daily-lessons';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+function AdminTools() {
+    const { toast } = useToast();
+    const firestore = useFirestore();
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    const handleGenerateLessons = async () => {
+        if (!firestore) return;
+        setIsGenerating(true);
+        toast({
+            title: 'Dersler Üretiliyor...',
+            description: 'Yapay zeka 5 yeni ders hazırlıyor. Bu işlem biraz zaman alabilir.',
+        });
+
+        try {
+            const newLessons = await generateDailyLessons();
+            if (!newLessons || newLessons.length === 0) {
+                throw new Error("AI did not return any lessons.");
+            }
+
+            const lessonCollectionRef = collection(firestore, 'academyLessons');
+            
+            const imagePlaceholders = PlaceHolderImages.filter(p => p.id.startsWith('academy-'));
+
+            for (const lesson of newLessons) {
+                // Find a random placeholder image
+                const randomImage = imagePlaceholders[Math.floor(Math.random() * imagePlaceholders.length)];
+                
+                const lessonData = {
+                    ...lesson,
+                    imageUrl: randomImage?.imageUrl ?? 'https://picsum.photos/seed/lesson/600/400',
+                    createdAt: new Date().toISOString(),
+                };
+                addDocumentNonBlocking(lessonCollectionRef, lessonData);
+            }
+
+            toast({
+                title: 'Başarılı!',
+                description: `${newLessons.length} yeni ders akademiye eklendi.`,
+            });
+
+        } catch (error) {
+            console.error("Failed to generate or save lessons:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Hata!',
+                description: 'Dersler üretilirken veya kaydedilirken bir sorun oluştu.',
+            });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    return (
+        <Card className="md:col-span-2 lg:col-span-3">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                    <Settings className="h-6 w-6 text-primary" />
+                    <span>Yönetici Araçları</span>
+                </CardTitle>
+                <CardDescription>Uygulama için yönetimsel görevleri buradan yapın.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-semibold">Günlük Dersleri Üret</h4>
+                        <p className="text-sm text-muted-foreground">Yapay zeka ile 5 yeni akademi dersi oluşturur ve veritabanına ekler.</p>
+                    </div>
+                    <Button onClick={handleGenerateLessons} disabled={isGenerating}>
+                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Üret ve Kaydet
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 export default function ProfilePage() {
     const { user: authUser, isUserLoading } = useUser();
@@ -39,7 +119,6 @@ export default function ProfilePage() {
 
         const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
         
-        // Ensure weekly_free_refill_date is a valid date string before creating a Date object
         const lastRefillDateStr = userProfile.weekly_free_refill_date;
         if (!lastRefillDateStr || typeof lastRefillDateStr !== 'string') return;
         
@@ -82,7 +161,6 @@ export default function ProfilePage() {
         )
     }
     
-    // Robustly handle potentially missing or non-numeric values to prevent NaN errors.
     const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
     const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
     const interests = userProfile.interests ?? [];
@@ -185,6 +263,8 @@ export default function ProfilePage() {
                         <p className="text-muted-foreground">Şu anda aktif bir yarışma bulunmuyor. Takipte kalın!</p>
                     </CardContent>
                 </Card>
+
+                <AdminTools />
             </div>
         </div>
     )

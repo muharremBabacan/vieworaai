@@ -71,6 +71,10 @@
           "description": "The URL of the photo image.",
           "format": "uri"
         },
+        "filePath": {
+          "type": "string",
+          "description": "The path to the photo file in Firebase Storage."
+        },
         "aiFeedback": {
           "type": "string",
           "description": "The AI-generated analysis and improvement tips for the photo, covering aspects like Light, Composition, Emotion, and Technique. This is stored as a string, potentially containing formatted text or JSON."
@@ -85,6 +89,7 @@
         "id",
         "userId",
         "imageUrl",
+        "filePath",
         "aiFeedback",
         "createdAt"
       ]
@@ -107,22 +112,56 @@
           "type": "string",
           "description": "The title of the lesson."
         },
-        "content": {
+        "learningObjective": {
           "type": "string",
-          "description": "The main educational content or technical tip for the lesson."
+          "description": "The skill the user will gain from this lesson."
+        },
+        "theory": {
+          "type": "string",
+          "description": "The main educational content/theory for the lesson."
+        },
+        "analysisCriteria": {
+          "type": "array",
+          "description": "A list of 3 technical criteria for a photo to be considered 'successful' according to this lesson.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "practiceTask": {
+          "type": "string",
+          "description": "A specific, actionable shooting task for the user."
+        },
+        "auroNote": {
+          "type": "string",
+          "description": "An explanation of why this lesson's analysis provides a professional perspective."
         },
         "imageUrl": {
           "type": "string",
           "description": "The URL of an example photograph associated with the lesson.",
           "format": "uri"
+        },
+        "imageHint": {
+          "type": "string",
+          "description": "Keywords used to find a suitable image for the lesson."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the lesson was generated.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
         "category",
         "title",
-        "content",
-        "imageUrl"
+        "learningObjective",
+        "theory",
+        "analysisCriteria",
+        "practiceTask",
+        "auroNote",
+        "imageUrl",
+        "imageHint",
+        "createdAt"
       ]
     },
     "UserLessonProgress": {

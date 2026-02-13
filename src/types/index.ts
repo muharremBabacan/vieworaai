@@ -17,9 +17,10 @@ export type User = {
 };
 
 export type Photo = {
-  id:string;
-  userId?: string; // Added to satisfy security rules on creation
+  id: string;
+  userId: string;
   imageUrl: string;
+  filePath: string;
   tags?: string[];
   aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
   createdAt: string;
@@ -28,11 +29,16 @@ export type Photo = {
 
 export type Lesson = {
   id: string;
-  category: 'Kompozisyon' | 'Işık' | 'Teknik';
+  category: string;
   title: string;
-  content: string;
+  learningObjective: string;
+  theory: string;
+  analysisCriteria: string[];
+  practiceTask: string;
+  auroNote: string;
   imageUrl: string;
   imageHint: string;
+  createdAt: string;
 };
 
 export type Package = {
