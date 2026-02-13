@@ -23,11 +23,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Trash2, Undo2 } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
-import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
+import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, updateDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -84,8 +83,8 @@ function PhotoDetailDialog({
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); // General purpose loading state
-  const [dialogAction, setDialogAction] = useState<'delete' | 'withdraw' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [dialogAction, setDialogAction] = useState<'withdraw' | null>(null);
 
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
@@ -249,54 +248,6 @@ function PhotoDetailDialog({
       }
   };
 
-  const handleDeletePhoto = async () => {
-    if (!photo || !photo.userId || !firestore) return;
-    setIsProcessing(true);
-
-    try {
-      // Delete from Storage first, if filePath exists.
-      if (photo.filePath) {
-        const storage = getStorage();
-        const fileRef = storageRef(storage, photo.filePath);
-        await deleteObject(fileRef);
-      }
-
-      // If it's public, find and delete the public document.
-      if (photo.isSubmittedToPublic) {
-        const publicPhotosQuery = query(
-          collection(firestore, 'public_photos'),
-          where('imageUrl', '==', photo.imageUrl),
-          where('userId', '==', photo.userId),
-          limit(1)
-        );
-        const querySnapshot = await getDocs(publicPhotosQuery);
-        const deletePromises = querySnapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
-        await Promise.all(deletePromises);
-      }
-      
-      // Finally, delete the private document.
-      const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-      await deleteDoc(privatePhotoRef);
-
-      toast({
-        title: 'Başarıyla Silindi',
-        description: "Fotoğraf ve tüm kayıtları kalıcı olarak silindi.",
-      });
-
-    } catch (error: any) {
-      console.error("Delete operation failed:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Silme Başarısız',
-        description: `Fotoğraf silinirken bir hata oluştu: ${error.message}`,
-      });
-    } finally {
-      setIsProcessing(false);
-      closeAll();
-    }
-  };
-
-
   if (!photo) {
     return null;
   }
@@ -369,7 +320,7 @@ function PhotoDetailDialog({
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
                     <Button variant="outline" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
-                         {isProcessing && dialogAction === 'withdraw' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Undo2 className="mr-2 h-4 w-4" />}
+                         {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Undo2 className="mr-2 h-4 w-4" />}
                         Sergiden Çek
                     </Button>
                 ) : (
@@ -379,10 +330,6 @@ function PhotoDetailDialog({
                     </Button>
                 )
              )}
-             <Button variant="destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>
-                {isProcessing && dialogAction === 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                Fotoğrafı Sil
-             </Button>
           </div>
         </ScrollArea>
       </DialogContent>
@@ -393,21 +340,15 @@ function PhotoDetailDialog({
             <AlertDialogHeader>
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    {dialogAction === 'delete' && 'Bu fotoğraf ve depolama alanındaki asıl dosya kalıcı olarak silinecektir. Bu işlem geri alınamaz.'}
                     {dialogAction === 'withdraw' && 'Bu fotoğraf sergiden kaldırılacaktır. Daha sonra tekrar gönderebilirsiniz.'}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setDialogAction(null)}>İptal</AlertDialogCancel>
                 <AlertDialogAction 
-                  className={dialogAction === 'delete' ? cn(
-                    'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                  ) : ''}
                   onClick={() => {
-                    if (dialogAction === 'delete') handleDeletePhoto();
                     if (dialogAction === 'withdraw') handleWithdrawFromPublic();
                 }}>
-                    {dialogAction === 'delete' && 'Evet, Kalıcı Olarak Sil'}
                     {dialogAction === 'withdraw' && 'Evet, Sergiden Çek'}
                 </AlertDialogAction>
             </AlertDialogFooter>

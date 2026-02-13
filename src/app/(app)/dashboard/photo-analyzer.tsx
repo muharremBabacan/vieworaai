@@ -207,7 +207,6 @@ export default function PhotoAnalyzer() {
       const photoData = {
           userId: authUser.uid,
           imageUrl: downloadURL,
-          filePath: filePath, // Save file path for deletion
           tags: [], 
           aiFeedback: null,
           createdAt: new Date().toISOString(),
@@ -286,7 +285,6 @@ export default function PhotoAnalyzer() {
       const photoData = {
           userId: authUser.uid,
           imageUrl: downloadURL,
-          filePath: filePath, // Save file path for deletion
           tags: analysisResult.tags || [], 
           aiFeedback: analysisResult,
           createdAt: new Date().toISOString(),
@@ -386,7 +384,7 @@ export default function PhotoAnalyzer() {
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="relative aspect-video">
-              <Image src={preview} alt="Preview" fill sizes="100vw" className="object-contain" />
+              <Image src={preview} alt="Preview" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
               <Button
                 variant="destructive"
                 size="icon"
