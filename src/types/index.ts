@@ -17,10 +17,10 @@ export type User = {
 };
 
 export type Photo = {
-  id: string;
+  id:string;
   userId?: string; // Added to satisfy security rules on creation
   imageUrl: string;
-  filePath?: string; // Path in Firebase Storage
+  filePath?: string; // Re-added for robust storage operations
   tags?: string[];
   aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
   createdAt: string;

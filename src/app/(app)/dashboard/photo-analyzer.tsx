@@ -207,7 +207,7 @@ export default function PhotoAnalyzer() {
       const photoData = {
           userId: authUser.uid,
           imageUrl: downloadURL,
-          filePath: filePath,
+          filePath: filePath, // Save file path for deletion
           tags: [], 
           aiFeedback: null,
           createdAt: new Date().toISOString(),
@@ -286,7 +286,7 @@ export default function PhotoAnalyzer() {
       const photoData = {
           userId: authUser.uid,
           imageUrl: downloadURL,
-          filePath: filePath,
+          filePath: filePath, // Save file path for deletion
           tags: analysisResult.tags || [], 
           aiFeedback: analysisResult,
           createdAt: new Date().toISOString(),

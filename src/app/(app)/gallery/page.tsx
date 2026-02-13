@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { analyzePhotoAndSuggestImprovements, type AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { Photo, User as UserProfile } from '@/types';
@@ -25,9 +25,9 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Trash2, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc } from 'firebase/firestore';
-import { getStorage, ref as storageRef, deleteObject } from "firebase/storage";
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -222,21 +222,20 @@ function PhotoDetailDialog({
       if (!photo || !photo.userId || !firestore) return;
       setIsProcessing(true);
 
-      const publicPhotosQuery = query(
-          collection(firestore, 'public_photos'), 
-          where('imageUrl', '==', photo.imageUrl),
-          where('userId', '==', photo.userId),
-          limit(1)
-      );
-
       try {
+          const publicPhotosQuery = query(
+              collection(firestore, 'public_photos'), 
+              where('imageUrl', '==', photo.imageUrl),
+              where('userId', '==', photo.userId),
+              limit(1)
+          );
+
           const querySnapshot = await getDocs(publicPhotosQuery);
-          querySnapshot.forEach(docSnapshot => {
-              deleteDocumentNonBlocking(docSnapshot.ref);
-          });
+          const deletePromises = querySnapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
+          await Promise.all(deletePromises);
 
           const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-          updateDocumentNonBlocking(privatePhotoRef, {
+          await updateDoc(privatePhotoRef, {
               isSubmittedToPublic: false,
           });
 
@@ -252,68 +251,51 @@ function PhotoDetailDialog({
 
   const handleDeletePhoto = async () => {
     if (!photo || !photo.userId || !firestore) return;
-
     setIsProcessing(true);
 
     try {
-      // Adım 1: Firestore'daki veritabanı kayıtlarını (hem public hem private) sil.
-      const deleteDbPromises: Promise<void>[] = [];
+      // Delete from Storage first, if filePath exists.
+      if (photo.filePath) {
+        const storage = getStorage();
+        const fileRef = storageRef(storage, photo.filePath);
+        await deleteObject(fileRef);
+      }
 
-      // Private kaydı silme listesine ekle
-      const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-      deleteDbPromises.push(deleteDoc(privatePhotoRef));
-
-      // Public kaydı varsa, onu da silme listesine ekle
+      // If it's public, find and delete the public document.
       if (photo.isSubmittedToPublic) {
         const publicPhotosQuery = query(
           collection(firestore, 'public_photos'),
           where('imageUrl', '==', photo.imageUrl),
-          where('userId', '==', photo.userId)
+          where('userId', '==', photo.userId),
+          limit(1)
         );
         const querySnapshot = await getDocs(publicPhotosQuery);
-        querySnapshot.forEach(docSnapshot => {
-          deleteDbPromises.push(deleteDoc(docSnapshot.ref));
-        });
+        const deletePromises = querySnapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
+        await Promise.all(deletePromises);
       }
       
-      // Tüm veritabanı silme işlemlerini aynı anda başlat ve bekle
-      await Promise.all(deleteDbPromises);
+      // Finally, delete the private document.
+      const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+      await deleteDoc(privatePhotoRef);
 
-      // Adım 2: Storage'dan dosyayı sil.
-      // Eğer filePath varsa onu kullan, yoksa (eski veriler için) imageUrl'den dene.
-      if (photo.filePath) {
-        const storage = getStorage();
-        const imageRef = storageRef(storage, photo.filePath);
-        await deleteObject(imageRef);
-      } else {
-        // Fallback for old data that doesn't have filePath
-        console.warn(`filePath not found for photo ${photo.id}. Attempting to delete from URL. This may fail.`);
-        const storage = getStorage();
-        const imageRef = storageRef(storage, photo.imageUrl);
-        await deleteObject(imageRef);
-      }
-
-      toast({ title: 'Başarılı!', description: 'Fotoğrafınız kalıcı olarak silindi.' });
+      toast({
+        title: 'Başarıyla Silindi',
+        description: "Fotoğraf ve tüm kayıtları kalıcı olarak silindi.",
+      });
 
     } catch (error: any) {
-      console.error("Silme işlemi başarısız:", error);
-      if (error.code === 'storage/object-not-found') {
-        toast({
-          title: 'Kayıt Silindi',
-          description: 'Veritabanı kayıtları silindi ancak depodaki dosya zaten mevcut değildi veya bulunamadı.'
-        });
-      } else {
-         toast({
-            variant: 'destructive',
-            title: 'Silme Başarısız',
-            description: `Fotoğraf silinirken bir hata oluştu: ${error.message}`
-        });
-      }
+      console.error("Delete operation failed:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Silme Başarısız',
+        description: `Fotoğraf silinirken bir hata oluştu: ${error.message}`,
+      });
     } finally {
       setIsProcessing(false);
       closeAll();
     }
   };
+
 
   if (!photo) {
     return null;
@@ -323,14 +305,14 @@ function PhotoDetailDialog({
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(false)}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0">
         <div className="md:w-1/2 w-full relative aspect-square md:aspect-auto">
           <Image
             src={photo.imageUrl}
             alt="Analiz edilen fotoğraf"
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-contain"
             data-ai-hint={photo.tags?.join(' ')}
           />
@@ -411,7 +393,7 @@ function PhotoDetailDialog({
             <AlertDialogHeader>
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    {dialogAction === 'delete' && 'Bu fotoğraf kalıcı olarak silinecektir. Bu işlem geri alınamaz.'}
+                    {dialogAction === 'delete' && 'Bu fotoğraf ve depolama alanındaki asıl dosya kalıcı olarak silinecektir. Bu işlem geri alınamaz.'}
                     {dialogAction === 'withdraw' && 'Bu fotoğraf sergiden kaldırılacaktır. Daha sonra tekrar gönderebilirsiniz.'}
                 </AlertDialogDescription>
             </AlertDialogHeader>
@@ -425,7 +407,7 @@ function PhotoDetailDialog({
                     if (dialogAction === 'delete') handleDeletePhoto();
                     if (dialogAction === 'withdraw') handleWithdrawFromPublic();
                 }}>
-                    {dialogAction === 'delete' && 'Evet, Sil'}
+                    {dialogAction === 'delete' && 'Evet, Kalıcı Olarak Sil'}
                     {dialogAction === 'withdraw' && 'Evet, Sergiden Çek'}
                 </AlertDialogAction>
             </AlertDialogFooter>
