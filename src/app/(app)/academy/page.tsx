@@ -30,6 +30,7 @@ function LessonCard({ lesson, onLearn, isCompleted }: { lesson: (typeof lessons)
           src={lesson.imageUrl}
           alt={lesson.title}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover"
           data-ai-hint={lesson.imageHint}
         />

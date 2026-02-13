@@ -314,6 +314,7 @@ function PhotoDetailDialog({
             src={photo.imageUrl}
             alt="Analiz edilen fotoğraf"
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-contain"
             data-ai-hint={photo.tags?.join(' ')}
           />

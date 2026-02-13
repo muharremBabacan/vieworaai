@@ -25,6 +25,7 @@ export default function LandingPage() {
               src={heroImage.imageUrl}
               alt={heroImage.description}
               fill
+              sizes="100vw"
               className="object-cover -z-10"
               data-ai-hint={heroImage.imageHint}
               priority

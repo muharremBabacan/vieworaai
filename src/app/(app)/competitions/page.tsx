@@ -19,6 +19,7 @@ function CompetitionCard({ competition }: { competition: Competition }) {
                 src={competition.imageUrl}
                 alt={competition.title}
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
                 data-ai-hint={competition.imageHint}
             />

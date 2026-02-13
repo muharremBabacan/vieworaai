@@ -384,7 +384,7 @@ export default function PhotoAnalyzer() {
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="relative aspect-video">
-              <Image src={preview} alt="Preview" fill className="object-contain" />
+              <Image src={preview} alt="Preview" fill sizes="100vw" className="object-contain" />
               <Button
                 variant="destructive"
                 size="icon"
