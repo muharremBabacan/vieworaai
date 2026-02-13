@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -112,27 +112,9 @@ function PhotoDetailDialog({
     setIsAnalyzing(true);
     toast({ title: 'Analiz Başlatılıyor...', description: 'Lütfen bekleyin, bu işlem biraz sürebilir.' });
 
-    let dataUri;
-    try {
-        const response = await fetch(photo.imageUrl);
-        if (!response.ok) throw new Error('Resim indirilemedi.');
-        const blob = await response.blob();
-        dataUri = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch(error) {
-        console.error("Image fetch/conversion error:", error);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Analiz için resim hazırlanamadı.' });
-        setIsAnalyzing(false);
-        return;
-    }
-
     let analysisResult: AnalyzePhotoAndSuggestImprovementsOutput;
     try {
-      analysisResult = await analyzePhotoAndSuggestImprovements({ photoDataUri: dataUri });
+      analysisResult = await analyzePhotoAndSuggestImprovements({ photoUrl: photo.imageUrl });
       if (!analysisResult?.rating) throw new Error("AI analysis did not return a rating.");
     } catch (error) {
       console.error('Analiz başarısız:', error);

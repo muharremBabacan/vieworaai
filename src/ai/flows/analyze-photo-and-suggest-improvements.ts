@@ -11,10 +11,11 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AnalyzePhotoAndSuggestImprovementsInputSchema = z.object({
-  photoDataUri: z
+  photoUrl: z
     .string()
+    .url()
     .describe(
-      "A photo, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A publicly accessible HTTPS URL of the photo to analyze."
     ),
 });
 export type AnalyzePhotoAndSuggestImprovementsInput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsInputSchema>;
@@ -53,7 +54,7 @@ const analysisPrompt = ai.definePrompt({
 
   In the 'tags' field, provide up to 10 relevant tags in Turkish that describe the photo's content, style, and mood (e.g., "portre", "manzara", "sokak fotoğrafçılığı", "siyah beyaz", "minimalist", "mutlu"). These tags will be used for filtering.
 
-  Analyze the photo provided: {{media url=photoDataUri}}`,
+  Analyze the photo provided: {{media url=photoUrl}}`,
 });
 
 const analysisFlow = ai.defineFlow(

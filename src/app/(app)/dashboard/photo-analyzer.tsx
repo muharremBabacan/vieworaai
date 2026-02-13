@@ -264,7 +264,7 @@ export default function PhotoAnalyzer() {
       let analysisResult: AnalyzePhotoAndSuggestImprovementsOutput;
       try {
         analysisResult = await analyzePhotoAndSuggestImprovements({
-          photoDataUri: preview,
+          photoUrl: downloadURL,
         });
         if (!analysisResult?.rating) {
             throw new Error("AI analysis did not return a rating.");
