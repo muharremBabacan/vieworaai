@@ -21,7 +21,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -255,7 +254,7 @@ function PhotoDetailDialog({
             data-ai-hint={photo.tags?.join(' ')}
           />
         </div>
-        <ScrollArea className="md:w-1/2 w-full">
+        <div className="md:w-1/2 w-full overflow-y-auto">
           <div className="p-6 space-y-6">
              <DialogHeader>
               <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
@@ -318,7 +317,7 @@ function PhotoDetailDialog({
                 )
              )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
     

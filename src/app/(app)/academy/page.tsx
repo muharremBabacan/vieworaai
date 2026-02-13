@@ -24,7 +24,6 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
@@ -62,8 +61,8 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
             <Badge variant="secondary">{lesson.category}</Badge>
           </div>
         </div>
-        <ScrollArea className="md:w-1/2 w-full">
-            <div className='p-6 flex flex-col h-full'>
+        <div className="md:w-1/2 w-full overflow-y-auto">
+            <div className='p-6 flex flex-col'>
               <DialogHeader className="mb-4">
                 <DialogTitle className="font-sans text-2xl">{lesson.title}</DialogTitle>
               </DialogHeader>
@@ -108,7 +107,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
                 </Button>
               </div>
             </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

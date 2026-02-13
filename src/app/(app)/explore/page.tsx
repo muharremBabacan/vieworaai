@@ -10,7 +10,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -74,7 +73,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
             data-ai-hint={photo.tags?.join(' ')}
           />
         </div>
-        <ScrollArea className="md:w-1/2 w-full">
+        <div className="md:w-1/2 w-full overflow-y-auto">
           <div className="p-6 space-y-6">
             <DialogHeader>
               <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
@@ -116,7 +115,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -219,7 +219,8 @@ export default function PhotoAnalyzer() {
         description: 'Fotoğrafın galerine eklendi. Dilediğin zaman analiz edebilirsin.',
       });
 
-      handleClear();
+      setPreview(null);
+      setFile(null);
       setIsUploading(false);
     });
   }
@@ -343,7 +344,6 @@ export default function PhotoAnalyzer() {
               }, 300);
           }
       }
-      handleClear();
     });
   };
 
@@ -352,35 +352,20 @@ export default function PhotoAnalyzer() {
 
   return (
     <div className="space-y-8">
-      {!preview && (
-        <div
-          className={cn(
-            'relative w-full h-80 rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors duration-200 flex flex-col justify-center items-center text-center cursor-pointer hover:border-primary hover:bg-accent',
-            isDragging && 'border-primary bg-accent'
-          )}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={onFileChange}
-            className="hidden"
-            accept="image/*"
-          />
-          <div className="space-y-4">
-            <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              <span className="font-semibold text-primary">Yüklemek için tıklayın</span> veya sürükleyip bırakın
-            </p>
-            <p className="text-xs text-muted-foreground">PNG, JPG, GIF 10MB'a kadar</p>
-          </div>
+      {result ? (
+        <>
+          <AnalysisResult result={result} />
+          <Button onClick={handleClear} variant="outline" className="w-full">
+            Yeni Analiz Başlat
+          </Button>
+        </>
+      ) : isPending ? (
+        <div className="space-y-6">
+          <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
+          <Card><CardContent className="p-6"><Skeleton className="h-24" /></CardContent></Card>
+          <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
         </div>
-      )}
-
-      {preview && (
+      ) : preview ? (
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="relative aspect-video">
@@ -425,17 +410,33 @@ export default function PhotoAnalyzer() {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {isPending && (
-         <div className="space-y-6">
-          <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
-          <Card><CardContent className="p-6"><Skeleton className="h-24" /></CardContent></Card>
-          <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
+      ) : (
+        <div
+          className={cn(
+            'relative w-full h-80 rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors duration-200 flex flex-col justify-center items-center text-center cursor-pointer hover:border-primary hover:bg-accent',
+            isDragging && 'border-primary bg-accent'
+          )}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={onFileChange}
+            className="hidden"
+            accept="image/*"
+          />
+          <div className="space-y-4">
+            <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
+            <p className="text-muted-foreground">
+              <span className="font-semibold text-primary">Yüklemek için tıklayın</span> veya sürükleyip bırakın
+            </p>
+            <p className="text-xs text-muted-foreground">PNG, JPG, GIF 10MB'a kadar</p>
+          </div>
         </div>
       )}
-
-      {result && <AnalysisResult result={result} />}
     </div>
   );
 }
