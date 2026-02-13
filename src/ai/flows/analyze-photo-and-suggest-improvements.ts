@@ -32,6 +32,7 @@ const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
       overall: z.number().min(1).max(10).describe('Provide an overall rating for the photo on a scale of 1-10, based on the other criteria.'),
     })
     .describe('Provide ratings for the photo based on the specified criteria.'),
+  imageHint: z.string().describe('Provide a 1-2 word tag in Turkish for the photo\'s content (e.g., "portre", "manzara", "mimari"). This will be used to categorize the photo.'),
 });
 export type AnalyzePhotoAndSuggestImprovementsOutput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsOutputSchema>;
 
@@ -49,6 +50,8 @@ const analysisPrompt = ai.definePrompt({
   prompt: `You are a world-class photography coach named Viewora AI. Your tone is encouraging, insightful, and professional. Analyze the provided photograph and respond in Turkish.
 
   Your task is to provide a detailed analysis, actionable improvement tips, and a rating based on the following criteria: lighting, composition, and emotional impact.
+
+  In the 'imageHint' field, provide a 1-2 word tag in Turkish that describes the content of the photo (e.g., "portre", "manzara", "mimari").
 
   Analyze the photo provided: {{media url=photoDataUri}}`,
 });
