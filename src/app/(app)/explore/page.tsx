@@ -16,6 +16,7 @@ import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
@@ -69,7 +70,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
             alt="Analiz edilen fotoğraf"
             fill
             className="object-contain"
-            data-ai-hint={photo.imageHint}
+            data-ai-hint={photo.tags?.join(' ')}
           />
         </div>
         <ScrollArea className="md:w-1/2 w-full">
@@ -77,6 +78,12 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
             <DialogHeader>
               <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
             </DialogHeader>
+
+            {photo.tags && photo.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {photo.tags.map(tag => <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>)}
+              </div>
+            )}
             
             {photo.aiFeedback ? (
               <>
@@ -120,26 +127,27 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
       {photos.map((photo) => (
         <Card
           key={photo.id}
-          className="overflow-hidden cursor-pointer group"
+          className="overflow-hidden cursor-pointer group rounded-md"
           onClick={() => onPhotoClick(photo)}
         >
-          <CardContent className="p-0 aspect-w-1 aspect-h-1">
-            <div className="relative w-full h-full aspect-square">
+          <CardContent className="p-0">
+            <div className="relative w-full aspect-square min-w-[125px]">
               <Image
                 src={photo.imageUrl}
                 alt={`Kullanıcı fotoğrafı ${photo.id}`}
                 fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, (max-width: 1024px) 16.6vw, 12.5vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
-                data-ai-hint={photo.imageHint}
+                data-ai-hint={photo.tags?.join(' ')}
               />
                {photo.aiFeedback?.rating && (
-                <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full">
+                <div className="absolute top-1 right-1 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                   <Star className="h-3 w-3 text-yellow-400" />
                   <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
                 </div>
               )}
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <span className="text-white font-semibold">Detayları Gör</span>
+                <span className="text-white text-xs font-semibold text-center p-1">Detayları Gör</span>
               </div>
             </div>
           </CardContent>
@@ -153,7 +161,7 @@ function ExploreSkeleton() {
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
             {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className="aspect-square">
+                <div key={i} className="aspect-square min-w-[125px]">
                     <Skeleton className="w-full h-full" />
                 </div>
             ))}

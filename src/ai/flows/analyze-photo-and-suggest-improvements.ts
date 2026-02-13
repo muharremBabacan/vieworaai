@@ -32,7 +32,7 @@ const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
       overall: z.number().min(1).max(10).describe('Provide an overall rating for the photo on a scale of 1-10, based on the other criteria.'),
     })
     .describe('Provide ratings for the photo based on the specified criteria.'),
-  imageHint: z.string().describe('Provide a 1-2 word tag in Turkish for the photo\'s content (e.g., "portre", "manzara", "mimari"). This will be used to categorize the photo.'),
+  tags: z.array(z.string()).max(10).describe('Provide up to 10 relevant tags in Turkish for the photo\'s content, style, and mood (e.g., "portre", "manzara", "sokak fotoğrafçılığı", "siyah beyaz", "minimalist", "mutlu").'),
 });
 export type AnalyzePhotoAndSuggestImprovementsOutput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsOutputSchema>;
 
@@ -51,7 +51,7 @@ const analysisPrompt = ai.definePrompt({
 
   Your task is to provide a detailed analysis, actionable improvement tips, and a rating based on the following criteria: lighting, composition, and emotional impact.
 
-  In the 'imageHint' field, provide a 1-2 word tag in Turkish that describes the content of the photo (e.g., "portre", "manzara", "mimari").
+  In the 'tags' field, provide up to 10 relevant tags in Turkish that describe the photo's content, style, and mood (e.g., "portre", "manzara", "sokak fotoğrafçılığı", "siyah beyaz", "minimalist", "mutlu"). These tags will be used for filtering.
 
   Analyze the photo provided: {{media url=photoDataUri}}`,
 });

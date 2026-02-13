@@ -207,7 +207,7 @@ export default function PhotoAnalyzer() {
       const photoData = {
           userId: authUser.uid,
           imageUrl: downloadURL,
-          imageHint: '', 
+          tags: [], 
           aiFeedback: null,
           createdAt: new Date().toISOString(),
           isSubmittedToPublic: false,
@@ -285,7 +285,7 @@ export default function PhotoAnalyzer() {
       const photoData = {
           userId: authUser.uid,
           imageUrl: downloadURL,
-          imageHint: '', 
+          tags: analysisResult.tags || [], 
           aiFeedback: analysisResult,
           createdAt: new Date().toISOString(),
           isSubmittedToPublic: false,

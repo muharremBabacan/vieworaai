@@ -20,7 +20,7 @@ export type Photo = {
   id: string;
   userId?: string; // Added to satisfy security rules on creation
   imageUrl: string;
-  imageHint: string;
+  tags?: string[];
   aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
   createdAt: string;
   isSubmittedToPublic?: boolean;

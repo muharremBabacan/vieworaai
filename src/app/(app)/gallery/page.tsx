@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, CheckCircle, Clock, Zap } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -145,7 +145,10 @@ function PhotoDetailDialog({
     }
 
     updateDocumentNonBlocking(userDocRef, userUpdatePayload);
-    updateDocumentNonBlocking(originalPhotoRef, { aiFeedback: analysisResult });
+    updateDocumentNonBlocking(originalPhotoRef, { 
+        aiFeedback: analysisResult,
+        tags: analysisResult.tags || [],
+    });
 
     toast({ title: 'Analiz Tamamlandı!', description: 'Sonuçlar fotoğrafına eklendi.' });
     toast({ title: 'XP Kazandın!', description: `Analiz için ${xpFromAnalysis} XP kazandın.` });
@@ -209,15 +212,21 @@ function PhotoDetailDialog({
             alt="Analiz edilen fotoğraf"
             fill
             className="object-contain"
-            data-ai-hint={photo.imageHint}
+            data-ai-hint={photo.tags?.join(' ')}
           />
         </div>
         <ScrollArea className="md:w-1/2 w-full">
           <div className="p-6 space-y-6">
-            <DialogHeader>
+             <DialogHeader>
               <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
             </DialogHeader>
             
+            {photo.tags && photo.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {photo.tags.map(tag => <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>)}
+              </div>
+            )}
+
             {photo.aiFeedback ? (
               <>
                 {photo.aiFeedback.rating && <RatingDisplay rating={photo.aiFeedback.rating} />}
@@ -278,31 +287,32 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
       {photos.map((photo) => (
         <Card
           key={photo.id}
-          className="overflow-hidden cursor-pointer group"
+          className="overflow-hidden cursor-pointer group rounded-md"
           onClick={() => onPhotoClick(photo)}
         >
-          <CardContent className="p-0 aspect-w-1 aspect-h-1">
-            <div className="relative w-full h-full aspect-square">
+          <CardContent className="p-0">
+            <div className="relative w-full aspect-square min-w-[125px]">
               <Image
                 src={photo.imageUrl}
                 alt={`Kullanıcı fotoğrafı ${photo.id}`}
                 fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, (max-width: 1024px) 16.6vw, 12.5vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
-                data-ai-hint={photo.imageHint}
+                data-ai-hint={photo.tags?.join(' ')}
               />
                {photo.aiFeedback?.rating ? (
-                <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full">
+                <div className="absolute top-1 right-1 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                   <Star className="h-3 w-3 text-yellow-400" />
                   <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
                 </div>
                ) : (
-                 <Badge variant="secondary" className="absolute top-2 left-2">
+                 <Badge variant="secondary" className="absolute top-1 left-1">
                     <Clock className="mr-1 h-3 w-3" />
-                    Analiz Bekliyor
+                    Bekliyor
                  </Badge>
                )}
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <span className="text-white font-semibold">Detayları Gör</span>
+                <span className="text-white text-xs font-semibold text-center p-1">Detayları Gör</span>
               </div>
             </div>
           </CardContent>
@@ -317,7 +327,7 @@ function GallerySkeleton() {
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
             {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className="aspect-square">
+                <div key={i} className="aspect-square min-w-[125px]">
                     <Skeleton className="w-full h-full" />
                 </div>
             ))}
@@ -330,6 +340,7 @@ export default function GalleryPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [activeFilter, setActiveFilter] = useState('Tümü');
 
   const photosQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -355,6 +366,17 @@ export default function GalleryPage() {
   };
 
   const photos = userPhotos || [];
+  
+  const allTags = useMemo(() => {
+    if (!photos) return [];
+    const tagsSet = new Set<string>();
+    photos.forEach(photo => {
+        photo.tags?.forEach(tag => tagsSet.add(tag.trim()));
+    });
+    const uniqueTags = Array.from(tagsSet).filter(Boolean);
+    if (uniqueTags.length === 0) return [];
+    return ['Tümü', ...uniqueTags];
+  }, [photos]);
 
   const sortedByRating = useMemo(() => {
     return [...photos].sort((a, b) => {
@@ -367,7 +389,18 @@ export default function GalleryPage() {
     });
   }, [photos]);
   
-  const sortedByDate = photos;
+  const sortedByDate = photos; // Already sorted by query
+
+  const filteredByRating = useMemo(() => {
+    if (activeFilter === 'Tümü') return sortedByRating;
+    return sortedByRating.filter(p => p.tags?.includes(activeFilter));
+  }, [activeFilter, sortedByRating]);
+
+  const filteredByDate = useMemo(() => {
+      if (activeFilter === 'Tümü') return sortedByDate;
+      return sortedByDate.filter(p => p.tags?.includes(activeFilter));
+  }, [activeFilter, sortedByDate]);
+
 
   return (
     <div className="container mx-auto">
@@ -379,26 +412,49 @@ export default function GalleryPage() {
       )}
 
       {(photos.length > 0 || isLoading) && (
-        <Tabs defaultValue="top-rated" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-            <TabsTrigger value="top-rated">Puana Göre</TabsTrigger>
-            <TabsTrigger value="newest">Tarihe Göre</TabsTrigger>
-          </TabsList>
-          {isLoading ? (
-            <div className="mt-6">
-                <GallerySkeleton />
-            </div>
-          ) : (
-            <>
-              <TabsContent value="top-rated" className="mt-6">
-                  <PhotoGrid photos={sortedByRating} onPhotoClick={openDialog} />
-              </TabsContent>
-              <TabsContent value="newest" className="mt-6">
-                  <PhotoGrid photos={sortedByDate} onPhotoClick={openDialog} />
-              </TabsContent>
-            </>
-          )}
-        </Tabs>
+        <>
+            {allTags.length > 0 && !isLoading && (
+                <div className="mb-6 -mx-4 sm:-mx-6">
+                    <ScrollArea className="w-full whitespace-nowrap">
+                        <div className="flex w-max space-x-2 px-4 sm:px-6">
+                            {allTags.map((tag) => (
+                                <Button
+                                    key={tag}
+                                    variant={activeFilter === tag ? 'default' : 'secondary'}
+                                    size="sm"
+                                    onClick={() => setActiveFilter(tag)}
+                                    className="rounded-full capitalize h-8 px-4"
+                                >
+                                    {tag}
+                                </Button>
+                            ))}
+                        </div>
+                        <ScrollBar orientation="horizontal" className="h-2" />
+                    </ScrollArea>
+                </div>
+            )}
+
+            <Tabs defaultValue="top-rated" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+                <TabsTrigger value="top-rated">Puana Göre</TabsTrigger>
+                <TabsTrigger value="newest">Tarihe Göre</TabsTrigger>
+            </TabsList>
+            {isLoading ? (
+                <div className="mt-6">
+                    <GallerySkeleton />
+                </div>
+            ) : (
+                <>
+                <TabsContent value="top-rated" className="mt-6">
+                    <PhotoGrid photos={filteredByRating} onPhotoClick={openDialog} />
+                </TabsContent>
+                <TabsContent value="newest" className="mt-6">
+                    <PhotoGrid photos={filteredByDate} onPhotoClick={openDialog} />
+                </TabsContent>
+                </>
+            )}
+            </Tabs>
+        </>
       )}
 
       <PhotoDetailDialog 
