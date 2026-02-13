@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { analyzePhotoAndSuggestImprovements, type AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { Photo, User as UserProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -12,13 +13,16 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, CheckCircle } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, CheckCircle, Clock, Zap } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { getLevelFromXp } from '@/lib/gamification';
+
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -68,12 +72,98 @@ function PhotoDetailDialog({
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
     { icon: Heart, color: 'text-rose-400' },
   ];
+
+  const handleAnalyzeNow = async () => {
+    if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
+    
+    const analysisCost = 2;
+    const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+    const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
+
+    if (currentAuro < analysisCost) {
+        toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Analiz için ${analysisCost} Auro gereklidir.` });
+        return;
+    }
+
+    setIsAnalyzing(true);
+    toast({ title: 'Analiz Başlatılıyor...', description: 'Lütfen bekleyin, bu işlem biraz sürebilir.' });
+
+    let dataUri;
+    try {
+        const response = await fetch(photo.imageUrl);
+        if (!response.ok) throw new Error('Resim indirilemedi.');
+        const blob = await response.blob();
+        dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch(error) {
+        console.error("Image fetch/conversion error:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Analiz için resim hazırlanamadı.' });
+        setIsAnalyzing(false);
+        return;
+    }
+
+    let analysisResult: AnalyzePhotoAndSuggestImprovementsOutput;
+    try {
+      analysisResult = await analyzePhotoAndSuggestImprovements({ photoDataUri: dataUri });
+      if (!analysisResult?.rating) throw new Error("AI analysis did not return a rating.");
+    } catch (error) {
+      console.error('Analiz başarısız:', error);
+      toast({ variant: 'destructive', title: 'Analiz Başarısız', description: 'YZ analizi sırasında bir hata oluştu.' });
+      setIsAnalyzing(false);
+      return;
+    }
+
+    const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+    
+    const xpFromAnalysis = 15;
+    const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
+    const totalXpGained = xpFromAnalysis + bonusXp;
+    
+    const currentLevel = getLevelFromXp(currentXp);
+    const newXp = currentXp + totalXpGained;
+    const newLevel = getLevelFromXp(newXp);
+    
+    const userUpdatePayload: Partial<UserProfile> = {
+      auro_balance: currentAuro - analysisCost,
+      current_xp: newXp
+    };
+
+    if (newLevel.name !== currentLevel.name) {
+      userUpdatePayload.level_name = newLevel.name;
+      if (newLevel.isMentor) userUpdatePayload.is_mentor = true;
+    }
+
+    updateDocumentNonBlocking(userDocRef, userUpdatePayload);
+    updateDocumentNonBlocking(originalPhotoRef, { aiFeedback: analysisResult });
+
+    toast({ title: 'Analiz Tamamlandı!', description: 'Sonuçlar fotoğrafına eklendi.' });
+    toast({ title: 'XP Kazandın!', description: `Analiz için ${xpFromAnalysis} XP kazandın.` });
+
+    if (bonusXp > 0) {
+        setTimeout(() => toast({ title: '✨ Bonus!', description: `Yüksek puan için +${bonusXp} bonus XP kazandın!` }), 100);
+    }
+    if (userUpdatePayload.level_name) {
+        setTimeout(() => toast({ title: '🎉 Seviye Atladın!', description: `Tebrikler! Yeni seviyen: ${userUpdatePayload.level_name}` }), 200);
+        if (userUpdatePayload.is_mentor) {
+            setTimeout(() => toast({ title: '👑 Mentor Oldun!', description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.' }), 300);
+        }
+    }
+
+    onOpenChange(false);
+    setIsAnalyzing(false);
+  };
+
 
   const handleSubmitToPublic = () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
@@ -88,17 +178,14 @@ function PhotoDetailDialog({
 
     setIsSubmitting(true);
 
-    // 1. Copy photo to public_photos, excluding unnecessary fields
     const publicPhotosCollectionRef = collection(firestore, 'public_photos');
     const { id, isSubmittedToPublic, ...publicPhotoData } = photo;
     addDocumentNonBlocking(publicPhotosCollectionRef, publicPhotoData);
 
-    // 2. Update user's Auro balance
     updateDocumentNonBlocking(userDocRef, {
         auro_balance: currentAuro - submissionCost,
     });
 
-    // 3. Mark the original photo as submitted
     const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
     updateDocumentNonBlocking(originalPhotoRef, {
         isSubmittedToPublic: true,
@@ -156,15 +243,20 @@ function PhotoDetailDialog({
                 </div>
               </>
             ) : (
-              <div className="text-center py-10">
-                <p className="text-muted-foreground">Bu fotoğraf için analiz mevcut değil.</p>
+              <div className="p-6 space-y-6 text-center">
+                <h4 className="font-semibold text-lg">Analiz Bekliyor</h4>
+                <p className="text-muted-foreground">Bu fotoğraf henüz Viewora YZ Koçu tarafından analiz edilmedi.</p>
+                <Button size="lg" onClick={handleAnalyzeNow} disabled={isAnalyzing || !userProfile}>
+                    {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+                    Skoru Öğren (2 Auro)
+                </Button>
               </div>
             )}
           </div>
           {photo.aiFeedback && !photo.isSubmittedToPublic && (
             <div className="p-6 border-t">
                 <Button className="w-full" onClick={handleSubmitToPublic} disabled={isSubmitting || !userProfile}>
-                     {isSubmitting ? <Loader2 className="animate-spin" /> : <Rocket />}
+                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />}
                     Sergiye Gönder (5 Auro)
                 </Button>
             </div>
@@ -198,12 +290,17 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                 data-ai-hint={photo.imageHint}
               />
-               {photo.aiFeedback?.rating && (
+               {photo.aiFeedback?.rating ? (
                 <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full">
                   <Star className="h-3 w-3 text-yellow-400" />
                   <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
                 </div>
-              )}
+               ) : (
+                 <Badge variant="secondary" className="absolute top-2 left-2">
+                    <Clock className="mr-1 h-3 w-3" />
+                    Analiz Bekliyor
+                 </Badge>
+               )}
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                 <span className="text-white font-semibold">Detayları Gör</span>
               </div>
@@ -270,7 +367,7 @@ export default function GalleryPage() {
     });
   }, [photos]);
   
-  const sortedByDate = photos; // Already sorted by query
+  const sortedByDate = photos;
 
   return (
     <div className="container mx-auto">

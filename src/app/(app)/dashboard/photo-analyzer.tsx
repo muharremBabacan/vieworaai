@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap } from 'lucide-react';
+import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap, Upload } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
@@ -105,6 +105,7 @@ export default function PhotoAnalyzer() {
   const [result, setResult] = useState<AnalyzePhotoAndSuggestImprovementsOutput | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isUploading, setIsUploading] = useState(false); // For upload-only
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,8 +119,25 @@ export default function PhotoAnalyzer() {
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
+  const handleClear = () => {
+    setPreview(null);
+    setFile(null);
+    setResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleFileChange = (selectedFile: File | null) => {
     if (selectedFile && selectedFile.type.startsWith('image/')) {
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+         toast({
+          variant: 'destructive',
+          title: 'Dosya Boyutu Çok Büyük',
+          description: 'Lütfen 10MB\'dan küçük bir resim dosyası yükleyin.',
+        });
+        return;
+      }
       setFile(selectedFile);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -159,17 +177,65 @@ export default function PhotoAnalyzer() {
     setIsDragging(false);
   };
   
+  const handleUploadOnly = () => {
+    if (!file || !userProfile || !userDocRef || !authUser) return;
+
+    setIsUploading(true);
+    startTransition(async () => {
+      // 1. Upload to Storage
+      const storage = getStorage();
+      const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
+      const imageRef = storageRef(storage, filePath);
+      
+      let downloadURL;
+      try {
+        await uploadBytes(imageRef, file);
+        downloadURL = await getDownloadURL(imageRef);
+      } catch (storageError) {
+          console.error("Storage upload failed:", storageError);
+          toast({
+            variant: 'destructive',
+            title: 'Yükleme Başarısız',
+            description: 'Fotoğrafınız depolanamadı. Lütfen Firebase Storage kurallarınızı kontrol edin.',
+          });
+          setIsUploading(false);
+          return;
+      }
+
+      // 2. Save Photo to Firestore without analysis
+      const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
+      const photoData = {
+          userId: authUser.uid,
+          imageUrl: downloadURL,
+          imageHint: '', 
+          aiFeedback: null,
+          createdAt: new Date().toISOString(),
+          isSubmittedToPublic: false,
+      };
+      addDocumentNonBlocking(photosCollectionRef, photoData);
+      
+      toast({
+        title: 'Fotoğraf Yüklendi!',
+        description: 'Fotoğrafın galerine eklendi. Dilediğin zaman analiz edebilirsin.',
+      });
+
+      handleClear();
+      setIsUploading(false);
+    });
+  }
+
   const handleAnalyze = () => {
     if (!file || !preview || !userProfile || !userDocRef || !authUser) return;
 
     const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
     const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
+    const analysisCost = 2;
 
-    if (currentAuro < 2) {
+    if (currentAuro < analysisCost) {
       toast({
         variant: 'destructive',
         title: 'Yetersiz Auro',
-        description: 'Bir fotoğrafı analiz etmek için en az 2 Auro\'ya ihtiyacınız var.',
+        description: `Bir fotoğrafı analiz etmek için en az ${analysisCost} Auro'ya ihtiyacınız var.`,
       });
       return;
     }
@@ -218,7 +284,7 @@ export default function PhotoAnalyzer() {
       const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
       const photoData = {
           userId: authUser.uid,
-          imageUrl: downloadURL, // Use the public URL from Storage
+          imageUrl: downloadURL,
           imageHint: '', 
           aiFeedback: analysisResult,
           createdAt: new Date().toISOString(),
@@ -236,7 +302,7 @@ export default function PhotoAnalyzer() {
       const newLevel = getLevelFromXp(newXp);
       
       const updatePayload: Partial<UserProfile> = {
-        auro_balance: currentAuro - 2,
+        auro_balance: currentAuro - analysisCost,
         current_xp: newXp
       };
 
@@ -277,20 +343,12 @@ export default function PhotoAnalyzer() {
               }, 300);
           }
       }
+      handleClear();
     });
   };
 
-  const handleClear = () => {
-    setPreview(null);
-    setFile(null);
-    setResult(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const currentAuro = userProfile ? (Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0) : 0;
-  const canAnalyze = !isPending && !isProfileLoading && userProfile && currentAuro >= 2;
+  const canInteract = !isPending && !isUploading && !isProfileLoading && !!userProfile;
+  const canAnalyze = canInteract && userProfile && userProfile.auro_balance >= 2;
 
   return (
     <div className="space-y-8">
@@ -332,12 +390,13 @@ export default function PhotoAnalyzer() {
                 size="icon"
                 className="absolute top-4 right-4 h-8 w-8 rounded-full"
                 onClick={handleClear}
+                disabled={isPending || isUploading}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="p-6">
-              <Button onClick={handleAnalyze} disabled={!canAnalyze || !file} className="w-full" size="lg">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+               <Button onClick={handleAnalyze} disabled={!canAnalyze || !file} size="lg">
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -346,7 +405,20 @@ export default function PhotoAnalyzer() {
                 ) : (
                   <>
                     <Zap className="mr-2 h-4 w-4" />
-                    Fotoğrafı Analiz Et (2 Auro)
+                    Analiz Et (2 Auro)
+                  </>
+                )}
+              </Button>
+               <Button onClick={handleUploadOnly} disabled={!canInteract || !file} variant="secondary" size="lg">
+                 {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Yükleniyor...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Sadece Yükle (Ücretsiz)
                   </>
                 )}
               </Button>
