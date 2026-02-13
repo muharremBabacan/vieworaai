@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import Image from 'next/image';
 import { analyzePhotoAndSuggestImprovements, type AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { Photo, User as UserProfile } from '@/types';
@@ -11,12 +11,23 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, CheckCircle, Clock, Zap } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, CheckCircle, Clock, Zap, Trash2, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc, DocumentReference } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit } from 'firebase/firestore';
+import { getStorage, ref as storageRef, deleteObject } from "firebase/storage";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -73,12 +84,19 @@ function PhotoDetailDialog({
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
+  const [isProcessing, setIsProcessing] = useState(false); // General purpose loading state
+  const [dialogAction, setDialogAction] = useState<'delete' | 'withdraw' | null>(null);
+
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
     { icon: Heart, color: 'text-rose-400' },
   ];
+  
+  const closeAll = () => {
+    setDialogAction(null);
+    onOpenChange(false);
+  }
 
   const handleAnalyzeNow = async () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
@@ -163,7 +181,7 @@ function PhotoDetailDialog({
         }
     }
 
-    onOpenChange(false);
+    closeAll();
     setIsAnalyzing(false);
   };
 
@@ -195,15 +213,80 @@ function PhotoDetailDialog({
     });
     
     toast({ title: 'Başarılı!', description: 'Fotoğrafınız sergiye gönderildi.' });
-    onOpenChange(false); 
+    closeAll();
     setIsSubmitting(false);
   };
   
+  const handleWithdrawFromPublic = async () => {
+      if (!photo || !photo.userId || !firestore) return;
+      setIsProcessing(true);
+
+      const publicPhotosQuery = query(
+          collection(firestore, 'public_photos'), 
+          where('imageUrl', '==', photo.imageUrl),
+          where('userId', '==', photo.userId),
+          limit(1)
+      );
+
+      try {
+          const querySnapshot = await getDocs(publicPhotosQuery);
+          querySnapshot.forEach(docSnapshot => {
+              deleteDocumentNonBlocking(docSnapshot.ref);
+          });
+
+          const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+          updateDocumentNonBlocking(privatePhotoRef, {
+              isSubmittedToPublic: false,
+          });
+
+          toast({ title: 'Başarılı', description: 'Fotoğraf sergiden kaldırıldı.' });
+      } catch (error) {
+          console.error("Error withdrawing photo:", error);
+          toast({ variant: 'destructive', title: 'Hata', description: 'Fotoğraf sergiden kaldırılamadı.' });
+      } finally {
+          setIsProcessing(false);
+          closeAll();
+      }
+  };
+
+  const handleDeletePhoto = async () => {
+      if (!photo || !photo.userId || !firestore) return;
+      setIsProcessing(true);
+      
+      // 1. Delete Firestore document
+      const photoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+      deleteDocumentNonBlocking(photoRef);
+      
+      // If it was public, also delete from public collection
+      if (photo.isSubmittedToPublic) {
+          handleWithdrawFromPublic(); // This handles its own state and toasts, maybe not ideal
+      }
+      
+      // 2. Delete from Storage
+      const storage = getStorage();
+      const imageRef = storageRef(storage, photo.imageUrl);
+
+      try {
+          await deleteObject(imageRef);
+          toast({ title: 'Silindi', description: 'Fotoğrafınız kalıcı olarak silindi.' });
+      } catch (error) {
+          console.error("Error deleting from storage:", error);
+          // If Firestore doc is gone, user won't see it anyway. Log error.
+          toast({ title: 'Silindi', description: 'Fotoğraf galerinizden kaldırıldı.' });
+      } finally {
+          setIsProcessing(false);
+          closeAll();
+      }
+  };
+
   if (!photo) {
     return null;
   }
+  
+  const isLoading = isAnalyzing || isSubmitting || isProcessing;
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0">
         <div className="md:w-1/2 w-full relative aspect-square md:aspect-auto">
@@ -255,29 +338,63 @@ function PhotoDetailDialog({
               <div className="p-6 space-y-6 text-center">
                 <h4 className="font-semibold text-lg">Analiz Bekliyor</h4>
                 <p className="text-muted-foreground">Bu fotoğraf henüz Viewora YZ Koçu tarafından analiz edilmedi.</p>
-                <Button size="lg" onClick={handleAnalyzeNow} disabled={isAnalyzing || !userProfile}>
+                <Button size="lg" onClick={handleAnalyzeNow} disabled={isLoading || !userProfile}>
                     {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
                     Skoru Öğren (2 Auro)
                 </Button>
               </div>
             )}
           </div>
-          {photo.aiFeedback && !photo.isSubmittedToPublic && (
-            <div className="p-6 border-t">
-                <Button className="w-full" onClick={handleSubmitToPublic} disabled={isSubmitting || !userProfile}>
-                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />}
-                    Sergiye Gönder (5 Auro)
-                </Button>
-            </div>
-          )}
-           {photo.isSubmittedToPublic && (
-               <div className="p-6 text-center text-sm text-green-400 font-semibold border-t">
-                   <CheckCircle className="inline-block mr-2 h-4 w-4" /> Bu fotoğraf zaten sergide!
-               </div>
-           )}
+
+          <div className="p-6 border-t grid gap-2">
+             {photo.aiFeedback && (
+                photo.isSubmittedToPublic ? (
+                    <Button variant="outline" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
+                         {isProcessing && dialogAction === 'withdraw' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Undo2 className="mr-2 h-4 w-4" />}
+                        Sergiden Çek
+                    </Button>
+                ) : (
+                    <Button className="w-full" onClick={handleSubmitToPublic} disabled={isLoading || !userProfile}>
+                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />}
+                        Sergiye Gönder (5 Auro)
+                    </Button>
+                )
+             )}
+             <Button variant="destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>
+                {isProcessing && dialogAction === 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                Fotoğrafı Sil
+             </Button>
+          </div>
         </ScrollArea>
       </DialogContent>
     </Dialog>
+    
+    <AlertDialog open={!!dialogAction} onOpenChange={(open) => !open && setDialogAction(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    {dialogAction === 'delete' && 'Bu fotoğraf kalıcı olarak silinecektir. Bu işlem geri alınamaz.'}
+                    {dialogAction === 'withdraw' && 'Bu fotoğraf sergiden kaldırılacaktır. Daha sonra tekrar gönderebilirsiniz.'}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDialogAction(null)}>İptal</AlertDialogCancel>
+                <AlertDialogAction 
+                  className={dialogAction === 'delete' ? cn(
+                    'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                  ) : ''}
+                  onClick={() => {
+                    if (dialogAction === 'delete') handleDeletePhoto();
+                    if (dialogAction === 'withdraw') handleWithdrawFromPublic();
+                }}>
+                    {dialogAction === 'delete' && 'Evet, Sil'}
+                    {dialogAction === 'withdraw' && 'Evet, Sergiden Çek'}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
@@ -306,10 +423,17 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
                   <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
                 </div>
                ) : (
-                 <Badge variant="secondary" className="absolute top-1 left-1">
-                    <Clock className="mr-1 h-3 w-3" />
-                    Bekliyor
-                 </Badge>
+                 photo.isSubmittedToPublic ? (
+                     <Badge variant="default" className="absolute top-1 left-1 bg-green-600 hover:bg-green-700 text-white border-transparent">
+                        <Rocket className="mr-1 h-3 w-3" />
+                        Sergide
+                     </Badge>
+                 ) : (
+                     <Badge variant="secondary" className="absolute top-1 left-1">
+                        <Clock className="mr-1 h-3 w-3" />
+                        Bekliyor
+                     </Badge>
+                 )
                )}
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                 <span className="text-white text-xs font-semibold text-center p-1">Detayları Gör</span>
@@ -370,12 +494,22 @@ export default function GalleryPage() {
   const allTags = useMemo(() => {
     if (!photos) return [];
     const tagsSet = new Set<string>();
+    let hasSubmittedPhotos = false;
     photos.forEach(photo => {
         photo.tags?.forEach(tag => tagsSet.add(tag.trim()));
+        if (photo.isSubmittedToPublic) {
+            hasSubmittedPhotos = true;
+        }
     });
     const uniqueTags = Array.from(tagsSet).filter(Boolean);
-    if (uniqueTags.length === 0) return [];
-    return ['Tümü', ...uniqueTags];
+    const filters = ['Tümü'];
+    if (hasSubmittedPhotos) {
+        filters.push('Sergidekiler');
+    }
+    filters.push(...uniqueTags);
+    // Don't show filter bar if there are no useful filters
+    if (filters.length <= 2 && !uniqueTags.length) return []; 
+    return filters;
   }, [photos]);
 
   const sortedByRating = useMemo(() => {
@@ -391,14 +525,18 @@ export default function GalleryPage() {
   
   const sortedByDate = photos; // Already sorted by query
 
+  const filterLogic = (p: Photo) => {
+    if (activeFilter === 'Tümü') return true;
+    if (activeFilter === 'Sergidekiler') return p.isSubmittedToPublic;
+    return p.tags?.includes(activeFilter);
+  }
+
   const filteredByRating = useMemo(() => {
-    if (activeFilter === 'Tümü') return sortedByRating;
-    return sortedByRating.filter(p => p.tags?.includes(activeFilter));
+    return sortedByRating.filter(filterLogic);
   }, [activeFilter, sortedByRating]);
 
   const filteredByDate = useMemo(() => {
-      if (activeFilter === 'Tümü') return sortedByDate;
-      return sortedByDate.filter(p => p.tags?.includes(activeFilter));
+    return sortedByDate.filter(filterLogic);
   }, [activeFilter, sortedByDate]);
 
 
@@ -425,6 +563,7 @@ export default function GalleryPage() {
                                     onClick={() => setActiveFilter(tag)}
                                     className="rounded-full capitalize h-8 px-4"
                                 >
+                                    {tag === 'Sergidekiler' && <Rocket className="mr-2 h-4 w-4" />}
                                     {tag}
                                 </Button>
                             ))}

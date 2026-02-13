@@ -174,15 +174,16 @@ service cloud.firestore {
      * @path /public_photos/{photoId}
      * @allow (get, list) Any authenticated user can read the public gallery photos.
      * @allow (create) An authenticated user can submit their own photo (validating ownership via userId field).
-     * @deny (update, delete) All client-side updates/deletes are forbidden.
-     * @principle Provides public read access and controlled, validated write access.
+     * @allow (delete) The owner of the photo can withdraw it from the public gallery.
+     * @deny (update) All client-side updates are forbidden.
+     * @principle Provides public read access, controlled/validated writes, and owner-only deletes.
      */
     match /public_photos/{photoId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if false;
-      allow delete: if false;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
     }
   }
 }

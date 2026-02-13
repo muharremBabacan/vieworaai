@@ -1,11 +1,39 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
-  experimental: {
-    // Tüm kökenlere izin vererek CORS hatasını kökten çözeriz
-    allowedDevOrigins: ["*"] 
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com', // Hatayı bu satır çözecek
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
 };
 
