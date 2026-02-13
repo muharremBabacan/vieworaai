@@ -21,7 +21,8 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,7 +65,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
         <ScrollArea className="md:w-1/2 w-full">
             <div className='p-6 flex flex-col h-full'>
               <DialogHeader className="mb-4">
-                <CardTitle className="font-sans text-2xl">{lesson.title}</CardTitle>
+                <DialogTitle className="font-sans text-2xl">{lesson.title}</DialogTitle>
               </DialogHeader>
 
               <div className="flex-grow">
