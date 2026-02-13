@@ -495,7 +495,7 @@ export default function GalleryPage() {
         <>
             {allTags.length > 0 && !isLoading && (
                 <div className="mb-6 -mx-4 sm:-mx-6">
-                    <div className="overflow-x-auto pb-2">
+                    <div className="overflow-x-auto pb-2 no-scrollbar">
                         <div className="flex w-max space-x-2 px-4 sm:px-6 whitespace-nowrap">
                             {allTags.map((tag) => (
                                 <Button
