@@ -24,8 +24,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -208,25 +208,30 @@ function PhotoDetailDialog({
       setIsProcessing(true);
 
       try {
+          // This is a read, so it must be awaited.
           const publicPhotosQuery = query(
               collection(firestore, 'public_photos'), 
               where('imageUrl', '==', photo.imageUrl),
               where('userId', '==', photo.userId),
               limit(1)
           );
-
           const querySnapshot = await getDocs(publicPhotosQuery);
-          const deletePromises = querySnapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
-          await Promise.all(deletePromises);
+
+          // These are mutations, use fire-and-forget non-blocking wrappers.
+          // This avoids awaiting and lets the UI update reactively.
+          querySnapshot.forEach(docSnapshot => {
+              deleteDocumentNonBlocking(docSnapshot.ref);
+          });
 
           const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-          await updateDoc(privatePhotoRef, {
+          updateDocumentNonBlocking(privatePhotoRef, {
               isSubmittedToPublic: false,
           });
 
           toast({ title: 'Başarılı', description: 'Fotoğraf sergiden kaldırıldı.' });
       } catch (error) {
           console.error("Error withdrawing photo:", error);
+           // This catch will now only trigger for the `getDocs` read operation.
           toast({ variant: 'destructive', title: 'Hata', description: 'Fotoğraf sergiden kaldırılamadı.' });
       } finally {
           setIsProcessing(false);
