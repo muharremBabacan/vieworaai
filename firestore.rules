@@ -158,13 +158,14 @@ service cloud.firestore {
      * @description Controls access to public academy lessons.
      * @path /academyLessons/{lessonId}
      * @allow (get, list) Any authenticated user can read the academy lessons.
-     * @deny (create, update, delete) All client-side writes are forbidden to protect content integrity.
-     * @principle Provides public read access while preventing modification from clients.
+     * @allow (create) Any authenticated user can create lessons (for the admin tool).
+     * @deny (update, delete) All client-side writes are forbidden to protect content integrity.
+     * @principle Provides public read access while allowing creation from admin tools.
      */
     match /academyLessons/{lessonId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if false;
+      allow create: if isSignedIn();
       allow update: if false;
       allow delete: if false;
     }
