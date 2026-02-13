@@ -32,6 +32,11 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getLevelFromXp } from '@/lib/gamification';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
@@ -494,21 +499,30 @@ export default function GalleryPage() {
       {(photos.length > 0 || isLoading) && (
         <>
             {allTags.length > 0 && !isLoading && (
-                <div className="mb-6 -mx-4 sm:-mx-6">
-                    <div className="flex items-center space-x-2 overflow-x-auto pb-2 no-scrollbar px-4 sm:px-6">
+                <div className="mb-6">
+                    <Carousel
+                      opts={{
+                        align: "start",
+                        dragFree: true,
+                      }}
+                      className="w-full"
+                    >
+                      <CarouselContent className="-ml-2">
                         {allTags.map((tag) => (
+                          <CarouselItem key={tag} className="pl-2 basis-auto">
                             <Button
-                                key={tag}
                                 variant={activeFilter === tag ? 'default' : 'secondary'}
                                 size="sm"
                                 onClick={() => setActiveFilter(tag)}
-                                className="rounded-full capitalize h-8 px-4 flex-shrink-0 whitespace-nowrap"
+                                className="rounded-full capitalize h-8 px-4"
                             >
                                 {tag === 'Sergidekiler' && <Rocket className="mr-2 h-4 w-4" />}
                                 {tag}
                             </Button>
+                          </CarouselItem>
                         ))}
-                    </div>
+                      </CarouselContent>
+                    </Carousel>
                 </div>
             )}
 
