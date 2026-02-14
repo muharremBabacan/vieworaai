@@ -14,6 +14,6 @@ export const ai = genkit({
     }),
   ],
   // Vertex AI üzerinde çalışan, güçlü ve çok modlu (multimodal) model.
-  // Genkit'in modeli tanıması için 'vertexai/' öneki gereklidir.
-  model: 'vertexai/gemini-1.5-pro-preview-0514',
+  // "Not Found" hatalarını önlemek için modelin tam yolu kullanılıyor.
+  model: 'publishers/google/models/gemini-1.5-pro-preview-0514',
 });
