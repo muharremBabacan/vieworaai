@@ -68,6 +68,8 @@ function RevenueReport() {
         )
     }
 
+    if (error) return null;
+
     return (
         <Card>
             <CardHeader>
@@ -240,9 +242,9 @@ function AdminTools() {
                             <h4 className="font-semibold">Günlük Dersleri Üret</h4>
                             <p className="text-sm text-muted-foreground">Yapay zekanın seçtiğiniz kategoriye özel 5 yeni ders oluşturmasını sağlayın.</p>
                         </div>
-                        <div className='flex items-center gap-4'>
+                        <div className='space-y-4'>
                            <Select value={selectedLevel} onValueChange={(value) => setSelectedLevel(value as 'Temel' | 'Orta' | 'İleri')}>
-                                <SelectTrigger className="w-[180px]">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Seviye Seçin" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -252,7 +254,7 @@ function AdminTools() {
                                 </SelectContent>
                             </Select>
                              <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel || availableCategories.length === 0}>
-                                <SelectTrigger className="w-[240px]">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Kategori Seçin" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -261,7 +263,7 @@ function AdminTools() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Button className="ml-auto" onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel || !selectedCategory}>
+                            <Button className="w-full" onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel || !selectedCategory}>
                                 {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Üret ve Kaydet
                             </Button>
@@ -332,6 +334,7 @@ export default function SettingsPage() {
     const handleRestorePurchases = () => {
         setIsRestoring(true);
         toast({ title: "Satın Alımlar Kontrol Ediliyor..." });
+
         setTimeout(() => {
              toast({ title: "Kontrol Tamamlandı", description: "Mevcut satın alımlarınız hesabınızla senkronize edildi." });
              setIsRestoring(false);
