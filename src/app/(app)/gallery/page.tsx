@@ -84,7 +84,6 @@ function PhotoDetailDialog({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dialogAction, setDialogAction] = useState<'withdraw' | 'delete' | null>(null);
-  const [showSuccessDialog, setShowSuccessDialog] = useState<'deleted' | 'withdrawn' | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -92,7 +91,6 @@ function PhotoDetailDialog({
       setIsAnalyzing(false);
       setIsProcessing(false);
       setDialogAction(null);
-      setShowSuccessDialog(null);
     }
   }, [isOpen]);
 
@@ -163,11 +161,6 @@ function PhotoDetailDialog({
     setIsSubmitting(false);
   };
   
-  const closeSuccessDialog = () => {
-    setShowSuccessDialog(null);
-    onOpenChange(false);
-  };
-
   const handleWithdrawFromPublic = async () => {
     if (!photo || !photo.userId || !firestore || isProcessing) return;
     setIsProcessing(true);
@@ -177,11 +170,17 @@ function PhotoDetailDialog({
         const deletionPromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
         await Promise.all([...deletionPromises, updateDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: false })]);
         
+        toast({ title: 'Başarılı!', description: 'Fotoğrafınız sergiden başarıyla çekildi.' });
+
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
-        setDialogAction(null);
-        setShowSuccessDialog('withdrawn');
+        setDialogAction(null); 
+
+        setTimeout(() => {
+          onOpenChange(false);
+          setIsProcessing(false);
+        }, 200);
 
     } catch (error) {
         console.error("Çekme hatası:", error);
@@ -218,11 +217,17 @@ function PhotoDetailDialog({
 
         await Promise.all(deletionPromises);
         
+        toast({ title: 'İşlem Başarılı', description: 'Fotoğrafınız galeriden kalıcı olarak silindi.' });
+
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
         setDialogAction(null);
-        setShowSuccessDialog('deleted');
+
+        setTimeout(() => {
+          onOpenChange(false);
+          setIsProcessing(false);
+        }, 200);
 
     } catch (error) {
         console.error("Silme hatası:", error);
@@ -236,7 +241,7 @@ function PhotoDetailDialog({
 
   return (
     <>
-    <Dialog open={isOpen && !showSuccessDialog} onOpenChange={(open) => !open && onOpenChange(false)}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(false)}>
       <DialogContent 
         className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0"
         onPointerDownOutside={(e) => e.preventDefault()}
@@ -306,24 +311,6 @@ function PhotoDetailDialog({
                   className={cn(dialogAction === 'delete' && "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
                   onClick={() => dialogAction === 'withdraw' ? handleWithdrawFromPublic() : handleDeletePhoto()}>
                     {isProcessing ? <Loader2 className="animate-spin" /> : 'Evet, Devam Et'}
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-
-    <AlertDialog open={!!showSuccessDialog} onOpenChange={(open) => !open && closeSuccessDialog()}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>İşlem Başarılı</AlertDialogTitle>
-                <AlertDialogDescription>
-                   {showSuccessDialog === 'deleted' 
-                     ? 'Fotoğrafınız galeriden kalıcı olarak silindi.' 
-                     : 'Fotoğrafınız sergiden başarıyla çekildi.'}
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogAction onClick={closeSuccessDialog}>
-                    Tamam
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
