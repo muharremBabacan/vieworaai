@@ -3,9 +3,9 @@
 import { useState, useMemo, useRef, type ChangeEvent, type DragEvent } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, useCollection } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, useCollection, useStorage } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { evaluatePracticeSubmission, type EvaluatePracticeSubmissionOutput } from '@/ai/flows/evaluate-practice-submission';
 import type { User as UserProfile } from '@/types';
 import type { Lesson as AcademyLesson } from '@/types';
@@ -53,6 +53,7 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user: authUser } = useUser();
+  const storage = useStorage();
 
   const handleFileChange = (selectedFile: File | null) => {
     if (selectedFile && selectedFile.type.startsWith('image/')) {
@@ -100,7 +101,6 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
     setIsAnalyzing(true);
     toast({ title: 'Analiz Başlatılıyor...', description: 'Ödevinize özel geri bildirim hazırlanıyor.' });
 
-    const storage = getStorage();
     const filePath = `users/${authUser.uid}/practice-submissions/${Date.now()}-${file.name}`;
     const imageRef = storageRef(storage, filePath);
     

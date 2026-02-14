@@ -10,9 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap, Upload } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -111,6 +111,7 @@ export default function PhotoAnalyzer() {
 
   const { user: authUser } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
 
   const userDocRef = useMemoFirebase(() => {
     if (!authUser) return null;
@@ -183,7 +184,6 @@ export default function PhotoAnalyzer() {
     setIsUploading(true);
     startTransition(async () => {
       // 1. Upload to Storage
-      const storage = getStorage();
       const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
       const imageRef = storageRef(storage, filePath);
       
@@ -244,7 +244,6 @@ export default function PhotoAnalyzer() {
 
     startTransition(async () => {
       // 1. Upload to Storage
-      const storage = getStorage();
       const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
       const imageRef = storageRef(storage, filePath);
       
