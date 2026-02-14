@@ -14,6 +14,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+// Schema for the input of the lesson generation flow
+const GenerateLessonsInputSchema = z.object({
+  level: z.enum(['Temel', 'Orta', 'İleri']),
+});
+export type GenerateLessonsInput = z.infer<typeof GenerateLessonsInputSchema>;
+
 // Schema for a single generated lesson, based on the user's provided curriculum.
 // This ensures the AI's output is structured and type-safe.
 const GeneratedLessonSchema = z.object({
@@ -36,17 +42,18 @@ export type GeneratedLesson = z.infer<typeof GeneratedLessonSchema>;
  * The main function to be called from the application to trigger the lesson generation process.
  * It invokes the Genkit flow and returns a promise that resolves to an array of generated lessons.
  */
-export async function generateDailyLessons(): Promise<GeneratedLesson[]> {
-    return generateLessonsFlow();
+export async function generateDailyLessons(input: GenerateLessonsInput): Promise<GeneratedLesson[]> {
+    return generateLessonsFlow(input);
 }
 
 // Define the prompt for the AI model, specifying the desired output schema.
 const generationPrompt = ai.definePrompt({
     name: 'structuredCurriculumPrompt',
+    input: { schema: GenerateLessonsInputSchema },
     output: { schema: GenerateLessonsOutputSchema },
-    prompt: `You are the head instructor of Viewora AI Coach. Your task is to generate FIVE (5) distinct mini-lessons in TURKISH, based on the structured curriculum provided below.
+    prompt: `You are the head instructor of Viewora AI Coach. Your task is to generate FIVE (5) distinct mini-lessons in TURKISH, for the **{{{level}}}** level, based on the structured curriculum provided below.
 
-Ensure the generated lessons are diverse, covering different levels (Temel, Orta, İleri) and different categories within those levels.
+Ensure the generated lessons are diverse, covering different categories within the selected level.
 
 **CURRICULUM:**
 
@@ -79,7 +86,7 @@ Amaç: Uzmanlaşma + ticari değer + sanatsal kimlik.
 For each of the FIVE lessons, strictly follow this JSON format and provide the content in Turkish:
 
 {
-  "level": "The level name: 'Temel', 'Orta', or 'İleri'.",
+  "level": "The level name: 'Temel', 'Orta', or 'İleri'. This MUST match the requested level: {{{level}}}.",
   "category": "The specific category name from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı').",
   "title": "A compelling title for a specific sub-point within the category (e.g., 'Diyafram ve Alan Derinliği İlişkisi').",
   "learningObjective": "A concise learning objective for this specific title.",
@@ -94,7 +101,7 @@ For each of the FIVE lessons, strictly follow this JSON format and provide the c
   "imageHint": "Provide 1-2 relevant English keywords for finding a suitable image (e.g., 'aperture f-stop', 'portrait side light')."
 }
 
-Ensure the output is a valid JSON array containing exactly five lesson objects.
+Ensure the output is a valid JSON array containing exactly five lesson objects for the requested level.
 `,
 });
 
@@ -102,11 +109,12 @@ Ensure the output is a valid JSON array containing exactly five lesson objects.
 const generateLessonsFlow = ai.defineFlow(
     {
         name: 'generateLessonsFlow',
+        inputSchema: GenerateLessonsInputSchema,
         outputSchema: GenerateLessonsOutputSchema,
     },
-    async () => {
+    async (input) => {
         // Execute the prompt and await the structured output.
-        const { output } = await generationPrompt();
+        const { output } = await generationPrompt(input);
         // Return the generated lessons, or an empty array if the output is null.
         return output || [];
     }

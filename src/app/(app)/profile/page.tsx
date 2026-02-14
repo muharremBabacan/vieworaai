@@ -14,22 +14,33 @@ import { addDays, isBefore } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { generateDailyLessons, type GeneratedLesson } from '@/ai/flows/generate-daily-lessons';
 import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 function AdminTools() {
     const { toast } = useToast();
     const firestore = useFirestore();
     const [isGenerating, setIsGenerating] = useState(false);
+    const [selectedLevel, setSelectedLevel] = useState<'Temel' | 'Orta' | 'İleri' | ''>('');
 
     const handleGenerateLessons = async () => {
-        if (!firestore) return;
+        if (!firestore || !selectedLevel) {
+            toast({
+                variant: 'destructive',
+                title: 'Seviye Seçilmedi',
+                description: 'Lütfen ders üretmek için bir seviye seçin.',
+            });
+            return;
+        }
+
         setIsGenerating(true);
         toast({
             title: 'Dersler Üretiliyor...',
-            description: 'Yapay zeka 5 yeni ders hazırlıyor. Bu işlem biraz zaman alabilir.',
+            description: `Yapay zeka, '${selectedLevel}' seviyesi için 5 yeni ders hazırlıyor. Bu işlem biraz zaman alabilir.`,
         });
 
         try {
-            const newLessons = await generateDailyLessons();
+            const newLessons = await generateDailyLessons({ level: selectedLevel });
             if (!newLessons || newLessons.length === 0) {
                 throw new Error("AI did not return any lessons.");
             }
@@ -104,11 +115,23 @@ function AdminTools() {
             </CardHeader>
             <CardContent>
                 <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <h4 className="font-semibold">Günlük Dersleri Üret</h4>
-                        <p className="text-sm text-muted-foreground">Yapay zeka ile 5 yeni akademi dersi oluşturur ve veritabanına ekler.</p>
+                    <div className='flex items-center gap-4'>
+                       <div>
+                            <h4 className="font-semibold">Günlük Dersleri Üret</h4>
+                            <p className="text-sm text-muted-foreground">Bir seviye seçin ve yapay zekanın 5 yeni ders oluşturmasını sağlayın.</p>
+                       </div>
+                       <Select value={selectedLevel} onValueChange={(value) => setSelectedLevel(value as 'Temel' | 'Orta' | 'İleri')}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Seviye Seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Temel">Temel</SelectItem>
+                                <SelectItem value="Orta">Orta</SelectItem>
+                                <SelectItem value="İleri">İleri</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <Button onClick={handleGenerateLessons} disabled={isGenerating}>
+                    <Button onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel}>
                         {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Üret ve Kaydet
                     </Button>
