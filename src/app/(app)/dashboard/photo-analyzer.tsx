@@ -361,17 +361,28 @@ export default function PhotoAnalyzer() {
             Yeni Analiz Başlat
           </Button>
         </>
-      ) : isPending ? (
-        <div className="space-y-6">
-          <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
-          <Card><CardContent className="p-6"><Skeleton className="h-24" /></CardContent></Card>
-          <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
-        </div>
       ) : preview ? (
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="relative aspect-video">
-              <Image src={preview} alt="Preview" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
+            <div className="relative aspect-video bg-muted/20">
+              <Image 
+                src={preview} 
+                alt="Preview" 
+                fill 
+                sizes="(max-width: 768px) 100vw, 50vw" 
+                className={cn("object-contain transition-all", (isPending || isUploading) && "opacity-50 blur-sm")}
+              />
+              
+              {(isPending || isUploading) && (
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="mt-3 font-semibold text-lg">
+                        {isPending ? 'Analiz Ediliyor...' : 'Fotoğraf Yükleniyor...'}
+                    </p>
+                    <p className="text-sm text-white/80 mt-1">Bu işlem biraz zaman alabilir, lütfen bekleyin.</p>
+                </div>
+              )}
+              
               <Button
                 variant="destructive"
                 size="icon"
@@ -383,7 +394,7 @@ export default function PhotoAnalyzer() {
               </Button>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-               <Button onClick={handleAnalyze} disabled={!canAnalyze || !file} size="lg">
+               <Button onClick={handleAnalyze} disabled={!canAnalyze || !file || isPending || isUploading} size="lg">
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -396,7 +407,7 @@ export default function PhotoAnalyzer() {
                   </>
                 )}
               </Button>
-               <Button onClick={handleUploadOnly} disabled={!canInteract || !file} variant="secondary" size="lg">
+               <Button onClick={handleUploadOnly} disabled={!canInteract || !file || isPending || isUploading} variant="secondary" size="lg">
                  {isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
