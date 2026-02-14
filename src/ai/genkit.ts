@@ -14,5 +14,5 @@ export const ai = genkit({
   // Modeli, eklenti adıyla birlikte ('eklentiAdi/modelAdi') belirtmek,
   // Genkit'in doğru eklentiyi kullanmasını sağlar ve çakışmaları önler.
   // 'gemini-1.5-flash', Vertex AI'daki güçlü ve çok modlu (görsel anlama) bir modeldir.
-  model: 'vertexai/gemini-1.5-flash',
+  model: 'vertexai/gemini-2.0-flash-001',
 });
