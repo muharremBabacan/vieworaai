@@ -64,31 +64,31 @@ export const PlaceHolderImages: ImagePlaceholder[] = [
       "id": "academy-composition",
       "description": "A photo demonstrating the rule of thirds in composition.",
       "imageUrl": "https://images.unsplash.com/photo-1663427840251-d81f1434dc35?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxydWxlJTIwdGhpcmRzfGVufDB8fHx8MTc3MDY2NzU2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "rule thirds"
+      "imageHint": "composition rule thirds"
     },
     {
       "id": "academy-light",
       "description": "A portrait taken during the golden hour with warm light.",
       "imageUrl": "https://images.unsplash.com/photo-1496614932623-0a3a9743552e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxnb2xkZW4lMjBob3VyfGVufDB8fHx8MTc3MDY2NzU2NXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "golden hour"
+      "imageHint": "light golden hour"
     },
     {
       "id": "academy-technique",
       "description": "A long exposure shot of city traffic at night.",
       "imageUrl": "https://images.unsplash.com/photo-1447966531936-911738a2a722?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxsb25nJTIwZXhwb3N1cmV8ZW58MHx8fHwxNzcwNjY3NTY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "long exposure"
+      "imageHint": "technique long exposure"
     },
     {
       "id": "academy-portrait",
       "description": "A classic portrait with a blurred background.",
       "imageUrl": "https://images.unsplash.com/photo-1599842057874-37393e9342df?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdCUyMGxpZ2h0aW5nfGVufDB8fHx8MTc3MDk4NTU0NHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "portrait lighting"
+      "imageHint": "portrait light"
     },
     {
       "id": "academy-landscape",
       "description": "A wide landscape showing leading lines.",
       "imageUrl": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsZWFkaW5nJTIwbGluZXN8ZW58MHx8fHwxNzcwOTg1NjMxfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "leading lines"
+      "imageHint": "composition landscape"
     },
     {
       "id": "academy-street",

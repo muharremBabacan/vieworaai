@@ -213,21 +213,51 @@ export default function AcademyPage() {
     }
   };
 
+  const groupedLessons = lessons?.reduce((acc, lesson) => {
+    const category = lesson.category || 'Diğer';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(lesson);
+    return acc;
+  }, {} as Record<string, AcademyLesson[]>) ?? {};
+
+  const mainCategories = ['Teknik', 'Kompozisyon', 'Işık'];
+  const otherCategories = Object.keys(groupedLessons)
+    .filter(cat => !mainCategories.includes(cat) && cat !== 'Diğer')
+    .sort();
+  
+  const orderedCategories = [...mainCategories, ...otherCategories];
+  if (groupedLessons['Diğer']) {
+    orderedCategories.push('Diğer');
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
-                <CardHeader className="p-0 relative aspect-video">
-                    <Skeleton className="w-full h-full"/>
-                </CardHeader>
-                <CardContent className="p-4">
-                    <Skeleton className="h-5 w-3/4 mb-1"/>
-                    <Skeleton className="h-5 w-5/6"/>
-                </CardContent>
-            </Card>
-          ))}
+        <div className="text-center mb-12">
+            <Skeleton className="h-10 w-3/4 mx-auto" />
+            <Skeleton className="h-5 w-1/2 mx-auto mt-2" />
+        </div>
+        <div className="space-y-12">
+            {Array.from({length: 3}).map((_, i) => (
+                <section key={i}>
+                    <Skeleton className="h-8 w-1/4 mb-6" />
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {Array.from({ length: 4 }).map((_, j) => (
+                        <Card key={j} className="overflow-hidden">
+                            <CardHeader className="p-0 relative aspect-video">
+                                <Skeleton className="w-full h-full"/>
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                <Skeleton className="h-5 w-3/4 mb-1"/>
+                                <Skeleton className="h-5 w-5/6"/>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    </div>
+                </section>
+            ))}
         </div>
       </div>
     );
@@ -235,6 +265,11 @@ export default function AcademyPage() {
 
   return (
     <div className="container mx-auto">
+        <div className="text-center mb-12">
+            <h1 className="font-sans text-3xl font-bold tracking-tight">Temel Fotoğraf Eğitimi</h1>
+            <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Teknik, kompozisyon ve ışık üzerine derslerle fotoğrafçılığın temellerini öğrenin.</p>
+        </div>
+
       {(!lessons || lessons.length === 0) ? (
         <div className="text-center py-20 rounded-lg border border-dashed">
             <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -242,15 +277,24 @@ export default function AcademyPage() {
             <p className="text-muted-foreground mt-2">Profil sayfasından yönetici aracıyla günlük dersleri oluşturun.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {lessons.map((lesson) => (
-            <LessonCard 
-              key={lesson.id} 
-              lesson={lesson} 
-              onSelect={() => setSelectedLesson(lesson)}
-              isCompleted={userProfile?.completed_modules?.includes(lesson.id) || false}
-            />
-          ))}
+        <div className="space-y-12">
+            {orderedCategories.map(category => (
+                groupedLessons[category] && groupedLessons[category].length > 0 && (
+                    <section key={category}>
+                        <h2 className="text-2xl font-bold tracking-tight mb-6 border-b pb-2">{category}</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {groupedLessons[category].map(lesson => (
+                                <LessonCard 
+                                    key={lesson.id} 
+                                    lesson={lesson} 
+                                    onSelect={() => setSelectedLesson(lesson)}
+                                    isCompleted={userProfile?.completed_modules?.includes(lesson.id) || false}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                )
+            ))}
         </div>
       )}
 

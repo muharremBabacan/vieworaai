@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { addDays, isBefore } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { generateDailyLessons, type GeneratedLesson } from '@/ai/flows/generate-daily-lessons';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
 
 function AdminTools() {
     const { toast } = useToast();
@@ -36,15 +36,41 @@ function AdminTools() {
 
             const lessonCollectionRef = collection(firestore, 'academyLessons');
             
+            const usedImageUrls = new Set<string>();
             const imagePlaceholders = PlaceHolderImages.filter(p => p.id.startsWith('academy-'));
 
             for (const lesson of newLessons) {
-                // Find a random placeholder image
-                const randomImage = imagePlaceholders[Math.floor(Math.random() * imagePlaceholders.length)];
+                let bestMatch: ImagePlaceholder | undefined;
+                const lessonHintWords = lesson.imageHint.toLowerCase().split(' ');
+
+                let availableImages = imagePlaceholders.filter(p => !usedImageUrls.has(p.imageUrl));
+                
+                if (availableImages.length === 0) {
+                    availableImages = imagePlaceholders;
+                    usedImageUrls.clear(); // Allow reuse if all images have been used
+                }
+
+                bestMatch = availableImages.find(p => 
+                    lessonHintWords.some(word => p.imageHint.toLowerCase().includes(word))
+                );
+
+                if (!bestMatch) {
+                     bestMatch = availableImages.find(p => p.imageHint.toLowerCase().includes(lesson.category.toLowerCase()));
+                }
+
+                if (!bestMatch) {
+                    bestMatch = availableImages[Math.floor(Math.random() * availableImages.length)];
+                }
+                
+                const imageUrl = bestMatch?.imageUrl ?? `https://picsum.photos/seed/${lesson.title}/600/400`;
+                if(bestMatch?.imageUrl) {
+                    usedImageUrls.add(imageUrl);
+                }
                 
                 const lessonData = {
                     ...lesson,
-                    imageUrl: randomImage?.imageUrl ?? 'https://picsum.photos/seed/lesson/600/400',
+                    imageUrl: imageUrl,
+                    imageHint: bestMatch?.imageHint ?? lesson.imageHint,
                     createdAt: new Date().toISOString(),
                 };
                 addDocumentNonBlocking(lessonCollectionRef, lessonData);
