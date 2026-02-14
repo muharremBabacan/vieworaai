@@ -17,7 +17,6 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
       { label: 'Işık', value: rating.lighting },
@@ -27,7 +26,7 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
   return (
       <div>
           <h4 className="font-semibold text-lg mb-3">Puanlama</h4>
-          <div className="flex items-center gap-6 rounded-lg border p-4">
+          <div className="flex items-center gap-6 rounded-lg border p-4 bg-card/50">
               <div className="text-center">
                   <p className="text-sm text-muted-foreground">Genel</p>
                   <p className="text-4xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
@@ -36,11 +35,11 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
                   {ratingItems.map(item => (
                       <div key={item.label} className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className="flex items-center gap-2">
-                               <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="flex items-center gap-2 text-xs font-mono">
+                               <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                                   <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
                               </div>
-                              <span className="text-sm font-semibold w-6 text-right">{item.value}</span>
+                              <span className="w-4 text-right">{item.value}</span>
                           </div>
                       </div>
                   ))}
@@ -49,7 +48,6 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
       </div>
   )
 }
-
 
 function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   if (!photo) return null;
@@ -62,47 +60,50 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
-        <div className="md:w-1/3 w-full relative aspect-square md:aspect-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden">
+        <div className="md:w-1/3 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image
             src={photo.imageUrl}
-            alt="Analiz edilen fotoğraf"
+            alt="Viewora Sergi Fotoğrafı"
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-contain"
-            data-ai-hint={photo.tags?.join(' ')}
+            unoptimized={true} // Firebase Storage görselleri için kritik
+            priority
           />
         </div>
         <div className="md:w-2/3 w-full overflow-y-auto">
           <div className="p-6 space-y-6">
             <DialogHeader>
-              <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
+              <DialogTitle className="font-sans text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
+                YZ Analiz Sonucu
+              </DialogTitle>
             </DialogHeader>
 
             {photo.tags && photo.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {photo.tags.map(tag => <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>)}
+                {photo.tags.map(tag => <Badge key={tag} variant="secondary" className="capitalize px-3 py-1">{tag}</Badge>)}
               </div>
             )}
             
             {photo.aiFeedback ? (
               <>
-                {photo.aiFeedback.rating && <RatingDisplay rating={photo.aiFeedback.rating} />}
-                
+                <RatingDisplay rating={photo.aiFeedback.rating} />
                 <div>
-                  <h4 className="font-semibold text-lg mb-2">Analiz</h4>
-                  <DialogDescription>{photo.aiFeedback.analysis}</DialogDescription>
+                  <h4 className="font-semibold text-lg mb-2">Analiz Özeti</h4>
+                  <DialogDescription className="text-base leading-relaxed text-foreground/80">
+                    {photo.aiFeedback.analysis}
+                  </DialogDescription>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-2">İyileştirme İpuçları</h4>
+                  <h4 className="font-semibold text-lg mb-3">Neler İyi Yapılmış?</h4>
                   <ul className="space-y-4">
                     {photo.aiFeedback.improvements.map((tip, index) => {
                       const Icon = improvements[index % improvements.length].icon;
                       const color = improvements[index % improvements.length].color;
                       return (
-                         <li key={index} className="flex items-start gap-3">
-                          <Icon className={cn("h-5 w-5 mt-0.5 flex-shrink-0", color)} />
-                          <span className="text-sm text-muted-foreground">{tip}</span>
+                         <li key={index} className="flex items-start gap-4 p-3 rounded-lg border bg-muted/30">
+                          <Icon className={cn("h-6 w-6 mt-0.5 flex-shrink-0", color)} />
+                          <span className="text-sm leading-snug">{tip}</span>
                         </li>
                       );
                     })}
@@ -110,8 +111,8 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
                 </div>
               </>
             ) : (
-              <div className="text-center py-10">
-                <p className="text-muted-foreground">Bu fotoğraf için analiz mevcut değil.</p>
+              <div className="text-center py-20 bg-muted/20 rounded-xl border border-dashed">
+                <p className="text-muted-foreground">Bu fotoğraf için detaylı YZ analizi yükleniyor...</p>
               </div>
             )}
           </div>
@@ -121,53 +122,8 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
   );
 }
 
-function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (photo: Photo) => void }) {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-      {photos.map((photo) => (
-        <Card
-          key={photo.id}
-          className="overflow-hidden cursor-pointer group rounded-md"
-          onClick={() => onPhotoClick(photo)}
-        >
-          <CardContent className="p-0">
-            <div className="relative w-full aspect-square min-w-[125px]">
-              <Image
-                src={photo.imageUrl}
-                alt={`Kullanıcı fotoğrafı ${photo.id}`}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, (max-width: 1024px) 16.6vw, 12.5vw"
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                data-ai-hint={photo.tags?.join(' ')}
-              />
-               {photo.aiFeedback?.rating && (
-                <div className="absolute top-1 right-1 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                  <Star className="h-3 w-3 text-yellow-400" />
-                  <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <span className="text-white text-xs font-semibold text-center p-1">Detayları Gör</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function ExploreSkeleton() {
-    return (
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-            {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className="aspect-square min-w-[125px]">
-                    <Skeleton className="w-full h-full" />
-                </div>
-            ))}
-        </div>
-    );
-}
+// PhotoGrid ve ExploreSkeleton kısımları aynı kalabilir, 
+// ancak Image bileşenlerine unoptimized={true} eklemek güvenlidir.
 
 export default function ExplorePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -175,47 +131,50 @@ export default function ExplorePage() {
 
   const publicPhotosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
-      collection(firestore, 'public_photos'), 
-      orderBy('createdAt', 'desc')
-    );
+    return query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc'));
   }, [firestore]);
   
   const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
 
-  const openDialog = (photo: Photo) => {
-    setSelectedPhoto(photo);
-  };
-
-  const closeDialog = () => {
-    setSelectedPhoto(null);
-  };
-  
   return (
     <div className="container mx-auto">
-        <div className="text-left mb-8">
-            <h2 className="text-2xl font-bold tracking-tight">Sergi Salonu</h2>
-            <p className="text-muted-foreground mt-1">Topluluk tarafından sergiye gönderilen en iyi fotoğraflar.</p>
+        <div className="text-left mb-10">
+            <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent inline-block">
+                Sergi Salonu
+            </h2>
+            <p className="text-muted-foreground mt-2 text-lg">
+                Topluluğun en ilham verici kareleri burada buluşuyor.
+            </p>
         </div>
 
-        {isLoading && <ExploreSkeleton />}
-
-        {!isLoading && photos && photos.length > 0 && (
-            <PhotoGrid photos={photos} onPhotoClick={openDialog} />
-        )}
-
-        {!isLoading && (!photos || photos.length === 0) && (
-            <div className="text-center py-20 rounded-lg border border-dashed">
-                <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-xl font-semibold">Sergi Salonu Henüz Boş</h3>
-                <p className="text-muted-foreground mt-2">Galerinizden bir fotoğrafı sergiye gönderen ilk kişi siz olun!</p>
+        {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                {Array.from({ length: 16 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
+            </div>
+        ) : photos && photos.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                {photos.map((photo) => (
+                    <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
+                        <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                             <Star className="h-6 w-6 text-yellow-400 mb-1" />
+                             <span className="text-white text-xs font-bold">{photo.aiFeedback?.rating.overall.toFixed(1)} / 10</span>
+                        </div>
+                    </Card>
+                ))}
+            </div>
+        ) : (
+            <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
+                <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-2xl font-semibold">Henüz kimse eserini paylaşmadı</h3>
+                <p className="text-muted-foreground mt-2">Kendi galerinizden bir fotoğrafı sergiye göndererek salonu canlandırın!</p>
             </div>
         )}
 
         <PhotoDetailDialog 
             photo={selectedPhoto} 
             isOpen={!!selectedPhoto}
-            onOpenChange={(open) => !open && closeDialog()}
+            onOpenChange={(open) => !open && setSelectedPhoto(null)}
         />
     </div>
   );

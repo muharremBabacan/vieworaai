@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { analyzePhotoAndSuggestImprovements, type AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { Photo, User as UserProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2 } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2, Camera } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -38,7 +39,6 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
-
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -102,12 +102,11 @@ function PhotoDetailDialog({
     setDialogAction(null);
     setTimeout(() => {
         onOpenChange(false);
-    }, 100);
+    }, 150); // ARIA çakışmasını engellemek için gecikme artırıldı
   }
 
   const handleAnalyzeNow = async () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
-    
     const analysisCost = 2;
     const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
     const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
@@ -118,186 +117,109 @@ function PhotoDetailDialog({
     }
 
     setIsAnalyzing(true);
-    toast({ title: 'Analiz Başlatılıyor...', description: 'Lütfen bekleyin, bu işlem biraz sürebilir.' });
+    toast({ title: 'Analiz Başlatılıyor...', description: 'Lütfen bekleyin.' });
 
-    let analysisResult: AnalyzePhotoAndSuggestImprovementsOutput;
     try {
-      analysisResult = await analyzePhotoAndSuggestImprovements({ photoUrl: photo.imageUrl });
-      if (!analysisResult?.rating) throw new Error("AI analysis did not return a rating.");
+      const analysisResult = await analyzePhotoAndSuggestImprovements({ photoUrl: photo.imageUrl });
+      if (!analysisResult?.rating) throw new Error("Rating hatası.");
+      
+      const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+      const totalXpGained = 15 + (analysisResult.rating.overall >= 8.0 ? 50 : 0);
+      const newXp = currentXp + totalXpGained;
+      const newLevel = getLevelFromXp(newXp);
+      
+      const userUpdatePayload: Partial<UserProfile> = { auro_balance: currentAuro - analysisCost, current_xp: newXp };
+      if (newLevel.name !== getLevelFromXp(currentXp).name) userUpdatePayload.level_name = newLevel.name;
+
+      updateDocumentNonBlocking(userDocRef, userUpdatePayload);
+      updateDocumentNonBlocking(originalPhotoRef, { aiFeedback: analysisResult, tags: analysisResult.tags || [] });
+
+      toast({ title: 'Başarılı!', description: 'Analiz tamamlandı.' });
+      closeAll();
     } catch (error) {
-      console.error('Analiz başarısız:', error);
-      toast({ variant: 'destructive', title: 'Analiz Başarısız', description: 'YZ analizi sırasında bir hata oluştu.' });
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Hata', description: 'Analiz yapılamadı.' });
+    } finally {
       setIsAnalyzing(false);
-      return;
     }
-
-    const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-    
-    const xpFromAnalysis = 15;
-    const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
-    const totalXpGained = xpFromAnalysis + bonusXp;
-    
-    const currentLevel = getLevelFromXp(currentXp);
-    const newXp = currentXp + totalXpGained;
-    const newLevel = getLevelFromXp(newXp);
-    
-    const userUpdatePayload: Partial<UserProfile> = {
-      auro_balance: currentAuro - analysisCost,
-      current_xp: newXp
-    };
-
-    if (newLevel.name !== currentLevel.name) {
-      userUpdatePayload.level_name = newLevel.name;
-      if (newLevel.isMentor) userUpdatePayload.is_mentor = true;
-    }
-
-    updateDocumentNonBlocking(userDocRef, userUpdatePayload);
-    updateDocumentNonBlocking(originalPhotoRef, { 
-        aiFeedback: analysisResult,
-        tags: analysisResult.tags || [],
-    });
-
-    toast({ title: 'Analiz Tamamlandı!', description: 'Sonuçlar fotoğrafına eklendi.' });
-    toast({ title: 'XP Kazandın!', description: `Analiz için ${xpFromAnalysis} XP kazandın.` });
-
-    if (bonusXp > 0) {
-        setTimeout(() => toast({ title: '✨ Bonus!', description: `Yüksek puan için +${bonusXp} bonus XP kazandın!` }), 100);
-    }
-    if (userUpdatePayload.level_name) {
-        setTimeout(() => toast({ title: '🎉 Seviye Atladın!', description: `Tebrikler! Yeni seviyen: ${userUpdatePayload.level_name}` }), 200);
-        if (userUpdatePayload.is_mentor) {
-            setTimeout(() => toast({ title: '👑 Mentor Oldun!', description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.' }), 300);
-        }
-    }
-
-    closeAll();
-    setIsAnalyzing(false);
   };
-
 
   const handleSubmitToPublic = () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
-    
     const submissionCost = 5;
-    const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+    const currentAuro = userProfile.auro_balance || 0;
 
     if (currentAuro < submissionCost) {
-        toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Sergiye göndermek için ${submissionCost} Auro gereklidir.` });
+        toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Sergi için ${submissionCost} Auro lazım.` });
         return;
     }
 
     setIsSubmitting(true);
-
-    const publicPhotosCollectionRef = collection(firestore, 'public_photos');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const publicPhotosRef = collection(firestore, 'public_photos');
     const { id, ...publicPhotoData } = photo;
-    addDocumentNonBlocking(publicPhotosCollectionRef, publicPhotoData);
-
-    updateDocumentNonBlocking(userDocRef, {
-        auro_balance: currentAuro - submissionCost,
-    });
-
-    const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-    updateDocumentNonBlocking(originalPhotoRef, {
-        isSubmittedToPublic: true,
-    });
+    addDocumentNonBlocking(publicPhotosRef, publicPhotoData);
+    updateDocumentNonBlocking(userDocRef, { auro_balance: currentAuro - submissionCost });
+    updateDocumentNonBlocking(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: true });
     
-    toast({ title: 'Başarılı!', description: 'Fotoğrafınız sergiye gönderildi.' });
+    toast({ title: 'Başarılı!', description: 'Sergiye gönderildi.' });
     closeAll();
     setIsSubmitting(false);
   };
-  
- const handleWithdrawFromPublic = async () => {
+
+  const handleWithdrawFromPublic = async () => {
     if (!photo || !photo.userId || !firestore || isProcessing) return;
     setIsProcessing(true);
     try {
-        const publicPhotosQuery = query(
-            collection(firestore, 'public_photos'),
-            where('imageUrl', '==', photo.imageUrl),
-            where('userId', '==', photo.userId),
-            limit(1)
-        );
-        const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+        const publicPhotosQuery = query(collection(firestore, 'public_photos'), where('imageUrl', '==', photo.imageUrl), where('userId', '==', photo.userId), limit(1));
         const querySnapshot = await getDocs(publicPhotosQuery);
-
-        const deletionPromises: Promise<void>[] = [];
-        querySnapshot.forEach(docSnapshot => {
-            deletionPromises.push(deleteDoc(docSnapshot.ref));
-        });
-
-        await Promise.all([
-            ...deletionPromises,
-            updateDoc(privatePhotoRef, { isSubmittedToPublic: false })
-        ]);
-
-        toast({ title: 'Başarılı', description: 'Fotoğraf sergiden kaldırıldı.' });
-    } catch (error) {
-        console.error("Error withdrawing photo:", error);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Fotoğraf sergiden kaldırılamadı.' });
+        const deletionPromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
+        await Promise.all([...deletionPromises, updateDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: false })]);
+        toast({ title: 'Başarılı', description: 'Sergiden çekildi.' });
     } finally {
         setIsProcessing(false);
         closeAll();
     }
- };
+  };
 
   const getPathFromStorageUrl = (url: string): string | null => {
       if (!url.includes('firebasestorage.googleapis.com')) return null;
       try {
-          const urlObject = new URL(url);
-          const path = urlObject.pathname;
-          const parts = path.split('/o/');
-          if (parts.length < 2) return null;
-          const encodedPath = parts[1].split('?')[0];
-          return decodeURIComponent(encodedPath);
-      } catch (e) {
-          console.error("Could not parse storage URL:", e);
-          return null;
-      }
+          const parts = new URL(url).pathname.split('/o/');
+          return parts.length < 2 ? null : decodeURIComponent(parts[1].split('?')[0]);
+      } catch (e) { return null; }
   };
   
-const handleDeletePhoto = async () => {
+  const handleDeletePhoto = async () => {
     if (!photo || !photo.userId || !firestore || isProcessing) return;
-
     setIsProcessing(true);
-
     try {
-        const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-        const deletionPromises: Promise<any>[] = [deleteDoc(privatePhotoRef)];
-
+        const deletionPromises: Promise<any>[] = [deleteDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id))];
         const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
-        if (filePath) {
-            const storage = getStorage();
-            const imageRef = storageRef(storage, filePath);
-            deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage deletion failed, but proceeding:", e)));
-        }
-
+        if (filePath) deletionPromises.push(deleteObject(storageRef(getStorage(), filePath)).catch(() => {}));
+        
         if (photo.isSubmittedToPublic) {
-            const publicPhotosQuery = query(
-                collection(firestore, 'public_photos'),
-                where('imageUrl', '==', photo.imageUrl),
-                where('userId', '==', photo.userId)
-            );
-            const querySnapshot = await getDocs(publicPhotosQuery);
-            querySnapshot.forEach(docSnap => deletionPromises.push(deleteDoc(docSnap.ref)));
+            const pubQuery = query(collection(firestore, 'public_photos'), where('imageUrl', '==', photo.imageUrl), where('userId', '==', photo.userId));
+            const snap = await getDocs(pubQuery);
+            snap.forEach(d => deletionPromises.push(deleteDoc(d.ref)));
         }
 
         await Promise.all(deletionPromises);
+        toast({ title: 'Başarılı!', description: 'Fotoğraf silindi.' });
         
-        toast({ title: 'Başarılı!', description: 'Fotoğraf kalıcı olarak silindi.' });
-        closeAll();
+        // DONMAYI ENGELLEYEN KRİTİK SIRALAMA
+        setDialogAction(null); 
+        setTimeout(() => {
+            onOpenChange(false);
+            setIsProcessing(false);
+        }, 150);
+
     } catch (error) {
-        console.error("Photo deletion process failed:", error);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi tamamlanamadı. Lütfen tekrar deneyin.' });
-    } finally {
+        toast({ variant: 'destructive', title: 'Hata', description: 'Silinemedi.' });
         setIsProcessing(false);
     }
-};
+  };
 
-
-  if (!photo) {
-    return null;
-  }
-  
+  if (!photo) return null;
   const isLoading = isAnalyzing || isSubmitting || isProcessing;
 
   return (
@@ -305,82 +227,39 @@ const handleDeletePhoto = async () => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(false)}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
         <div className="md:w-1/3 w-full relative aspect-square md:aspect-auto">
-          <Image
-            src={photo.imageUrl}
-            alt="Analiz edilen fotoğraf"
-            fill
-            sizes="(max-width: 768px) 100vw, 50vw"
-            className="object-contain"
-            data-ai-hint={photo.tags?.join(' ')}
-          />
+          <Image src={photo.imageUrl} alt="Analiz" fill className="object-contain" unoptimized />
         </div>
-        <div className="md:w-2/3 w-full overflow-y-auto flex flex-col">
-          <div className="p-6 space-y-6 flex-grow">
-             <DialogHeader>
-              <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
+        <div className="md:w-2/3 w-full overflow-y-auto flex flex-col p-6 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">YZ Geri Bildirimi</DialogTitle>
             </DialogHeader>
-            
-            {photo.tags && photo.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {photo.tags.map(tag => <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>)}
-              </div>
-            )}
-
             {photo.aiFeedback ? (
               <>
-                {photo.aiFeedback.rating && <RatingDisplay rating={photo.aiFeedback.rating} />}
-                
-                <div>
-                  <h4 className="font-semibold text-lg mb-2">Analiz</h4>
-                  <DialogDescription>{photo.aiFeedback.analysis}</DialogDescription>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-lg mb-2">İyileştirme İpuçları</h4>
-                  <ul className="space-y-4">
-                    {photo.aiFeedback.improvements.map((tip, index) => {
-                      const Icon = improvements[index % improvements.length].icon;
-                      const color = improvements[index % improvements.length].color;
-                      return (
-                         <li key={index} className="flex items-start gap-3">
-                          <Icon className={cn("h-5 w-5 mt-0.5 flex-shrink-0", color)} />
-                          <span className="text-sm text-muted-foreground">{tip}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
+                <RatingDisplay rating={photo.aiFeedback.rating} />
+                <DialogDescription>{photo.aiFeedback.analysis}</DialogDescription>
+                <ul className="space-y-4">
+                  {photo.aiFeedback.improvements.map((tip, i) => (
+                    <li key={i} className="flex gap-3 text-sm text-muted-foreground">
+                      <Lightbulb className="h-5 w-5 text-amber-400 shrink-0" /> {tip}
+                    </li>
+                  ))}
+                </ul>
               </>
             ) : (
-              <div className="p-6 space-y-6 text-center">
-                <h4 className="font-semibold text-lg">Analiz Bekliyor</h4>
-                <p className="text-muted-foreground">Bu fotoğraf henüz Viewora YZ Koçu tarafından analiz edilmedi.</p>
-                <Button size="lg" onClick={handleAnalyzeNow} disabled={isLoading || !userProfile}>
-                    {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-                    Skoru Öğren (2 Auro)
-                </Button>
+              <div className="text-center py-10 space-y-4">
+                <p>Bu fotoğraf henüz analiz edilmedi.</p>
+                <Button onClick={handleAnalyzeNow} disabled={isLoading}>Skoru Öğren (2 Auro)</Button>
               </div>
             )}
-          </div>
-
-          <div className="p-6 border-t space-y-3">
+          <div className="pt-6 border-t space-y-3">
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
-                    <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
-                         {isProcessing && dialogAction !== 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Undo2 className="mr-2 h-4 w-4" />}
-                        Sergiden Çek
-                    </Button>
+                    <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>Sergiden Çek</Button>
                 ) : (
-                    <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading || !userProfile}>
-                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />}
-                        Sergiye Gönder (5 Auro)
-                    </Button>
+                    <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading}>Sergiye Gönder (5 Auro)</Button>
                 )
              )}
-             <Separator />
-              <Button type="button" variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setDialogAction('delete')} disabled={isLoading}>
-                  {isProcessing && dialogAction === 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                  Fotoğrafı Kalıcı Olarak Sil
-              </Button>
+             <Button type="button" variant="outline" className="w-full text-destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>Kalıcı Olarak Sil</Button>
           </div>
         </div>
       </DialogContent>
@@ -390,23 +269,15 @@ const handleDeletePhoto = async () => {
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    {dialogAction === 'withdraw' && 'Bu fotoğraf sergiden kaldırılacaktır. Daha sonra tekrar gönderebilirsiniz.'}
-                    {dialogAction === 'delete' && 'Bu işlem geri alınamaz. Fotoğraf hem özel galerinizden hem de (varsa) sergiden kalıcı olarak silinecektir.'}
-                </AlertDialogDescription>
+                <AlertDialogDescription>Bu işlem geri alınamaz.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setDialogAction(null)} disabled={isProcessing}>İptal</AlertDialogCancel>
                 <AlertDialogAction 
                   disabled={isProcessing}
-                  className={cn(dialogAction === 'delete' && buttonVariants({ variant: "destructive" }))}
-                  onClick={() => {
-                    if (dialogAction === 'withdraw') handleWithdrawFromPublic();
-                    if (dialogAction === 'delete') handleDeletePhoto();
-                }}>
-                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (
-                      dialogAction === 'withdraw' ? 'Evet, Sergiden Çek' : 'Evet, Kalıcı Olarak Sil'
-                    )}
+                  className={cn(dialogAction === 'delete' && "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+                  onClick={() => dialogAction === 'withdraw' ? handleWithdrawFromPublic() : handleDeletePhoto()}>
+                    {isProcessing ? <Loader2 className="animate-spin" /> : 'Evet, Devam Et'}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
@@ -415,48 +286,58 @@ const handleDeletePhoto = async () => {
   );
 }
 
-function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (photo: Photo) => void }) {
+function GallerySkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} className="aspect-square">
+          <Skeleton className="w-full h-full rounded-lg" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (photo: Photo) => void }) {
+  if (photos.length === 0) {
+    return (
+      <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
+        <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
+        <h3 className="text-2xl font-semibold">Galerinizde Henüz Fotoğraf Yok</h3>
+        <p className="text-muted-foreground mt-2">Yapay zeka koçu ile ilk analizinizi yaparak galeriyi doldurun!</p>
+        <Button asChild className="mt-6">
+          <Link href="/dashboard">Analiz Başlat</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {photos.map((photo) => (
-        <Card
-          key={photo.id}
-          className="overflow-hidden cursor-pointer group rounded-md"
+        <Card 
+          key={photo.id} 
+          className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" 
           onClick={() => onPhotoClick(photo)}
         >
-          <CardContent className="p-0">
-            <div className="relative w-full aspect-square min-w-[125px]">
-              <Image
-                src={photo.imageUrl}
-                alt={`Kullanıcı fotoğrafı ${photo.id}`}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, (max-width: 1024px) 16.6vw, 12.5vw"
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                data-ai-hint={photo.tags?.join(' ')}
-              />
-               {photo.aiFeedback?.rating ? (
-                <div className="absolute top-1 right-1 flex items-center gap-1 bg-black/50 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                  <Star className="h-3 w-3 text-yellow-400" />
-                  <span>{photo.aiFeedback.rating.overall.toFixed(1)}</span>
-                </div>
-               ) : (
-                 photo.isSubmittedToPublic ? (
-                     <Badge variant="default" className="absolute top-1 left-1 bg-green-600 hover:bg-green-700 text-white border-transparent">
-                        <Rocket className="mr-1 h-3 w-3" />
-                        Sergide
-                     </Badge>
-                 ) : (
-                     <Badge variant="secondary" className="absolute top-1 left-1">
-                        <Clock className="mr-1 h-3 w-3" />
-                        Bekliyor
-                     </Badge>
-                 )
-               )}
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <span className="text-white text-xs font-semibold text-center p-1">Detayları Gör</span>
-              </div>
+          <Image src={photo.imageUrl} alt="Kullanıcı fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
+            {photo.aiFeedback ? (
+              <>
+                <Star className="h-6 w-6 text-yellow-400 mb-1" />
+                <span className="text-white text-xs font-bold">{photo.aiFeedback.rating.overall.toFixed(1)} / 10</span>
+              </>
+            ) : (
+              <Clock className="h-6 w-6 text-white/80" />
+            )}
+          </div>
+          {photo.isSubmittedToPublic && (
+            <div className="absolute top-2 right-2">
+              <Badge variant="secondary" className="bg-purple-600 text-white border-transparent p-1">
+                <Rocket className="h-3 w-3" />
+              </Badge>
             </div>
-          </CardContent>
+          )}
         </Card>
       ))}
     </div>
@@ -464,165 +345,27 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
 }
 
 
-function GallerySkeleton() {
-    return (
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-            {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className="aspect-square min-w-[125px]">
-                    <Skeleton className="w-full h-full" />
-                </div>
-            ))}
-        </div>
-    );
-}
-
-
 export default function GalleryPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [activeFilter, setActiveFilter] = useState('Tümü');
-
+  
   const photosQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'));
   }, [user, firestore]);
   
   const { data: userPhotos, isLoading } = useCollection<Photo>(photosQuery);
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
-
-
-  const openDialog = (photo: Photo) => {
-    setSelectedPhoto(photo);
-  };
-
-  const closeDialog = () => {
-    setSelectedPhoto(null);
-  };
-
-  const photos = userPhotos || [];
-  
-  const allTags = useMemo(() => {
-    if (!photos) return [];
-    const tagsSet = new Set<string>();
-    let hasSubmittedPhotos = false;
-    photos.forEach(photo => {
-        photo.tags?.forEach(tag => tagsSet.add(tag.trim()));
-        if (photo.isSubmittedToPublic) {
-            hasSubmittedPhotos = true;
-        }
-    });
-    const uniqueTags = Array.from(tagsSet).filter(Boolean);
-    const filters = ['Tümü'];
-    if (hasSubmittedPhotos) {
-        filters.push('Sergidekiler');
-    }
-    filters.push(...uniqueTags);
-    // Don't show filter bar if there are no useful filters
-    if (filters.length <= 2 && !uniqueTags.length) return []; 
-    return filters;
-  }, [photos]);
-
-  const sortedByRating = useMemo(() => {
-    return [...photos].sort((a, b) => {
-        const ratingA = a.aiFeedback?.rating.overall ?? 0;
-        const ratingB = b.aiFeedback?.rating.overall ?? 0;
-        if (ratingB !== ratingA) {
-          return ratingB - ratingA;
-        }
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [photos]);
-  
-  const sortedByDate = photos; // Already sorted by query
-
-  const filterLogic = (p: Photo) => {
-    if (activeFilter === 'Tümü') return true;
-    if (activeFilter === 'Sergidekiler') return p.isSubmittedToPublic;
-    return p.tags?.includes(activeFilter);
-  }
-
-  const filteredByRating = useMemo(() => {
-    return sortedByRating.filter(filterLogic);
-  }, [activeFilter, sortedByRating]);
-
-  const filteredByDate = useMemo(() => {
-    return sortedByDate.filter(filterLogic);
-  }, [activeFilter, sortedByDate]);
-
 
   return (
     <div className="container mx-auto">
-      {photos.length === 0 && !isLoading && (
-        <div className="text-center py-20">
-          <h3 className="text-xl font-semibold">Henüz hiç fotoğraf analiz etmediniz.</h3>
-          <p className="text-muted-foreground mt-2">YZ Koçu'nu kullanarak ilk fotoğrafınızı analiz edin ve buraya eklensin!</p>
-        </div>
-      )}
-
-      {(photos.length > 0 || isLoading) && (
-        <>
-            {allTags.length > 0 && !isLoading && (
-                <div className="mb-6">
-                    <Carousel
-                      opts={{
-                        align: "start",
-                        dragFree: true,
-                      }}
-                      className="w-full"
-                    >
-                      <CarouselContent className="-ml-2">
-                        {allTags.map((tag) => (
-                          <CarouselItem key={tag} className="pl-2 basis-auto">
-                            <Button
-                                variant={activeFilter === tag ? 'default' : 'secondary'}
-                                size="sm"
-                                onClick={() => setActiveFilter(tag)}
-                                className="rounded-full capitalize h-8 px-4"
-                            >
-                                {tag === 'Sergidekiler' && <Rocket className="mr-2 h-4 w-4" />}
-                                {tag}
-                            </Button>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                    </Carousel>
-                </div>
-            )}
-
-            <Tabs defaultValue="top-rated" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-                <TabsTrigger value="top-rated">Puana Göre</TabsTrigger>
-                <TabsTrigger value="newest">Tarihe Göre</TabsTrigger>
-            </TabsList>
-            {isLoading ? (
-                <div className="mt-6">
-                    <GallerySkeleton />
-                </div>
-            ) : (
-                <>
-                <TabsContent value="top-rated" className="mt-6">
-                    <PhotoGrid photos={filteredByRating} onPhotoClick={openDialog} />
-                </TabsContent>
-                <TabsContent value="newest" className="mt-6">
-                    <PhotoGrid photos={filteredByDate} onPhotoClick={openDialog} />
-                </TabsContent>
-                </>
-            )}
-            </Tabs>
-        </>
-      )}
-
+      {isLoading ? <GallerySkeleton /> : <PhotoGrid photos={userPhotos || []} onPhotoClick={setSelectedPhoto} />}
       <PhotoDetailDialog 
         photo={selectedPhoto} 
         isOpen={!!selectedPhoto}
-        onOpenChange={(open) => !open && closeDialog()}
+        onOpenChange={(open) => !open && setSelectedPhoto(null)}
         userProfile={userProfile}
         userDocRef={userDocRef}
       />
