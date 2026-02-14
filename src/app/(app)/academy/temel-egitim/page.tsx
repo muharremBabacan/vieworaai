@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import type { User as UserProfile, Lesson as AcademyLesson } from '@/types';
 import {
   Accordion,
@@ -160,14 +160,15 @@ export default function BasicTrainingPage() {
 
   const lessonsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
-        collection(firestore, 'academyLessons'), 
-        where('category', 'in', mainCategories),
-        orderBy('createdAt', 'desc')
-    );
+    return query(collection(firestore, 'academyLessons'), orderBy('createdAt', 'desc'));
   }, [firestore]);
   
-  const { data: lessons, isLoading } = useCollection<AcademyLesson>(lessonsQuery);
+  const { data: allLessons, isLoading } = useCollection<AcademyLesson>(lessonsQuery);
+
+  const lessons = useMemo(() => {
+    return allLessons?.filter(lesson => mainCategories.includes(lesson.category)) ?? [];
+  }, [allLessons]);
+
 
   const handleLearn = (lessonId: string, xpToAdd: number, auroToAdd: number) => {
     if (!userProfile || !userDocRef) return;
