@@ -369,16 +369,15 @@ export default function PhotoAnalyzer() {
                 alt="Preview" 
                 fill 
                 sizes="(max-width: 768px) 100vw, 50vw" 
-                className={cn("object-contain transition-all", (isPending || isUploading) && "opacity-50 blur-sm")}
+                className={cn("object-contain transition-all", (isPending || isUploading) && "opacity-50")}
               />
               
               {(isPending || isUploading) && (
-                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center">
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center backdrop-blur-sm">
                     <Loader2 className="h-8 w-8 animate-spin" />
                     <p className="mt-3 font-semibold text-lg">
-                        {isPending ? 'Analiz Ediliyor...' : 'Fotoğraf Yükleniyor...'}
+                        {isPending ? 'Analiz ediliyor...' : 'Fotoğraf yükleniyor...'}
                     </p>
-                    <p className="text-sm text-white/80 mt-1">Bu işlem biraz zaman alabilir, lütfen bekleyin.</p>
                 </div>
               )}
               
