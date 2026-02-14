@@ -53,7 +53,7 @@ export default function OnboardingPage() {
         title: 'Hata',
         description: 'Kullanıcı bulunamadı. Lütfen tekrar giriş yapın.',
       });
-      router.push('/login');
+      router.push('/');
       return;
     }
     if (selectedInterests.length === 0) {

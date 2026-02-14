@@ -37,7 +37,7 @@ export function UserNav() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      router.push('/login');
+      router.push('/');
     } catch (error) {
       console.error('Sign out failed', error);
     }
@@ -49,7 +49,7 @@ export function UserNav() {
   
   if (!authUser || !userProfile) {
     return (
-      <Button variant="outline" onClick={() => router.push('/login')}>
+      <Button variant="outline" onClick={() => router.push('/')}>
         Giriş Yap
       </Button>
     )
