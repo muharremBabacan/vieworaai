@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import type { Lesson as AcademyLesson } from '@/types';
 import {
@@ -56,12 +56,12 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
-        <div className="md:w-1/3 w-full relative aspect-[4/3] md:aspect-auto">
+        <div className="md:w-2/5 w-full relative aspect-video md:aspect-auto">
            <Image
             src={lesson.imageUrl}
             alt={lesson.title}
             fill
-            sizes="(max-width: 768px) 100vw, 33vw"
+            sizes="(max-width: 768px) 100vw, 40vw"
             className="object-cover md:rounded-l-lg"
             data-ai-hint={lesson.imageHint}
           />
@@ -69,7 +69,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
             <Badge variant="secondary">{lesson.category}</Badge>
           </div>
         </div>
-        <div className="md:w-2/3 w-full overflow-y-auto flex flex-col">
+        <div className="md:w-3/5 w-full overflow-y-auto flex flex-col">
             <div className='p-6 flex flex-col h-full'>
               <DialogHeader className="mb-4">
                 <DialogTitle className="font-sans text-2xl">{lesson.title}</DialogTitle>
@@ -168,16 +168,24 @@ export default function LevelPage() {
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
+  // Fetch all academy lessons without server-side filtering/sorting to avoid needing a composite index.
   const lessonsQuery = useMemoFirebase(() => {
-    if (!firestore || !levelName) return null;
-    return query(
-        collection(firestore, 'academyLessons'), 
-        where('level', '==', levelName),
-        orderBy('createdAt', 'desc')
-    );
-  }, [firestore, levelName]);
+    if (!firestore) return null;
+    return collection(firestore, 'academyLessons');
+  }, [firestore]);
   
-  const { data: lessons, isLoading } = useCollection<AcademyLesson>(lessonsQuery);
+  const { data: allLessons, isLoading } = useCollection<AcademyLesson>(lessonsQuery);
+
+  // Filter and sort lessons on the client-side
+  const lessons = useMemo(() => {
+    if (!allLessons || !levelName) return [];
+    
+    const filtered = allLessons.filter(lesson => lesson.level === levelName);
+    
+    // Sort by creation date, most recent first
+    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [allLessons, levelName]);
+
 
   const handleLearn = (lessonId: string, xpToAdd: number, auroToAdd: number) => {
     if (!userProfile || !userDocRef) return;
