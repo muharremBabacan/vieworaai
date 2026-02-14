@@ -9,5 +9,6 @@ export const ai = genkit({
     }),
   ],
   // Her zaman en güncel ve kararlı modeli kullanmak için 'latest' etiketini ekliyoruz.
+  // Genkit'in modeli tanıması için 'googleai/' öneki gereklidir.
   model: 'googleai/gemini-1.5-flash-latest', 
 });
