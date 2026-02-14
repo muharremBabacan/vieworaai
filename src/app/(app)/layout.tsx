@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   GalleryVertical,
   GraduationCap,
@@ -122,13 +123,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const navItem = navItems.find(item => pathname.startsWith(item.href));
     return navItem?.label ?? 'Viewora';
   };
+
+  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/public%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc";
   
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-card/70 px-4 backdrop-blur-sm sm:px-6">
           <div className="flex items-center gap-4">
-              <Link href="/academy">
-                <Logo variant="header" />
+              <Link href="/academy" className="flex items-center gap-2">
+                <div className="relative h-8 w-8">
+                  <Image
+                    src={logoUrl}
+                    alt="Viewora Logo"
+                    fill
+                    className="object-contain"
+                    priority
+                    unoptimized={true}
+                  />
+                </div>
+                <span className="font-sans text-xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
+                  Viewora
+                </span>
               </Link>
           </div>
           <div className="flex items-center gap-4">
