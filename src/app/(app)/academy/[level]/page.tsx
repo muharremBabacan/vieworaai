@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, type ChangeEvent, type DragEvent } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, useCollection } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { evaluatePracticeSubmission, type EvaluatePracticeSubmissionOutput } from '@/ai/flows/evaluate-practice-submission';
 import type { User as UserProfile } from '@/types';
 import type { Lesson as AcademyLesson } from '@/types';
 import {
@@ -22,10 +24,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, BookOpen, Camera, Info, Target, FileText, Bot, AlertTriangle } from 'lucide-react';
+import { Check, BookOpen, Camera, Info, Target, FileText, Bot, AlertTriangle, UploadCloud, X, Loader2, Zap, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
+import { cn } from '@/lib/utils';
+
 
 // Helper to map URL slugs to Firestore level names and titles
 const levelSlugMap: Record<string, { name: 'Temel' | 'Orta' | 'İleri'; title: string }> = {
@@ -39,6 +43,172 @@ const levelCategoryMap: Record<string, string[]> = {
   'Orta': ["Tür Bazlı Çekim Teknikleri", "İleri Pozlama Teknikleri", "Işık Yönetimi", "Görsel Hikâye Anlatımı", "Post-Prodüksiyon Temelleri"],
   'İleri': ["Uzmanlık Alanı Derinleşme", "Profesyonel Işık Kurulumu", "Gelişmiş Teknikler", "Sanatsal Kimlik ve Stil", "Ticari ve Marka Konumlandırma"],
 };
+
+function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<EvaluatePracticeSubmissionOutput | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const { user: authUser } = useUser();
+
+  const handleFileChange = (selectedFile: File | null) => {
+    if (selectedFile && selectedFile.type.startsWith('image/')) {
+      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+         toast({
+          variant: 'destructive',
+          title: 'Dosya Boyutu Çok Büyük',
+          description: 'Lütfen 10MB\'dan küçük bir resim dosyası yükleyin.',
+        });
+        return;
+      }
+      setFile(selectedFile);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(selectedFile);
+      setResult(null); // Clear previous result
+    }
+  };
+
+  const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    handleFileChange(e.target.files?.[0] ?? null);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+    handleFileChange(e.dataTransfer.files?.[0] ?? null);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation(); setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+  };
+
+  const handleAnalyze = async () => {
+    if (!file || !authUser) {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen önce bir fotoğraf seçin.' });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    toast({ title: 'Analiz Başlatılıyor...', description: 'Ödevinize özel geri bildirim hazırlanıyor.' });
+
+    const storage = getStorage();
+    const filePath = `users/${authUser.uid}/practice-submissions/${Date.now()}-${file.name}`;
+    const imageRef = storageRef(storage, filePath);
+    
+    let downloadURL;
+    try {
+      await uploadBytes(imageRef, file);
+      downloadURL = await getDownloadURL(imageRef);
+    } catch (storageError) {
+      console.error("Storage upload failed:", storageError);
+      toast({
+        variant: 'destructive',
+        title: 'Yükleme Başarısız',
+        description: 'Fotoğrafınız depolanamadı. Lütfen tekrar deneyin.',
+      });
+      setIsAnalyzing(false);
+      return;
+    }
+
+    try {
+      const analysisResult = await evaluatePracticeSubmission({
+        photoUrl: downloadURL,
+        practiceTask: lesson.practiceTask,
+        analysisCriteria: lesson.analysisCriteria,
+      });
+      setResult(analysisResult);
+      toast({ title: 'Geri Bildirim Hazır!', description: 'Aşağıdan sonucu görebilirsiniz.' });
+    } catch (error) {
+      console.error('Practice analysis failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Analiz Başarısız',
+        description: 'Yapay zeka geri bildirimi oluştururken bir hata oluştu.',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleClear = () => {
+    setPreview(null);
+    setFile(null);
+    setResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  return (
+    <div className="mt-4 space-y-4 rounded-lg border bg-background/50 p-4">
+      <h4 className="font-semibold text-card-foreground">Pratiğini Göster</h4>
+      <p className="text-sm text-muted-foreground -mt-3">Bu ödev için çektiğin fotoğrafı yükle ve anında geri bildirim al.</p>
+      
+      {result ? (
+        <Card className={cn("border-2", result.isSuccess ? "border-green-500" : "border-amber-500")}>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              {result.isSuccess ? <CheckCircle className="h-6 w-6 text-green-500"/> : <XCircle className="h-6 w-6 text-amber-500"/>}
+              <p className="font-semibold text-lg">Puan: {result.score}/10</p>
+            </div>
+            <p className="text-sm text-muted-foreground">{result.feedback}</p>
+            <Button onClick={handleClear} variant="outline" size="sm" className="w-full">Yeni Fotoğraf Yükle</Button>
+          </CardContent>
+        </Card>
+      ) : preview ? (
+        <Card className="overflow-hidden">
+          <div className="relative aspect-video">
+            <Image src={preview} alt="Preview" fill sizes="33vw" className="object-contain" />
+            <Button
+              variant="destructive" size="icon"
+              className="absolute top-2 right-2 h-7 w-7 rounded-full"
+              onClick={handleClear} disabled={isAnalyzing}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-4">
+             <Button onClick={handleAnalyze} disabled={isAnalyzing} className="w-full">
+              {isAnalyzing ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Değerlendiriliyor...</>
+              ) : (
+                <><Zap className="mr-2 h-4 w-4" /> Geri Bildirim Al</>
+              )}
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <div
+          className={cn(
+            'relative w-full h-40 rounded-md border-2 border-dashed border-muted-foreground/50 transition-colors duration-200 flex flex-col justify-center items-center text-center cursor-pointer hover:border-primary hover:bg-accent',
+            isDragging && 'border-primary bg-accent'
+          )}
+          onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
+          <div className="space-y-2">
+            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-primary">Yüklemek için tıklayın</span>
+            </p>
+            <p className="text-xs text-muted-foreground">veya sürükleyip bırakın</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
   if (!lesson) return null;
@@ -55,7 +225,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
     { value: 'objective', trigger: 'Öğrenim Hedefi', content: lesson.learningObjective, icon: Target },
     { value: 'theory', trigger: 'Teori', content: lesson.theory, icon: FileText },
     { value: 'criteria', trigger: 'Başarı Kriterleri', content: <ul className="list-disc space-y-2 pl-5">{lesson.analysisCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul>, icon: Info },
-    { value: 'task', trigger: 'Pratik Görevi', content: lesson.practiceTask, icon: Camera },
+    { value: 'task', trigger: 'Pratik Görevi', content: <><p>{lesson.practiceTask}</p><PracticeSubmission lesson={lesson}/></>, icon: Camera },
     { value: 'auro', trigger: 'Auro Notu', content: lesson.auroNote, icon: Bot },
   ];
 
@@ -172,7 +342,7 @@ export default function LevelPage() {
   const levelSlug = Array.isArray(params.level) ? params.level[0] : params.level;
   
   if (levelSlug === 'temel-egitim') {
-    router.replace('/academy/temel-egitim');
+    router.replace('/academy/temel');
     return null;
   }
   
@@ -216,7 +386,8 @@ export default function LevelPage() {
 
   const handleLearn = (lessonId: string, xpToAdd: number, auroToAdd: number) => {
     if (!userProfile || !userDocRef) return;
-    if (userProfile.completed_modules?.includes(lessonId)) return;
+    const completedModules = userProfile.completed_modules || [];
+    if (completedModules.includes(lessonId)) return;
 
     const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
     const currentAuro = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
@@ -229,7 +400,7 @@ export default function LevelPage() {
     const updatePayload: Partial<UserProfile> = {
       current_xp: newXp,
       auro_balance: newAuro,
-      completed_modules: [...(userProfile.completed_modules || []), lessonId],
+      completed_modules: [...completedModules, lessonId],
     };
 
     if (newLevel.name !== currentLevel.name) {
