@@ -17,7 +17,7 @@ import {z} from 'genkit';
 // Schema for a single generated lesson, based on the user's provided curriculum.
 // This ensures the AI's output is structured and type-safe.
 const GeneratedLessonSchema = z.object({
-  level: z.string().describe("The level of the lesson. Must be one of: 'Temel', 'Orta', 'İleri'."),
+  level: z.enum(['Temel', 'Orta', 'İleri']).describe("The level of the lesson. Must be one of: 'Temel', 'Orta', 'İleri'."),
   category: z.string().describe("The specific category from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı', 'Profesyonel Işık Kurulumu')."),
   title: z.string().describe('The title of the lesson, corresponding to a sub-point in the curriculum.'),
   learningObjective: z.string().describe("What skill the user will gain from this specific lesson."),

@@ -29,7 +29,7 @@ export type Photo = {
 
 export type Lesson = {
   id: string;
-  level: string;
+  level: 'Temel' | 'Orta' | 'İleri'; // New curriculum levels
   category: string;
   title: string;
   learningObjective: string;

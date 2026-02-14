@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, useCollection } from '@/firebase';
 import { doc, collection, query, where, orderBy } from 'firebase/firestore';
-import type { User as UserProfile, Lesson as AcademyLesson } from '@/types';
+import type { User as UserProfile } from '@/types';
+import type { Lesson as AcademyLesson } from '@/types';
 import {
   Accordion,
   AccordionContent,
@@ -27,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
 
 // Helper to map URL slugs to Firestore level names and titles
-const levelSlugMap: Record<string, { name: string; title: string }> = {
+const levelSlugMap: Record<string, { name: 'Temel' | 'Orta' | 'İleri'; title: string }> = {
     'temel': { name: 'Temel', title: 'Temel Seviye Dersleri' },
     'orta': { name: 'Orta', title: 'Orta Seviye Dersleri' },
     'ileri': { name: 'İleri', title: 'İleri Seviye Dersleri' }
