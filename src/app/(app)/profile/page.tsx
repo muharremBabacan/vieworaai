@@ -74,32 +74,57 @@ function AdminTools() {
 
                 let availableImages = imagePlaceholders.filter(p => !usedImageUrls.has(p.imageUrl));
                 
+                // If we've used all images in this batch, allow reuse.
                 if (availableImages.length === 0) {
-                    availableImages = imagePlaceholders;
-                    usedImageUrls.clear(); // Allow reuse if all images have been used
+                    availableImages = [...imagePlaceholders]; 
+                    usedImageUrls.clear();
                 }
 
+                // 1. Primary Match: Find an image whose hint contains any of the lesson's hint words.
                 bestMatch = availableImages.find(p => 
                     lessonHintWords.some(word => p.imageHint.toLowerCase().includes(word))
                 );
 
+                // 2. Secondary Match: If no primary match, find one based on category keywords (map Turkish to English).
                 if (!bestMatch) {
-                     bestMatch = availableImages.find(p => p.imageHint.toLowerCase().includes(lesson.category.toLowerCase()));
+                     const categoryKeywords: Record<string, string[]> = {
+                        'fotoğrafçılığa giriş': ['camera', 'lens', 'mode'],
+                        'pozlama temelleri': ['aperture', 'shutter', 'iso', 'exposure'],
+                        'netlik ve odaklama': ['focus', 'depth', 'field'],
+                        'temel kompozisyon': ['composition', 'rule', 'thirds', 'lines'],
+                        'işık bilgisi': ['light', 'golden', 'hour', 'shadow'],
+                        'tür bazlı çekim teknikleri': ['portrait', 'landscape', 'street', 'night'],
+                        'ileri pozlama teknikleri': ['exposure', 'hdr', 'pan'],
+                        'işık yönetimi': ['light', 'silhouette', 'flash'],
+                        'görsel hikâye anlatımı': ['storytelling', 'composition', 'emotion'],
+                        'post-prodüksiyon temelleri': ['editing', 'color', 'contrast'],
+                        'uzmanlık alanı derinleşme': ['sports', 'fashion', 'drone', 'macro'],
+                        'profesyonel işık kurulumu': ['studio', 'lighting', 'softbox'],
+                        'gelişmiş teknikler': ['stacking', 'painting', 'speed'],
+                        'sanatsal kimlik ve stil': ['style', 'color', 'palette', 'minimal'],
+                        'ticari ve marka konumlandırma': ['portfolio', 'business', 'client']
+                     };
+                     const searchWords = categoryKeywords[lesson.category.toLowerCase()] || [];
+                     bestMatch = availableImages.find(p => 
+                        searchWords.some(word => p.imageHint.toLowerCase().includes(word))
+                     );
                 }
 
+                // 3. Fallback: If still no match, pick a pseudo-random image from available ones to ensure variety.
                 if (!bestMatch) {
-                    bestMatch = availableImages[Math.floor(Math.random() * availableImages.length)];
+                    const hash = lesson.title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    const index = hash % availableImages.length;
+                    bestMatch = availableImages[index];
                 }
                 
-                const imageUrl = bestMatch?.imageUrl ?? `https://picsum.photos/seed/${lesson.title}/600/400`;
-                if(bestMatch?.imageUrl) {
-                    usedImageUrls.add(imageUrl);
-                }
+                // At this point, bestMatch should always be defined if availableImages is not empty.
+                const imageUrl = bestMatch.imageUrl;
+                usedImageUrls.add(imageUrl);
                 
                 const lessonData = {
                     ...lesson,
                     imageUrl: imageUrl,
-                    imageHint: bestMatch?.imageHint ?? lesson.imageHint,
+                    imageHint: bestMatch.imageHint, // Use the hint from the selected image for consistency
                     createdAt: new Date().toISOString(),
                 };
                 addDocumentNonBlocking(lessonCollectionRef, lessonData);

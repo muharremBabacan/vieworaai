@@ -101,5 +101,65 @@ export const PlaceHolderImages: ImagePlaceholder[] = [
       "description": "Avatar for the sample user.",
       "imageUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBmYWNlfGVufDB8fHx8MTc3MDY1MTEzMXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "person face"
+    },
+    {
+      "id": "academy-camera-modes",
+      "description": "A camera's mode dial showing P, A, S, M modes.",
+      "imageUrl": "https://images.unsplash.com/photo-1516253593875-bd7ba0421f75?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBtb2RlJTIwZGlhbHxlbnwwfHx8fDE3NzA5ODg0MDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "camera mode dial"
+    },
+    {
+      "id": "academy-aperture",
+      "description": "The aperture blades of a camera lens.",
+      "imageUrl": "https://images.unsplash.com/photo-1599202569522-1b3c9b763c5b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBhcGVydHVyZXxlbnwwfHx8fDE3NzA5ODg0NDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "aperture f-stop"
+    },
+    {
+      "id": "academy-shutter",
+      "description": "A photo showing motion blur from a slow shutter speed.",
+      "imageUrl": "https://images.unsplash.com/photo-1558256247-3ce249a888d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzaHV0dGVyJTIwc3BlZWQlMjBibHVyfGVufDB8fHx8MTc3MDk4ODQ4OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "shutter speed blur"
+    },
+    {
+      "id": "academy-iso",
+      "description": "A grainy photo demonstrating high ISO.",
+      "imageUrl": "https://images.unsplash.com/photo-1595044558519-8b5d41d1f01c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpc28lMjBncmFpbiUyMHBob3RvfGVufDB8fHx8MTc3MDk4ODUxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "iso grain photo"
+    },
+    {
+      "id": "academy-sensor",
+      "description": "A close-up of a digital camera's image sensor.",
+      "imageUrl": "https://images.unsplash.com/photo-1607347369794-3d73a9b3a696?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBzZW5zb3J8ZW58MHx8fHwxNzcwOTg4NTQxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "camera sensor"
+    },
+    {
+      "id": "academy-lens",
+      "description": "A collection of different camera lenses.",
+      "imageUrl": "https://images.unsplash.com/photo-1512756290469-ec264b7fbf87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBsZW5zfGVufDB8fHx8MTc3MDk4ODU2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "camera lens"
+    },
+    {
+      "id": "academy-focus",
+      "description": "A viewfinder showing focus points on a subject.",
+      "imageUrl": "https://images.unsplash.com/photo-1560322339-a636e7a2a7a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBmb2N1cyUyMHBvaW50fGVufDB8fHx8MTc3MDk4ODU4Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "camera focus point"
+    },
+    {
+      "id": "academy-storytelling",
+      "description": "A series of photos that tell a story.",
+      "imageUrl": "https://images.unsplash.com/photo-1522026852445-2b04c86121b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdG9yeXRlbGxpbmclMjBwaG90byUyMHNlcmllc3xlbnwwfHx8fDE3NzA5ODg2MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "storytelling photo series"
+    },
+    {
+      "id": "academy-post-production",
+      "description": "A person editing a photo on a computer.",
+      "imageUrl": "https://images.unsplash.com/photo-1562975435-8c76f6fb0c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwaG90byUyMGVkaXRpbmclMjBzb2Z0d2FyZXxlbnwwfHx8fDE3NzA5ODg2MzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "photo editing software"
+    },
+    {
+      "id": "academy-studio-light",
+      "description": "A professional photo studio lighting setup.",
+      "imageUrl": "https://images.unsplash.com/photo-1611606013533-b45a49443b35?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdHVkaW8lMjBsaWdodGluZyUyMHNldHVwfGVufDB8fHx8MTc3MDk4ODY1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "studio lighting setup"
     }
   ];
