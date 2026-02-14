@@ -261,7 +261,35 @@ export default function PhotoAnalyzer() {
           return;
       }
 
-      // 2. Analyze with AI
+      // 2. Create initial Firestore document to prevent orphaned files
+      const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
+      let photoDocRef;
+      try {
+        const photoData = {
+            userId: authUser.uid,
+            imageUrl: downloadURL,
+            filePath: filePath,
+            tags: [], 
+            aiFeedback: null,
+            createdAt: new Date().toISOString(),
+            isSubmittedToPublic: false,
+        };
+        photoDocRef = await addDocumentNonBlocking(photosCollectionRef, photoData);
+        if (!photoDocRef) {
+          throw new Error("Failed to create photo document reference.");
+        }
+      } catch (dbError) {
+        console.error("Firestore document creation failed:", dbError);
+        toast({
+          variant: 'destructive',
+          title: 'Kayıt Başarısız',
+          description: 'Fotoğrafınız veritabanına kaydedilemedi. Lütfen tekrar deneyin.',
+        });
+        return;
+      }
+
+
+      // 3. Analyze with AI
       let analysisResult: AnalyzePhotoAndSuggestImprovementsOutput;
       try {
         analysisResult = await analyzePhotoAndSuggestImprovements({
@@ -275,26 +303,13 @@ export default function PhotoAnalyzer() {
         toast({
           variant: 'destructive',
           title: 'Analiz Başarısız',
-          description: 'YZ analizi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
+          description: 'YZ analizi başarısız oldu. Fotoğraf galerine eklendi, oradan tekrar deneyebilirsin.',
         });
-        return;
+        return; // Stop here, photo is already in gallery without analysis
       }
       setResult(analysisResult);
 
-      // 3. Save Photo to Firestore with Storage URL
-      const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
-      const photoData = {
-          userId: authUser.uid,
-          imageUrl: downloadURL,
-          filePath: filePath,
-          tags: analysisResult.tags || [], 
-          aiFeedback: analysisResult,
-          createdAt: new Date().toISOString(),
-          isSubmittedToPublic: false,
-      };
-      addDocumentNonBlocking(photosCollectionRef, photoData);
-      
-      // 4. Gamification Logic
+      // 4. Update photo with AI results and handle Gamification
       const xpFromAnalysis = 15;
       const bonusXp = analysisResult.rating.overall >= 8.0 ? 50 : 0;
       const totalXpGained = xpFromAnalysis + bonusXp;
@@ -315,8 +330,15 @@ export default function PhotoAnalyzer() {
         }
       }
 
+      // Update the user profile and the photo document simultaneously.
       updateDocumentNonBlocking(userDocRef, updatePayload);
+      updateDocumentNonBlocking(photoDocRef, {
+        aiFeedback: analysisResult,
+        tags: analysisResult.tags || [],
+      });
+      
 
+      // 5. Gamification Toasts
       toast({
         title: 'XP Kazandın!',
         description: `Analiz için ${xpFromAnalysis} XP kazandın.`,
@@ -378,6 +400,7 @@ export default function PhotoAnalyzer() {
                     <p className="mt-3 font-semibold text-lg">
                         {isPending ? 'Analiz ediliyor...' : 'Fotoğraf yükleniyor...'}
                     </p>
+                    {isPending && <p className="text-sm mt-1">Bu işlem biraz zaman alabilir, lütfen bekleyin.</p>}
                 </div>
               )}
               
