@@ -55,12 +55,12 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
-        <div className="md:w-2/5 w-full relative aspect-[4/3] md:aspect-auto">
+        <div className="md:w-1/3 w-full relative aspect-[4/3] md:aspect-auto">
            <Image
             src={lesson.imageUrl}
             alt={lesson.title}
             fill
-            sizes="(max-width: 768px) 100vw, 40vw"
+            sizes="(max-width: 768px) 100vw, 33vw"
             className="object-cover md:rounded-l-lg"
             data-ai-hint={lesson.imageHint}
           />
@@ -68,7 +68,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
             <Badge variant="secondary">{lesson.category}</Badge>
           </div>
         </div>
-        <div className="md:w-3/5 w-full overflow-y-auto flex flex-col">
+        <div className="md:w-2/3 w-full overflow-y-auto flex flex-col">
             <div className='p-6 flex flex-col h-full'>
               <DialogHeader className="mb-4">
                 <DialogTitle className="font-sans text-2xl">{lesson.title}</DialogTitle>
