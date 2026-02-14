@@ -264,7 +264,7 @@ export default function ProfilePage() {
                     </CardContent>
                 </Card>
 
-                {userProfile?.email === 'admin@viewora.ai' && <AdminTools />}
+                {userProfile?.email === 'babacan.muharrem@gmail.com' && <AdminTools />}
             </div>
         </div>
     )
