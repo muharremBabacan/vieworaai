@@ -56,6 +56,16 @@ const levelSlugMap: Record<string, string> = {
     'ileri': 'İleri Seviye',
 };
 
+const pageTitleMap: Record<string, string> = {
+    '/academy': 'Viewora Akademi',
+    '/explore': 'Sergi Salonu',
+    '/dashboard': 'Yapay Zeka Koçu',
+    '/competitions': 'Yarışmalar',
+    '/gallery': 'Fotoğraflarım',
+    '/profile': 'Profilim',
+    '/pricing': 'Auro Paketleri'
+};
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -104,6 +114,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return levelSlugMap[pathSegments[1]];
     }
 
+    const staticTitle = pageTitleMap[pathname];
+    if (staticTitle) {
+        return staticTitle;
+    }
+
     const navItem = navItems.find(item => pathname.startsWith(item.href));
     return navItem?.label ?? 'Viewora';
   };
@@ -113,7 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-card/70 px-4 backdrop-blur-sm sm:px-6">
           <div className="flex items-center gap-4">
               <Link href="/academy">
-                <Logo />
+                <Logo variant="header" />
               </Link>
           </div>
           <div className="flex items-center gap-4">
