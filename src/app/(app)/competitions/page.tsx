@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { competitions } from '@/lib/data';
 import type { Competition } from '@/types';
@@ -10,7 +11,14 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 function CompetitionCard({ competition }: { competition: Competition }) {
-  const isActive = new Date() >= new Date(competition.startDate) && new Date() <= new Date(competition.endDate);
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    const now = new Date();
+    const startDate = new Date(competition.startDate);
+    const endDate = new Date(competition.endDate);
+    setIsActive(now >= startDate && now <= endDate);
+  }, [competition.startDate, competition.endDate]);
 
   return (
     <Card className="flex flex-col overflow-hidden h-full">
