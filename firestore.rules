@@ -53,6 +53,16 @@ service cloud.firestore {
     }
 
     /**
+     * Checks if the user is an admin based on their email.
+     * Used for cross-user data access for reporting.
+     * IMPORTANT: Using email for authorization is not a best practice for production
+     * systems. Custom claims are a more secure alternative. This is for prototyping.
+     */
+    function isAdmin() {
+      return request.auth.token.email == 'babacan.muharrem@gmail.com';
+    }
+
+    /**
      * A robust check for update/delete operations, ensuring the user is the
      * owner AND the document actually exists before the operation.
      */
@@ -185,6 +195,17 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if false;
       allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    
+    /**
+     * @description Allows an admin user to list all transactions across all users for reporting.
+     * @path /users/{userId}/transactions/{transactionId} (via collection group)
+     * @allow (list) An admin user for generating revenue reports.
+     * @deny (list) All other users.
+     * @principle Provides read-only access to a specific role for aggregated data analysis.
+     */
+    match /{path=**}/transactions/{transactionId} {
+      allow list: if isAdmin();
     }
   }
 }

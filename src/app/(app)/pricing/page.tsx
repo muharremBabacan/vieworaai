@@ -60,6 +60,8 @@ export default function PricingPage() {
           type: 'Purchase',
           status: 'Completed',
           transactionDate: new Date().toISOString(),
+          currencyAmount: pkg.price,
+          currency: pkg.currency,
         };
         addDocumentNonBlocking(transactionsCollectionRef, transactionData);
 

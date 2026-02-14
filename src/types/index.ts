@@ -56,10 +56,12 @@ export type Package = {
 export type Transaction = {
     id: string;
     userId: string;
-    amount: number;
+    amount: number; // Auro amount
     type: 'Purchase' | 'Gift' | 'Refill';
     status: 'Completed' | 'Pending' | 'Failed';
     transactionDate: string;
+    currencyAmount?: number; // Price in currency
+    currency?: string; // e.g., 'TRY'
 };
 
 export type Competition = {

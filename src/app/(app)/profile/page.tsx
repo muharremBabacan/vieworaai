@@ -1,10 +1,10 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, useCollection } from '@/firebase';
+import { collection, doc, collectionGroup } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import type { User as UserProfile } from '@/types';
+import type { User as UserProfile, Transaction } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Gem, Coins, History, ChevronRight, Info, FileText, LogOut, Settings as SettingsIcon, ShieldQuestion, Loader2 } from 'lucide-react';
@@ -15,6 +15,88 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateDailyLessons, type GeneratedLesson } from '@/ai/flows/generate-daily-lessons';
 import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
 
+function RevenueReport() {
+    const firestore = useFirestore();
+    const {toast} = useToast();
+
+    const transactionsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        // This is a collection group query that requires a specific security rule.
+        return collectionGroup(firestore, 'transactions');
+    }, [firestore]);
+
+    const { data: transactions, isLoading, error } = useCollection<Transaction>(transactionsQuery);
+
+    useEffect(() => {
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Rapor Hatası',
+                description: 'Gelir raporu verileri çekilirken bir hata oluştu. Bu özellik için yönetici izni gereklidir.'
+            });
+            console.error("Revenue report error:", error);
+        }
+    }, [error, toast]);
+
+    const { totalRevenue, totalAuroSold } = useMemo(() => {
+        if (!transactions) return { totalRevenue: 0, totalAuroSold: 0 };
+
+        return transactions.reduce((acc, trans) => {
+            if (trans.type === 'Purchase' && trans.status === 'Completed') {
+                acc.totalAuroSold += trans.amount || 0;
+                acc.totalRevenue += trans.currencyAmount || 0;
+            }
+            return acc;
+        }, { totalRevenue: 0, totalAuroSold: 0 });
+
+    }, [transactions]);
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                        <Skeleton className="h-6 w-6 rounded-full" />
+                        <Skeleton className="h-6 w-48" />
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <Skeleton className="h-12 w-full" />
+                     <Skeleton className="h-12 w-full" />
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                    <Coins className="h-6 w-6 text-primary" />
+                    <span>Gelir Raporu (Geçici)</span>
+                </CardTitle>
+                <CardDescription>
+                    Tüm kullanıcılardan gelen tamamlanmış satın alımların toplamı.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
+                    <span className="font-medium text-muted-foreground">Toplam Satılan Auro</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{totalAuroSold.toLocaleString('tr-TR')}</span>
+                        <Gem className="h-5 w-5 text-cyan-400"/>
+                    </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
+                    <span className="font-medium text-muted-foreground">Toplam Kazanç</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{totalRevenue.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 function AdminTools() {
     const { toast } = useToast();
@@ -151,36 +233,39 @@ function AdminTools() {
                 <CardDescription>Uygulama için yönetimsel görevleri buradan yapın.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-4 rounded-lg border p-4">
-                    <div>
-                        <h4 className="font-semibold">Günlük Dersleri Üret</h4>
-                        <p className="text-sm text-muted-foreground">Yapay zekanın seçtiğiniz kategoriye özel 5 yeni ders oluşturmasını sağlayın.</p>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                       <Select value={selectedLevel} onValueChange={(value) => setSelectedLevel(value as 'Temel' | 'Orta' | 'İleri')}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Seviye Seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Temel">Temel</SelectItem>
-                                <SelectItem value="Orta">Orta</SelectItem>
-                                <SelectItem value="İleri">İleri</SelectItem>
-                            </SelectContent>
-                        </Select>
-                         <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel || availableCategories.length === 0}>
-                            <SelectTrigger className="w-[240px]">
-                                <SelectValue placeholder="Kategori Seçin" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableCategories.map(cat => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button className="ml-auto" onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel || !selectedCategory}>
-                            {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Üret ve Kaydet
-                        </Button>
+                <div className="space-y-6">
+                    <RevenueReport />
+                    <div className="space-y-4 rounded-lg border p-4">
+                        <div>
+                            <h4 className="font-semibold">Günlük Dersleri Üret</h4>
+                            <p className="text-sm text-muted-foreground">Yapay zekanın seçtiğiniz kategoriye özel 5 yeni ders oluşturmasını sağlayın.</p>
+                        </div>
+                        <div className='flex items-center gap-4'>
+                           <Select value={selectedLevel} onValueChange={(value) => setSelectedLevel(value as 'Temel' | 'Orta' | 'İleri')}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Seviye Seçin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Temel">Temel</SelectItem>
+                                    <SelectItem value="Orta">Orta</SelectItem>
+                                    <SelectItem value="İleri">İleri</SelectItem>
+                                </SelectContent>
+                            </Select>
+                             <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel || availableCategories.length === 0}>
+                                <SelectTrigger className="w-[240px]">
+                                    <SelectValue placeholder="Kategori Seçin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableCategories.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button className="ml-auto" onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel || !selectedCategory}>
+                                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Üret ve Kaydet
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </CardContent>
