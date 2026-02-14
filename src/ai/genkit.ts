@@ -1,19 +1,20 @@
 'use client';
 
+import 'server-only'; // Tarayıcıya sızmasını engeller
 import { genkit } from 'genkit';
 import { vertexAI } from '@genkit-ai/vertexai';
 
 export const ai = genkit({
   plugins: [
+    // Bu eklenti, servis hesabı kimlik doğrulamasını otomatik olarak kullanır.
     vertexAI({
-      // Proje ID'si .env dosyasından alınır.
-      // Bu plugin, Google Cloud ortamlarında (Cloud Run, GKE, vb.)
-      // servis hesabı üzerinden otomatik olarak kimlik doğrulaması yapar.
+      // Proje ID'si ve konumu .env dosyasından okunacak
       projectId: process.env.GOOGLE_CLOUD_PROJECT,
-      location: 'us-central1', // Vertex AI için varsayılan ve genel bir bölge
+      location: 'us-central1',
     }),
   ],
-  // Vertex AI üzerinde çalışan, güçlü ve çok modlu (multimodal) model.
-  // "Not Found" hatalarını önlemek için modelin tam yolu kullanılıyor.
-  model: 'publishers/google/models/gemini-1.5-pro-preview',
+  // Modeli, eklenti adıyla birlikte ('eklentiAdi/modelAdi') belirtmek,
+  // Genkit'in doğru eklentiyi kullanmasını sağlar ve çakışmaları önler.
+  // 'gemini-1.5-pro', Vertex AI'daki güçlü ve çok modlu (görsel anlama) bir modeldir.
+  model: 'vertexai/gemini-1.5-pro',
 });
