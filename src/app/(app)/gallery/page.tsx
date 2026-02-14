@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -205,39 +205,41 @@ function PhotoDetailDialog({
     setIsSubmitting(false);
   };
   
-  const handleWithdrawFromPublic = async () => {
-      if (!photo || !photo.userId || !firestore) return;
-      setIsProcessing(true);
-      try {
+ const handleWithdrawFromPublic = async () => {
+    if (!photo || !photo.userId || !firestore || isProcessing) return;
+    setIsProcessing(true);
+    try {
         const publicPhotosQuery = query(
-            collection(firestore, 'public_photos'), 
+            collection(firestore, 'public_photos'),
             where('imageUrl', '==', photo.imageUrl),
             where('userId', '==', photo.userId),
             limit(1)
         );
-
-        const querySnapshot = await getDocs(publicPhotosQuery);
-        querySnapshot.forEach(docSnapshot => {
-            deleteDocumentNonBlocking(docSnapshot.ref);
-        });
-
         const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-        updateDocumentNonBlocking(privatePhotoRef, {
-            isSubmittedToPublic: false,
+        const querySnapshot = await getDocs(publicPhotosQuery);
+
+        const deletionPromises: Promise<void>[] = [];
+        querySnapshot.forEach(docSnapshot => {
+            deletionPromises.push(deleteDoc(docSnapshot.ref));
         });
+
+        await Promise.all([
+            ...deletionPromises,
+            updateDoc(privatePhotoRef, { isSubmittedToPublic: false })
+        ]);
 
         toast({ title: 'Başarılı', description: 'Fotoğraf sergiden kaldırıldı.' });
-      } catch (error) {
-          console.error("Error withdrawing photo:", error);
-          toast({ variant: 'destructive', title: 'Hata', description: 'Fotoğraf sergiden kaldırılamadı.' });
-      } finally {
-          setIsProcessing(false);
-          closeAll();
-      }
-  };
+    } catch (error) {
+        console.error("Error withdrawing photo:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Fotoğraf sergiden kaldırılamadı.' });
+    } finally {
+        setIsProcessing(false);
+        closeAll();
+    }
+ };
 
   const handleDeletePhoto = async () => {
-    if (!photo || !photo.userId || !firestore) return;
+    if (!photo || !photo.userId || !firestore || isProcessing) return;
     setIsProcessing(true);
 
     try {
@@ -248,7 +250,7 @@ function PhotoDetailDialog({
                 const path = urlObject.pathname;
                 const parts = path.split('/o/');
                 if (parts.length < 2) return null;
-                const encodedPath = parts[1].split('?')[0]; // Remove query params like ?alt=media
+                const encodedPath = parts[1].split('?')[0];
                 return decodeURIComponent(encodedPath);
             } catch (e) {
                 console.error("Could not parse storage URL:", e);
@@ -257,30 +259,17 @@ function PhotoDetailDialog({
         };
 
         const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
+        const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+        const deletionPromises: Promise<any>[] = [deleteDoc(privatePhotoRef)];
 
-        // 1. Delete from Storage
         if (filePath) {
             const storage = getStorage();
             const imageRef = storageRef(storage, filePath);
-            try {
-                await deleteObject(imageRef);
-            } catch (error: any) {
-                if (error.code !== 'storage/object-not-found') {
-                    console.error("Storage deletion failed:", error);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Depolama Hatası',
-                        description: 'Fotoğraf dosyası silinirken bir hata oluştu ama veritabanı kaydı silinecek.',
-                    });
-                }
-            }
+            deletionPromises.push(deleteObject(imageRef).catch(error => {
+                if (error.code !== 'storage/object-not-found') throw error;
+            }));
         }
 
-        // 2. Delete from private collection
-        const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-        deleteDocumentNonBlocking(privatePhotoRef);
-
-        // 3. Delete from public collection if it exists there
         if (photo.isSubmittedToPublic) {
             const publicPhotosQuery = query(
                 collection(firestore, 'public_photos'),
@@ -288,12 +277,13 @@ function PhotoDetailDialog({
                 where('userId', '==', photo.userId),
                 limit(1)
             );
-            
             const querySnapshot = await getDocs(publicPhotosQuery);
             querySnapshot.forEach(docSnapshot => {
-                deleteDocumentNonBlocking(docSnapshot.ref);
+                deletionPromises.push(deleteDoc(docSnapshot.ref));
             });
         }
+        
+        await Promise.all(deletionPromises);
 
         toast({ title: 'Başarılı!', description: 'Fotoğraf galerinizden kalıcı olarak silindi.' });
     } catch (error) {
@@ -411,15 +401,17 @@ function PhotoDetailDialog({
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setDialogAction(null)}>İptal</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setDialogAction(null)} disabled={isProcessing}>İptal</AlertDialogCancel>
                 <AlertDialogAction 
+                  disabled={isProcessing}
                   className={cn(dialogAction === 'delete' && buttonVariants({ variant: "destructive" }))}
                   onClick={() => {
                     if (dialogAction === 'withdraw') handleWithdrawFromPublic();
                     if (dialogAction === 'delete') handleDeletePhoto();
                 }}>
-                    {dialogAction === 'withdraw' && 'Evet, Sergiden Çek'}
-                    {dialogAction === 'delete' && 'Evet, Kalıcı Olarak Sil'}
+                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (
+                      dialogAction === 'withdraw' ? 'Evet, Sergiden Çek' : 'Evet, Kalıcı Olarak Sil'
+                    )}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
@@ -642,5 +634,7 @@ export default function GalleryPage() {
     </div>
   );
 }
+
+    
 
     
