@@ -26,11 +26,11 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
 
-// Helper to map URL slugs to Firestore category names
-const categorySlugMap: Record<string, string> = {
-    'teknik': 'Teknik',
-    'kompozisyon': 'Kompozisyon',
-    'isik': 'Işık'
+// Helper to map URL slugs to Firestore level names and titles
+const levelSlugMap: Record<string, { name: string; title: string }> = {
+    'temel': { name: 'Temel', title: 'Temel Seviye Dersleri' },
+    'orta': { name: 'Orta', title: 'Orta Seviye Dersleri' },
+    'ileri': { name: 'İleri', title: 'İleri Seviye Dersleri' }
 };
 
 function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
@@ -139,9 +139,6 @@ function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; 
             <Check className="h-16 w-16 text-white/80" />
           </div>
         )}
-        <div className="absolute bottom-4 left-4">
-          <Badge variant="secondary">{lesson.category}</Badge>
-        </div>
       </CardHeader>
        <CardContent className="p-4 flex-grow flex items-center">
         <CardTitle className="font-sans text-base line-clamp-2 leading-snug">{lesson.title}</CardTitle>
@@ -151,7 +148,7 @@ function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; 
 }
 
 
-export default function BasicCategoryPage() {
+export default function LevelPage() {
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -159,8 +156,9 @@ export default function BasicCategoryPage() {
   const params = useParams();
   const [selectedLesson, setSelectedLesson] = useState<AcademyLesson | null>(null);
 
-  const categorySlug = Array.isArray(params.category) ? params.category[0] : params.category;
-  const categoryName = categorySlug ? categorySlugMap[categorySlug] : null;
+  const levelSlug = Array.isArray(params.level) ? params.level[0] : params.level;
+  const levelInfo = levelSlug ? levelSlugMap[levelSlug] : null;
+  const levelName = levelInfo?.name;
 
   const userDocRef = useMemoFirebase(() => {
     if (!authUser) return null;
@@ -170,13 +168,13 @@ export default function BasicCategoryPage() {
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const lessonsQuery = useMemoFirebase(() => {
-    if (!firestore || !categoryName) return null;
+    if (!firestore || !levelName) return null;
     return query(
         collection(firestore, 'academyLessons'), 
-        where('category', '==', categoryName),
+        where('level', '==', levelName),
         orderBy('createdAt', 'desc')
     );
-  }, [firestore, categoryName]);
+  }, [firestore, levelName]);
   
   const { data: lessons, isLoading } = useCollection<AcademyLesson>(lessonsQuery);
 
@@ -230,34 +228,53 @@ export default function BasicCategoryPage() {
   };
   
   // If the category slug is invalid, redirect or show an error
-  if (!categoryName && !isLoading) {
+  if (!levelName && !isLoading) {
       return (
           <div className="container mx-auto text-center py-20">
               <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-              <h3 className="mt-4 text-xl font-semibold">Geçersiz Kategori</h3>
-              <p className="text-muted-foreground mt-2">Aradığınız kategori bulunamadı.</p>
-              <Button onClick={() => router.back()} className="mt-6">Geri Dön</Button>
+              <h3 className="mt-4 text-xl font-semibold">Geçersiz Seviye</h3>
+              <p className="text-muted-foreground mt-2">Aradığınız eğitim seviyesi bulunamadı.</p>
+              <Button onClick={() => router.push('/academy')} className="mt-6">Akademi'ye Dön</Button>
           </div>
       );
   }
 
+  const groupedLessons = useMemo(() => {
+    return lessons?.reduce((acc, lesson) => {
+        const category = lesson.category || 'Diğer';
+        if (!acc[category]) {
+        acc[category] = [];
+        }
+        acc[category].push(lesson);
+        return acc;
+    }, {} as Record<string, AcademyLesson[]>) ?? {};
+  }, [lessons]);
+
+  const orderedCategories = Object.keys(groupedLessons).sort();
+
+
   if (isLoading) {
      return (
-      <div className="container mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {Array.from({ length: 8 }).map((_, j) => (
-            <Card key={j} className="overflow-hidden">
-                <CardHeader className="p-0 relative aspect-video">
-                    <Skeleton className="w-full h-full"/>
-                </CardHeader>
-                <CardContent className="p-4">
-                    <Skeleton className="h-5 w-3/4 mb-1"/>
-                    <Skeleton className="h-5 w-5/6"/>
-                </CardContent>
-            </Card>
+      <div className="container mx-auto space-y-12">
+        {Array.from({length: 3}).map((_, i) => (
+            <section key={i}>
+                <Skeleton className="h-8 w-1/4 mb-6" />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {Array.from({ length: 4 }).map((_, j) => (
+                    <Card key={j} className="overflow-hidden">
+                        <CardHeader className="p-0 relative aspect-video">
+                            <Skeleton className="w-full h-full"/>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            <Skeleton className="h-5 w-3/4 mb-1"/>
+                            <Skeleton className="h-5 w-5/6"/>
+                        </CardContent>
+                    </Card>
+                ))}
+                </div>
+            </section>
         ))}
-        </div>
-      </div>
+    </div>
     );
   }
 
@@ -266,18 +283,27 @@ export default function BasicCategoryPage() {
       {(!lessons || lessons.length === 0) ? (
         <div className="text-center py-20 rounded-lg border border-dashed">
             <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-xl font-semibold">Bu Bölümde Henüz Ders Yok</h3>
-            <p className="text-muted-foreground mt-2">Profil sayfasından yönetici aracıyla bu kategoriye ait dersler oluşturun.</p>
+            <h3 className="mt-4 text-xl font-semibold">Bu Seviyede Henüz Ders Yok</h3>
+            <p className="text-muted-foreground mt-2">Profil sayfasından yönetici aracıyla bu seviyeye ait dersler oluşturun.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {lessons.map(lesson => (
-                <LessonCard 
-                    key={lesson.id} 
-                    lesson={lesson} 
-                    onSelect={() => setSelectedLesson(lesson)}
-                    isCompleted={userProfile?.completed_modules?.includes(lesson.id) || false}
-                />
+        <div className="space-y-12">
+            {orderedCategories.map(category => (
+                groupedLessons[category] && groupedLessons[category].length > 0 && (
+                    <section key={category}>
+                        <h2 className="text-2xl font-bold tracking-tight mb-6 border-b pb-2">{category}</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {groupedLessons[category].map(lesson => (
+                                <LessonCard 
+                                    key={lesson.id} 
+                                    lesson={lesson} 
+                                    onSelect={() => setSelectedLesson(lesson)}
+                                    isCompleted={userProfile?.completed_modules?.includes(lesson.id) || false}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                )
             ))}
         </div>
       )}

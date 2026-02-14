@@ -50,10 +50,10 @@ const navItems = [
   },
 ];
 
-const categorySlugToTitle: Record<string, string> = {
-    'teknik': 'Teknik',
-    'kompozisyon': 'Kompozisyon',
-    'isik': 'Işık'
+const levelSlugMap: Record<string, string> = {
+    'temel': 'Temel Seviye',
+    'orta': 'Orta Seviye',
+    'ileri': 'İleri Seviye',
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -99,15 +99,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const getPageTitle = () => {
     const pathSegments = pathname.split('/').filter(Boolean);
     
-    if (pathSegments[0] === 'academy' && pathSegments[1] === 'temel-egitim' && pathSegments[2]) {
-        return categorySlugToTitle[pathSegments[2]] || 'Temel Eğitim';
+    // Handle academy level pages, e.g., /academy/temel -> "Temel Seviye"
+    if (pathSegments[0] === 'academy' && pathSegments[1] && levelSlugMap[pathSegments[1]]) {
+        return levelSlugMap[pathSegments[1]];
     }
 
-    if (pathname.startsWith('/academy/temel-egitim')) return 'Temel Fotoğraf Eğitimi';
-    if (pathname.startsWith('/academy/fotografcilik-turleri')) return 'Fotoğrafçılık Türleri';
-    
     const navItem = navItems.find(item => pathname.startsWith(item.href));
-    return navItem?.label;
+    return navItem?.label ?? 'Viewora';
   };
   
   return (

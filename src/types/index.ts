@@ -29,6 +29,7 @@ export type Photo = {
 
 export type Lesson = {
   id: string;
+  level: string;
   category: string;
   title: string;
   learningObjective: string;

@@ -104,9 +104,13 @@
           "type": "string",
           "description": "Unique identifier for the AcademyLesson entity."
         },
+        "level": {
+          "type": "string",
+          "description": "The difficulty level of the lesson. One of: 'Temel', 'Orta', 'İleri'."
+        },
         "category": {
           "type": "string",
-          "description": "The category of the lesson (e.g., 'Kompozisyon', 'Işık', 'Teknik')."
+          "description": "The specific topic/category of the lesson from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı')."
         },
         "title": {
           "type": "string",
@@ -152,6 +156,7 @@
       },
       "required": [
         "id",
+        "level",
         "category",
         "title",
         "learningObjective",
