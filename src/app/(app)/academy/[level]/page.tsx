@@ -34,6 +34,12 @@ const levelSlugMap: Record<string, { name: 'Temel' | 'Orta' | 'İleri'; title: s
     'ileri': { name: 'İleri', title: 'İleri Seviye Dersleri' }
 };
 
+const levelCategoryMap: Record<string, string[]> = {
+  'Temel': ["Fotoğrafçılığa Giriş", "Pozlama Temelleri", "Netlik ve Odaklama", "Temel Kompozisyon", "Işık Bilgisi"],
+  'Orta': ["Tür Bazlı Çekim Teknikleri", "İleri Pozlama Teknikleri", "Işık Yönetimi", "Görsel Hikâye Anlatımı", "Post-Prodüksiyon Temelleri"],
+  'İleri': ["Uzmanlık Alanı Derinleşme", "Profesyonel Işık Kurulumu", "Gelişmiş Teknikler", "Sanatsal Kimlik ve Stil", "Ticari ve Marka Konumlandırma"],
+};
+
 function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
   if (!lesson) return null;
 
@@ -180,7 +186,16 @@ export default function LevelPage() {
   const lessons = useMemo(() => {
     if (!allLessons || !levelName) return [];
     
-    const filtered = allLessons.filter(lesson => lesson.level === levelName);
+    const filtered = allLessons.filter(lesson => {
+      // Prioritize the explicit `level` property from the document
+      if (lesson.level) {
+        return lesson.level === levelName;
+      }
+      
+      // Fallback for older data: check if the lesson's category belongs to the current level
+      const categoriesForLevel = levelCategoryMap[levelName as keyof typeof levelCategoryMap] || [];
+      return categoriesForLevel.includes(lesson.category);
+    });
     
     // Sort by creation date, most recent first
     return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

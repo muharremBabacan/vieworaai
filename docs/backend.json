@@ -89,7 +89,6 @@
         "id",
         "userId",
         "imageUrl",
-        "filePath",
         "aiFeedback",
         "createdAt"
       ]

@@ -20,7 +20,7 @@ export type Photo = {
   id: string;
   userId: string;
   imageUrl: string;
-  filePath: string;
+  filePath?: string;
   tags?: string[];
   aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
   createdAt: string;
