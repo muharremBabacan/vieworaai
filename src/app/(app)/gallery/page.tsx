@@ -100,7 +100,9 @@ function PhotoDetailDialog({
   
   const closeAll = () => {
     setDialogAction(null);
-    onOpenChange(false);
+    setTimeout(() => {
+        onOpenChange(false);
+    }, 100);
   }
 
   const handleAnalyzeNow = async () => {
@@ -255,27 +257,20 @@ function PhotoDetailDialog({
   
 const handleDeletePhoto = async () => {
     if (!photo || !photo.userId || !firestore || isProcessing) return;
-    
-    // 1. İşlemi başlat ve zaman aşımı riskine karşı önlem al
+
     setIsProcessing(true);
 
     try {
         const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-        const deletionPromises: Promise<any>[] = [];
+        const deletionPromises: Promise<any>[] = [deleteDoc(privatePhotoRef)];
 
-        // 2. Firestore silme işlemini ekle
-        deletionPromises.push(deleteDoc(privatePhotoRef));
-
-        // 3. Storage silme (Daha güvenli path kontrolü)
         const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
         if (filePath) {
             const storage = getStorage();
             const imageRef = storageRef(storage, filePath);
-            // Catch ekleyerek bir dosya silinemezse bile işlemin devam etmesini sağla
-            deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage silinemedi:", e)));
+            deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage deletion failed, but proceeding:", e)));
         }
 
-        // 4. Eğer sergideyse onu da ekle
         if (photo.isSubmittedToPublic) {
             const publicPhotosQuery = query(
                 collection(firestore, 'public_photos'),
@@ -286,17 +281,15 @@ const handleDeletePhoto = async () => {
             querySnapshot.forEach(docSnap => deletionPromises.push(deleteDoc(docSnap.ref)));
         }
 
-        // İşlemleri çalıştır
         await Promise.all(deletionPromises);
         
-        toast({ title: 'Başarılı!', description: 'Fotoğraf silindi.' });
-        closeAll(); // Diyaloğu hemen kapat
+        toast({ title: 'Başarılı!', description: 'Fotoğraf kalıcı olarak silindi.' });
+        closeAll();
     } catch (error) {
-        console.error("Silme hatası:", error);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi tamamlanamadı.' });
+        console.error("Photo deletion process failed:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi tamamlanamadı. Lütfen tekrar deneyin.' });
     } finally {
-        // DONMAYI ENGELLEYEN KRİTİK SATIR:
-        setIsProcessing(false); 
+        setIsProcessing(false);
     }
 };
 
@@ -372,19 +365,19 @@ const handleDeletePhoto = async () => {
           <div className="p-6 border-t space-y-3">
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
-                    <Button variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
+                    <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
                          {isProcessing && dialogAction !== 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Undo2 className="mr-2 h-4 w-4" />}
                         Sergiden Çek
                     </Button>
                 ) : (
-                    <Button className="w-full" onClick={handleSubmitToPublic} disabled={isLoading || !userProfile}>
+                    <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading || !userProfile}>
                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />}
                         Sergiye Gönder (5 Auro)
                     </Button>
                 )
              )}
              <Separator />
-              <Button variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setDialogAction('delete')} disabled={isLoading}>
+              <Button type="button" variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setDialogAction('delete')} disabled={isLoading}>
                   {isProcessing && dialogAction === 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                   Fotoğrafı Kalıcı Olarak Sil
               </Button>
