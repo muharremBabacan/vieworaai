@@ -432,21 +432,21 @@ export default function GalleryPage() {
   return (
     <div className="container mx-auto">
       {tags && tags.length > 1 && (
-        <div className="relative mb-6">
+        <div className="relative mb-8">
           <div className="flex w-full space-x-3 overflow-x-auto pb-4 no-scrollbar">
             {tags.map(tag => (
               <Button
                 key={tag}
                 variant={selectedTag === tag ? 'default' : 'secondary'}
                 onClick={() => setSelectedTag(tag)}
-                className="shrink-0 rounded-full px-4 capitalize"
+                className="shrink-0 rounded-full px-5 py-2 text-sm capitalize"
               >
                 {tag}
               </Button>
             ))}
           </div>
-          <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-          <div className="absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+          <div className="absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+          <div className="absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-background to-transparent pointer-events-none" />
         </div>
       )}
 

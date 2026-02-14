@@ -53,7 +53,10 @@ const analysisPrompt = ai.definePrompt({
 
   Your task is to provide a detailed analysis, actionable improvement tips, and a rating based on the following criteria: lighting, composition, and emotional impact.
 
-  In the 'tags' field, provide up to 10 relevant tags in Turkish that describe the photo's content, style, and mood (e.g., "portre", "manzara", "sokak fotoğrafçılığı", "siyah beyaz", "minimalist", "mutlu"). These tags will be used for filtering.
+  In the 'tags' field:
+  1. Your first tag MUST be the main photography genre in Turkish (e.g., "Portre", "Manzara", "Sokak Fotoğrafçılığı", "Makro", "Soyut", "Mimari").
+  2. Then, add up to 9 other relevant tags in Turkish that describe the photo's content, style, and mood (e.g., "siyah beyaz", "minimalist", "mutlu").
+  These tags will be used for filtering.
 
   Analyze the photo provided: {{media url=photoUrl}}`,
 });
