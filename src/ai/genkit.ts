@@ -1,5 +1,3 @@
-'use client';
-
 import 'server-only'; // Tarayıcıya sızmasını engeller
 import { genkit } from 'genkit';
 import { vertexAI } from '@genkit-ai/vertexai';
