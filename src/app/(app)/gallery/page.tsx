@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2, Camera } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
@@ -33,12 +32,6 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getLevelFromXp } from '@/lib/gamification';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
-import { Separator } from '@/components/ui/separator';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -97,13 +90,6 @@ function PhotoDetailDialog({
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
     { icon: Heart, color: 'text-rose-400' },
   ];
-  
-  const closeAll = () => {
-    setDialogAction(null);
-    setTimeout(() => {
-        onOpenChange(false);
-    }, 150); // ARIA çakışmasını engellemek için gecikme artırıldı
-  }
 
   const handleAnalyzeNow = async () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
@@ -135,7 +121,7 @@ function PhotoDetailDialog({
       updateDocumentNonBlocking(originalPhotoRef, { aiFeedback: analysisResult, tags: analysisResult.tags || [] });
 
       toast({ title: 'Başarılı!', description: 'Analiz tamamlandı.' });
-      closeAll();
+      onOpenChange(false);
     } catch (error) {
       console.error(error);
       toast({ variant: 'destructive', title: 'Hata', description: 'Analiz yapılamadı.' });
@@ -162,7 +148,7 @@ function PhotoDetailDialog({
     updateDocumentNonBlocking(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: true });
     
     toast({ title: 'Başarılı!', description: 'Sergiye gönderildi.' });
-    closeAll();
+    onOpenChange(false);
     setIsSubmitting(false);
   };
 
@@ -175,9 +161,20 @@ function PhotoDetailDialog({
         const deletionPromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
         await Promise.all([...deletionPromises, updateDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: false })]);
         toast({ title: 'Başarılı', description: 'Sergiden çekildi.' });
-    } finally {
+
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        setDialogAction(null);
+        setTimeout(() => {
+          onOpenChange(false);
+          setIsProcessing(false);
+        }, 200);
+
+    } catch (error) {
+        console.error("Çekme hatası:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Sergiden çekme işlemi tamamlanamadı.' });
         setIsProcessing(false);
-        closeAll();
     }
   };
 
@@ -198,7 +195,6 @@ function PhotoDetailDialog({
         if (filePath) {
             const storage = getStorage();
             const imageRef = storageRef(storage, filePath);
-            // Catch ekleyerek bir dosya silinemezse bile işlemin devam etmesini sağla
             deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage silinemedi:", e)));
         }
         
@@ -211,12 +207,18 @@ function PhotoDetailDialog({
         await Promise.all(deletionPromises);
         toast({ title: 'Başarılı!', description: 'Fotoğraf silindi.' });
         
-        closeAll(); // Diyaloğu hemen kapat
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        setDialogAction(null);
+        setTimeout(() => {
+          onOpenChange(false);
+          setIsProcessing(false);
+        }, 200);
 
     } catch (error) {
         console.error("Silme hatası:", error);
         toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi tamamlanamadı.' });
-    } finally {
         setIsProcessing(false);
     }
   };
@@ -227,9 +229,13 @@ function PhotoDetailDialog({
   return (
     <>
     <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(false)}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <div className="md:w-1/3 w-full relative aspect-square md:aspect-auto">
-          <Image src={photo.imageUrl} alt="Analiz" fill className="object-contain" unoptimized />
+          <Image src={photo.imageUrl} alt="Analiz" fill className="object-contain" unoptimized priority />
         </div>
         <div className="md:w-2/3 w-full overflow-y-auto flex flex-col p-6 space-y-6">
             <DialogHeader>
@@ -325,13 +331,16 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
           <Image src={photo.imageUrl} alt="Kullanıcı fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
             {!photo.aiFeedback && (
-              <Clock className="h-6 w-6 text-white/80" />
+              <div className="flex flex-col items-center gap-1">
+                <Clock className="h-6 w-6 text-white/80" />
+                <span className="text-xs text-white/80 font-semibold">Analiz Bekliyor</span>
+              </div>
             )}
           </div>
           
           {photo.isSubmittedToPublic && (
             <div className="absolute top-2 left-2">
-              <Badge variant="secondary" className="bg-purple-600 text-white border-transparent p-1">
+              <Badge variant="secondary" className="bg-purple-600 text-white border-transparent p-1 backdrop-blur-sm">
                 <Rocket className="h-3 w-3" />
               </Badge>
             </div>

@@ -60,14 +60,18 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden">
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <div className="md:w-1/3 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image
             src={photo.imageUrl}
             alt="Viewora Sergi Fotoğrafı"
             fill
             className="object-contain"
-            unoptimized={true} // Firebase Storage görselleri için kritik
+            unoptimized={true}
             priority
           />
         </div>
@@ -121,9 +125,6 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
     </Dialog>
   );
 }
-
-// PhotoGrid ve ExploreSkeleton kısımları aynı kalabilir, 
-// ancak Image bileşenlerine unoptimized={true} eklemek güvenlidir.
 
 export default function ExplorePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
