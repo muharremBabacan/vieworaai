@@ -62,7 +62,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
-        <div className="md:w-2/5 w-full relative aspect-video md:aspect-auto">
+        <div className="md:w-2/5 w-full relative aspect-video">
            <Image
             src={lesson.imageUrl}
             alt={lesson.title}
@@ -131,23 +131,29 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
 function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; onSelect: () => void; isCompleted: boolean; }) {
   return (
     <Card onClick={onSelect} className="overflow-hidden cursor-pointer group h-full flex flex-col">
-       <CardHeader className="p-0 relative aspect-video">
-        <Image
-          src={lesson.imageUrl}
-          alt={lesson.title}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
-          data-ai-hint={lesson.imageHint}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-         {isCompleted && (
+       <CardHeader className="p-0 relative aspect-video bg-muted flex items-center justify-center">
+        {lesson.imageUrl ? (
+            <>
+                <Image
+                  src={lesson.imageUrl}
+                  alt={lesson.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  data-ai-hint={lesson.imageHint}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            </>
+        ) : (
+            <Camera className="h-12 w-12 text-muted-foreground" />
+        )}
+        {isCompleted && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity duration-300">
             <Check className="h-16 w-16 text-white/80" />
           </div>
         )}
       </CardHeader>
-       <CardContent className="p-4 flex-grow flex items-center">
+       <CardContent className="p-4 flex-grow flex flex-col justify-center">
         <CardTitle className="font-sans text-base line-clamp-2 leading-snug">{lesson.title}</CardTitle>
       </CardContent>
     </Card>
@@ -164,6 +170,12 @@ export default function LevelPage() {
   const [selectedLesson, setSelectedLesson] = useState<AcademyLesson | null>(null);
 
   const levelSlug = Array.isArray(params.level) ? params.level[0] : params.level;
+  
+  if (levelSlug === 'temel-egitim') {
+    router.replace('/academy/temel-egitim');
+    return null;
+  }
+  
   const levelInfo = levelSlug ? levelSlugMap[levelSlug] : null;
   const levelName = levelInfo?.name;
 
