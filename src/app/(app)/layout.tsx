@@ -9,7 +9,7 @@ import {
   GraduationCap,
   Sparkles,
   Compass,
-  Trophy,
+  Settings,
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -38,16 +38,16 @@ const navItems = [
     shortLabel: 'Koç'
   },
   {
-    href: '/competitions',
-    icon: Trophy,
-    label: 'Yarışmalar',
-    shortLabel: 'Yarışma'
-  },
-  {
     href: '/gallery',
     icon: GalleryVertical,
     label: 'Fotoğraflarım',
     shortLabel: 'Galerim'
+  },
+   {
+    href: '/profile',
+    icon: Settings,
+    label: 'Ayarlar',
+    shortLabel: 'Ayarlar'
   },
 ];
 
@@ -63,7 +63,7 @@ const pageTitleMap: Record<string, string> = {
     '/dashboard': 'Yapay Zeka Koçu',
     '/competitions': 'Yarışmalar',
     '/gallery': 'Fotoğraflarım',
-    '/profile': 'Profilim',
+    '/profile': 'Ayarlar',
     '/pricing': 'Auro Paketleri'
 };
 
@@ -100,7 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Logo />
+          <Logo variant="default" />
           <span>Yükleniyor...</span>
         </div>
       </div>
@@ -124,8 +124,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return navItem?.label ?? 'Viewora';
   };
 
-  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/public%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc";
-  
+  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc";
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-card/70 px-4 backdrop-blur-sm sm:px-6">

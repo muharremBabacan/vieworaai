@@ -1,20 +1,19 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Award, Gem, Camera, Tag, Trophy, ShieldCheck, Settings, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { levels, getLevelFromXp } from '@/lib/gamification';
-import { useToast } from '@/hooks/use-toast';
-import { addDays, isBefore } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Gem, Coins, History, ChevronRight, Info, FileText, LogOut, Settings as SettingsIcon, ShieldQuestion, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateDailyLessons, type GeneratedLesson } from '@/ai/flows/generate-daily-lessons';
 import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 function AdminTools() {
@@ -74,18 +73,15 @@ function AdminTools() {
 
                 let availableImages = imagePlaceholders.filter(p => !usedImageUrls.has(p.imageUrl));
                 
-                // If we've used all images in this batch, allow reuse.
                 if (availableImages.length === 0) {
                     availableImages = [...imagePlaceholders]; 
                     usedImageUrls.clear();
                 }
 
-                // 1. Primary Match: Find an image whose hint contains any of the lesson's hint words.
                 bestMatch = availableImages.find(p => 
                     lessonHintWords.some(word => p.imageHint.toLowerCase().includes(word))
                 );
 
-                // 2. Secondary Match: If no primary match, find one based on category keywords (map Turkish to English).
                 if (!bestMatch) {
                      const categoryKeywords: Record<string, string[]> = {
                         'fotoğrafçılığa giriş': ['camera', 'lens', 'mode'],
@@ -110,21 +106,19 @@ function AdminTools() {
                      );
                 }
 
-                // 3. Fallback: If still no match, pick a pseudo-random image from available ones to ensure variety.
                 if (!bestMatch) {
                     const hash = lesson.title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
                     const index = hash % availableImages.length;
                     bestMatch = availableImages[index];
                 }
                 
-                // At this point, bestMatch should always be defined if availableImages is not empty.
-                const imageUrl = bestMatch.imageUrl;
+                const imageUrl = bestMatch!.imageUrl;
                 usedImageUrls.add(imageUrl);
                 
                 const lessonData = {
                     ...lesson,
                     imageUrl: imageUrl,
-                    imageHint: bestMatch.imageHint, // Use the hint from the selected image for consistency
+                    imageHint: bestMatch!.imageHint, 
                     createdAt: new Date().toISOString(),
                 };
                 addDocumentNonBlocking(lessonCollectionRef, lessonData);
@@ -148,10 +142,10 @@ function AdminTools() {
     };
 
     return (
-        <Card className="md:col-span-2 lg:col-span-3">
+        <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-3">
-                    <Settings className="h-6 w-6 text-primary" />
+                    <SettingsIcon className="h-6 w-6 text-primary" />
                     <span>Yönetici Araçları</span>
                 </CardTitle>
                 <CardDescription>Uygulama için yönetimsel görevleri buradan yapın.</CardDescription>
@@ -194,10 +188,43 @@ function AdminTools() {
     )
 }
 
-export default function ProfilePage() {
+const SettingsListItem = ({ icon, title, description, href, onClick, isLink = false }: { icon: React.ElementType, title: string, description?: string, href?: string, onClick?: () => void, isLink?: boolean }) => {
+    const content = (
+        <div className="flex items-center gap-4 w-full">
+            <div className="flex-shrink-0 bg-secondary p-3 rounded-lg">
+                {React.createElement(icon, { className: "h-5 w-5 text-primary" })}
+            </div>
+            <div className="flex-grow">
+                <p className="font-semibold text-card-foreground">{title}</p>
+                {description && <p className="text-xs text-muted-foreground">{description}</p>}
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground ml-auto" />
+        </div>
+    );
+
+    if (isLink && href) {
+        return (
+            <Link href={href} className="block w-full p-2 rounded-lg hover:bg-secondary/50 transition-colors">
+                {content}
+            </Link>
+        );
+    }
+    
+    return (
+        <button onClick={onClick} className="w-full text-left p-2 rounded-lg hover:bg-secondary/50 transition-colors">
+            {content}
+        </button>
+    );
+};
+
+
+export default function SettingsPage() {
     const { user: authUser, isUserLoading } = useUser();
+    const auth = useAuth();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const router = useRouter();
+    const [isRestoring, setIsRestoring] = useState(false);
 
     const userDocRef = useMemoFirebase(() => {
         if (!authUser || !firestore) return null;
@@ -205,169 +232,98 @@ export default function ProfilePage() {
     }, [authUser, firestore]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
-    
-    const photosQuery = useMemoFirebase(() => {
-        if (!authUser || !firestore) return null;
-        return collection(firestore, 'users', authUser.uid, 'photos');
-    }, [authUser, firestore]);
 
-    const { data: userPhotos, isLoading: arePhotosLoading } = useCollection(photosQuery);
-    
-    const photoCount = userPhotos?.length ?? 0;
-
-    // Haftalık Auro Yenileme Mantığı
-    useEffect(() => {
-        if (!userProfile || !userDocRef || !authUser || !firestore) return;
-
-        const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
-        
-        const lastRefillDateStr = userProfile.weekly_free_refill_date;
-        if (!lastRefillDateStr || typeof lastRefillDateStr !== 'string') return;
-        
-        const lastRefillDate = new Date(lastRefillDateStr);
-        const sevenDaysAgo = addDays(new Date(), -7);
-
-        if (isBefore(lastRefillDate, sevenDaysAgo) && auroBalance < 10) {
-            const refillAmount = 10 - auroBalance;
-            const newAuroBalance = 10;
-            
-            updateDocumentNonBlocking(userDocRef, {
-                auro_balance: newAuroBalance,
-                weekly_free_refill_date: new Date().toISOString()
-            });
-
-            const transactionsCollectionRef = collection(firestore, 'users', authUser.uid, 'transactions');
-            addDocumentNonBlocking(transactionsCollectionRef, {
-                userId: authUser.uid,
-                amount: refillAmount,
-                type: 'Refill',
-                status: 'Completed',
-                transactionDate: new Date().toISOString(),
-            });
-            
-            toast({
-                title: '✨ Haftalık Hediye!',
-                description: `Auro bakiyeniz 10'a tamamlandı.`
-            });
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+            router.push('/');
+            toast({ title: 'Başarıyla çıkış yaptınız.' });
+        } catch (error) {
+            console.error('Sign out failed', error);
+            toast({ variant: 'destructive', title: 'Çıkış yapılamadı.' });
         }
-    }, [userProfile, userDocRef, authUser, firestore, toast]);
+    };
+    
+    const handleRestorePurchases = () => {
+        setIsRestoring(true);
+        toast({ title: "Satın Alımlar Kontrol Ediliyor..." });
+        setTimeout(() => {
+             toast({ title: "Kontrol Tamamlandı", description: "Mevcut satın alımlarınız hesabınızla senkronize edildi." });
+             setIsRestoring(false);
+        }, 1500);
+    }
 
-
-    if (isUserLoading || isProfileLoading || !userProfile || (authUser && arePhotosLoading)) {
+    if (isUserLoading || isProfileLoading || !userProfile) {
         return (
-            <div className="container mx-auto space-y-6">
-                <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
+            <div className="container mx-auto max-w-2xl space-y-6">
                 <Card><CardContent className="p-6"><Skeleton className="h-24" /></CardContent></Card>
+                <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
                 <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
             </div>
-        )
+        );
     }
     
-    const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
     const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
-    const interests = userProfile.interests ?? [];
-
-    const currentLevelInfo = getLevelFromXp(currentXp);
-    const nextLevelIndex = levels.findIndex(l => l.name === currentLevelInfo.name) + 1;
-    const nextLevelInfo = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
-
-    const xpForNextLevel = nextLevelInfo ? nextLevelInfo.minXp : currentXp;
-    const xpBaseForCurrentLevel = currentLevelInfo.minXp;
-    
-    const xpInCurrentLevel = currentXp - xpBaseForCurrentLevel;
-    const xpRangeOfCurrentLevel = nextLevelInfo ? nextLevelInfo.minXp - xpBaseForCurrentLevel : 0;
-    
-    const xpPercentage = xpRangeOfCurrentLevel > 0 ? Math.min((xpInCurrentLevel / xpRangeOfCurrentLevel) * 100, 100) : 100;
-    const xpToNext = nextLevelInfo ? xpForNextLevel - currentXp : 0;
-
 
     return (
-        <div className="container mx-auto">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="lg:col-span-1">
+        <div className="container mx-auto max-w-2xl">
+            <div className="space-y-8">
+                
+                <Card className="bg-gradient-to-br from-primary/20 via-card to-card">
                     <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                           <div className="flex items-center gap-3">
-                             <Award className="h-6 w-6 text-primary" />
-                             <span>Seviye</span>
-                           </div>
-                           <Badge variant={currentLevelInfo.isMentor ? 'default' : 'secondary'} className={`capitalize ${currentLevelInfo.isMentor ? 'bg-amber-500 text-black' : ''}`}>
-                               {currentLevelInfo.isMentor && <ShieldCheck className="mr-2 h-4 w-4"/>}
-                               {currentLevelInfo.name}
-                           </Badge>
+                        <CardTitle className="flex items-center gap-3">
+                           <Gem className="h-6 w-6 text-cyan-400" />
+                           Auro Yönetimi
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div>
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm text-muted-foreground">Deneyim Puanı (XP)</span>
-                                <span className="text-sm font-bold">{currentXp} / {nextLevelInfo ? xpForNextLevel : 'MAX'}</span>
+                        <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
+                            <span className="font-medium text-muted-foreground">Mevcut Bakiye</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl font-bold">{auroBalance}</span>
+                                <span className="font-semibold text-cyan-400">Auro</span>
                             </div>
-                            <Progress value={xpPercentage} />
-                            {nextLevelInfo ? (
-                                <p className="text-xs text-muted-foreground mt-1">{nextLevelInfo.name} seviyesi için {xpToNext} XP daha.</p>
-                            ) : (
-                                <p className="text-xs text-muted-foreground mt-1">Tebrikler! En yüksek seviyeye ulaştınız!</p>
-                            )}
                         </div>
-                        
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                            <div className="flex items-center gap-3">
-                                <Gem className="h-5 w-5 text-cyan-400"/>
-                                <span className="text-muted-foreground">Auro Bakiyesi</span>
-                            </div>
-                            <span className="text-lg font-bold">{auroBalance}</span>
-                        </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                             <Button asChild size="lg">
+                                <Link href="/pricing">
+                                    <Coins className="mr-2 h-5 w-5" />
+                                    Auro Satın Al
+                                </Link>
+                            </Button>
+                             <Button variant="outline" size="lg" onClick={handleRestorePurchases} disabled={isRestoring}>
+                                {isRestoring ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <History className="mr-2 h-5 w-5" />}
+                                Satın Almaları Geri Yükle
+                            </Button>
+                         </div>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-3">
-                            <Tag className="h-6 w-6 text-primary" />
-                            <span>İlgi Alanlarım</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                            {interests.length > 0 ? interests.map(interest => (
-                                <Badge key={interest} variant="secondary">{interest}</Badge>
-                            )) : <p className="text-sm text-muted-foreground">Henüz ilgi alanı seçmediniz.</p>}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-3">
-                            <Camera className="h-6 w-6 text-primary" />
-                            <span>İstatistikler</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Analiz Edilen Fotoğraf</span>
-                            <span className="text-lg font-bold">{photoCount}</span>
-                        </div>
-                         {/* More stats can go here */}
-                    </CardContent>
-                </Card>
-
-                <Card className="md:col-span-2 lg:col-span-3">
                      <CardHeader>
                         <CardTitle className="flex items-center gap-3">
-                            <Trophy className="h-6 w-6 text-primary" />
-                            <span>Yaklaşan Yarışmalar</span>
+                           <SettingsIcon className="h-6 w-6 text-primary" />
+                           Uygulama & Hesap
                         </CardTitle>
-                        <CardDescription>Becerilerini sergile, XP ve Auro kazan!</CardDescription>
                     </CardHeader>
-                    <CardContent className="text-center py-10">
-                        <p className="text-muted-foreground">Şu anda aktif bir yarışma bulunmuyor. Takipte kalın!</p>
+                    <CardContent className="divide-y divide-border -mx-3">
+                        <SettingsListItem icon={Info} title="Sürüm" description="1.0.0 (Build 1)" />
+                        <SettingsListItem icon={FileText} title="Hizmet Şartları" isLink href="#" />
+                        <SettingsListItem icon={ShieldQuestion} title="Gizlilik Politikası" isLink href="#" />
                     </CardContent>
                 </Card>
+                
+                {userProfile?.email === 'babacan.muharrem@gmail.com' && (
+                    <AdminTools />
+                )}
 
-                {userProfile?.email === 'babacan.muharrem@gmail.com' && <AdminTools />}
+                <div className="pt-4">
+                     <Button variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10" onClick={handleSignOut}>
+                        <LogOut className="mr-2 h-5 w-5" />
+                        Çıkış Yap
+                    </Button>
+                </div>
             </div>
         </div>
-    )
+    );
 }

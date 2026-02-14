@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { Gem, LogOut, Award, ShieldCheck, User as UserIcon, Coins } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck, User as UserIcon, Coins, Settings } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -87,8 +87,8 @@ export function UserNav() {
         <DropdownMenuGroup>
            <DropdownMenuItem asChild>
              <Link href="/profile">
-                <UserIcon className="mr-2 h-4 w-4" />
-                <span>Profilim</span>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Ayarlar</span>
               </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
