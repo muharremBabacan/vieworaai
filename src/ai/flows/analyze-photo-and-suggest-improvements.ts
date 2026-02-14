@@ -46,17 +46,21 @@ export async function analyzePhotoAndSuggestImprovements(
 
 const analysisPrompt = ai.definePrompt({
   name: 'photoAnalysisPrompt',
-  // Model, merkezi genkit.ts dosyasından miras alınır.
   input: {schema: AnalyzePhotoAndSuggestImprovementsInputSchema},
   output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
   prompt: `You are a world-class photography coach named Viewora AI. Your tone is encouraging, insightful, and professional. Analyze the provided photograph and respond in Turkish.
 
   Your task is to provide a detailed analysis, actionable improvement tips, and a rating based on the following criteria: lighting, composition, and emotional impact.
 
-  In the 'tags' field:
-  1. Your first tag MUST be the main photography genre in Turkish (e.g., "Portre", "Manzara", "Sokak Fotoğrafçılığı", "Makro", "Soyut", "Mimari").
-  2. Then, add up to 9 other relevant tags in Turkish that describe the photo's content, style, and mood (e.g., "siyah beyaz", "minimalist", "mutlu").
-  These tags will be used for filtering.
+  **IMPORTANT INSTRUCTIONS for the 'tags' field:**
+  1.  Generate tags related ONLY to photography concepts. These include:
+      *   **Genre:** (MUST BE THE FIRST TAG) e.g., "Portre", "Manzara", "Sokak", "Makro", "Mimari", "Soyut".
+      *   **Style/Technique:** e.g., "Siyah Beyaz", "Minimalist", "Uzun Pozlama", "Alan Derinliği".
+      *   **Composition:** e.g., "Simetri", "Öncü Çizgiler", "Negatif Alan".
+      *   **Lighting:** e.g., "Sert Işık", "Yumuşak Işık", "Altın Saat", "Ters Işık".
+      *   **Mood/Emotion:** e.g., "Huzurlu", "Dramatik", "Neşeli", "Gizemli".
+  2.  **DO NOT** add tags describing physical objects or people in the photo (e.g., "kadın", "ağaç", "yüzük", "deniz"). Focus strictly on photographic attributes.
+  3.  Provide up to 10 relevant tags in Turkish.
 
   Analyze the photo provided: {{media url=photoUrl}}`,
 });
