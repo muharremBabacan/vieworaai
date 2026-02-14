@@ -336,11 +336,8 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
     return (
       <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
         <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-        <h3 className="text-2xl font-semibold">Galerinizde Henüz Fotoğraf Yok</h3>
-        <p className="text-muted-foreground mt-2">Yapay zeka koçu ile ilk analizinizi yaparak galeriyi doldurun!</p>
-        <Button asChild className="mt-6">
-          <Link href="/dashboard">Analiz Başlat</Link>
-        </Button>
+        <h3 className="text-2xl font-semibold">Bu filtreyle eşleşen fotoğraf bulunamadı.</h3>
+        <p className="text-muted-foreground mt-2">Farklı bir etiket seçin veya tüm fotoğraflarınızı görmek için "Tümü" filtresini kullanın.</p>
       </div>
     );
   }
@@ -388,6 +385,7 @@ export default function GalleryPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [selectedTag, setSelectedTag] = useState('Tümü');
   
   const photosQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -398,9 +396,62 @@ export default function GalleryPage() {
   const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
+  const tags = useMemo(() => {
+    if (!userPhotos) return [];
+    const allTags = userPhotos.flatMap(p => p.tags || []).filter(Boolean);
+    const capitalizedTags = allTags.map(tag => tag.charAt(0).toUpperCase() + tag.slice(1));
+    return ['Tümü', ...Array.from(new Set(capitalizedTags))];
+  }, [userPhotos]);
+
+  const filteredPhotos = useMemo(() => {
+    if (!userPhotos) return [];
+    if (selectedTag === 'Tümü') {
+      return userPhotos;
+    }
+    return userPhotos.filter(photo => 
+      photo.tags?.some(tag => tag.toLowerCase() === selectedTag.toLowerCase())
+    );
+  }, [userPhotos, selectedTag]);
+
+  // Handle case where there are no photos at all to avoid showing filter bar
+  if (!isLoading && (!userPhotos || userPhotos.length === 0)) {
+    return (
+      <div className="container mx-auto">
+        <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
+          <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
+          <h3 className="text-2xl font-semibold">Galerinizde Henüz Fotoğraf Yok</h3>
+          <p className="text-muted-foreground mt-2">Yapay zeka koçu ile ilk analizinizi yaparak galeriyi doldurun!</p>
+          <Button asChild className="mt-6">
+            <Link href="/dashboard">Analiz Başlat</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto">
-      {isLoading ? <GallerySkeleton /> : <PhotoGrid photos={userPhotos || []} onPhotoClick={setSelectedPhoto} />}
+      {tags && tags.length > 1 && (
+        <div className="relative mb-6">
+          <div className="flex w-full space-x-3 overflow-x-auto pb-4 no-scrollbar">
+            {tags.map(tag => (
+              <Button
+                key={tag}
+                variant={selectedTag === tag ? 'default' : 'secondary'}
+                onClick={() => setSelectedTag(tag)}
+                className="shrink-0 rounded-full px-4 capitalize"
+              >
+                {tag}
+              </Button>
+            ))}
+          </div>
+          <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+          <div className="absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+        </div>
+      )}
+
+      {isLoading ? <GallerySkeleton /> : <PhotoGrid photos={filteredPhotos || []} onPhotoClick={setSelectedPhoto} />}
+      
       <PhotoDetailDialog 
         photo={selectedPhoto} 
         isOpen={!!selectedPhoto}
