@@ -8,7 +8,7 @@ export const ai = genkit({
     vertexAI({
       // Proje ID'si ve konumu .env dosyasından okunacak
       projectId: process.env.GOOGLE_CLOUD_PROJECT,
-      location: 'us-central1',
+      location: 'us-east4', // 'us-central1' yerine bunu yazın
     }),
   ],
   // Modeli, eklenti adıyla birlikte ('eklentiAdi/modelAdi') belirtmek,
