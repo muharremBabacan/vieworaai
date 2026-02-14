@@ -238,66 +238,68 @@ function PhotoDetailDialog({
     }
  };
 
-  const handleDeletePhoto = async () => {
+  const getPathFromStorageUrl = (url: string): string | null => {
+      if (!url.includes('firebasestorage.googleapis.com')) return null;
+      try {
+          const urlObject = new URL(url);
+          const path = urlObject.pathname;
+          const parts = path.split('/o/');
+          if (parts.length < 2) return null;
+          const encodedPath = parts[1].split('?')[0];
+          return decodeURIComponent(encodedPath);
+      } catch (e) {
+          console.error("Could not parse storage URL:", e);
+          return null;
+      }
+  };
+  
+const handleDeletePhoto = async () => {
     if (!photo || !photo.userId || !firestore || isProcessing) return;
+    
+    // 1. İşlemi başlat ve zaman aşımı riskine karşı önlem al
     setIsProcessing(true);
 
     try {
-        const getPathFromStorageUrl = (url: string): string | null => {
-            if (!url.includes('firebasestorage.googleapis.com')) return null;
-            try {
-                const urlObject = new URL(url);
-                const path = urlObject.pathname;
-                const parts = path.split('/o/');
-                if (parts.length < 2) return null;
-                const encodedPath = parts[1].split('?')[0];
-                return decodeURIComponent(encodedPath);
-            } catch (e) {
-                console.error("Could not parse storage URL:", e);
-                return null;
-            }
-        };
-
-        const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
         const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-        const deletionPromises: Promise<any>[] = [deleteDoc(privatePhotoRef)];
+        const deletionPromises: Promise<any>[] = [];
 
+        // 2. Firestore silme işlemini ekle
+        deletionPromises.push(deleteDoc(privatePhotoRef));
+
+        // 3. Storage silme (Daha güvenli path kontrolü)
+        const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
         if (filePath) {
             const storage = getStorage();
             const imageRef = storageRef(storage, filePath);
-            deletionPromises.push(deleteObject(imageRef).catch(error => {
-                if (error.code !== 'storage/object-not-found') throw error;
-            }));
+            // Catch ekleyerek bir dosya silinemezse bile işlemin devam etmesini sağla
+            deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage silinemedi:", e)));
         }
 
+        // 4. Eğer sergideyse onu da ekle
         if (photo.isSubmittedToPublic) {
             const publicPhotosQuery = query(
                 collection(firestore, 'public_photos'),
                 where('imageUrl', '==', photo.imageUrl),
-                where('userId', '==', photo.userId),
-                limit(1)
+                where('userId', '==', photo.userId)
             );
             const querySnapshot = await getDocs(publicPhotosQuery);
-            querySnapshot.forEach(docSnapshot => {
-                deletionPromises.push(deleteDoc(docSnapshot.ref));
-            });
+            querySnapshot.forEach(docSnap => deletionPromises.push(deleteDoc(docSnap.ref)));
         }
-        
-        await Promise.all(deletionPromises);
 
-        toast({ title: 'Başarılı!', description: 'Fotoğraf galerinizden kalıcı olarak silindi.' });
+        // İşlemleri çalıştır
+        await Promise.all(deletionPromises);
+        
+        toast({ title: 'Başarılı!', description: 'Fotoğraf silindi.' });
+        closeAll(); // Diyaloğu hemen kapat
     } catch (error) {
-        console.error("Error during photo deletion process:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Silme Başarısız',
-            description: 'Fotoğraf silinirken bir hata oluştu. Lütfen tekrar deneyin.',
-        });
+        console.error("Silme hatası:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi tamamlanamadı.' });
     } finally {
-        setIsProcessing(false);
-        closeAll();
+        // DONMAYI ENGELLEYEN KRİTİK SATIR:
+        setIsProcessing(false); 
     }
-  };
+};
+
 
   if (!photo) {
     return null;
@@ -634,7 +636,3 @@ export default function GalleryPage() {
     </div>
   );
 }
-
-    
-
-    
