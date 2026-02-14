@@ -17,6 +17,7 @@ import {z} from 'genkit';
 // Schema for the input of the lesson generation flow
 const GenerateLessonsInputSchema = z.object({
   level: z.enum(['Temel', 'Orta', 'İleri']),
+  category: z.string().optional().describe("The specific category to generate lessons for. If not provided, generate from diverse categories within the level."),
 });
 export type GenerateLessonsInput = z.infer<typeof GenerateLessonsInputSchema>;
 
@@ -53,7 +54,11 @@ const generationPrompt = ai.definePrompt({
     output: { schema: GenerateLessonsOutputSchema },
     prompt: `You are the head instructor of Viewora AI Coach. Your task is to generate FIVE (5) distinct mini-lessons in TURKISH, for the **{{{level}}}** level, based on the structured curriculum provided below.
 
+{{#if category}}
+**IMPORTANT: All five lessons MUST be from the '{{{category}}}' category.**
+{{else}}
 Ensure the generated lessons are diverse, covering different categories within the selected level.
+{{/if}}
 
 **CURRICULUM:**
 
@@ -87,7 +92,7 @@ For each of the FIVE lessons, strictly follow this JSON format and provide the c
 
 {
   "level": "The level name: 'Temel', 'Orta', or 'İleri'. This MUST match the requested level: {{{level}}}.",
-  "category": "The specific category name from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı').",
+  "category": "The specific category from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı'). {{#if category}}This MUST be '{{{category}}}'{{/if}}",
   "title": "A compelling title for a specific sub-point within the category (e.g., 'Diyafram ve Alan Derinliği İlişkisi').",
   "learningObjective": "A concise learning objective for this specific title.",
   "theory": "Explain the topic simply in 3-4 solution-oriented sentences.",

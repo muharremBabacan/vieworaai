@@ -22,13 +22,31 @@ function AdminTools() {
     const firestore = useFirestore();
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState<'Temel' | 'Orta' | 'İleri' | ''>('');
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+    
+    const levelCategoryMap: Record<string, string[]> = {
+        'Temel': ["Fotoğrafçılığa Giriş", "Pozlama Temelleri", "Netlik ve Odaklama", "Temel Kompozisyon", "Işık Bilgisi"],
+        'Orta': ["Tür Bazlı Çekim Teknikleri", "İleri Pozlama Teknikleri", "Işık Yönetimi", "Görsel Hikâye Anlatımı", "Post-Prodüksiyon Temelleri"],
+        'İleri': ["Uzmanlık Alanı Derinleşme", "Profesyonel Işık Kurulumu", "Gelişmiş Teknikler", "Sanatsal Kimlik ve Stil", "Ticari ve Marka Konumlandırma"],
+    };
+
+    useEffect(() => {
+        if (selectedLevel && levelCategoryMap[selectedLevel]) {
+            setAvailableCategories(levelCategoryMap[selectedLevel]);
+            setSelectedCategory(''); // Reset category on level change
+        } else {
+            setAvailableCategories([]);
+        }
+    }, [selectedLevel]);
+
 
     const handleGenerateLessons = async () => {
-        if (!firestore || !selectedLevel) {
+        if (!firestore || !selectedLevel || !selectedCategory) {
             toast({
                 variant: 'destructive',
-                title: 'Seviye Seçilmedi',
-                description: 'Lütfen ders üretmek için bir seviye seçin.',
+                title: 'Eksik Seçim',
+                description: 'Lütfen ders üretmek için bir seviye ve bir kategori seçin.',
             });
             return;
         }
@@ -36,11 +54,11 @@ function AdminTools() {
         setIsGenerating(true);
         toast({
             title: 'Dersler Üretiliyor...',
-            description: `Yapay zeka, '${selectedLevel}' seviyesi için 5 yeni ders hazırlıyor. Bu işlem biraz zaman alabilir.`,
+            description: `YZ, '${selectedLevel}' seviyesi, '${selectedCategory}' kategorisi için 5 yeni ders hazırlıyor.`,
         });
 
         try {
-            const newLessons = await generateDailyLessons({ level: selectedLevel });
+            const newLessons = await generateDailyLessons({ level: selectedLevel, category: selectedCategory });
             if (!newLessons || newLessons.length === 0) {
                 throw new Error("AI did not return any lessons.");
             }
@@ -89,7 +107,7 @@ function AdminTools() {
 
             toast({
                 title: 'Başarılı!',
-                description: `${newLessons.length} yeni ders akademiye eklendi.`,
+                description: `${newLessons.length} yeni ders '${selectedCategory}' kategorisine eklendi.`,
             });
 
         } catch (error) {
@@ -114,12 +132,12 @@ function AdminTools() {
                 <CardDescription>Uygulama için yönetimsel görevleri buradan yapın.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-4 rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-semibold">Günlük Dersleri Üret</h4>
+                        <p className="text-sm text-muted-foreground">Yapay zekanın seçtiğiniz kategoriye özel 5 yeni ders oluşturmasını sağlayın.</p>
+                    </div>
                     <div className='flex items-center gap-4'>
-                       <div>
-                            <h4 className="font-semibold">Günlük Dersleri Üret</h4>
-                            <p className="text-sm text-muted-foreground">Bir seviye seçin ve yapay zekanın 5 yeni ders oluşturmasını sağlayın.</p>
-                       </div>
                        <Select value={selectedLevel} onValueChange={(value) => setSelectedLevel(value as 'Temel' | 'Orta' | 'İleri')}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Seviye Seçin" />
@@ -130,11 +148,21 @@ function AdminTools() {
                                 <SelectItem value="İleri">İleri</SelectItem>
                             </SelectContent>
                         </Select>
+                         <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel || availableCategories.length === 0}>
+                            <SelectTrigger className="w-[240px]">
+                                <SelectValue placeholder="Kategori Seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableCategories.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button className="ml-auto" onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel || !selectedCategory}>
+                            {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Üret ve Kaydet
+                        </Button>
                     </div>
-                    <Button onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel}>
-                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Üret ve Kaydet
-                    </Button>
                 </div>
             </CardContent>
         </Card>
