@@ -205,104 +205,108 @@ function PhotoDetailDialog({
     setIsSubmitting(false);
   };
   
-  const handleWithdrawFromPublic = () => {
+  const handleWithdrawFromPublic = async () => {
       if (!photo || !photo.userId || !firestore) return;
       setIsProcessing(true);
+      try {
+        const publicPhotosQuery = query(
+            collection(firestore, 'public_photos'), 
+            where('imageUrl', '==', photo.imageUrl),
+            where('userId', '==', photo.userId),
+            limit(1)
+        );
 
-      const publicPhotosQuery = query(
-          collection(firestore, 'public_photos'), 
-          where('imageUrl', '==', photo.imageUrl),
-          where('userId', '==', photo.userId),
-          limit(1)
-      );
+        const querySnapshot = await getDocs(publicPhotosQuery);
+        querySnapshot.forEach(docSnapshot => {
+            deleteDocumentNonBlocking(docSnapshot.ref);
+        });
 
-      // We need to `await` the read operation to find the document.
-      getDocs(publicPhotosQuery).then(querySnapshot => {
-          // Once we have the doc, we can use non-blocking writes.
-          querySnapshot.forEach(docSnapshot => {
-              deleteDocumentNonBlocking(docSnapshot.ref);
-          });
+        const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+        updateDocumentNonBlocking(privatePhotoRef, {
+            isSubmittedToPublic: false,
+        });
 
-          const privatePhotoRef = doc(firestore, 'users', photo.userId!, 'photos', photo.id);
-          updateDocumentNonBlocking(privatePhotoRef, {
-              isSubmittedToPublic: false,
-          });
-
-          toast({ title: 'Başarılı', description: 'Fotoğraf sergiden kaldırıldı.' });
-      }).catch(error => {
+        toast({ title: 'Başarılı', description: 'Fotoğraf sergiden kaldırıldı.' });
+      } catch (error) {
           console.error("Error withdrawing photo:", error);
           toast({ variant: 'destructive', title: 'Hata', description: 'Fotoğraf sergiden kaldırılamadı.' });
-      }).finally(() => {
+      } finally {
           setIsProcessing(false);
           closeAll();
-      });
+      }
   };
 
   const handleDeletePhoto = async () => {
     if (!photo || !photo.userId || !firestore) return;
     setIsProcessing(true);
 
-    const getPathFromStorageUrl = (url: string): string | null => {
-        if (!url.includes('firebasestorage.googleapis.com')) return null;
-        try {
-            const urlObject = new URL(url);
-            const path = urlObject.pathname;
-            const parts = path.split('/o/');
-            if (parts.length < 2) return null;
-            const encodedPath = parts[1].split('?')[0]; // Remove query params like ?alt=media
-            return decodeURIComponent(encodedPath);
-        } catch (e) {
-            console.error("Could not parse storage URL:", e);
-            return null;
-        }
-    };
+    try {
+        const getPathFromStorageUrl = (url: string): string | null => {
+            if (!url.includes('firebasestorage.googleapis.com')) return null;
+            try {
+                const urlObject = new URL(url);
+                const path = urlObject.pathname;
+                const parts = path.split('/o/');
+                if (parts.length < 2) return null;
+                const encodedPath = parts[1].split('?')[0]; // Remove query params like ?alt=media
+                return decodeURIComponent(encodedPath);
+            } catch (e) {
+                console.error("Could not parse storage URL:", e);
+                return null;
+            }
+        };
 
-    const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
+        const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
 
-    // 1. Delete from Storage
-    if (filePath) {
-        const storage = getStorage();
-        const imageRef = storageRef(storage, filePath);
-        try {
-            await deleteObject(imageRef);
-        } catch (error: any) {
-            if (error.code !== 'storage/object-not-found') {
-                console.error("Storage deletion failed:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Depolama Hatası',
-                    description: 'Fotoğraf dosyası silinirken bir hata oluştu ama veritabanı kaydı silinecek.',
-                });
+        // 1. Delete from Storage
+        if (filePath) {
+            const storage = getStorage();
+            const imageRef = storageRef(storage, filePath);
+            try {
+                await deleteObject(imageRef);
+            } catch (error: any) {
+                if (error.code !== 'storage/object-not-found') {
+                    console.error("Storage deletion failed:", error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Depolama Hatası',
+                        description: 'Fotoğraf dosyası silinirken bir hata oluştu ama veritabanı kaydı silinecek.',
+                    });
+                }
             }
         }
-    }
 
-    // 2. Delete from private collection
-    const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-    deleteDocumentNonBlocking(privatePhotoRef);
+        // 2. Delete from private collection
+        const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+        deleteDocumentNonBlocking(privatePhotoRef);
 
-    // 3. Delete from public collection if it exists there
-    if (photo.isSubmittedToPublic) {
-        const publicPhotosQuery = query(
-            collection(firestore, 'public_photos'),
-            where('imageUrl', '==', photo.imageUrl),
-            where('userId', '==', photo.userId),
-            limit(1)
-        );
-        
-        try {
+        // 3. Delete from public collection if it exists there
+        if (photo.isSubmittedToPublic) {
+            const publicPhotosQuery = query(
+                collection(firestore, 'public_photos'),
+                where('imageUrl', '==', photo.imageUrl),
+                where('userId', '==', photo.userId),
+                limit(1)
+            );
+            
             const querySnapshot = await getDocs(publicPhotosQuery);
             querySnapshot.forEach(docSnapshot => {
                 deleteDocumentNonBlocking(docSnapshot.ref);
             });
-        } catch(e) {
-             console.error("Error deleting public photo:", e);
         }
-    }
 
-    toast({ title: 'Başarılı!', description: 'Fotoğraf galerinizden kalıcı olarak silindi.' });
-    setIsProcessing(false);
-    closeAll();
+        toast({ title: 'Başarılı!', description: 'Fotoğraf galerinizden kalıcı olarak silindi.' });
+    } catch (error) {
+        console.error("Error during photo deletion process:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Silme Başarısız',
+            description: 'Fotoğraf silinirken bir hata oluştu. Lütfen tekrar deneyin.',
+        });
+    } finally {
+        setIsProcessing(false);
+        closeAll();
+    }
   };
 
   if (!photo) {
@@ -638,3 +642,5 @@ export default function GalleryPage() {
     </div>
   );
 }
+
+    
