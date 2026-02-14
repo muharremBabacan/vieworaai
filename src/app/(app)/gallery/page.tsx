@@ -256,18 +256,26 @@ function PhotoDetailDialog({
             ) : (
               <div className="text-center py-10 space-y-4">
                 <p>Bu fotoğraf henüz analiz edilmedi.</p>
-                <Button onClick={handleAnalyzeNow} disabled={isLoading}>Skoru Öğren (2 Auro)</Button>
+                <Button onClick={handleAnalyzeNow} disabled={isLoading}>
+                    {isAnalyzing ? <Loader2 className="animate-spin"/> : 'Skoru Öğren (2 Auro)'}
+                </Button>
               </div>
             )}
           <div className="pt-6 border-t space-y-3">
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
-                    <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>Sergiden Çek</Button>
+                    <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
+                        {isProcessing ? <Loader2 className="animate-spin"/> : 'Sergiden Çek'}
+                    </Button>
                 ) : (
-                    <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading}>Sergiye Gönder (5 Auro)</Button>
+                    <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading}>
+                        {isSubmitting ? <Loader2 className="animate-spin"/> : 'Sergiye Gönder (5 Auro)'}
+                    </Button>
                 )
              )}
-             <Button type="button" variant="outline" className="w-full text-destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>Kalıcı Olarak Sil</Button>
+             <Button type="button" variant="outline" className="w-full text-destructive hover:text-destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>
+                {isProcessing && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : 'Kalıcı Olarak Sil'}
+             </Button>
           </div>
         </div>
       </DialogContent>
@@ -338,13 +346,13 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
             )}
           </div>
           
-          {photo.isSubmittedToPublic && (
-            <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2">
+            {photo.isSubmittedToPublic && (
               <Badge variant="secondary" className="bg-purple-600 text-white border-transparent p-1 backdrop-blur-sm">
                 <Rocket className="h-3 w-3" />
               </Badge>
-            </div>
-          )}
+            )}
+          </div>
 
           {photo.aiFeedback && (
              <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
