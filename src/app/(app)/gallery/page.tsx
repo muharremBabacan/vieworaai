@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { analyzePhotoAndSuggestImprovements, type AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
@@ -84,6 +84,17 @@ function PhotoDetailDialog({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dialogAction, setDialogAction] = useState<'withdraw' | 'delete' | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState<'deleted' | 'withdrawn' | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setIsAnalyzing(false);
+      setIsProcessing(false);
+      setDialogAction(null);
+      setShowSuccessDialog(null);
+    }
+  }, [isOpen]);
 
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
@@ -151,6 +162,11 @@ function PhotoDetailDialog({
     onOpenChange(false);
     setIsSubmitting(false);
   };
+  
+  const closeSuccessDialog = () => {
+    setShowSuccessDialog(null);
+    onOpenChange(false);
+  };
 
   const handleWithdrawFromPublic = async () => {
     if (!photo || !photo.userId || !firestore || isProcessing) return;
@@ -160,16 +176,12 @@ function PhotoDetailDialog({
         const querySnapshot = await getDocs(publicPhotosQuery);
         const deletionPromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
         await Promise.all([...deletionPromises, updateDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: false })]);
-        toast({ title: 'Başarılı', description: 'Sergiden çekildi.' });
-
+        
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
         setDialogAction(null);
-        setTimeout(() => {
-          onOpenChange(false);
-          setIsProcessing(false);
-        }, 200);
+        setShowSuccessDialog('withdrawn');
 
     } catch (error) {
         console.error("Çekme hatası:", error);
@@ -205,16 +217,12 @@ function PhotoDetailDialog({
         }
 
         await Promise.all(deletionPromises);
-        toast({ title: 'Başarılı!', description: 'Fotoğraf silindi.' });
         
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
         setDialogAction(null);
-        setTimeout(() => {
-          onOpenChange(false);
-          setIsProcessing(false);
-        }, 200);
+        setShowSuccessDialog('deleted');
 
     } catch (error) {
         console.error("Silme hatası:", error);
@@ -228,7 +236,7 @@ function PhotoDetailDialog({
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(false)}>
+    <Dialog open={isOpen && !showSuccessDialog} onOpenChange={(open) => !open && onOpenChange(false)}>
       <DialogContent 
         className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0"
         onPointerDownOutside={(e) => e.preventDefault()}
@@ -265,7 +273,7 @@ function PhotoDetailDialog({
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
                     <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
-                        {isProcessing ? <Loader2 className="animate-spin"/> : 'Sergiden Çek'}
+                        {isLoading && dialogAction === 'withdraw' ? <Loader2 className="animate-spin"/> : 'Sergiden Çek'}
                     </Button>
                 ) : (
                     <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading}>
@@ -274,7 +282,7 @@ function PhotoDetailDialog({
                 )
              )}
              <Button type="button" variant="outline" className="w-full text-destructive hover:text-destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>
-                {isProcessing && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : 'Kalıcı Olarak Sil'}
+                {isLoading && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : 'Kalıcı Olarak Sil'}
              </Button>
           </div>
         </div>
@@ -285,7 +293,11 @@ function PhotoDetailDialog({
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                <AlertDialogDescription>Bu işlem geri alınamaz.</AlertDialogDescription>
+                <AlertDialogDescription>
+                  {dialogAction === 'delete' 
+                    ? "Bu fotoğraf hem galerinizden hem de sergiden (eğer gönderildiyse) kalıcı olarak silinecektir. Bu işlem geri alınamaz."
+                    : "Bu fotoğraf herkese açık sergi salonundan kaldırılacaktır. Galerinizde görünmeye devam edecektir."}
+                </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setDialogAction(null)} disabled={isProcessing}>İptal</AlertDialogCancel>
@@ -294,6 +306,24 @@ function PhotoDetailDialog({
                   className={cn(dialogAction === 'delete' && "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
                   onClick={() => dialogAction === 'withdraw' ? handleWithdrawFromPublic() : handleDeletePhoto()}>
                     {isProcessing ? <Loader2 className="animate-spin" /> : 'Evet, Devam Et'}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={!!showSuccessDialog} onOpenChange={(open) => !open && closeSuccessDialog()}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>İşlem Başarılı</AlertDialogTitle>
+                <AlertDialogDescription>
+                   {showSuccessDialog === 'deleted' 
+                     ? 'Fotoğrafınız galeriden kalıcı olarak silindi.' 
+                     : 'Fotoğrafınız sergiden başarıyla çekildi.'}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={closeSuccessDialog}>
+                    Tamam
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
