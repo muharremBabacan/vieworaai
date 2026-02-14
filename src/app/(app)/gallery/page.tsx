@@ -22,12 +22,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2 } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit } from 'firebase/firestore';
+import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -36,6 +37,7 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
+import { Separator } from '@/components/ui/separator';
 
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
@@ -88,7 +90,7 @@ function PhotoDetailDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [dialogAction, setDialogAction] = useState<'withdraw' | null>(null);
+  const [dialogAction, setDialogAction] = useState<'withdraw' | 'delete' | null>(null);
 
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
@@ -186,7 +188,7 @@ function PhotoDetailDialog({
 
     const publicPhotosCollectionRef = collection(firestore, 'public_photos');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, isSubmittedToPublic, ...publicPhotoData } = photo;
+    const { id, ...publicPhotoData } = photo;
     addDocumentNonBlocking(publicPhotosCollectionRef, publicPhotoData);
 
     updateDocumentNonBlocking(userDocRef, {
@@ -236,6 +238,73 @@ function PhotoDetailDialog({
       });
   };
 
+  const handleDeletePhoto = async () => {
+    if (!photo || !photo.userId || !firestore) return;
+    setIsProcessing(true);
+
+    const getPathFromStorageUrl = (url: string): string | null => {
+        if (!url.includes('firebasestorage.googleapis.com')) return null;
+        try {
+            const urlObject = new URL(url);
+            const path = urlObject.pathname;
+            const parts = path.split('/o/');
+            if (parts.length < 2) return null;
+            const encodedPath = parts[1].split('?')[0]; // Remove query params like ?alt=media
+            return decodeURIComponent(encodedPath);
+        } catch (e) {
+            console.error("Could not parse storage URL:", e);
+            return null;
+        }
+    };
+
+    const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
+
+    // 1. Delete from Storage
+    if (filePath) {
+        const storage = getStorage();
+        const imageRef = storageRef(storage, filePath);
+        try {
+            await deleteObject(imageRef);
+        } catch (error: any) {
+            if (error.code !== 'storage/object-not-found') {
+                console.error("Storage deletion failed:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Depolama Hatası',
+                    description: 'Fotoğraf dosyası silinirken bir hata oluştu ama veritabanı kaydı silinecek.',
+                });
+            }
+        }
+    }
+
+    // 2. Delete from private collection
+    const privatePhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+    deleteDocumentNonBlocking(privatePhotoRef);
+
+    // 3. Delete from public collection if it exists there
+    if (photo.isSubmittedToPublic) {
+        const publicPhotosQuery = query(
+            collection(firestore, 'public_photos'),
+            where('imageUrl', '==', photo.imageUrl),
+            where('userId', '==', photo.userId),
+            limit(1)
+        );
+        
+        try {
+            const querySnapshot = await getDocs(publicPhotosQuery);
+            querySnapshot.forEach(docSnapshot => {
+                deleteDocumentNonBlocking(docSnapshot.ref);
+            });
+        } catch(e) {
+             console.error("Error deleting public photo:", e);
+        }
+    }
+
+    toast({ title: 'Başarılı!', description: 'Fotoğraf galerinizden kalıcı olarak silindi.' });
+    setIsProcessing(false);
+    closeAll();
+  };
+
   if (!photo) {
     return null;
   }
@@ -256,8 +325,8 @@ function PhotoDetailDialog({
             data-ai-hint={photo.tags?.join(' ')}
           />
         </div>
-        <div className="md:w-2/3 w-full overflow-y-auto">
-          <div className="p-6 space-y-6">
+        <div className="md:w-2/3 w-full overflow-y-auto flex flex-col">
+          <div className="p-6 space-y-6 flex-grow">
              <DialogHeader>
               <DialogTitle className="font-sans text-2xl mb-2">YZ Geri Bildirimi</DialogTitle>
             </DialogHeader>
@@ -304,11 +373,11 @@ function PhotoDetailDialog({
             )}
           </div>
 
-          <div className="p-6 border-t grid gap-2">
+          <div className="p-6 border-t space-y-3">
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
-                    <Button variant="outline" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
-                         {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Undo2 className="mr-2 h-4 w-4" />}
+                    <Button variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
+                         {isProcessing && dialogAction !== 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Undo2 className="mr-2 h-4 w-4" />}
                         Sergiden Çek
                     </Button>
                 ) : (
@@ -318,6 +387,11 @@ function PhotoDetailDialog({
                     </Button>
                 )
              )}
+             <Separator />
+              <Button variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => setDialogAction('delete')} disabled={isLoading}>
+                  {isProcessing && dialogAction === 'delete' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                  Fotoğrafı Kalıcı Olarak Sil
+              </Button>
           </div>
         </div>
       </DialogContent>
@@ -329,15 +403,19 @@ function PhotoDetailDialog({
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                 <AlertDialogDescription>
                     {dialogAction === 'withdraw' && 'Bu fotoğraf sergiden kaldırılacaktır. Daha sonra tekrar gönderebilirsiniz.'}
+                    {dialogAction === 'delete' && 'Bu işlem geri alınamaz. Fotoğraf hem özel galerinizden hem de (varsa) sergiden kalıcı olarak silinecektir.'}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setDialogAction(null)}>İptal</AlertDialogCancel>
                 <AlertDialogAction 
+                  className={cn(dialogAction === 'delete' && buttonVariants({ variant: "destructive" }))}
                   onClick={() => {
                     if (dialogAction === 'withdraw') handleWithdrawFromPublic();
+                    if (dialogAction === 'delete') handleDeletePhoto();
                 }}>
                     {dialogAction === 'withdraw' && 'Evet, Sergiden Çek'}
+                    {dialogAction === 'delete' && 'Evet, Kalıcı Olarak Sil'}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
