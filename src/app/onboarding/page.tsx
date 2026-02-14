@@ -82,7 +82,7 @@ export default function OnboardingPage() {
             <Logo className="mx-auto mb-4 justify-center" />
             <CardTitle className="font-sans text-2xl">Viewora'ya Hoş Geldiniz!</CardTitle>
             <CardDescription>
-              Size en uygun deneyimi sunabilmemiz için fotoğrafçılık ilgi alanlarınızı seçin.
+              Size en uygun deneyimini sunabilmemiz için fotoğrafçılık ilgi alanlarınızı seçin.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 py-6">
