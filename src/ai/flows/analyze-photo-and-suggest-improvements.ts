@@ -46,8 +46,7 @@ export async function analyzePhotoAndSuggestImprovements(
 
 const analysisPrompt = ai.definePrompt({
   name: 'photoAnalysisPrompt',
-  // Genkit'in modeli tanıması için 'googleai/' öneki gereklidir.
-  model: 'googleai/gemini-1.5-flash-latest', 
+  // Model, merkezi genkit.ts dosyasından miras alınır.
   input: {schema: AnalyzePhotoAndSuggestImprovementsInputSchema},
   output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
   prompt: `You are a world-class photography coach named Viewora AI. Your tone is encouraging, insightful, and professional. Analyze the provided photograph and respond in Turkish.
