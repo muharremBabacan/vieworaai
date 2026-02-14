@@ -195,7 +195,12 @@ function PhotoDetailDialog({
     try {
         const deletionPromises: Promise<any>[] = [deleteDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id))];
         const filePath = photo.filePath || getPathFromStorageUrl(photo.imageUrl);
-        if (filePath) deletionPromises.push(deleteObject(storageRef(getStorage(), filePath)).catch(() => {}));
+        if (filePath) {
+            const storage = getStorage();
+            const imageRef = storageRef(storage, filePath);
+            // Catch ekleyerek bir dosya silinemezse bile işlemin devam etmesini sağla
+            deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage silinemedi:", e)));
+        }
         
         if (photo.isSubmittedToPublic) {
             const pubQuery = query(collection(firestore, 'public_photos'), where('imageUrl', '==', photo.imageUrl), where('userId', '==', photo.userId));
@@ -206,15 +211,12 @@ function PhotoDetailDialog({
         await Promise.all(deletionPromises);
         toast({ title: 'Başarılı!', description: 'Fotoğraf silindi.' });
         
-        // DONMAYI ENGELLEYEN KRİTİK SIRALAMA
-        setDialogAction(null); 
-        setTimeout(() => {
-            onOpenChange(false);
-            setIsProcessing(false);
-        }, 150);
+        closeAll(); // Diyaloğu hemen kapat
 
     } catch (error) {
-        toast({ variant: 'destructive', title: 'Hata', description: 'Silinemedi.' });
+        console.error("Silme hatası:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi tamamlanamadı.' });
+    } finally {
         setIsProcessing(false);
     }
   };
@@ -322,21 +324,24 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
         >
           <Image src={photo.imageUrl} alt="Kullanıcı fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
-            {photo.aiFeedback ? (
-              <>
-                <Star className="h-6 w-6 text-yellow-400 mb-1" />
-                <span className="text-white text-xs font-bold">{photo.aiFeedback.rating.overall.toFixed(1)} / 10</span>
-              </>
-            ) : (
+            {!photo.aiFeedback && (
               <Clock className="h-6 w-6 text-white/80" />
             )}
           </div>
+          
           {photo.isSubmittedToPublic && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 left-2">
               <Badge variant="secondary" className="bg-purple-600 text-white border-transparent p-1">
                 <Rocket className="h-3 w-3" />
               </Badge>
             </div>
+          )}
+
+          {photo.aiFeedback && (
+             <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+              <Star className="h-3 w-3 text-yellow-400" />
+              <span className="text-xs font-bold">{photo.aiFeedback.rating.overall.toFixed(1)}</span>
+            </Badge>
           )}
         </Card>
       ))}

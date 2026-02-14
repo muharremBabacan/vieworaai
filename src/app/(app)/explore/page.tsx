@@ -152,14 +152,17 @@ export default function ExplorePage() {
                 {Array.from({ length: 16 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
             </div>
         ) : photos && photos.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
                 {photos.map((photo) => (
                     <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
                         <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                             <Star className="h-6 w-6 text-yellow-400 mb-1" />
-                             <span className="text-white text-xs font-bold">{photo.aiFeedback?.rating.overall.toFixed(1)} / 10</span>
-                        </div>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                         {photo.aiFeedback && (
+                            <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                              <Star className="h-3 w-3 text-yellow-400" />
+                              <span className="text-xs font-bold">{photo.aiFeedback.rating.overall.toFixed(1)}</span>
+                            </Badge>
+                        )}
                     </Card>
                 ))}
             </div>
