@@ -17,7 +17,7 @@ import {z} from 'genkit';
 // Schema for a single generated lesson, based on the user's prompt format.
 // This ensures the AI's output is structured and type-safe.
 const GeneratedLessonSchema = z.object({
-  category: z.string().describe("The category of the lesson (e.g., 'Portre', 'Manzara', 'Sokak Fotoğrafçılığı', 'Teknik')."),
+  category: z.string().describe("The category of the lesson. Use one of the 'Temel' categories ('Teknik', 'Kompozisyon', 'Işık') OR a specific genre like 'Portre', 'Manzara', 'Sokak', 'Mimari', 'Moda', 'Yemek', 'Vahşi Yaşam', 'Makro'."),
   title: z.string().describe('The title of the lesson.'),
   learningObjective: z.string().describe("What skill the user will gain (composition, ISO, lighting, etc.)."),
   theory: z.string().describe("Explain the topic in its simplest form, in 3-4 friendly sentences."),
@@ -45,12 +45,15 @@ const generationPrompt = ai.definePrompt({
     output: { schema: GenerateLessonsOutputSchema },
     prompt: `You are the head instructor of Viewora AI Coach. Prepare a professional training module for the Beşiktaş Public Education Center (BHEM) project.
 
-Your task is to generate FIVE (5) distinct and diverse photography mini-lessons. The topics should be varied, covering different aspects of photography like composition, lighting, technique, and different genres (portrait, landscape, street, etc.).
+Your task is to generate FIVE (5) distinct and diverse photography mini-lessons in TURKISH. Create a mix of lessons: include some from the 'Temel' (Basic) categories and some from specific photography 'Türleri' (Genres).
+
+- 'Temel' (Basic) categories are: 'Teknik', 'Kompozisyon', 'Işık'.
+- 'Türler' (Genre) categories include: 'Portre', 'Manzara', 'Sokak', 'Mimari', 'Moda', 'Yemek', 'Vahşi Yaşam', 'Makro'.
 
 For each lesson, strictly follow this JSON format and provide the content in Turkish:
 
 {
-  "category": "A relevant category for the lesson (e.g., 'Portre', 'Manzara', 'Sokak Fotoğrafçılığı', 'Teknik').",
+  "category": "A relevant category for the lesson. Choose from 'Temel' or 'Türler' as described above.",
   "title": "A compelling title for the lesson.",
   "learningObjective": "A concise learning objective explaining the skill the user will gain.",
   "theory": "The main educational content. Explain the topic simply in 3-4 solution-oriented sentences.",
@@ -64,7 +67,7 @@ For each lesson, strictly follow this JSON format and provide the content in Tur
   "imageHint": "Provide 1-2 English keywords for finding a suitable image for this lesson (e.g., 'portrait lighting', 'landscape composition')."
 }
 
-Ensure the output is a valid JSON array containing exactly five lesson objects.
+Ensure the output is a valid JSON array containing exactly five lesson objects. Make the lessons diverse and interesting.
 `,
 });
 

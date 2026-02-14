@@ -21,7 +21,7 @@ const navItems = [
   {
     href: '/academy',
     icon: GraduationCap,
-    label: 'Viewora Akademisi',
+    label: 'Akademi',
     shortLabel: 'Akademi'
   },
   {
@@ -89,6 +89,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const getPageTitle = () => {
+    if (pathname.startsWith('/academy/temel-egitim')) return 'Temel Fotoğraf Eğitimi';
+    if (pathname.startsWith('/academy/fotografcilik-turleri')) return 'Fotoğrafçılık Türleri';
+    
+    const navItem = navItems.find(item => pathname.startsWith(item.href));
+    return navItem?.label;
+  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -106,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8">
           <div className="mb-6">
               <h1 className="font-sans text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
-                  {navItems.find(item => pathname.startsWith(item.href))?.label}
+                  {getPageTitle()}
               </h1>
           </div>
           {children}
