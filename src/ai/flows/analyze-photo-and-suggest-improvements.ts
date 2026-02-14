@@ -46,7 +46,6 @@ export async function analyzePhotoAndSuggestImprovements(
 
 const analysisPrompt = ai.definePrompt({
   name: 'photoAnalysisPrompt',
-  model: 'vertexai/gemini-3-pro-preview',
   // Model, merkezi genkit.ts dosyasından miras alınır.
   input: {schema: AnalyzePhotoAndSuggestImprovementsInputSchema},
   output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
