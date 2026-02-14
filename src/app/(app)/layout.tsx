@@ -50,6 +50,12 @@ const navItems = [
   },
 ];
 
+const categorySlugToTitle: Record<string, string> = {
+    'teknik': 'Teknik',
+    'kompozisyon': 'Kompozisyon',
+    'isik': 'Işık'
+};
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -91,6 +97,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const getPageTitle = () => {
+    const pathSegments = pathname.split('/').filter(Boolean);
+    
+    if (pathSegments[0] === 'academy' && pathSegments[1] === 'temel-egitim' && pathSegments[2]) {
+        return categorySlugToTitle[pathSegments[2]] || 'Temel Eğitim';
+    }
+
     if (pathname.startsWith('/academy/temel-egitim')) return 'Temel Fotoğraf Eğitimi';
     if (pathname.startsWith('/academy/fotografcilik-turleri')) return 'Fotoğrafçılık Türleri';
     
