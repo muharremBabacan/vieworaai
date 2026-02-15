@@ -5,13 +5,14 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
-import { useRouter as useIntlRouter, Link } from '@/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, Link } from '@/navigation';
+import { Loader2 } from 'lucide-react';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4">
@@ -26,9 +27,10 @@ const GoogleIcon = () => (
 export default function PageContent() {
   const auth = useAuth();
   const firestore = useFirestore();
-  const router = useIntlRouter();
+  const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const redirectUri = searchParams.get('redirect_uri');
@@ -38,9 +40,10 @@ export default function PageContent() {
   }, [searchParams]);
 
   const handleSignIn = async (providerName: 'google') => {
+    if (isLoading) return;
+    setIsLoading(true);
+
     const provider = new GoogleAuthProvider();
-    // This forces the account selection prompt every time, which can prevent
-    // session-related issues with Google's authentication services.
     provider.setCustomParameters({
       prompt: 'select_account'
     });
@@ -88,28 +91,30 @@ export default function PageContent() {
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         console.info('Sign-in popup closed or cancelled by user.');
-        return;
-      }
+        // Do not show a toast for this user action.
+      } else {
+        console.error(`Sign in with ${providerName} failed`, error);
       
-      console.error(`Sign in with ${providerName} failed`, error);
-      
-      let description = 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
-      if (error.code === 'auth/requests-to-this-api-identitytoolkit-method-google.cloud.identitytoolkit.v1.projectconfigservice.getprojectconfig-are-blocked.') {
-        description = 'Kimlik doğrulama servisleri projenizde etkin değil. Lütfen Google Cloud Console\'da "Identity Toolkit API"yi etkinleştirin.';
-      } else if (error.code === 'auth/operation-not-allowed') {
-        description = 'Lütfen Firebase projenizde Google ile girişi etkinleştirdiğinizden emin olun.'
+        let description = 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
+        if (error.code === 'auth/requests-to-this-api-identitytoolkit-method-google.cloud.identitytoolkit.v1.projectconfigservice.getprojectconfig-are-blocked.') {
+          description = 'Kimlik doğrulama servisleri projenizde etkin değil. Lütfen Google Cloud Console\'da "Identity Toolkit API"yi etkinleştirin.';
+        } else if (error.code === 'auth/operation-not-allowed') {
+          description = 'Lütfen Firebase projenizde Google ile girişi etkinleştirdiğinizden emin olun.'
+        }
+        else if (error.code === 'auth/unauthorized-domain') {
+          description = `Bu alan adı, Firebase projenizde kimlik doğrulama için yetkilendirilmemiş. viewora.ai alan adını Firebase Console > Authentication > Settings > Authorized domains bölümüne eklemelisiniz.`;
+        } else if (error.message) {
+          description = error.message;
+        }
+        
+        toast({
+          variant: 'destructive',
+          title: `Giriş Başarısız (${error.code || 'Bilinmeyen Hata'})`,
+          description: description,
+        });
       }
-      else if (error.code === 'auth/unauthorized-domain') {
-        description = `Bu alan adı, Firebase projenizde kimlik doğrulama için yetkilendirilmemiş. viewora.ai alan adını Firebase Console > Authentication > Settings > Authorized domains bölümüne eklemelisiniz.`;
-      } else if (error.message) {
-        description = error.message;
-      }
-      
-      toast({
-        variant: 'destructive',
-        title: `Giriş Başarısız (${error.code || 'Bilinmeyen Hata'})`,
-        description: description,
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -131,13 +136,31 @@ export default function PageContent() {
               variant="outline"
               className="w-full"
               onClick={() => handleSignIn('google')}
+              disabled={isLoading}
             >
-              <GoogleIcon />
-              Google ile Giriş Yap
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Giriş Yapılıyor...
+                </>
+              ) : (
+                <>
+                  <GoogleIcon />
+                  Google ile Giriş Yap
+                </>
+              )}
             </Button>
           </div>
           <p className="px-8 text-center text-xs text-muted-foreground">
-            Devam ederek, Hizmet Şartlarımızı kabul etmiş ve Gizlilik Politikamızı okumuş olursunuz.
+            Devam ederek,{' '}
+            <Link href="/terms" className="underline underline-offset-4 hover:text-primary">
+              Hizmet Şartlarımızı
+            </Link>{' '}
+            kabul etmiş ve{' '}
+            <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">
+              Gizlilik Politikamızı
+            </Link>{' '}
+            okumuş olursunuz.
           </p>
         </div>
       </main>
