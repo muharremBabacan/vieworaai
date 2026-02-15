@@ -5,7 +5,7 @@ import { Link, useRouter } from '@/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc, documentId, addDoc } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -329,59 +329,24 @@ function GroupsPageSkeleton() {
 export default function GroupsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   
-  const [memberGroups, setMemberGroups] = useState<Group[] | null>(null);
-  const [groupsLoading, setGroupsLoading] = useState(true);
-
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  const groupIds = userProfile?.groups;
+  const groupIds = useMemo(() => userProfile?.groups, [userProfile]);
 
-  useEffect(() => {
-    // Don't do anything until the user profile is loaded
-    if (isProfileLoading) {
-      return;
+  const memberGroupsQuery = useMemoFirebase(() => {
+    if (!firestore || !groupIds || groupIds.length === 0) {
+      return null;
     }
-    
-    // If there are no group IDs, we're done.
-    if (!groupIds || groupIds.length === 0) {
-      setMemberGroups([]);
-      setGroupsLoading(false);
-      return;
+    // Firestore 'in' queries are limited to 30 items.
+    if (groupIds.length > 30) {
+      console.warn("User is a member of more than 30 groups, query will be truncated to the first 30.");
     }
+    return query(collection(firestore, 'groups'), where(documentId(), 'in', groupIds.slice(0, 30)));
+  }, [firestore, groupIds]);
 
-    setGroupsLoading(true);
-
-    const fetchGroups = async () => {
-      try {
-        // Fetch each group document individually based on the IDs.
-        const groupPromises = groupIds.map(id => getDoc(doc(firestore, 'groups', id)));
-        const groupDocs = await Promise.all(groupPromises);
-        
-        // Filter out any groups that might have been deleted and map the data.
-        const groups = groupDocs
-          .filter(docSnap => docSnap.exists())
-          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Group));
-          
-        setMemberGroups(groups);
-      } catch (error) {
-        console.error("Error fetching groups:", error);
-        toast({
-          variant: "destructive",
-          title: "Gruplar yüklenemedi",
-          description: "Gruplarınızı getirirken bir hata oluştu. Lütfen sayfayı yenileyin.",
-        });
-        setMemberGroups([]); // Set to empty array on error
-      } finally {
-        setGroupsLoading(false);
-      }
-    };
-
-    fetchGroups();
-  }, [groupIds, firestore, isProfileLoading, toast]);
-
+  const { data: memberGroups, isLoading: isGroupsLoading } = useCollection<Group>(memberGroupsQuery);
 
   const ownedGroups = useMemo(() => {
       if (!user || !memberGroups) return [];
@@ -391,8 +356,9 @@ export default function GroupsPage() {
   const limits = getGroupLimits(userProfile?.level_name);
   const canCreateGroup = memberGroups ? ownedGroups.length < limits.maxGroups : false;
 
-  const isLoading = isProfileLoading || groupsLoading;
-
+  const isLoading = isProfileLoading || (userProfile && groupIds && groupIds.length > 0 && isGroupsLoading);
+  
+  const noGroups = userProfile && (!groupIds || groupIds.length === 0);
 
   return (
     <div className="container mx-auto">
@@ -413,19 +379,19 @@ export default function GroupsPage() {
 
       {isLoading ? (
         <GroupsPageSkeleton />
-      ) : memberGroups && memberGroups.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {memberGroups.map(group => (
-            <GroupCard key={group.id} group={group} />
-          ))}
-        </div>
-      ) : (
+      ) : (noGroups || (memberGroups && memberGroups.length === 0)) ? (
         <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
           <Users className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
           <h3 className="text-2xl font-semibold">Henüz Bir Gruba Üye Değilsiniz</h3>
           <p className="text-muted-foreground mt-2 max-w-md mx-auto">
             Yeni bir grup oluşturarak kendi topluluğunuzu başlatın veya bir arkadaşınızdan davet alın.
           </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {memberGroups?.map(group => (
+            <GroupCard key={group.id} group={group} />
+          ))}
         </div>
       )}
     </div>
