@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, where, getDocs, limit, updateDoc, arrayUnion } from 'firebase/firestore';
@@ -16,8 +17,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Users, Crown, Loader2, AlertTriangle, UserPlus } from 'lucide-react';
+import { Users, Crown, Loader2, AlertTriangle, UserPlus, QrCode } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const addMemberSchema = z.object({
   email: z.string().email('Geçerli bir e-posta adresi girin.'),
@@ -163,6 +172,16 @@ export default function GroupDetailPage() {
 
   const { user: currentUser } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const [joinUrl, setJoinUrl] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const url = `${window.location.origin}/groups/join/${groupId}`;
+        setJoinUrl(url);
+    }
+  }, [groupId]);
 
   const groupDocRef = useMemoFirebase(() => {
     if (!firestore || !groupId) return null;
@@ -175,6 +194,14 @@ export default function GroupDetailPage() {
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const isOwner = currentUser?.uid === group?.ownerId;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(joinUrl).then(() => {
+      toast({ title: 'Kopyalandı!', description: 'Katılım linki panoya kopyalandı.' });
+    }, (err) => {
+      toast({ variant: 'destructive', title: 'Hata', description: 'Link kopyalanamadı.' });
+    });
+  };
 
   if (isGroupLoading) {
     return (
@@ -213,7 +240,39 @@ export default function GroupDetailPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2"><Users /> Üyeler</div>
-            <span className="text-sm font-normal text-muted-foreground">{group.memberIds.length} / {maxMembers}</span>
+             <div className="flex items-center gap-2">
+                {isOwner && joinUrl && (
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <QrCode className="h-5 w-5" />
+                                <span className="sr-only">QR Kodu Göster</span>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Gruba Katılım Daveti</DialogTitle>
+                                <DialogDescription>
+                                    Bu QR kodu veya linki kullanarak yeni üyeleri grubunuza davet edebilirsiniz.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex items-center justify-center p-4 bg-white rounded-lg">
+                                <Image
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(joinUrl)}`}
+                                    alt="Grup Katılım QR Kodu"
+                                    width={256}
+                                    height={256}
+                                />
+                            </div>
+                            <div className="flex flex-col space-y-2">
+                                <Input id="join-link" value={joinUrl} readOnly />
+                                <Button onClick={copyToClipboard}>Linki Kopyala</Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
+                <span className="text-sm font-normal text-muted-foreground">{group.memberIds.length} / {maxMembers}</span>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
