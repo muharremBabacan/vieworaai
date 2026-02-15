@@ -28,10 +28,15 @@ import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocum
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getLevelFromXp } from '@/lib/gamification';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -484,20 +489,27 @@ export default function GalleryPage() {
     <div className="container mx-auto">
       {tags && tags.length > 1 && (
         <div className="mb-8">
-            <div className="overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
-                <div className="flex w-max space-x-3">
-                {tags.map(tag => (
-                    <Button
-                    key={tag}
+          <Carousel
+            opts={{
+              align: "start",
+              dragFree: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-2">
+              {tags.map((tag) => (
+                <CarouselItem key={tag} className="basis-auto pl-2">
+                  <Button
                     variant={selectedTag === tag ? 'default' : 'secondary'}
                     onClick={() => setSelectedTag(tag)}
-                    className="shrink-0 rounded-full px-5 py-2 text-sm capitalize"
-                    >
+                    className="rounded-full px-5 py-2 text-sm capitalize"
+                  >
                     {tag}
-                    </Button>
-                ))}
-                </div>
-            </div>
+                  </Button>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
         </div>
       )}
 
