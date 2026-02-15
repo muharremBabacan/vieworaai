@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc, documentId, addDoc } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -330,19 +330,59 @@ function GroupsPageSkeleton() {
 export default function GroupsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  
+  const [memberGroups, setMemberGroups] = useState<Group[] | null>(null);
+  const [groupsLoading, setGroupsLoading] = useState(true);
 
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const groupIds = userProfile?.groups;
 
-  const memberGroupsQuery = useMemoFirebase(
-      () => (user && firestore && groupIds && groupIds.length > 0
-          ? query(collection(firestore, 'groups'), where(documentId(), 'in', groupIds))
-          : null),
-      [user, firestore, groupIds]
-  );
-  const { data: memberGroups, isLoading: memberLoading } = useCollection<Group>(memberGroupsQuery);
+  useEffect(() => {
+    // Don't do anything until the user profile is loaded
+    if (isProfileLoading) {
+      return;
+    }
+    
+    // If there are no group IDs, we're done.
+    if (!groupIds || groupIds.length === 0) {
+      setMemberGroups([]);
+      setGroupsLoading(false);
+      return;
+    }
+
+    setGroupsLoading(true);
+
+    const fetchGroups = async () => {
+      try {
+        // Fetch each group document individually based on the IDs.
+        const groupPromises = groupIds.map(id => getDoc(doc(firestore, 'groups', id)));
+        const groupDocs = await Promise.all(groupPromises);
+        
+        // Filter out any groups that might have been deleted and map the data.
+        const groups = groupDocs
+          .filter(docSnap => docSnap.exists())
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Group));
+          
+        setMemberGroups(groups);
+      } catch (error) {
+        console.error("Error fetching groups:", error);
+        toast({
+          variant: "destructive",
+          title: "Gruplar yüklenemedi",
+          description: "Gruplarınızı getirirken bir hata oluştu. Lütfen sayfayı yenileyin.",
+        });
+        setMemberGroups([]); // Set to empty array on error
+      } finally {
+        setGroupsLoading(false);
+      }
+    };
+
+    fetchGroups();
+  }, [groupIds, firestore, isProfileLoading, toast]);
+
 
   const ownedGroups = useMemo(() => {
       if (!user || !memberGroups) return [];
@@ -350,9 +390,9 @@ export default function GroupsPage() {
   }, [user, memberGroups]);
   
   const limits = getGroupLimits(userProfile?.level_name);
-  const canCreateGroup = ownedGroups ? ownedGroups.length < limits.maxGroups : false;
+  const canCreateGroup = memberGroups ? ownedGroups.length < limits.maxGroups : false;
 
-  const isLoading = isProfileLoading || (groupIds && groupIds.length > 0 && memberLoading);
+  const isLoading = isProfileLoading || groupsLoading;
 
 
   return (
