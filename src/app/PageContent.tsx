@@ -38,6 +38,11 @@ export default function PageContent() {
 
   const handleSignIn = async (providerName: 'google') => {
     const provider = new GoogleAuthProvider();
+    // This forces the account selection prompt every time, which can prevent
+    // session-related issues with Google's authentication services.
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
     try {
       const result = await signInWithPopup(auth, provider);
@@ -70,12 +75,15 @@ export default function PageContent() {
         return;
       }
 
-      // Kullanıcıyı onboarding'i yapmadıysa oraya, yaptıysa profiline yönlendir.
-      if (docSnap.exists() && docSnap.data().onboarded) {
+      // Redirect user based on onboarding status.
+      // If docSnap doesn't exist, it means it's a new user who needs onboarding.
+      const isOnboarded = docSnap.exists() && docSnap.data().onboarded;
+      if (isOnboarded) {
         router.push('/profile');
       } else {
         router.push('/onboarding');
       }
+
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user') {
         console.info('Sign-in popup closed by user.');
@@ -98,7 +106,7 @@ export default function PageContent() {
       
       toast({
         variant: 'destructive',
-        title: 'Giriş Başarısız',
+        title: `Giriş Başarısız (${error.code || 'Bilinmeyen Hata'})`,
         description: description,
       });
     }
