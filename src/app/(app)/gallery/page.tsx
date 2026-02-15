@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2, Camera } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2, Camera, Smartphone, HelpCircle } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
@@ -100,6 +100,22 @@ function PhotoDetailDialog({
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
     { icon: Heart, color: 'text-rose-400' },
   ];
+
+  const cameraTypeInfo: Record<string, { icon: React.ElementType, text: string }> = {
+    'Profesyonel': { icon: Camera, text: 'Profesyonel Kamera ile Çekildi' },
+    'Mobil': { icon: Smartphone, text: 'Mobil Cihaz ile Çekildi' },
+    'Bilinmiyor': { icon: HelpCircle, text: 'Kamera Türü Belirlenemedi' },
+  };
+
+  const getCameraType = () => {
+      const cameraType = photo?.aiFeedback?.cameraType;
+      if (cameraType && cameraTypeInfo[cameraType]) {
+          return cameraTypeInfo[cameraType];
+      }
+      return null;
+  };
+  
+  const CameraInfo = getCameraType();
 
   const handleAnalyzeNow = async () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
@@ -255,6 +271,23 @@ function PhotoDetailDialog({
             <DialogHeader>
               <DialogTitle className="text-2xl">YZ Geri Bildirimi</DialogTitle>
             </DialogHeader>
+
+            <div className="space-y-4">
+              {CameraInfo && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg border bg-secondary/30">
+                      <CameraInfo.icon className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{CameraInfo.text}</span>
+                  </div>
+              )}
+              {photo.tags && photo.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                      {photo.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>
+                      ))}
+                  </div>
+              )}
+            </div>
+
             {photo.aiFeedback ? (
               <>
                 <RatingDisplay rating={photo.aiFeedback.rating} />
@@ -435,7 +468,7 @@ export default function GalleryPage() {
       {tags && tags.length > 1 && (
         <div className="mb-8">
           <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex w-max space-x-3 pb-2">
+            <div className="flex w-max space-x-3 pb-4">
               {tags.map(tag => (
                 <Button
                   key={tag}

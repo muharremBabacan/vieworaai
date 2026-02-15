@@ -34,6 +34,7 @@ const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
     })
     .describe('Provide ratings for the photo based on the specified criteria.'),
   tags: z.array(z.string()).max(10).describe('Provide up to 10 relevant tags in Turkish for the photo\'s content, style, and mood (e.g., "portre", "manzara", "sokak fotoğrafçılığı", "siyah beyaz", "minimalist", "mutlu").'),
+  cameraType: z.enum(['Profesyonel', 'Mobil', 'Bilinmiyor']).describe("Fotoğrafın muhtemelen profesyonel bir kamera (DSLR, Aynasız) ile mi yoksa bir cep telefonu ile mi çekildiğini belirleyin. Anlaşılması imkansızsa 'Bilinmiyor' kullanın."),
 });
 export type AnalyzePhotoAndSuggestImprovementsOutput = z.infer<typeof AnalyzePhotoAndSuggestImprovementsOutputSchema>;
 
@@ -50,7 +51,9 @@ const analysisPrompt = ai.definePrompt({
   output: {schema: AnalyzePhotoAndSuggestImprovementsOutputSchema},
   prompt: `You are a world-class photography coach named Viewora AI. Your tone is encouraging, insightful, and professional. Analyze the provided photograph and respond in Turkish.
 
-  Your task is to provide a detailed analysis, actionable improvement tips, and a rating based on the following criteria: lighting, composition, and emotional impact.
+  Your task is to provide a detailed analysis, actionable improvement tips, a rating, and identify the likely camera type.
+
+  **Camera Type Analysis:** Based on visual cues like depth of field, image quality, lens distortion, and overall characteristics, determine if the photo was likely taken with a professional camera (like a DSLR or mirrorless) or a mobile phone. Set the 'cameraType' field to one of these exact values: 'Profesyonel', 'Mobil', or 'Bilinmiyor'.
 
   **IMPORTANT INSTRUCTIONS for the 'tags' field:**
   1.  Generate tags related ONLY to photography concepts. These include:
