@@ -32,7 +32,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { getLevelFromXp } from '@/lib/gamification';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const ratingItems = [
@@ -101,21 +101,35 @@ function PhotoDetailDialog({
     { icon: Heart, color: 'text-rose-400' },
   ];
 
-  const cameraTypeInfo: Record<string, { icon: React.ElementType, text: string }> = {
-    'Profesyonel': { icon: Camera, text: 'Profesyonel Kamera ile Çekildi' },
-    'Mobil': { icon: Smartphone, text: 'Mobil Cihaz ile Çekildi' },
-    'Bilinmiyor': { icon: HelpCircle, text: 'Kamera Türü Belirlenemedi' },
-  };
+  const getCameraInfo = () => {
+    if (!photo?.aiFeedback) return null;
+    
+    const { cameraType, cameraMake, cameraModel } = photo.aiFeedback;
 
-  const getCameraType = () => {
-      const cameraType = photo?.aiFeedback?.cameraType;
-      if (cameraType && cameraTypeInfo[cameraType]) {
-          return cameraTypeInfo[cameraType];
+    if (!cameraType || cameraType === 'Bilinmiyor') {
+        return { icon: HelpCircle, text: 'Kamera Türü Belirlenemedi' };
+    }
+
+    const typeText = cameraType === 'Profesyonel' ? 'Profesyonel Kamera' : 'Mobil Cihaz';
+    const icon = cameraType === 'Profesyonel' ? Camera : Smartphone;
+
+    let detailText = '';
+    if (cameraMake && cameraMake !== 'Bilinmiyor') {
+      detailText += cameraMake;
+      if (cameraModel && cameraModel !== 'Bilinmiyor') {
+        detailText += ` ${cameraModel}`;
       }
-      return null;
+    }
+
+    if (detailText) {
+      return { icon, text: `${typeText}: ${detailText}` };
+    }
+    
+    return { icon, text: cameraType === 'Profesyonel' ? 'Profesyonel Kamera ile Çekildi' : 'Mobil Cihaz ile Çekildi' };
   };
   
-  const CameraInfo = getCameraType();
+  const CameraInfo = getCameraInfo();
+
 
   const handleAnalyzeNow = async () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
@@ -467,8 +481,8 @@ export default function GalleryPage() {
     <div className="container mx-auto">
       {tags && tags.length > 1 && (
         <div className="mb-8">
-          <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex w-max space-x-3 pb-4">
+          <ScrollArea className="w-full whitespace-nowrap pb-4">
+            <div className="flex w-max space-x-3">
               {tags.map(tag => (
                 <Button
                   key={tag}
@@ -480,6 +494,7 @@ export default function GalleryPage() {
                 </Button>
               ))}
             </div>
+            <ScrollBar orientation="horizontal" />
           </ScrollArea>
         </div>
       )}
