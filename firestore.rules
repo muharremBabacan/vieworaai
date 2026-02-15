@@ -150,12 +150,13 @@ service cloud.firestore {
        * @description Controls access to a user's financial and token transactions.
        * @path /users/{userId}/transactions/{transactionId}
        * @allow (create, get, list, update, delete) A user managing their own transaction history.
+       * @allow (list) An admin user for generating revenue reports (for collection group query).
        * @deny (create, get, list, update, delete) Any user trying to access another user's transactions.
-       * @principle Enforces strict document ownership for sensitive financial data.
+       * @principle Enforces strict document ownership for sensitive financial data, with an exception for admin reporting.
        */
       match /transactions/{transactionId} {
         allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && hasValidNewChildData(userId);
         allow update: if isExistingOwner(userId) && isChildDataImmutable();
         allow delete: if isExistingOwner(userId);
@@ -275,17 +276,6 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if false;
       allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
-    }
-    
-    /**
-     * @description Allows an admin user to list all transactions across all users for reporting.
-     * @path /users/{userId}/transactions/{transactionId} (via collection group)
-     * @allow (list) An admin user for generating revenue reports.
-     * @deny (list) All other users.
-     * @principle Provides read-only access to a specific role for aggregated data analysis.
-     */
-    match /{path=**}/transactions/{transactionId} {
-      allow list: if isAdmin();
     }
   }
 }
