@@ -103,16 +103,14 @@ service cloud.firestore {
     //-------------------------------------------------------------------------
 
     /**
-     * @description Controls access to a user's own profile document.
+     * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (create) A new user creating their own user document.
-     * @allow (get, update) An authenticated user accessing their own document.
-     * @deny (list) Any user attempting to list all user documents.
-     * @deny (delete) Any user attempting to delete a user document.
-     * @principle Restricts access to a user's own data tree and allows self-creation.
+     * @allow (get) Any authenticated user can read a user profile. (Needed for group features).
+     * @allow (create, update) A user can create or update their own document.
+     * @deny (list, delete) Listing all users or deleting users is forbidden.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isSignedIn();
       allow list: if false;
       allow create: if isOwner(userId) && hasValidNewUserData(userId);
       allow update: if isOwner(userId) && resource != null;
@@ -167,24 +165,35 @@ service cloud.firestore {
     /**
      * @description Controls access to user-created groups.
      * @path /groups/{groupId}
-     * @allow (get) Any member of the group.
-     * @allow (create) Any signed-in user who sets themselves as owner. (Tier logic is handled in app code).
-     * @allow (update, delete) Only the group owner.
-     * @principle Enforces membership for reads and ownership for writes.
+     * @allow (get) Any member of the group, based on the user's own profile data.
+     * @allow (list) Only for querying by a specific joinCode.
+     * @allow (create) Any signed-in user who sets themselves as owner.
+     * @allow (update) Only the group owner.
+     * @allow (delete) Only the group owner.
      */
     match /groups/{groupId} {
       function isGroupMember() {
-        return isSignedIn() && request.auth.uid in resource.data.memberIds;
+          // A user is a member if the group's ID exists in their own user profile's 'groups' array.
+          return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.groups.hasAny([groupId]);
       }
 
       function isGroupOwner() {
         return isSignedIn() && request.auth.uid == resource.data.ownerId;
       }
       
+      // Allow reading a group's details if the user is a member. This works for `where...in` queries.
       allow get: if isGroupMember();
-      allow list: if false;
+      
+      // Allow querying the groups collection ONLY when looking for a specific join code.
+      allow list: if isSignedIn() && request.query.keys().hasOnly(['joinCode']) && request.query.limit == 1;
+
+      // Allow creating a group if the user sets themselves as owner and initial member.
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId && request.auth.uid in request.resource.data.memberIds;
+      
+      // Allow owner to update (e.g., add members, change name). A user joining is also an update.
       allow update: if isGroupOwner();
+      
+      // Allow owner to delete the group.
       allow delete: if isGroupOwner();
 
       /**
