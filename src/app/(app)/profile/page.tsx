@@ -401,7 +401,7 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
                 
-                {userProfile?.email === 'babacan.muharrem@gmail.com' && (
+                {userProfile?.email === 'admin@viewora.ai' && (
                     <AdminTools />
                 )}
 

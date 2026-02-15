@@ -59,7 +59,7 @@ service cloud.firestore {
      * systems. Custom claims are a more secure alternative. This is for prototyping.
      */
     function isAdmin() {
-      return request.auth.token.email == 'babacan.muharrem@gmail.com';
+      return request.auth.token.email == 'admin@viewora.ai';
     }
 
     /**
