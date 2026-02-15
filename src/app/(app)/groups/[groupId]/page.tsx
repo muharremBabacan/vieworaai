@@ -250,7 +250,7 @@ export default function GroupDetailPage() {
                                 <span className="sr-only">Davet Seçeneklerini Göster</span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
+                        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>Gruba Katılım Daveti</DialogTitle>
                                 <DialogDescription>
@@ -259,10 +259,10 @@ export default function GroupDetailPage() {
                             </DialogHeader>
                             <div className="flex items-center justify-center p-4 bg-white rounded-lg my-4">
                                 <Image
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(joinUrl)}`}
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(joinUrl)}`}
                                     alt="Grup Katılım QR Kodu"
-                                    width={256}
-                                    height={256}
+                                    width={192}
+                                    height={192}
                                 />
                             </div>
                             
