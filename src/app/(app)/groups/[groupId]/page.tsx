@@ -35,6 +35,54 @@ const addMemberSchema = z.object({
 
 type AddMemberValues = z.infer<typeof addMemberSchema>;
 
+function MemberAvatar({ userId }: { userId: string }) {
+  const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !userId) return null;
+    return doc(firestore, 'users', userId);
+  }, [firestore, userId]);
+  
+  const { data: userProfile, isLoading } = useDoc<UserProfile>(userDocRef);
+
+  if (isLoading) {
+    return <Skeleton className="h-10 w-10 rounded-full" />;
+  }
+  
+  if (!userProfile) {
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger>
+                    <Avatar>
+                        <AvatarFallback>?</AvatarFallback>
+                    </Avatar>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Kullanıcı bulunamadı</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+  }
+  
+  const fallbackChar = userProfile.name?.charAt(0) || userProfile.email?.charAt(0) || '?';
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <Avatar>
+            <AvatarFallback>{fallbackChar.toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{userProfile.name || userProfile.email}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef: any; userLevel?: string; }) {
   const firestore = useFirestore();
   const { toast } = useToast();
