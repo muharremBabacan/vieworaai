@@ -253,7 +253,7 @@ export default function GroupsPage() {
           {/* Page title is already in layout */}
         </div>
         <CreateGroupDialog 
-            canCreate={canCreate} 
+            canCreate={canCreateGroup} 
             limit={limits.maxGroups} 
             ownedCount={ownedGroups?.length ?? 0}
         />
