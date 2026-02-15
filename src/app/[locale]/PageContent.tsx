@@ -11,7 +11,7 @@ import Logo from '@/components/logo';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect } from 'react';
-import { useRouter as useIntlRouter } from '@/navigation';
+import { useRouter as useIntlRouter, Link } from '@/navigation';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4">
@@ -114,31 +114,42 @@ export default function PageContent() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-         <div className="flex flex-col items-center space-y-2 text-center">
-           <Logo className="items-center" />
-           <h1 className="text-2xl font-semibold tracking-tight">
-            Hesap oluşturun veya giriş yapın
-           </h1>
-           <p className="text-sm text-muted-foreground">
-            Devam etmek için Google ile giriş yapın.
-           </p>
-         </div>
-        <div className="grid gap-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => handleSignIn('google')}
-          >
-            <GoogleIcon />
-            Google ile Giriş Yap
-          </Button>
+    <div className="flex min-h-screen flex-col bg-background p-4">
+      <main className="flex flex-grow items-center justify-center">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col items-center space-y-2 text-center">
+            <Logo className="items-center" />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Hesap oluşturun veya giriş yapın
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Devam etmek için Google ile giriş yapın.
+            </p>
+          </div>
+          <div className="grid gap-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => handleSignIn('google')}
+            >
+              <GoogleIcon />
+              Google ile Giriş Yap
+            </Button>
+          </div>
+          <p className="px-8 text-center text-xs text-muted-foreground">
+            Devam ederek, Hizmet Şartlarımızı kabul etmiş ve Gizlilik Politikamızı okumuş olursunuz.
+          </p>
         </div>
-        <p className="px-8 text-center text-xs text-muted-foreground">
-          Devam ederek, Hizmet Şartlarımızı kabul etmiş ve Gizlilik Politikamızı okumuş olursunuz.
-        </p>
-      </div>
+      </main>
+      <footer className="py-4 text-center text-xs text-muted-foreground">
+        <Link href="/privacy" className="px-2 underline-offset-4 hover:text-primary hover:underline">
+          Gizlilik Politikası
+        </Link>
+        <span className="mx-2 border-r"></span>
+        <Link href="/terms" className="px-2 underline-offset-4 hover:text-primary hover:underline">
+          Hizmet Şartları
+        </Link>
+      </footer>
     </div>
   );
 }
