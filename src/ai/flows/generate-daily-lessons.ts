@@ -18,6 +18,7 @@ import {z} from 'genkit';
 const GenerateLessonsInputSchema = z.object({
   level: z.enum(['Temel', 'Orta', 'İleri']),
   category: z.string().optional().describe("The specific category to generate lessons for. If not provided, generate from diverse categories within the level."),
+  language: z.string().describe('The language for the response (e.g., "tr", "en").'),
 });
 export type GenerateLessonsInput = z.infer<typeof GenerateLessonsInputSchema>;
 
@@ -52,7 +53,7 @@ const generationPrompt = ai.definePrompt({
     name: 'structuredCurriculumPrompt',
     input: { schema: GenerateLessonsInputSchema },
     output: { schema: GenerateLessonsOutputSchema },
-    prompt: `You are the head instructor of Viewora AI Coach. Your task is to generate FIVE (5) distinct mini-lessons in TURKISH, for the **{{{level}}}** level, based on the structured curriculum provided below.
+    prompt: `You are the head instructor of Viewora AI Coach. Your task is to generate FIVE (5) distinct mini-lessons in the specified language: {{{language}}}, for the **{{{level}}}** level, based on the structured curriculum provided below.
 
 {{#if category}}
 **IMPORTANT: All five lessons MUST be from the '{{{category}}}' category.**
@@ -60,7 +61,7 @@ const generationPrompt = ai.definePrompt({
 Ensure the generated lessons are diverse, covering different categories within the selected level.
 {{/if}}
 
-**CURRICULUM:**
+**CURRICULUM (This is in Turkish, but generate the output in the requested language: {{{language}}}):**
 
 📸 **TEMEL SEVİYE (Foundation)**
 Amaç: Kamera kontrolü + ışık + temel kompozisyon hakimiyeti.
@@ -88,12 +89,12 @@ Amaç: Uzmanlaşma + ticari değer + sanatsal kimlik.
 
 ---
 
-For each of the FIVE lessons, strictly follow this JSON format and provide the content in Turkish:
+For each of the FIVE lessons, strictly follow this JSON format and provide the content in the requested language: {{{language}}}:
 
 {
   "level": "The level name: 'Temel', 'Orta', or 'İleri'. This MUST match the requested level: {{{level}}}.",
   "category": "The specific category from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı'). {{#if category}}This MUST be '{{{category}}}'{{/if}}",
-  "title": "A compelling title for a specific sub-point within the category (e.g., 'Diyafram ve Alan Derinliği İlişkisi').",
+  "title": "A compelling title for a specific sub-point within the category (e.g., 'Aperture and Depth of Field').",
   "learningObjective": "A concise learning objective for this specific title.",
   "theory": "Explain the topic simply in 3-4 solution-oriented sentences.",
   "analysisCriteria": [

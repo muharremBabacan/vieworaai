@@ -1,0 +1,26 @@
+{
+  "UserNav": {
+    "settings": "Ayarlar",
+    "buy_auro": "Auro Satın Al",
+    "auro": "Auro",
+    "level": "Seviye",
+    "sign_out": "Çıkış Yap"
+  },
+  "AppLayout": {
+    "title_academy": "Viewora Akademi",
+    "title_explore": "Sergi Salonu",
+    "title_dashboard": "Yapay Zeka Koçu",
+    "title_competitions": "Yarışmalar",
+    "title_gallery": "Fotoğraflarım",
+    "title_groups": "Gruplarım",
+    "title_profile": "Ayarlar",
+    "title_pricing": "Auro Paketleri",
+    "title_default": "Viewora",
+    "nav_academy": "Akademi",
+    "nav_explore": "Keşfet",
+    "nav_groups": "Gruplar",
+    "nav_coach": "Koç",
+    "nav_gallery": "Galerim",
+    "nav_settings": "Ayarlar"
+  }
+}

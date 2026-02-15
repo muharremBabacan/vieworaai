@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,12 +15,14 @@ import { Badge } from './ui/badge';
 import { Gem, LogOut, Award, ShieldCheck, User as UserIcon, Coins, Settings } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
 import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Skeleton } from './ui/skeleton';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/navigation';
 
 export function UserNav() {
+  const t = useTranslations('UserNav');
   const { user: authUser, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -88,13 +89,13 @@ export function UserNav() {
            <DropdownMenuItem asChild>
              <Link href="/profile">
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Ayarlar</span>
+                <span>{t('settings')}</span>
               </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/pricing">
               <Coins className="mr-2 h-4 w-4" />
-              <span>Auro Satın Al</span>
+              <span>{t('buy_auro')}</span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
@@ -103,14 +104,14 @@ export function UserNav() {
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Gem className="h-4 w-4 text-cyan-400" />
-              <span>Auro</span>
+              <span>{t('auro')}</span>
             </div>
             <span className="font-semibold">{auroBalance}</span>
           </div>
           <div className="px-2 py-1.5 text-sm flex items-center justify-between">
              <div className="flex items-center gap-2 text-muted-foreground">
               <Award className="h-4 w-4" />
-              <span>Seviye</span>
+              <span>{t('level')}</span>
             </div>
             <Badge variant={isMentor ? 'default' : 'secondary'} className="capitalize">
               {isMentor && <ShieldCheck className="mr-1 h-3 w-3"/>}
@@ -121,7 +122,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Çıkış Yap</span>
+          <span>{t('sign_out')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
