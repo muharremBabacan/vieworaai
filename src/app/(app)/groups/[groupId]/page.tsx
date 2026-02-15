@@ -176,6 +176,7 @@ export default function GroupDetailPage() {
   const { toast } = useToast();
 
   const [joinUrl, setJoinUrl] = useState('');
+  const [isInviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -196,7 +197,20 @@ export default function GroupDetailPage() {
 
   const isOwner = currentUser?.uid === group?.ownerId;
 
+  const handleInviteDialogOpenChange = (open: boolean) => {
+    if (open && isOwner && !group?.joinCode && groupDocRef) {
+      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      updateDocumentNonBlocking(groupDocRef, { joinCode: newCode });
+      toast({
+        title: "Katılım Kodu Oluşturuldu",
+        description: "Bu grup için yeni bir katılım kodu oluşturuldu ve kaydedildi."
+      });
+    }
+    setInviteDialogOpen(open);
+  };
+
   const copyToClipboard = (text: string, type: 'Link' | 'Kod') => {
+    if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
       toast({ title: 'Kopyalandı!', description: `${type} panoya kopyalandı.` });
     }, (err) => {
@@ -243,7 +257,7 @@ export default function GroupDetailPage() {
             <div className="flex items-center gap-2"><Users /> Üyeler</div>
              <div className="flex items-center gap-2">
                 {isOwner && joinUrl && (
-                    <Dialog>
+                    <Dialog open={isInviteDialogOpen} onOpenChange={handleInviteDialogOpenChange}>
                         <DialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <QrCode className="h-5 w-5" />
