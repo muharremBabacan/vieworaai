@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2, Camera, Smartphone, HelpCircle } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
@@ -104,6 +104,10 @@ function PhotoDetailDialog({
   const getCameraInfo = () => {
     if (!photo?.aiFeedback) return null;
     
+    if (photo.aiFeedback.isAiGenerated) {
+      return { icon: Bot, text: 'Bu görsel Yapay Zeka ile üretilmiştir', color: 'text-purple-400' };
+    }
+
     const { cameraType, cameraMake, cameraModel } = photo.aiFeedback;
 
     if (!cameraType || cameraType === 'Bilinmiyor') {
@@ -288,8 +292,8 @@ function PhotoDetailDialog({
 
             <div className="space-y-4">
               {CameraInfo && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 rounded-lg border bg-secondary/30">
-                      <CameraInfo.icon className="h-5 w-5 text-primary" />
+                  <div className={cn("flex items-center gap-2 text-sm p-3 rounded-lg border bg-secondary/30", CameraInfo.color)}>
+                      <CameraInfo.icon className={cn("h-5 w-5", CameraInfo.color ? CameraInfo.color : 'text-primary')} />
                       <span className="font-medium">{CameraInfo.text}</span>
                   </div>
               )}

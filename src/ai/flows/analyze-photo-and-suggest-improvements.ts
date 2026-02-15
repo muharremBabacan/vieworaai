@@ -34,6 +34,7 @@ const AnalyzePhotoAndSuggestImprovementsOutputSchema = z.object({
     })
     .describe('Provide ratings for the photo based on the specified criteria.'),
   tags: z.array(z.string()).max(10).describe('Provide up to 10 relevant tags in Turkish for the photo\'s content, style, and mood (e.g., "portre", "manzara", "sokak fotoğrafçılığı", "siyah beyaz", "minimalist", "mutlu").'),
+  isAiGenerated: z.boolean().describe("Görseldeki kalıplar, gerçek dışı dokular veya bilinen yapay zeka artefaktları gibi ipuçlarına dayanarak fotoğrafın yapay zeka tarafından üretilip üretilmediğini belirleyin."),
   cameraType: z.enum(['Profesyonel', 'Mobil', 'Bilinmiyor']).describe("Fotoğrafın muhtemelen profesyonel bir kamera (DSLR, Aynasız) ile mi yoksa bir cep telefonu ile mi çekildiğini belirleyin. Anlaşılması imkansızsa 'Bilinmiyor' kullanın."),
   cameraMake: z.string().describe("Tahmin edilen kamera markası (örn: 'Apple', 'Sony', 'Canon'). Emin değilseniz 'Bilinmiyor' kullanın."),
   cameraModel: z.string().describe("Tahmin edilen kamera modeli (örn: 'iPhone 15 Pro', 'A7 IV', 'EOS R5'). Emin değilseniz 'Bilinmiyor' kullanın."),
@@ -55,11 +56,12 @@ const analysisPrompt = ai.definePrompt({
 
   Your task is to provide a detailed analysis, actionable improvement tips, a rating, and detailed camera information.
 
-  **Kamera Analizi:** Alan derinliği, görüntü kalitesi, lens bozulması gibi görsel ipuçlarına dayanarak aşağıdaki alanları doldur:
+  **Yapay Zeka Tespiti:** İlk olarak, görseldeki kalıplar, gerçek dışı dokular, tutarsız ışıklandırma veya bilinen yapay zeka artefaktları (örn: fazla parmak, garip nesne birleşimleri) gibi ipuçlarına dayanarak bu görselin yapay zeka ile üretilip üretilmediğini belirle. \`isAiGenerated\` alanını bu tespite göre 'true' veya 'false' olarak ayarla.
+
+  **Kamera Analizi:** Eğer fotoğraf yapay zeka üretimi değilse (\`isAiGenerated\` false ise), alan derinliği, görüntü kalitesi, lens bozulması gibi görsel ipuçlarına dayanarak aşağıdaki alanları doldur. Eğer fotoğraf yapay zeka ile üretilmişse, bu alanların tamamını 'Bilinmiyor' olarak ayarla.
   - \`cameraType\`: Fotoğrafın 'Profesyonel' bir kamera mı yoksa 'Mobil' bir cihazla mı çekildiğini belirle.
   - \`cameraMake\`: Kameranın markasını tahmin et (örn: 'Apple', 'Sony', 'Canon').
   - \`cameraModel\`: Kameranın modelini tahmin et (örn: 'iPhone 15 Pro', 'A7 IV', 'EOS R5').
-  Marka veya modelden emin değilsen, ilgili alan için 'Bilinmiyor' değerini kullan.
 
   **IMPORTANT INSTRUCTIONS for the 'tags' field:**
   1.  Generate tags related ONLY to photography concepts. These include:
