@@ -1,6 +1,8 @@
 'use client';
 import { Link } from '@/navigation';
 import Logo from '@/components/logo';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export default function TermsOfServicePage() {
   return (
@@ -12,6 +14,15 @@ export default function TermsOfServicePage() {
       </div>
       <h1 className="text-3xl font-bold text-center">Hizmet Şartları</h1>
       <p className="text-sm text-muted-foreground text-center">Son güncelleme: 24 Temmuz 2024</p>
+
+      <div className="text-center">
+        <Button variant="outline" asChild>
+            <Link href="/">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Giriş Sayfasına Dön
+            </Link>
+        </Button>
+      </div>
 
       <div className="space-y-6 text-foreground/80 leading-relaxed">
         <p><strong>Bu belge geçici bir yer tutucudur. Lütfen yasal gerekliliklerinizi karşılayan kendi Hizmet Şartlarınız ile değiştirin.</strong></p>
