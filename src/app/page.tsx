@@ -5,11 +5,12 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect } from 'react';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4">
@@ -26,6 +27,14 @@ export default function HomePage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const redirectUri = searchParams.get('redirect_uri');
+    if (redirectUri) {
+      sessionStorage.setItem('loginRedirectUri', redirectUri);
+    }
+  }, [searchParams]);
 
   const handleSignIn = async (providerName: 'google') => {
     const provider = new GoogleAuthProvider();
@@ -52,6 +61,14 @@ export default function HomePage() {
           onboarded: false,
         });
       }
+
+      const redirectUri = sessionStorage.getItem('loginRedirectUri');
+      if (redirectUri) {
+        sessionStorage.removeItem('loginRedirectUri');
+        router.push(redirectUri);
+        return;
+      }
+
       // Kullanıcıyı onboarding'i yapmadıysa oraya, yaptıysa profiline yönlendir.
       if (docSnap.exists() && docSnap.data().onboarded) {
         router.push('/profile');

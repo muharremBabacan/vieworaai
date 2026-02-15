@@ -20,7 +20,7 @@ export default function JoinGroupPage() {
   const firestore = useFirestore();
 
   const groupId = Array.isArray(params.groupId) ? params.groupId[0] : params.groupId;
-  const [status, setStatus] = useState<'loading' | 'unauthenticated' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Gruba katılma isteğiniz işleniyor...');
 
   useEffect(() => {
@@ -29,8 +29,11 @@ export default function JoinGroupPage() {
     }
 
     if (!user) {
-      setStatus('unauthenticated');
-      setMessage('Gruba katılmak için lütfen giriş yapın.');
+      // User is not authenticated. Redirect them to the login page.
+      // Pass the current path as a `redirect_uri` so we can come back.
+      const currentPath = window.location.pathname;
+      router.replace(`/?redirect_uri=${encodeURIComponent(currentPath)}`);
+      setMessage('Giriş sayfasına yönlendiriliyorsunuz...');
       return;
     }
 
@@ -103,17 +106,6 @@ export default function JoinGroupPage() {
           <>
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <CardTitle>{message}</CardTitle>
-          </>
-        );
-      case 'unauthenticated':
-        return (
-          <>
-            <ShieldAlert className="h-12 w-12 text-destructive" />
-            <CardTitle>Giriş Gerekli</CardTitle>
-            <CardDescription>{message}</CardDescription>
-            <Button asChild className="mt-4">
-              <Link href="/">Giriş Yap</Link>
-            </Button>
           </>
         );
       case 'success':
