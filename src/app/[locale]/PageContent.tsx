@@ -117,7 +117,7 @@ export default function PageContent() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
          <div className="flex flex-col items-center space-y-2 text-center">
-           <Logo className="mb-4" />
+           <Logo className="items-center" />
            <h1 className="text-2xl font-semibold tracking-tight">
             Hesap oluşturun veya giriş yapın
            </h1>
