@@ -99,7 +99,7 @@ export default function PageContent() {
         description = 'Lütfen Firebase projenizde Google ile girişi etkinleştirdiğinizden emin olun.'
       }
       else if (error.code === 'auth/unauthorized-domain') {
-        description = 'Bu domain, Firebase projenizde yetkilendirilmemiş. Lütfen Firebase konsolundan yetkilendirin.';
+        description = `Bu alan adı, Firebase projenizde kimlik doğrulama için yetkilendirilmemiş. viewora.ai alan adını Firebase Console > Authentication > Settings > Authorized domains bölümüne eklemelisiniz.`;
       } else if (error.message) {
         description = error.message;
       }
