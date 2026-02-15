@@ -85,6 +85,7 @@ export type Group = {
   memberIds: string[];
   createdAt: string;
   joinCode?: string;
+  maxMembers: number;
 };
 
 export type ChatMessage = {

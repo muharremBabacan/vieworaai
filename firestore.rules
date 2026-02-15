@@ -165,10 +165,10 @@ service cloud.firestore {
     /**
      * @description Controls access to user-created groups.
      * @path /groups/{groupId}
-     * @allow (get) Any authenticated user. Needed for join-by-link/code functionality.
+     * @allow (get) Any member of the group or the owner.
      * @allow (list) Only for querying by a specific joinCode.
      * @allow (create) Any signed-in user who sets themselves as owner.
-     * @allow (update) The group owner OR a user joining the group.
+     * @allow (update) The group owner OR a user joining a non-full group.
      * @allow (delete) Only the group owner.
      */
     match /groups/{groupId} {
@@ -176,37 +176,28 @@ service cloud.firestore {
           return isSignedIn() && request.auth.uid == resource.data.ownerId;
         }
 
-        // Helper function to check if the only change is a user adding themselves to memberIds
-        function isJoiningGroup() {
-          // The user must be authenticated.
-          if (!isSignedIn()) {
-            return false;
-          }
-          
-          // The incoming member list must be exactly the old list plus the new user.
-          let isAddingSelf = request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid]);
-          
-          // No other fields can be changed.
-          // The only key allowed to change is 'memberIds'.
-          let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
-          
-          return isAddingSelf && changedKeys.size() == 1 && changedKeys.hasAny(['memberIds']);
+        function isGroupMember() {
+          return isSignedIn() && request.auth.uid in resource.data.memberIds;
         }
         
-        // Allow any authenticated user to read group details.
-        // This is necessary for join flows where a non-member needs to read group info.
-        allow get: if isSignedIn();
+        function isJoiningGroupAndNotFull() {
+          if (!isSignedIn() || !exists(path)) { return false; }
+          let isAddingSelf = request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid]);
+          let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+          let onlyMembersChanged = changedKeys.size() == 1 && changedKeys.hasAny(['memberIds']);
+          let isNotFull = request.resource.data.memberIds.size() <= resource.data.maxMembers;
+          
+          return isAddingSelf && onlyMembersChanged && isNotFull;
+        }
+
+        allow get: if isGroupOwner() || isGroupMember();
         
-        // Allow querying the groups collection ONLY when looking for a specific join code.
         allow list: if isSignedIn() && request.query.keys().hasOnly(['joinCode']) && request.query.limit == 1;
 
-        // Allow creating a group if the user sets themselves as owner and initial member.
         allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId && request.auth.uid in request.resource.data.memberIds;
         
-        // Allow owner to update OR a user to join the group.
-        allow update: if isGroupOwner() || isJoiningGroup();
+        allow update: if isGroupOwner() || isJoiningGroupAndNotFull();
         
-        // Allow owner to delete the group.
         allow delete: if isGroupOwner();
 
       /**

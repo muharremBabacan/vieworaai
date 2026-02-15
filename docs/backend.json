@@ -285,6 +285,10 @@
             "type": "string"
           }
         },
+        "maxMembers": {
+          "type": "number",
+          "description": "The maximum number of members this group can have, based on the owner's level."
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the group was created.",
@@ -296,6 +300,7 @@
         "name",
         "ownerId",
         "memberIds",
+        "maxMembers",
         "createdAt"
       ]
     }

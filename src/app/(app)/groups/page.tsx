@@ -36,7 +36,7 @@ const createGroupSchema = z.object({
 
 type CreateGroupValues = z.infer<typeof createGroupSchema>;
 
-function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolean; limit: number; ownedCount: number }) {
+function CreateGroupDialog({ canCreate, limit, ownedCount, userLevel }: { canCreate: boolean; limit: number; ownedCount: number, userLevel?: string }) {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
@@ -55,6 +55,8 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
 
     try {
       const groupsCollectionRef = collection(firestore, 'groups');
+      const { maxMembers } = getGroupLimits(userLevel);
+
       const newGroupData = {
         name: values.name,
         description: values.description || '',
@@ -62,6 +64,7 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
         memberIds: [user.uid],
         joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
         createdAt: new Date().toISOString(),
+        maxMembers: maxMembers,
       };
       
       const newGroupRef = await addDoc(groupsCollectionRef, newGroupData);
@@ -201,16 +204,7 @@ function JoinGroupDialog() {
         return;
       }
       
-      const ownerRef = doc(firestore, 'users', group.ownerId);
-      const ownerSnap = await getDoc(ownerRef);
-      const ownerProfile = ownerSnap.data() as UserProfile;
-      const { maxMembers } = getGroupLimits(ownerProfile?.level_name);
-
-      if (group.memberIds.length >= maxMembers) {
-        toast({ variant: 'destructive', title: 'Grup Dolu', description: `Bu grup en fazla ${maxMembers} üyeye sahip olabilir.` });
-        return;
-      }
-
+      // The group is found, now attempt to join. Security rules will handle capacity check.
       await updateDoc(groupRef, {
         memberIds: arrayUnion(user.uid),
       });
@@ -228,8 +222,8 @@ function JoinGroupDialog() {
       console.error('Koda göre katılma hatası:', error);
       toast({
         variant: 'destructive',
-        title: 'Hata',
-        description: 'Gruba katılırken bir sorun oluştu.',
+        title: 'Katılım Başarısız',
+        description: 'Gruba katılamadınız. Grup dolu olabilir veya bir hata oluştu.',
       });
     }
   };
@@ -373,6 +367,7 @@ export default function GroupsPage() {
                 canCreate={canCreateGroup} 
                 limit={limits.maxGroups} 
                 ownedCount={ownedGroups?.length ?? 0}
+                userLevel={userProfile?.level_name}
             />
         </div>
       </div>
