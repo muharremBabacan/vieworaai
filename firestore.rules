@@ -190,7 +190,7 @@ service cloud.firestore {
           && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
           && request.auth.uid in request.resource.data.memberIds
           && request.resource.data.memberIds.hasAll(resource.data.memberIds)
-          && request.resource.data.memberIds.size() <= resource.data.maxMembers;
+          && request.resource.data.memberIds.size() <= ('maxMembers' in resource.data ? resource.data.maxMembers : 7);
       }
 			
       // READ: Only members of the group can read its details.
