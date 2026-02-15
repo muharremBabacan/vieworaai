@@ -76,6 +76,15 @@ export type Competition = {
   imageHint: string;
 };
 
+export type Group = {
+  id: string;
+  name: string;
+  description: string;
+  ownerId: string;
+  memberIds: string[];
+  createdAt: string;
+};
+
 export type ChatMessage = {
   id: string;
   text: string;

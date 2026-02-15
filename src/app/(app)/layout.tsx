@@ -10,6 +10,7 @@ import {
   Sparkles,
   Compass,
   Settings,
+  Users,
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -23,31 +24,37 @@ const navItems = [
     href: '/academy',
     icon: GraduationCap,
     label: 'Akademi',
-    shortLabel: 'Akademi'
+    shortLabel: 'Akademi',
   },
   {
     href: '/explore',
     icon: Compass,
     label: 'Keşfet',
-    shortLabel: 'Keşfet'
+    shortLabel: 'Keşfet',
+  },
+  {
+    href: '/groups',
+    icon: Users,
+    label: 'Gruplar',
+    shortLabel: 'Gruplar',
   },
   {
     href: '/dashboard',
     icon: Sparkles,
     label: 'Yapay Zeka Koçu',
-    shortLabel: 'Koç'
+    shortLabel: 'Koç',
   },
   {
     href: '/gallery',
     icon: GalleryVertical,
     label: 'Fotoğraflarım',
-    shortLabel: 'Galerim'
+    shortLabel: 'Galerim',
   },
   {
     href: '/profile',
     icon: Settings,
     label: 'Ayarlar',
-    shortLabel: 'Ayarlar'
+    shortLabel: 'Ayarlar',
   },
 ];
 
@@ -63,8 +70,9 @@ const pageTitleMap: Record<string, string> = {
   '/dashboard': 'Yapay Zeka Koçu',
   '/competitions': 'Yarışmalar',
   '/gallery': 'Fotoğraflarım',
+  '/groups': 'Gruplarım',
   '/profile': 'Ayarlar',
-  '/pricing': 'Auro Paketleri'
+  '/pricing': 'Auro Paketleri',
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -160,7 +168,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/90 backdrop-blur-sm">
-        <div className="mx-auto grid h-16 max-w-md grid-cols-5">
+        <div className="mx-auto grid h-16 max-w-md grid-cols-6">
           {navItems.map((item) => (
             <Link
               key={item.href}
