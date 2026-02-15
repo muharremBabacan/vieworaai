@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc, documentId } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc, documentId, addDoc } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,14 +64,12 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
         createdAt: new Date().toISOString(),
       };
       
-      const newGroupRef = await addDocumentNonBlocking(groupsCollectionRef, newGroupData);
+      const newGroupRef = await addDoc(groupsCollectionRef, newGroupData);
 
-      if (user && newGroupRef) {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          await updateDoc(userDocRef, {
-              groups: arrayUnion(newGroupRef.id)
-          });
-      }
+      const userDocRef = doc(firestore, 'users', user.uid);
+      await updateDoc(userDocRef, {
+          groups: arrayUnion(newGroupRef.id)
+      });
 
 
       toast({
