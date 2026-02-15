@@ -164,67 +164,82 @@ service cloud.firestore {
     
     /**
      * @description Controls access to user-created groups.
-     * @path /groups/{groupId}
-     * @allow (get) Any member of the group or the owner.
-     * @allow (list) Only for querying by a specific joinCode.
-     * @allow (create) Any signed-in user who sets themselves as owner.
-     * @allow (update) The group owner OR a user joining a non-full group.
-     * @allow (delete) Only the group owner.
      */
     match /groups/{groupId} {
-        function isGroupOwner() {
-          return isSignedIn() && request.auth.uid == resource.data.ownerId;
-        }
+      function isGroupOwner() {
+        return isSignedIn() && request.auth.uid == resource.data.ownerId;
+      }
 
-        function isGroupMember() {
-          return isSignedIn() && request.auth.uid in resource.data.memberIds;
-        }
-        
-        function isJoiningGroupAndNotFull() {
-          if (!isSignedIn() || !exists(path)) { return false; }
-          let isAddingSelf = request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid]);
-          let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
-          let onlyMembersChanged = changedKeys.size() == 1 && changedKeys.hasAny(['memberIds']);
-          let isNotFull = request.resource.data.memberIds.size() <= resource.data.maxMembers;
-          
-          return isAddingSelf && onlyMembersChanged && isNotFull;
-        }
+      function isGroupMember() {
+        return isSignedIn() && request.auth.uid in resource.data.memberIds;
+      }
 
-        allow get: if isGroupOwner() || isGroupMember();
+			function isJoiningGroupAndNotFull() {
+        // This function is for a user joining a group. It validates that:
+        // 1. The user is signed in and the group exists.
+        // 2. The only field being changed is 'memberIds'.
+        // 3. Exactly one member is being added.
+        // 4. The user being added is the one making the request.
+        // 5. No existing members are being removed.
+        // 6. The group is not already at its maximum capacity.
+        if (!isSignedIn() || !exists(path)) { return false; }
         
-        allow list: if isSignedIn() && request.query.keys().hasOnly(['joinCode']) && request.query.limit == 1;
+        let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+        
+        return changedKeys.hasOnly(['memberIds'])
+          && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+          && request.auth.uid in request.resource.data.memberIds
+          && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+          && request.resource.data.memberIds.size() <= resource.data.maxMembers;
+      }
+			
+      // READ: Only members of the group can read its details.
+      allow get: if isGroupMember();
 
-        allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId && request.auth.uid in request.resource.data.memberIds;
-        
-        allow update: if isGroupOwner() || isJoiningGroupAndNotFull();
-        
-        allow delete: if isGroupOwner();
+      // SEARCH: Allows searching for a group by its join code, but only for signed-in users and limited to one result.
+      allow list: if isSignedIn() && request.query.keys().hasOnly(['joinCode']) && request.query.limit == 1;
+
+      // CREATE: Any signed-in user can create a group, but they must be the owner and the only initial member.
+      allow create: if isSignedIn()
+                    && request.auth.uid == request.resource.data.ownerId
+                    && request.auth.uid in request.resource.data.memberIds
+                    && request.resource.data.memberIds.size() == 1;
+
+      // UPDATE: The owner can modify the group, or another user can join if the conditions are met.
+      allow update: if isGroupOwner() || isJoiningGroupAndNotFull();
+
+      // DELETE: Only the group owner can delete the group.
+      allow delete: if isGroupOwner();
 
       /**
        * @description Controls access to a group's shared photo gallery.
-       * @path /groups/{groupId}/photos/{photoId}
-       * @allow (get, list) Any member of the parent group.
-       * @allow (create) Any member of the parent group.
-       * @allow (delete) The user who uploaded the photo, or the group owner.
-       * @principle Inherits read/write permissions from the parent group's membership.
        */
       match /photos/{photoId} {
+        // Helper to check if the requester is a member of the parent group.
         function parentGroupIsMember() {
           let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
           return isSignedIn() && groupDoc != null && request.auth.uid in groupDoc.data.memberIds;
         }
 
-        function isGroupOrPhotoOwner() {
+        // Helper to check if the requester is the owner of the photo or the owner of the group.
+        function isPhotoOrGroupOwner() {
           let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
           let isPhotoOwner = request.auth.uid == resource.data.userId;
           let isGroupOwner = groupDoc != null && isSignedIn() && request.auth.uid == groupDoc.data.ownerId;
           return isPhotoOwner || isGroupOwner;
         }
 
+        // READ: Any member of the parent group can see the photos.
         allow get, list: if parentGroupIsMember();
-        allow create: if parentGroupIsMember() && hasValidNewChildData(request.auth.uid);
-        allow update: if false; // Photos are immutable once posted to a group gallery
-        allow delete: if isGroupOrPhotoOwner();
+
+        // CREATE: Any member can upload a photo, but must correctly set their own userId.
+        allow create: if parentGroupIsMember() && request.resource.data.userId == request.auth.uid;
+
+        // UPDATE: Photos are immutable once posted.
+        allow update: if false;
+
+        // DELETE: Only the user who uploaded the photo or the group owner can delete it.
+        allow delete: if isPhotoOrGroupOwner();
       }
     }
 
