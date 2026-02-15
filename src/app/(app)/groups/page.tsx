@@ -358,7 +358,8 @@ export default function GroupsPage() {
   const limits = getGroupLimits(userProfile?.level_name);
   const canCreateGroup = ownedGroups ? ownedGroups.length < limits.maxGroups : false;
 
-  const isLoading = isProfileLoading || memberLoading;
+  const isLoading = isProfileLoading || (groupIds && groupIds.length > 0 && memberLoading);
+
 
   return (
     <div className="container mx-auto">
@@ -396,5 +397,3 @@ export default function GroupsPage() {
     </div>
   );
 }
-
-    
