@@ -165,36 +165,49 @@ service cloud.firestore {
     /**
      * @description Controls access to user-created groups.
      * @path /groups/{groupId}
-     * @allow (get) Any member of the group, based on the user's own profile data.
+     * @allow (get) Any authenticated user. Needed for join-by-link/code functionality.
      * @allow (list) Only for querying by a specific joinCode.
      * @allow (create) Any signed-in user who sets themselves as owner.
-     * @allow (update) Only the group owner.
+     * @allow (update) The group owner OR a user joining the group.
      * @allow (delete) Only the group owner.
      */
     match /groups/{groupId} {
-      function isGroupMember() {
-          // A user is a member if the group's ID exists in their own user profile's 'groups' array.
-          return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.groups.hasAny([groupId]);
-      }
+        function isGroupOwner() {
+          return isSignedIn() && request.auth.uid == resource.data.ownerId;
+        }
 
-      function isGroupOwner() {
-        return isSignedIn() && request.auth.uid == resource.data.ownerId;
-      }
-      
-      // Allow reading a group's details if the user is a member. This works for `where...in` queries.
-      allow get: if isGroupMember();
-      
-      // Allow querying the groups collection ONLY when looking for a specific join code.
-      allow list: if isSignedIn() && request.query.keys().hasOnly(['joinCode']) && request.query.limit == 1;
+        // Helper function to check if the only change is a user adding themselves to memberIds
+        function isJoiningGroup() {
+          // The user must be authenticated.
+          if (!isSignedIn()) {
+            return false;
+          }
+          
+          // The incoming member list must be exactly the old list plus the new user.
+          let isAddingSelf = request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid]);
+          
+          // No other fields can be changed.
+          // The only key allowed to change is 'memberIds'.
+          let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+          
+          return isAddingSelf && changedKeys.size() == 1 && changedKeys.hasAny(['memberIds']);
+        }
+        
+        // Allow any authenticated user to read group details.
+        // This is necessary for join flows where a non-member needs to read group info.
+        allow get: if isSignedIn();
+        
+        // Allow querying the groups collection ONLY when looking for a specific join code.
+        allow list: if isSignedIn() && request.query.keys().hasOnly(['joinCode']) && request.query.limit == 1;
 
-      // Allow creating a group if the user sets themselves as owner and initial member.
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId && request.auth.uid in request.resource.data.memberIds;
-      
-      // Allow owner to update (e.g., add members, change name). A user joining is also an update.
-      allow update: if isGroupOwner();
-      
-      // Allow owner to delete the group.
-      allow delete: if isGroupOwner();
+        // Allow creating a group if the user sets themselves as owner and initial member.
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId && request.auth.uid in request.resource.data.memberIds;
+        
+        // Allow owner to update OR a user to join the group.
+        allow update: if isGroupOwner() || isJoiningGroup();
+        
+        // Allow owner to delete the group.
+        allow delete: if isGroupOwner();
 
       /**
        * @description Controls access to a group's shared photo gallery.
