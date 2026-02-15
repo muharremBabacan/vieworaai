@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -60,7 +60,7 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
         description: values.description || '',
         ownerId: user.uid,
         memberIds: [user.uid],
-        joinCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
         createdAt: new Date().toISOString(),
       };
       await addDocumentNonBlocking(groupsCollectionRef, newGroupData);
@@ -154,7 +154,7 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
 }
 
 const joinGroupSchema = z.object({
-  code: z.string().min(6, 'Kod 6 karakter olmalıdır.').max(6, 'Kod 6 karakter olmalıdır.'),
+  code: z.string().length(6, 'Kod 6 haneli olmalıdır.').regex(/^\d{6}$/, 'Kod sadece 6 rakamdan oluşmalıdır.'),
 });
 type JoinGroupValues = z.infer<typeof joinGroupSchema>;
 
@@ -173,7 +173,7 @@ function JoinGroupDialog() {
   const onSubmit = async (values: JoinGroupValues) => {
     if (!user || !firestore) return;
 
-    const code = values.code.toUpperCase();
+    const code = values.code;
     
     try {
       const q = query(collection(firestore, 'groups'), where('joinCode', '==', code), limit(1));
@@ -244,7 +244,7 @@ function JoinGroupDialog() {
                 <FormItem>
                   <FormLabel>Davet Kodu</FormLabel>
                   <FormControl>
-                    <Input placeholder="ABCDEF" {...field} onChange={(e) => field.onChange(e.target.value.toUpperCase())} />
+                    <Input placeholder="123456" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -199,7 +199,7 @@ export default function GroupDetailPage() {
 
   const handleInviteDialogOpenChange = (open: boolean) => {
     if (open && isOwner && !group?.joinCode && groupDocRef) {
-      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const newCode = Math.floor(100000 + Math.random() * 900000).toString();
       updateDocumentNonBlocking(groupDocRef, { joinCode: newCode });
       toast({
         title: "Katılım Kodu Oluşturuldu",
@@ -288,7 +288,7 @@ export default function GroupDetailPage() {
                             <div className="space-y-2">
                               <Label htmlFor="join-code">6 Haneli Katılım Kodu</Label>
                               <div className="flex items-center space-x-2">
-                                <Input id="join-code" value={group.joinCode || 'YOK'} readOnly className="font-mono text-center tracking-widest text-lg" />
+                                <Input id="join-code" value={group.joinCode || 'YOK'} readOnly className="font-mono text-center tracking-wider text-lg" />
                                 <Button onClick={() => copyToClipboard(group.joinCode || '', 'Kod')} disabled={!group.joinCode}>Kopyala</Button>
                               </div>
                             </div>
