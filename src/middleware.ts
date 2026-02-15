@@ -9,12 +9,10 @@ export default createMiddleware({
 });
  
 export const config = {
-  // By default, middleware is applied to all paths.
-  // We need to exclude paths that shouldn't be internationalized.
-  // This includes API routes, Next.js assets, and the Firebase auth handler.
+  // Match only internationalized pathnames
   matcher: [
     // Skip all paths that should not be internationalized. This includes the
-    // Firebase auth handler (`__/` paths).
-    '/((?!api|_next/static|_next/image|favicon.ico|__/.*).*)'
+    // Firebase auth handler (`__/` paths) and all assets.
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|__/.*).*)'
   ]
 };
