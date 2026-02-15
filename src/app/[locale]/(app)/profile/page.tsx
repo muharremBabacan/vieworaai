@@ -18,14 +18,24 @@ import { useLocale } from 'next-intl';
 function RevenueReport() {
     const firestore = useFirestore();
     const {toast} = useToast();
+    const { user } = useUser();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
     const transactionsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        // This is a collection group query that requires a specific security rule.
+        if (!firestore || !userProfile || userProfile.email !== 'admin@viewora.ai') {
+            return null;
+        }
         return collectionGroup(firestore, 'transactions');
-    }, [firestore]);
+    }, [firestore, userProfile]);
 
-    const { data: transactions, isLoading, error } = useCollection<Transaction>(transactionsQuery);
+    const { data: transactions, isLoading: isCollectionLoading, error } = useCollection<Transaction>(transactionsQuery);
+    
+    const isLoading = isProfileLoading || isCollectionLoading;
 
     useEffect(() => {
         if (error) {
@@ -68,7 +78,10 @@ function RevenueReport() {
         )
     }
 
-    if (error) return null;
+    if (error || (!transactions && !isLoading)) {
+        return null;
+    }
+
 
     return (
         <Card>
