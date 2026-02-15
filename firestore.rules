@@ -163,6 +163,58 @@ service cloud.firestore {
         allow delete: if isExistingOwner(userId);
       }
     }
+    
+    /**
+     * @description Controls access to user-created groups.
+     * @path /groups/{groupId}
+     * @allow (get) Any member of the group.
+     * @allow (create) Any signed-in user who sets themselves as owner. (Tier logic is handled in app code).
+     * @allow (update, delete) Only the group owner.
+     * @principle Enforces membership for reads and ownership for writes.
+     */
+    match /groups/{groupId} {
+      function isGroupMember() {
+        return isSignedIn() && request.auth.uid in resource.data.memberIds;
+      }
+
+      function isGroupOwner() {
+        return isSignedIn() && request.auth.uid == resource.data.ownerId;
+      }
+      
+      allow get: if isGroupMember();
+      allow list: if false; // Disallow listing all groups for security.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId && request.auth.uid in request.resource.data.memberIds;
+      allow update: if isGroupOwner();
+      allow delete: if isGroupOwner();
+
+      /**
+       * @description Controls access to a group's shared photo gallery.
+       * @path /groups/{groupId}/photos/{photoId}
+       * @allow (get, list) Any member of the parent group.
+       * @allow (create) Any member of the parent group.
+       * @allow (delete) The user who uploaded the photo, or the group owner.
+       * @principle Inherits read/write permissions from the parent group's membership.
+       */
+      match /photos/{photoId} {
+        function parentGroupIsMember() {
+          let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
+          return isSignedIn() && groupDoc != null && request.auth.uid in groupDoc.data.memberIds;
+        }
+
+        function isGroupOrPhotoOwner() {
+          let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
+          let isPhotoOwner = request.auth.uid == resource.data.userId;
+          let isGroupOwner = groupDoc != null && isSignedIn() && request.auth.uid == groupDoc.data.ownerId;
+          return isPhotoOwner || isGroupOwner;
+        }
+
+        allow get, list: if parentGroupIsMember();
+        allow create: if parentGroupIsMember() && hasValidNewChildData(request.auth.uid);
+        allow update: if false; // Photos are immutable once posted to a group gallery
+        allow delete: if isGroupOrPhotoOwner();
+      }
+    }
+
 
     /**
      * @description Controls access to public academy lessons.
@@ -209,3 +261,4 @@ service cloud.firestore {
     }
   }
 }
+

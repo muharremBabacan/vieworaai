@@ -255,6 +255,49 @@
         "status",
         "transactionDate"
       ]
+    },
+    "Group": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Group",
+      "type": "object",
+      "description": "Represents a user-created community, class, or workshop within the Viewora application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Group entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The display name of the group."
+        },
+        "description": {
+          "type": "string",
+          "description": "A short description of the group's purpose or theme."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who created and owns the group."
+        },
+        "memberIds": {
+          "type": "array",
+          "description": "A list of user UIDs who are members of this group.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the group was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "ownerId",
+        "memberIds",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -302,22 +345,6 @@
         }
       },
       {
-        "path": "academyLessons/{lessonId}",
-        "definition": {
-          "entityName": "AcademyLesson",
-          "schema": {
-            "$ref": "#/backend/entities/AcademyLesson"
-          },
-          "description": "A top-level collection containing all micro-learning lessons for the Viewora Academy. These documents are public and read-only for all authenticated users.",
-          "params": [
-            {
-              "name": "lessonId",
-              "description": "The unique identifier for an academy lesson."
-            }
-          ]
-        }
-      },
-      {
         "path": "users/{userId}/lessonProgress/{progressId}",
         "definition": {
           "entityName": "UserLessonProgress",
@@ -356,8 +383,60 @@
             }
           ]
         }
+      },
+      {
+        "path": "groups/{groupId}",
+        "definition": {
+          "entityName": "Group",
+          "schema": {
+            "$ref": "#/backend/entities/Group"
+          },
+          "description": "Stores group information, including owner and member lists. Access is restricted to members.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier for the group."
+            }
+          ]
+        }
+      },
+      {
+        "path": "groups/{groupId}/photos/{photoId}",
+        "definition": {
+          "entityName": "Photo",
+          "schema": {
+            "$ref": "#/backend/entities/Photo"
+          },
+          "description": "A subcollection for photos shared within a specific group. Access is limited to group members.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "The unique identifier of the group that owns these photos."
+            },
+            {
+              "name": "photoId",
+              "description": "The unique identifier for a specific photo within the group."
+            }
+          ]
+        }
+      },
+      {
+        "path": "academyLessons/{lessonId}",
+        "definition": {
+          "entityName": "AcademyLesson",
+          "schema": {
+            "$ref": "#/backend/entities/AcademyLesson"
+          },
+          "description": "A top-level collection containing all micro-learning lessons for the Viewora Academy. These documents are public and read-only for all authenticated users.",
+          "params": [
+            {
+              "name": "lessonId",
+              "description": "The unique identifier for an academy lesson."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\n\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to parent documents to determine ownership or permissions. Each document within these subcollections also includes the `userId` field as a form of denormalization, which aids in querying and provides an additional layer of validation, although the path remains the primary authorization vector.\n\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user (`request.auth.uid`) is authorized to access. This prevents rules from being used as filters, which is inefficient and insecure. Similarly, the `academyLessons` collection is designed as a top-level, public read-only collection (`/academyLessons/{lessonId}`). This clear segregation of public vs. private data means `list` operations on `/academyLessons` are securely accessible to all authenticated users for reading, without needing complex filtering logic.\n\n**Structural Segregation:** Data with different security postures is kept in separate collections or distinct hierarchical paths. For example, `AcademyLesson` entities, which are globally accessible (read-only for all authenticated users), reside in a top-level collection `/academyLessons`. In contrast, `Photo`, `UserLessonProgress`, and `Transaction` entities, which are strictly owned by individual users, are nested under their respective user paths, ensuring their private nature. There is no mixing of public and private data within the same collection, simplifying security rule logic.\n\n**Access Modeling:** The design consistently uses hierarchical paths for user-owned data, such as `/users/{userId}/photos`, making ownership explicit and rules straightforward. Global roles, if needed, would leverage existence checks in dedicated collections (e.g., `/roles_admin/{uid}`), adhering to DBAC principles. Currently, no collaborative data requiring membership maps is identified.\n\n**Data Clarity and Predictability:** Field names like `userId`, `photoId`, `lessonId`, etc., are semantically consistent, and wildcards are descriptive. The `Transaction` entity utilizes an explicit `status` field for state modeling. The provided schemas ensure predictable data structures.\n\n**Regarding the 'auth/requests-to-this-api...' error:** This error is related to Firebase Authentication setup and API key configurations, specifically concerning the Identity Toolkit API. It is outside the scope of Firestore data structure design. The proposed Firestore structure assumes that Firebase Authentication is correctly enabled and configured in the Google Cloud project to allow these API calls for user authentication to succeed."
+    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\n\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\n\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute.\n\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users.\n\n**Structural Segregation:** Data with different security postures is kept in separate collections. Public data (`/academyLessons`), private user data (`/users/{userId}`), and semi-private group data (`/groups/{groupId}`) do not mix, which simplifies rule logic and prevents accidental data exposure."
   }
 }
