@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, Users, Crown, User, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getGroupLimits } from '@/lib/gamification';
 
 const createGroupSchema = z.object({
   name: z.string().min(3, 'Grup adı en az 3 karakter olmalıdır.').max(50, 'Grup adı en fazla 50 karakter olabilir.'),
@@ -32,20 +34,6 @@ const createGroupSchema = z.object({
 });
 
 type CreateGroupValues = z.infer<typeof createGroupSchema>;
-
-const getGroupLimits = (levelName?: string) => {
-  switch (levelName) {
-    case 'Vexer':
-      return { maxGroups: 10, maxMembers: 40 };
-    case 'Omner':
-    case 'Sytner':
-    case 'Viewner':
-      return { maxGroups: 5, maxMembers: 15 };
-    case 'Neuner':
-    default:
-      return { maxGroups: 1, maxMembers: 7 };
-  }
-};
 
 function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolean; limit: number; ownedCount: number }) {
   const [open, setOpen] = useState(false);
@@ -194,8 +182,7 @@ function GroupCard({ group }: { group: Group }) {
           <span>{group.memberIds.length} üye</span>
         </div>
         <Button variant="secondary" size="sm" asChild>
-           {/* In the future, this will link to /groups/{group.id} */}
-           <a href="#">Grubu Gör</a>
+           <Link href={`/groups/${group.id}`}>Grubu Gör</Link>
         </Button>
       </CardContent>
     </Card>

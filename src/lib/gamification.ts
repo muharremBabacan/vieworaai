@@ -22,3 +22,17 @@ export function getLevelFromXp(xp: number): Level {
   // Eğer bir seviye bulunamazsa (örn. negatif XP), ilk seviyeye varsayılan olarak ayarla.
   return currentLevel || levels[0];
 }
+
+export const getGroupLimits = (levelName?: string) => {
+  switch (levelName) {
+    case 'Vexer': // Mentor
+      return { maxGroups: 10, maxMembers: 40 };
+    case 'Omner':
+    case 'Sytner':
+    case 'Viewner': // Mid-tiers
+      return { maxGroups: 5, maxMembers: 15 };
+    case 'Neuner': // New users
+    default:
+      return { maxGroups: 1, maxMembers: 7 };
+  }
+};
