@@ -14,6 +14,7 @@ export type User = {
   completed_modules: string[]; // New
   interests: string[];
   onboarded: boolean;
+  groups?: string[];
 };
 
 export type Photo = {

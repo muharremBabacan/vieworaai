@@ -59,6 +59,7 @@ export default function HomePage() {
           completed_modules: [],
           interests: [],
           onboarded: false,
+          groups: [],
         });
       }
 

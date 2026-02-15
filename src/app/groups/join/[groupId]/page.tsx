@@ -75,9 +75,16 @@ export default function JoinGroupPage() {
           return;
         }
 
-        await updateDoc(groupRef, {
-          memberIds: arrayUnion(user.uid)
-        });
+        const userRef = doc(firestore, 'users', user.uid);
+
+        await Promise.all([
+          updateDoc(groupRef, {
+            memberIds: arrayUnion(user.uid)
+          }),
+          updateDoc(userRef, {
+              groups: arrayUnion(groupId)
+          })
+        ]);
 
         setStatus('success');
         setMessage(`'${group.name}' grubuna başarıyla katıldınız! Yönlendiriliyorsunuz...`);

@@ -35,54 +35,6 @@ const addMemberSchema = z.object({
 
 type AddMemberValues = z.infer<typeof addMemberSchema>;
 
-function MemberAvatar({ userId }: { userId: string }) {
-  const firestore = useFirestore();
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !userId) return null;
-    return doc(firestore, 'users', userId);
-  }, [firestore, userId]);
-  
-  const { data: user, isLoading } = useDoc<UserProfile>(userDocRef);
-
-  if (isLoading) {
-    return <Skeleton className="h-10 w-10 rounded-full" />;
-  }
-
-  if (!user) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>
-            <Avatar>
-              <AvatarFallback>?</AvatarFallback>
-            </Avatar>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Kullanıcı bilgisi yüklenemedi</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <Avatar>
-            {user.email && <AvatarImage src={`https://api.dicebear.com/8.x/lorelei/svg?seed=${user.email}`} alt={user.name || ''} />}
-            <AvatarFallback>{user.name?.charAt(0) || '?'}</AvatarFallback>
-          </Avatar>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-semibold">{user.name}</p>
-          <p className="text-muted-foreground">{user.email}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
 function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef: any; userLevel?: string; }) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -109,16 +61,20 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
         return;
       }
       
-      const userToAdd = querySnapshot.docs[0];
+      const userToAddDoc = querySnapshot.docs[0];
+      const userToAddId = userToAddDoc.id;
 
-      if (group.memberIds.includes(userToAdd.id)) {
+      if (group.memberIds.includes(userToAddId)) {
         toast({ variant: 'destructive', title: 'Zaten Üye', description: 'Bu kullanıcı zaten grubun bir üyesi.' });
         return;
       }
 
-      // Using updateDoc directly without the non-blocking wrapper for immediate feedback.
       await updateDoc(groupRef, {
-        memberIds: arrayUnion(userToAdd.id),
+        memberIds: arrayUnion(userToAddId),
+      });
+
+      await updateDoc(userToAddDoc.ref, {
+        groups: arrayUnion(group.id)
       });
 
       toast({ title: 'Üye Eklendi!', description: `${values.email} gruba başarıyla eklendi.` });

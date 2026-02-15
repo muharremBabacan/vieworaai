@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc, documentId } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,7 +63,16 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
         joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
         createdAt: new Date().toISOString(),
       };
-      await addDocumentNonBlocking(groupsCollectionRef, newGroupData);
+      
+      const newGroupRef = await addDocumentNonBlocking(groupsCollectionRef, newGroupData);
+
+      if (user && newGroupRef) {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          await updateDoc(userDocRef, {
+              groups: arrayUnion(newGroupRef.id)
+          });
+      }
+
 
       toast({
         title: 'Grup Oluşturuldu!',
@@ -208,6 +217,11 @@ function JoinGroupDialog() {
         memberIds: arrayUnion(user.uid),
       });
 
+      const userRef = doc(firestore, 'users', user.uid);
+      await updateDoc(userRef, {
+          groups: arrayUnion(groupDoc.id)
+      });
+
       toast({ title: 'Başarıyla Katıldın!', description: `'${group.name}' grubuna hoş geldin.` });
       form.reset();
       setOpen(false);
@@ -326,24 +340,27 @@ export default function GroupsPage() {
   const firestore = useFirestore();
 
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
-  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const groupIds = userProfile?.groups;
 
   const memberGroupsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null),
-    [user, firestore]
+      () => (user && firestore && groupIds && groupIds.length > 0
+          ? query(collection(firestore, 'groups'), where(documentId(), 'in', groupIds))
+          : null),
+      [user, firestore, groupIds]
   );
   const { data: memberGroups, isLoading: memberLoading } = useCollection<Group>(memberGroupsQuery);
-  
-  const ownedGroupsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'groups'), where('ownerId', '==', user.uid)) : null),
-    [user, firestore]
-  );
-  const { data: ownedGroups, isLoading: ownedLoading } = useCollection<Group>(ownedGroupsQuery);
+
+  const ownedGroups = useMemo(() => {
+      if (!user || !memberGroups) return [];
+      return memberGroups.filter(g => g.ownerId === user.uid);
+  }, [user, memberGroups]);
   
   const limits = getGroupLimits(userProfile?.level_name);
   const canCreateGroup = ownedGroups ? ownedGroups.length < limits.maxGroups : false;
 
-  const isLoading = memberLoading || ownedLoading;
+  const isLoading = isProfileLoading || memberLoading;
 
   return (
     <div className="container mx-auto">

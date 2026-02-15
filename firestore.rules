@@ -182,9 +182,7 @@ service cloud.firestore {
       }
       
       allow get: if isGroupMember();
-      // Allow a user to list groups. The client is responsible for querying
-      // only the groups a user is a member of.
-      allow list: if isSignedIn();
+      allow list: if false;
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId && request.auth.uid in request.resource.data.memberIds;
       allow update: if isGroupOwner();
       allow delete: if isGroupOwner();
@@ -263,4 +261,3 @@ service cloud.firestore {
     }
   }
 }
-
