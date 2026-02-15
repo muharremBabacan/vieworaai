@@ -1,11 +1,6 @@
-import PhotoAnalyzer from './photo-analyzer';
-
-export default function DashboardPage() {
-  return (
-    <div className="container mx-auto">
-      <div className="mx-auto max-w-4xl">
-        <PhotoAnalyzer />
-      </div>
-    </div>
-  );
+// This file is intentionally left blank.
+// The content has been moved to src/app/[locale]/(app)/dashboard/page.tsx
+// to support internationalized routing.
+export default function Page() {
+    return null;
 }
