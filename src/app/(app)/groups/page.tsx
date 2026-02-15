@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, Users, Crown, User, Loader2, Info } from 'lucide-react';
+import { PlusCircle, Users, Crown, User, Loader2, Info, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getGroupLimits } from '@/lib/gamification';
@@ -59,6 +60,7 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
         description: values.description || '',
         ownerId: user.uid,
         memberIds: [user.uid],
+        joinCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
         createdAt: new Date().toISOString(),
       };
       await addDocumentNonBlocking(groupsCollectionRef, newGroupData);
@@ -142,6 +144,116 @@ function CreateGroupDialog({ canCreate, limit, ownedCount }: { canCreate: boolea
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Oluştur
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const joinGroupSchema = z.object({
+  code: z.string().min(6, 'Kod 6 karakter olmalıdır.').max(6, 'Kod 6 karakter olmalıdır.'),
+});
+type JoinGroupValues = z.infer<typeof joinGroupSchema>;
+
+function JoinGroupDialog() {
+  const [open, setOpen] = useState(false);
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const form = useForm<JoinGroupValues>({
+    resolver: zodResolver(joinGroupSchema),
+    defaultValues: { code: '' },
+  });
+
+  const onSubmit = async (values: JoinGroupValues) => {
+    if (!user || !firestore) return;
+
+    const code = values.code.toUpperCase();
+    
+    try {
+      const q = query(collection(firestore, 'groups'), where('joinCode', '==', code), limit(1));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast({ variant: 'destructive', title: 'Grup Bulunamadı', description: 'Bu koda sahip bir grup bulunamadı. Kodu kontrol edin.' });
+        return;
+      }
+
+      const groupDoc = querySnapshot.docs[0];
+      const group = groupDoc.data() as Group;
+      const groupRef = groupDoc.ref;
+
+      if (group.memberIds.includes(user.uid)) {
+        toast({ title: 'Zaten Üyesiniz', description: `Zaten '${group.name}' grubunun bir üyesisiniz. Yönlendiriliyorsunuz.` });
+        router.push(`/groups/${groupDoc.id}`);
+        return;
+      }
+      
+      const ownerRef = doc(firestore, 'users', group.ownerId);
+      const ownerSnap = await getDoc(ownerRef);
+      const ownerProfile = ownerSnap.data() as UserProfile;
+      const { maxMembers } = getGroupLimits(ownerProfile?.level_name);
+
+      if (group.memberIds.length >= maxMembers) {
+        toast({ variant: 'destructive', title: 'Grup Dolu', description: `Bu grup en fazla ${maxMembers} üyeye sahip olabilir.` });
+        return;
+      }
+
+      await updateDoc(groupRef, {
+        memberIds: arrayUnion(user.uid),
+      });
+
+      toast({ title: 'Başarıyla Katıldın!', description: `'${group.name}' grubuna hoş geldin.` });
+      form.reset();
+      setOpen(false);
+
+    } catch (error) {
+      console.error('Koda göre katılma hatası:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Hata',
+        description: 'Gruba katılırken bir sorun oluştu.',
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <UserPlus className="mr-2 h-4 w-4" />
+          Koda Göre Katıl
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Bir Gruba Katıl</DialogTitle>
+          <DialogDescription>Katılmak istediğiniz grubun 6 haneli davet kodunu girin.</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Davet Kodu</FormLabel>
+                  <FormControl>
+                    <Input placeholder="ABCDEF" {...field} onChange={(e) => field.onChange(e.target.value.toUpperCase())} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Gruba Katıl
               </Button>
             </DialogFooter>
           </form>
@@ -239,11 +351,14 @@ export default function GroupsPage() {
         <div>
           {/* Page title is already in layout */}
         </div>
-        <CreateGroupDialog 
-            canCreate={canCreateGroup} 
-            limit={limits.maxGroups} 
-            ownedCount={ownedGroups?.length ?? 0}
-        />
+        <div className="flex items-center gap-2">
+            <JoinGroupDialog />
+            <CreateGroupDialog 
+                canCreate={canCreateGroup} 
+                limit={limits.maxGroups} 
+                ownedCount={ownedGroups?.length ?? 0}
+            />
+        </div>
       </div>
 
       {isLoading ? (

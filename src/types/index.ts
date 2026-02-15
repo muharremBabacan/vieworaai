@@ -83,6 +83,7 @@ export type Group = {
   ownerId: string;
   memberIds: string[];
   createdAt: string;
+  joinCode?: string;
 };
 
 export type ChatMessage = {

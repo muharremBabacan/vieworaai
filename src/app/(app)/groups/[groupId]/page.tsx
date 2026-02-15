@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Users, Crown, Loader2, AlertTriangle, UserPlus, QrCode } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -195,11 +196,11 @@ export default function GroupDetailPage() {
 
   const isOwner = currentUser?.uid === group?.ownerId;
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(joinUrl).then(() => {
-      toast({ title: 'Kopyalandı!', description: 'Katılım linki panoya kopyalandı.' });
+  const copyToClipboard = (text: string, type: 'Link' | 'Kod') => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({ title: 'Kopyalandı!', description: `${type} panoya kopyalandı.` });
     }, (err) => {
-      toast({ variant: 'destructive', title: 'Hata', description: 'Link kopyalanamadı.' });
+      toast({ variant: 'destructive', title: 'Hata', description: `${type} kopyalanamadı.` });
     });
   };
 
@@ -246,17 +247,17 @@ export default function GroupDetailPage() {
                         <DialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <QrCode className="h-5 w-5" />
-                                <span className="sr-only">QR Kodu Göster</span>
+                                <span className="sr-only">Davet Seçeneklerini Göster</span>
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Gruba Katılım Daveti</DialogTitle>
                                 <DialogDescription>
-                                    Bu QR kodu veya linki kullanarak yeni üyeleri grubunuza davet edebilirsiniz.
+                                    Bu QR kodu, linki veya 6 haneli kodu kullanarak yeni üyeleri grubunuza davet edebilirsiniz.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="flex items-center justify-center p-4 bg-white rounded-lg">
+                            <div className="flex items-center justify-center p-4 bg-white rounded-lg my-4">
                                 <Image
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(joinUrl)}`}
                                     alt="Grup Katılım QR Kodu"
@@ -264,10 +265,33 @@ export default function GroupDetailPage() {
                                     height={256}
                                 />
                             </div>
-                            <div className="flex flex-col space-y-2">
-                                <Input id="join-link" value={joinUrl} readOnly />
-                                <Button onClick={copyToClipboard}>Linki Kopyala</Button>
+                            
+                            <div className="relative my-4">
+                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">VEYA</span></div>
                             </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="join-code">6 Haneli Katılım Kodu</Label>
+                              <div className="flex items-center space-x-2">
+                                <Input id="join-code" value={group.joinCode || 'YOK'} readOnly className="font-mono text-center tracking-widest text-lg" />
+                                <Button onClick={() => copyToClipboard(group.joinCode || '', 'Kod')} disabled={!group.joinCode}>Kopyala</Button>
+                              </div>
+                            </div>
+
+                            <div className="relative my-4">
+                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">VEYA</span></div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="join-link">Paylaşılabilir Link</Label>
+                                <div className="flex items-center space-x-2">
+                                  <Input id="join-link" value={joinUrl} readOnly />
+                                  <Button onClick={() => copyToClipboard(joinUrl, 'Link')}>Kopyala</Button>
+                                </div>
+                            </div>
+
                         </DialogContent>
                     </Dialog>
                 )}
