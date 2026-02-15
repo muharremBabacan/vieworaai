@@ -86,8 +86,8 @@ export default function PageContent() {
       }
 
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        console.info('Sign-in popup closed by user.');
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        console.info('Sign-in popup closed or cancelled by user.');
         return;
       }
       
@@ -118,7 +118,7 @@ export default function PageContent() {
       <main className="flex flex-grow items-center justify-center">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col items-center space-y-2 text-center">
-            <Logo className="items-center" />
+            <Logo className="items-center justify-center" />
             <h1 className="text-2xl font-semibold tracking-tight">
               Hesap oluşturun veya giriş yapın
             </h1>
