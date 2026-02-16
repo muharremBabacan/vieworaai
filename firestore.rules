@@ -171,17 +171,16 @@ service cloud.firestore {
        * @path /users/{userId}/notifications/{notificationId}
        * @allow (get, list, delete) A user can manage their own notifications.
        * @allow (update) A user can only update the 'isRead' status of their own notifications.
-       * @allow (create) Any signed-in user can create a notification for another user, provided the data is valid.
+       * @allow (create) A group owner can create an invite notification for another user.
        */
       match /notifications/{notificationId} {
-        allow get, list, delete: if isOwner(userId);
-        allow update: if isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
-        // For system messages, maybe only admin can create? For now, no rule.
-        // For group invites, only the owner of that group can create an invite notification.
-        // The notification document must contain `type: 'group_invite'` and the `groupId`.
-        allow create: if request.resource.data.type == 'group_invite'
-                         && isGroupOwnerByGroupId(request.resource.data.groupId)
-                         && request.resource.data.userId == userId;
+        allow get, delete: if isOwner(userId);
+        allow list: if isOwner(userId) && request.query.limit <= 20;
+        allow update: if isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']) && isChildDataImmutable();
+        allow create: if isSignedIn() &&
+                    request.resource.data.userId == userId &&
+                    request.resource.data.type == 'group_invite' && 
+                    isGroupOwnerByGroupId(request.resource.data.groupId);
       }
     }
     
