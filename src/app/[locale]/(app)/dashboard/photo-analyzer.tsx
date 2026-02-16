@@ -32,7 +32,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   ].filter((score): score is number => typeof score === 'number' && isFinite(score));
 
   const overallScore = scores.length > 0
-    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 10
+    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length)
     : 0;
 
   const ratingItems = [
@@ -46,15 +46,23 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(0)}</p>
+                  <p className="text-5xl font-bold text-primary">{(overallScore * 10).toFixed(0)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
                       <div key={item.label} className="flex items-center justify-between gap-4">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
                           <div className="flex items-center gap-3 flex-1">
-                             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 10}%` }} />
+                            <div className="flex w-full h-1.5 items-center gap-0.5">
+                                {Array.from({ length: 10 }).map((_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={cn(
+                                            "h-full flex-1 rounded-sm",
+                                            i < Math.round(item.value ?? 0) ? 'bg-primary' : 'bg-muted'
+                                        )}
+                                    />
+                                ))}
                             </div>
                             <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0) * 10).toFixed(0)}</span>
                           </div>
@@ -81,6 +89,29 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: Pho
           <p className="text-muted-foreground leading-relaxed">{feedback}</p>
         </CardContent>
       </Card>
+      
+       <RatingDisplay analysis={analysis} />
+
+       <div className="space-y-4">
+          <h4 className="font-semibold text-lg">{t('improvements_title')}</h4>
+           <div className="space-y-2">
+                {Object.entries(analysis.error_flags).filter(([_, value]) => value === true).map(([key]) => (
+                    <div key={key} className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+                        <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                        <div>
+                            <p className="font-semibold text-destructive">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                            <p className="text-sm text-destructive/80">Bu alanda gelişim için fırsat bulunuyor.</p>
+                        </div>
+                    </div>
+                ))}
+                {Object.values(analysis.error_flags).every(v => v === false) && (
+                     <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <p className="font-medium text-green-400">Bu analizde kritik bir teknik hataya rastlanmadı.</p>
+                    </div>
+                )}
+            </div>
+      </div>
     </div>
   );
 }
@@ -88,7 +119,7 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: Pho
 export default function PhotoAnalyzer() {
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<PhotoAnalysis | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<PhotoAnalysisOutput | null>(null);
   const [feedbackResult, setFeedbackResult] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPending, startTransition] = useTransition();

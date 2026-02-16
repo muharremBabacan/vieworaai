@@ -32,7 +32,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   ].filter((score): score is number => typeof score === 'number' && isFinite(score));
 
   const overallScore = scores.length > 0
-    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 10
+    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length)
     : 0;
 
   const ratingItems = [
@@ -46,15 +46,23 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(0)}</p>
+                  <p className="text-5xl font-bold text-primary">{(overallScore * 10).toFixed(0)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
                       <div key={item.label} className="flex items-center justify-between gap-4">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
                           <div className="flex items-center gap-3 flex-1">
-                             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 10}%` }} />
+                            <div className="flex w-full h-1.5 items-center gap-0.5">
+                                {Array.from({ length: 10 }).map((_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={cn(
+                                            "h-full flex-1 rounded-sm",
+                                            i < Math.round(item.value ?? 0) ? 'bg-primary' : 'bg-muted'
+                                        )}
+                                    />
+                                ))}
                             </div>
                             <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0) * 10).toFixed(0)}</span>
                           </div>
