@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Zap, Upload, AlertTriangle, CheckCircle, Lightbulb, Bot } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
@@ -46,7 +46,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{(overallScore * 100).toFixed(0)}</p>
+                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(0)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
@@ -54,9 +54,9 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
                           <span className="text-sm text-muted-foreground">{item.label}</span>
                           <div className="flex items-center gap-3 flex-1">
                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 100}%` }} />
+                                <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 10}%` }} />
                             </div>
-                            <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0) * 100).toFixed(0)}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{(item.value ?? 0).toFixed(0)}</span>
                           </div>
                       </div>
                   ))}
@@ -178,7 +178,7 @@ export default function PhotoAnalyzer() {
     setIsUploading(true);
     startTransition(async () => {
       const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
-      const imageRef = storageRef(storage, filePath);
+      const imageRef = ref(storage, filePath);
       let downloadURL;
       try {
         await uploadBytes(imageRef, file);
@@ -218,7 +218,7 @@ export default function PhotoAnalyzer() {
 
     startTransition(async () => {
       const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
-      const imageRef = storageRef(storage, filePath);
+      const imageRef = ref(storage, filePath);
       let downloadURL;
       try {
         await uploadBytes(imageRef, file);

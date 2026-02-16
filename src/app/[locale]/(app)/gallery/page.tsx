@@ -70,7 +70,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{(overallScore * 10).toFixed(0)}</p>
+                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(0)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
@@ -79,9 +79,9 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
                           <div className="flex items-center gap-3 flex-1">
                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                 {/* Use item.value directly as it's guaranteed to be a number now */}
-                                <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
+                                <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 10}%` }} />
                             </div>
-                            <span className="text-sm font-semibold w-8 text-right">{(item.value * 10).toFixed(0)}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{(item.value ?? 0).toFixed(0)}</span>
                           </div>
                       </div>
                   ))}
@@ -447,7 +447,7 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
               return (
                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                   <Star className="h-3 w-3 text-yellow-400" />
-                  <span className="text-xs font-bold">{(overallScore * 10).toFixed(0)}</span>
+                  <span className="text-xs font-bold">{overallScore.toFixed(0)}</span>
                 </Badge>
               )
           })()}
@@ -522,13 +522,13 @@ export default function GalleryPage() {
     if (selectedTag === filter_best_light) {
       return photosToShow
         .filter(p => p.aiFeedback?.light_score)
-        .sort((a, b) => (b.aiFeedback!.light_score) - (a.aiFeedback!.light_score));
+        .sort((a, b) => (b.aiFeedback!.light_score!) - (a.aiFeedback!.light_score!));
     }
     
     if (selectedTag === filter_best_composition) {
       return photosToShow
         .filter(p => p.aiFeedback?.composition_score)
-        .sort((a, b) => (b.aiFeedback!.composition_score) - (a.aiFeedback!.composition_score));
+        .sort((a, b) => (b.aiFeedback!.composition_score!) - (a.aiFeedback!.composition_score!));
     }
 
     // Default to tag filtering
