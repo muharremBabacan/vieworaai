@@ -1,13 +1,13 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useRouter } from '@/navigation';
+import React, { useEffect, useState, useMemo, useTransition } from 'react';
+import { Link, useRouter, usePathname } from '@/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, useCollection } from '@/firebase';
 import { collection, doc, collectionGroup } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import type { User as UserProfile, Transaction } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gem, Coins, History, ChevronRight, Info, FileText, LogOut, Settings as SettingsIcon, ShieldQuestion, Loader2 } from 'lucide-react';
+import { Gem, Coins, History, ChevronRight, Info, FileText, LogOut, Settings as SettingsIcon, ShieldQuestion, Loader2, Languages } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -318,6 +318,58 @@ const SettingsListItem = ({ icon, title, description, href, onClick, isLink = fa
     );
 };
 
+function LanguageSwitcher() {
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
+  const localesInfo: { code: string; name: string }[] = [
+    { code: 'tr', name: 'Türkçe' },
+    { code: 'en', name: 'English' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'fr', name: 'Français' },
+    { code: 'es', name: 'Español' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'ru', name: 'Русский' },
+    { code: 'el', name: 'Ελληνικά' },
+    { code: 'zh', name: '中文' },
+    { code: 'ja', name: '日本語' },
+  ];
+
+  function onSelectChange(nextLocale: string) {
+    startTransition(() => {
+      router.replace(pathname, { locale: nextLocale });
+    });
+  }
+
+  return (
+     <div className="flex items-center gap-4 w-full p-2">
+        <div className="flex-shrink-0 bg-secondary p-3 rounded-lg">
+            <Languages className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-grow">
+            <p className="font-semibold text-card-foreground">Dil</p>
+            <p className="text-xs text-muted-foreground">Uygulama dilini değiştirin</p>
+        </div>
+        <div className="w-[150px]">
+            <Select defaultValue={locale} onValueChange={onSelectChange} disabled={isPending}>
+                <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Dil seç..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {localesInfo.map((loc) => (
+                      <SelectItem key={loc.code} value={loc.code}>
+                        {loc.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    </div>
+  );
+}
+
 
 export default function SettingsPage() {
     const { user: authUser, isUserLoading } = useUser();
@@ -409,6 +461,7 @@ export default function SettingsPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="divide-y divide-border -mx-3">
+                        <LanguageSwitcher />
                         <SettingsListItem icon={Info} title="Sürüm" description="1.0.0 (Build 1)" />
                         <SettingsListItem icon={FileText} title="Hizmet Şartları" isLink href="/terms" />
                         <SettingsListItem icon={ShieldQuestion} title="Gizlilik Politikası" isLink href="/privacy" />
