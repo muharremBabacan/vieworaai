@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -129,11 +129,12 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
 export default function ExplorePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const publicPhotosQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
+  }, [firestore, user]);
   
   const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
 

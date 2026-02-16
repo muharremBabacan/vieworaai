@@ -360,11 +360,10 @@ export default function LevelPage() {
 
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
-  // Fetch all academy lessons without server-side filtering/sorting to avoid needing a composite index.
   const lessonsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     return collection(firestore, 'academyLessons');
-  }, [firestore]);
+  }, [firestore, authUser]);
   
   const { data: allLessons, isLoading } = useCollection<AcademyLesson>(lessonsQuery);
 

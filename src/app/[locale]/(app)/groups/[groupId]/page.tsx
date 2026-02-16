@@ -37,10 +37,11 @@ type AddMemberValues = z.infer<typeof addMemberSchema>;
 
 function MemberAvatar({ userId }: { userId: string }) {
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
   const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !userId) return null;
+    if (!firestore || !userId || !currentUser) return null;
     return doc(firestore, 'users', userId);
-  }, [firestore, userId]);
+  }, [firestore, userId, currentUser]);
   
   const { data: userProfile, isLoading } = useDoc<UserProfile>(userDocRef);
 
@@ -190,9 +191,9 @@ export default function GroupDetailPage() {
   }, [groupId]);
 
   const groupDocRef = useMemoFirebase(() => {
-    if (!firestore || !groupId) return null;
+    if (!firestore || !groupId || !currentUser) return null;
     return doc(firestore, 'groups', groupId);
-  }, [firestore, groupId]);
+  }, [firestore, groupId, currentUser]);
 
   const { data: group, isLoading: isGroupLoading, error: groupError } = useDoc<Group>(groupDocRef);
 
