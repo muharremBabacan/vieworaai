@@ -1,1 +1,26 @@
-{}
+{
+  "UserNav": {
+    "settings": "Settings",
+    "buy_auro": "Buy Auro",
+    "auro": "Auro",
+    "level": "Level",
+    "sign_out": "Sign Out"
+  },
+  "AppLayout": {
+    "title_academy": "Viewora Academy",
+    "title_explore": "Exhibition Hall",
+    "title_dashboard": "AI Coach",
+    "title_competitions": "Competitions",
+    "title_gallery": "My Photos",
+    "title_groups": "My Groups",
+    "title_profile": "Settings",
+    "title_pricing": "Auro Packages",
+    "title_default": "Viewora",
+    "nav_academy": "Academy",
+    "nav_explore": "Explore",
+    "nav_groups": "Groups",
+    "nav_coach": "Coach",
+    "nav_gallery": "Gallery",
+    "nav_settings": "Settings"
+  }
+}
