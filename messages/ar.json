@@ -194,7 +194,10 @@
     "filter_all": "Tümü",
     "no_photos_title": "Galerinizde Henüz Fotoğraf Yok",
     "no_photos_description": "Yapay zeka koçu ile ilk analizinizi yaparak galeriyi doldurun!",
-    "button_start_analysis": "Analiz Başlat"
+    "button_start_analysis": "Analiz Başlat",
+    "filter_best_overall": "En İyilerim",
+    "filter_best_light": "En İyi Işık",
+    "filter_best_composition": "En İyi Kompozisyon"
   },
   "GroupsPage": {
     "button_create_group": "Yeni Grup Oluştur",

@@ -449,7 +449,7 @@ export default function GalleryPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [selectedTag, setSelectedTag] = useState('Tümü');
+  const [selectedTag, setSelectedTag] = useState(t('filter_all'));
   
   const photosQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -462,20 +462,61 @@ export default function GalleryPage() {
 
   const tags = useMemo(() => {
     if (!userPhotos) return [];
+
+    const specialFilters = [
+      t('filter_best_overall'),
+      t('filter_best_light'),
+      t('filter_best_composition')
+    ];
+
     const allTags = userPhotos.flatMap(p => p.tags || []).filter(Boolean);
     const capitalizedTags = allTags.map(tag => tag.charAt(0).toUpperCase() + tag.slice(1));
-    return [t('filter_all'), ...Array.from(new Set(capitalizedTags))];
+    
+    return [
+      t('filter_all'), 
+      ...specialFilters,
+      ...Array.from(new Set(capitalizedTags))
+    ];
   }, [userPhotos, t]);
 
   const filteredPhotos = useMemo(() => {
     if (!userPhotos) return [];
-    if (selectedTag === t('filter_all')) {
-      return userPhotos;
+    
+    const photosToShow = [...userPhotos];
+    
+    const filter_all = t('filter_all');
+    const filter_best_overall = t('filter_best_overall');
+    const filter_best_light = t('filter_best_light');
+    const filter_best_composition = t('filter_best_composition');
+
+    if (selectedTag === filter_all) {
+      return photosToShow;
     }
+    
+    if (selectedTag === filter_best_overall) {
+      return photosToShow
+        .filter(p => p.aiFeedback?.rating?.overall)
+        .sort((a, b) => (b.aiFeedback!.rating.overall) - (a.aiFeedback!.rating.overall));
+    }
+
+    if (selectedTag === filter_best_light) {
+      return photosToShow
+        .filter(p => p.aiFeedback?.rating?.lighting)
+        .sort((a, b) => (b.aiFeedback!.rating.lighting) - (a.aiFeedback!.rating.lighting));
+    }
+    
+    if (selectedTag === filter_best_composition) {
+      return photosToShow
+        .filter(p => p.aiFeedback?.rating?.composition)
+        .sort((a, b) => (b.aiFeedback!.rating.composition) - (a.aiFeedback!.rating.composition));
+    }
+
+    // Default to tag filtering
     return userPhotos.filter(photo => 
       photo.tags?.some(tag => tag.toLowerCase() === selectedTag.toLowerCase())
     );
   }, [userPhotos, selectedTag, t]);
+
 
   // Handle case where there are no photos at all to avoid showing filter bar
   if (!isLoading && (!userPhotos || userPhotos.length === 0)) {

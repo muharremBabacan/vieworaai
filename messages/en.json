@@ -194,7 +194,10 @@
     "filter_all": "All",
     "no_photos_title": "No Photos in Your Gallery Yet",
     "no_photos_description": "Start your first AI analysis to fill your gallery!",
-    "button_start_analysis": "Start Analysis"
+    "button_start_analysis": "Start Analysis",
+    "filter_best_overall": "My Bests",
+    "filter_best_light": "Best Light",
+    "filter_best_composition": "Best Composition"
   },
   "GroupsPage": {
     "button_create_group": "Create New Group",
