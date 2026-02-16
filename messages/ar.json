@@ -13,7 +13,8 @@
     "title_competitions": "Yarışmalar",
     "title_gallery": "Fotoğraflarım",
     "title_groups": "Gruplarım",
-    "title_profile": "Ayarlar",
+    "title_profile": "Profilim",
+    "title_settings": "Ayarlar",
     "title_pricing": "Auro Paketleri",
     "title_default": "Viewora",
     "nav_academy": "Akademi",
@@ -21,6 +22,7 @@
     "nav_groups": "Gruplar",
     "nav_coach": "Koç",
     "nav_gallery": "Galerim",
+    "nav_profile": "Profilim",
     "nav_settings": "Ayarlar",
     "loading": "Yükleniyor..."
   },
@@ -296,6 +298,10 @@
     "button_buy_now": "Hemen Satın Al"
   },
   "ProfilePage": {
+    "level_title": "Seviye & İlerleme",
+    "next_level": "Sonraki: {level}",
+    "max_level": "Maksimum Seviye",
+    "auro_balance_title": "Auro Bakiyesi",
     "admin_revenue_report_title": "Gelir Raporu (Geçici)",
     "admin_revenue_report_description": "Tüm kullanıcılardan gelen tamamlanmış satın alımların toplamı.",
     "admin_total_auro_sold": "Toplam Satılan Auro",

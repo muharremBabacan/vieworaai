@@ -13,7 +13,8 @@
     "title_competitions": "Competitions",
     "title_gallery": "My Photos",
     "title_groups": "My Groups",
-    "title_profile": "Settings",
+    "title_profile": "My Profile",
+    "title_settings": "Settings",
     "title_pricing": "Auro Packages",
     "title_default": "Viewora",
     "nav_academy": "Academy",
@@ -21,6 +22,7 @@
     "nav_groups": "Groups",
     "nav_coach": "Coach",
     "nav_gallery": "Gallery",
+    "nav_profile": "Profile",
     "nav_settings": "Settings",
     "loading": "Loading..."
   },
@@ -296,6 +298,10 @@
     "button_buy_now": "Buy Now"
   },
   "ProfilePage": {
+    "level_title": "Level & Progress",
+    "next_level": "Next: {level}",
+    "max_level": "Maximum Level",
+    "auro_balance_title": "Auro Balance",
     "admin_revenue_report_title": "Revenue Report (Temporary)",
     "admin_revenue_report_description": "Sum of completed purchases from all users.",
     "admin_total_auro_sold": "Total Auro Sold",

@@ -7,8 +7,8 @@ import {
   GraduationCap,
   Sparkles,
   Compass,
-  Settings,
   Users,
+  User as UserIcon,
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -60,9 +60,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     },
     {
       href: '/profile',
-      icon: Settings,
-      label: t('nav_settings'),
-      shortLabel: t('nav_settings'),
+      icon: UserIcon,
+      label: t('nav_profile'),
+      shortLabel: t('nav_profile'),
     },
   ];
 
@@ -74,6 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     '/gallery': t('title_gallery'),
     '/groups': t('title_groups'),
     '/profile': t('title_profile'),
+    '/settings': t('title_settings'),
     '/pricing': t('title_pricing'),
   };
 
@@ -90,7 +91,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  // Firebase Storage'dan aldığın güncel ve izinli URL
   const logoUrl = "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc";
 
   React.useEffect(() => {

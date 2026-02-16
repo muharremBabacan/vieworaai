@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { Gem, LogOut, Award, ShieldCheck, User as UserIcon, Coins, Settings } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck, Coins, Settings } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
@@ -24,6 +24,7 @@ import { Link, useRouter } from '@/navigation';
 export function UserNav() {
   const t = useTranslations('UserNav');
   const tFallback = useTranslations('UserNavFallback');
+  const tNav = useTranslations('AppLayout');
   const { user: authUser, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -57,7 +58,6 @@ export function UserNav() {
     )
   }
 
-  // Handle potential undefined or non-numeric values safely
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
   const levelName = userProfile.level_name ?? 'Neuner';
@@ -88,9 +88,9 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
            <DropdownMenuItem asChild>
-             <Link href="/profile">
+             <Link href="/settings">
                 <Settings className="mr-2 h-4 w-4" />
-                <span>{t('settings')}</span>
+                <span>{tNav('nav_settings')}</span>
               </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
