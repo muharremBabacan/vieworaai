@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Zap, Upload, AlertTriangle, CheckCircle, Lightbulb, Bot } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, collection, ref as firestoreRef } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
@@ -32,7 +32,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   ].filter((score): score is number => typeof score === 'number' && isFinite(score));
 
   const overallScore = scores.length > 0
-    ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 10
     : 0;
 
   const ratingItems = [
@@ -56,7 +56,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 10}%` }} />
                             </div>
-                            <span className="text-sm font-semibold w-8 text-right">{(item.value ?? 0).toFixed(0)}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0) * 10).toFixed(0)}</span>
                           </div>
                       </div>
                   ))}
@@ -71,24 +71,14 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: Pho
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="p-0">
-          <div className="relative aspect-video bg-muted/20">
-            <Image src={photoPreviewUrl} alt="Analyzed Photo" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <RatingDisplay analysis={analysis} />
-
-      <Card>
+       <Card>
         <CardHeader>
            <CardTitle className="font-sans text-lg font-semibold flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-amber-400"/> {t('improvements_title')}
+              <Bot className="h-5 w-5 text-primary"/> {t('ai_analysis_title')}
             </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">{feedback}</p>
+          <p className="text-muted-foreground leading-relaxed">{feedback}</p>
         </CardContent>
       </Card>
     </div>
@@ -199,15 +189,6 @@ export default function PhotoAnalyzer() {
     });
   }
 
-   const mapLevel = (levelName?: string) => {
-    if (!levelName) return 'beginner';
-    const lowerCaseLevel = levelName.toLowerCase();
-    if (lowerCaseLevel.includes('vexer') || lowerCaseLevel.includes('omner')) return 'advanced';
-    if (lowerCaseLevel.includes('sytner') || lowerCaseLevel.includes('viewner')) return 'intermediate';
-    return 'beginner';
-  };
-
-
   const handleAnalyze = () => {
     if (!file || !preview || !userProfile || !userDocRef || !authUser) return;
     const analysisCost = 2;
@@ -239,9 +220,12 @@ export default function PhotoAnalyzer() {
 
       let feedbackData: AdaptiveFeedbackOutput;
       try {
-        const mappedLevel = mapLevel(userProfile.level_name);
         feedbackData = await generateAdaptiveFeedback({
-          userLevel: mappedLevel, language: locale, photoData: analysisData
+          userXpLevel: userProfile.level_name || 'Neuner',
+          profileLevel: analysisData.technical_level_estimation,
+          tone: 'gentle', // Defaulting to gentle for now
+          language: locale,
+          photoData: analysisData
         });
       } catch (e) { toast({ variant: 'destructive', title: 'Geri bildirim üretilemedi.' }); return; }
 
