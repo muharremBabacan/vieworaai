@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "rewrites": [
+      {
+        "source": "/__/auth/**",
+        "destination": "/__/auth/handler"
+      },
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "viewora-ai",
+          "region": "us-west1"
+        }
+      }
+    ]
+  }
+}
