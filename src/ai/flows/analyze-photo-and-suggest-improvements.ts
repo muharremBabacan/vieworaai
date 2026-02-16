@@ -20,7 +20,7 @@ const PhotoAnalysisInputSchema = z.object({
 });
 export type PhotoAnalysisInput = z.infer<typeof PhotoAnalysisInputSchema>;
 
-export const PhotoAnalysisOutputSchema = z.object({
+const PhotoAnalysisOutputSchema = z.object({
   device_estimation: z.enum(["mobile", "entry_dslr", "mirrorless", "pro_dslr", "unknown"]),
   genre: z.enum(["portrait", "street", "landscape", "macro", "architecture", "documentary", "other"]),
   light_score: z.number().min(0).max(10),
