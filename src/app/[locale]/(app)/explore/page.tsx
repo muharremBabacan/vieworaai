@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera } from 'lucide-react';
+import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,28 +20,29 @@ import { useTranslations } from 'next-intl';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const t = useTranslations('ExplorePage');
+  const tRatings = useTranslations('Ratings');
   const ratingItems = [
-      { label: 'Işık', value: rating.lighting },
-      { label: 'Kompozisyon', value: rating.composition },
-      { label: 'Duygu', value: rating.emotion },
+      { label: tRatings('lighting'), value: rating.lighting },
+      { label: tRatings('composition'), value: rating.composition },
+      { label: tRatings('emotion'), value: rating.emotion },
   ];
   return (
       <div>
           <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
-          <div className="flex items-center gap-6 rounded-lg border p-4 bg-card/50">
-              <div className="text-center">
+          <div className="flex items-center gap-6 rounded-lg border p-4">
+              <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-4xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
+                  <p className="text-5xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
-                      <div key={item.label} className="flex items-center justify-between">
+                      <div key={item.label} className="flex items-center justify-between gap-4">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className="flex items-center gap-2 text-xs font-mono">
-                               <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
-                              </div>
-                              <span className="w-4 text-right">{item.value}</span>
+                          <div className="flex items-center gap-3 flex-1">
+                             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
+                            </div>
+                            <span className="text-sm font-semibold w-4 text-right">{item.value}</span>
                           </div>
                       </div>
                   ))}
@@ -53,6 +54,8 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
 
 function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const t = useTranslations('ExplorePage');
+  const tGallery = useTranslations('GalleryPage');
+
   if (!photo) return null;
 
   const improvements = [
@@ -60,6 +63,40 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
     { icon: Heart, color: 'text-rose-400' },
   ];
+  
+  const getCameraInfo = () => {
+    if (!photo?.aiFeedback) return null;
+    
+    if (photo.aiFeedback.isAiGenerated) {
+      return { icon: Bot, text: tGallery('camera_info_ai'), color: 'text-purple-400' };
+    }
+
+    const { cameraType, cameraMake, cameraModel } = photo.aiFeedback;
+
+    if (!cameraType || cameraType === 'Bilinmiyor') {
+        return { icon: HelpCircle, text: tGallery('camera_info_unknown') };
+    }
+
+    const typeText = cameraType === 'Profesyonel' ? tGallery('camera_type_pro') : tGallery('camera_type_mobile');
+    const icon = cameraType === 'Profesyonel' ? Camera : Smartphone;
+
+    let detailText = '';
+    if (cameraMake && cameraMake !== 'Bilinmiyor') {
+      detailText += cameraMake;
+      if (cameraModel && cameraModel !== 'Bilinmiyor') {
+        detailText += ` ${cameraModel}`;
+      }
+    }
+
+    if (detailText) {
+      return { icon, text: `${typeText}: ${detailText}` };
+    }
+    
+    return { icon, text: cameraType === 'Profesyonel' ? tGallery('camera_shot_with_pro') : tGallery('camera_shot_with_mobile') };
+  };
+  
+  const CameraInfo = getCameraInfo();
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -68,23 +105,31 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="md:w-1/3 w-full relative aspect-square md:aspect-auto bg-black/5">
+        <div className="md:w-2/5 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image
             src={photo.imageUrl}
             alt="Viewora Sergi Fotoğrafı"
             fill
+            sizes="(max-width: 768px) 100vw, 40vw"
             className="object-contain"
             unoptimized={true}
             priority
           />
         </div>
-        <div className="md:w-2/3 w-full overflow-y-auto">
+        <div className="md:w-3/5 w-full overflow-y-auto">
           <div className="p-6 space-y-6">
             <DialogHeader>
               <DialogTitle className="font-sans text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
                 {t('dialog_title')}
               </DialogTitle>
             </DialogHeader>
+
+            {CameraInfo && (
+                <div className={cn("flex items-center gap-2 text-sm p-3 rounded-lg border bg-secondary/30", CameraInfo.color)}>
+                    <CameraInfo.icon className={cn("h-5 w-5", CameraInfo.color ? CameraInfo.color : 'text-primary')} />
+                    <span className="font-medium">{CameraInfo.text}</span>
+                </div>
+            )}
 
             {photo.tags && photo.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">

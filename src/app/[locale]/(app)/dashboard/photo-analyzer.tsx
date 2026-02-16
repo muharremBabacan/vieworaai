@@ -9,22 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Lightbulb, LayoutPanelLeft, Heart, Zap, Upload } from 'lucide-react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLocale, useTranslations } from 'next-intl';
 
-function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovementsOutput['rating'] }) {
+function RatingDisplay({ rating }: { rating: AnalyzePhotoAndSuggestImprovementsOutput['rating'] }) {
   const t = useTranslations('DashboardPage');
   const tRatings = useTranslations('Ratings');
-  const data = [
-    { subject: tRatings('lighting'), score: rating.lighting, fullMark: 10 },
-    { subject: tRatings('composition'), score: rating.composition, fullMark: 10 },
-    { subject: tRatings('emotion'), score: rating.emotion, fullMark: 10 },
+  const ratingItems = [
+    { label: tRatings('lighting'), value: rating.lighting },
+    { label: tRatings('composition'), value: rating.composition },
+    { label: tRatings('emotion'), value: rating.emotion },
   ];
 
   return (
@@ -32,36 +30,31 @@ function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovements
       <CardHeader>
         <CardTitle className="font-sans text-xl font-semibold">{t('rating_card_title')}</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-        <div className="flex flex-col items-center justify-center space-y-2">
-          <h4 className="text-lg font-medium text-muted-foreground">{t('overall_score')}</h4>
-          <div className="flex items-baseline">
-            <p className="text-6xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
-            <span className="text-2xl text-muted-foreground">/10</span>
-          </div>
-        </div>
-        <div className="w-full h-52">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-              <PolarGrid stroke="hsl(var(--border))"/>
-              <PolarAngleAxis dataKey="subject" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 14 }} />
-              <PolarRadiusAxis angle={90} domain={[0, 10]} tick={false} axisLine={false} />
-              <Radar name="Puan" dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  borderColor: 'hsl(var(--border))',
-                  borderRadius: 'var(--radius)',
-                }}
-                cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+      <CardContent>
+        <div className="flex items-center gap-6">
+            <div className="flex flex-col items-center justify-center">
+                <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
+                <p className="text-5xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
+            </div>
+            <div className="flex-1 space-y-2">
+                {ratingItems.map(item => (
+                    <div key={item.label} className="flex items-center justify-between gap-4">
+                        <span className="text-sm text-muted-foreground">{item.label}</span>
+                        <div className="flex items-center gap-3 flex-1">
+                           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
+                          </div>
+                          <span className="text-sm font-semibold w-4 text-right">{item.value}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
       </CardContent>
     </Card>
   );
 }
+
 
 function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovementsOutput }) {
   const t = useTranslations('DashboardPage');
@@ -73,7 +66,7 @@ function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovements
 
   return (
     <div className="space-y-6">
-      {result.rating && <AnalysisRating rating={result.rating} />}
+      {result.rating && <RatingDisplay rating={result.rating} />}
       <Card>
         <CardContent className="p-6">
           <h3 className="font-sans text-xl font-semibold mb-4">{t('ai_analysis_title')}</h3>
@@ -382,6 +375,15 @@ export default function PhotoAnalyzer() {
 
   return (
     <div className="space-y-8">
+       {!result && !preview && (
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold">Merhaba, {userProfile?.name?.split(' ')[0] || 'dostum'}.</h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Ben senin Görsel Koçunum. Fotoğraflarını birlikte geliştireceğiz. Işık, kompozisyon ve teknik detayları analiz eder, güçlü yanlarını gösterir ve zayıf noktalarını net biçimde söylerim. <br/>
+            <span className="font-semibold text-foreground">Hazırsan ilk fotoğrafını yükle.</span>
+          </p>
+        </div>
+      )}
       {result ? (
         <>
           <AnalysisResult result={result} />
@@ -474,7 +476,7 @@ export default function PhotoAnalyzer() {
             <p className="text-muted-foreground">
               <span className="font-semibold text-primary">{t('upload_prompt_click')}</span> {t('upload_prompt_drag')}
             </p>
-            <p className="text-xs text-muted-foreground">{t('upload_prompt_types')}</p>
+            <p className="text-xs text-muted-foreground">Analiz başlasın.</p>
           </div>
         </div>
       )}

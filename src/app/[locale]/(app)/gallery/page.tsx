@@ -51,19 +51,19 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
       <div>
           <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
           <div className="flex items-center gap-6 rounded-lg border p-4">
-              <div className="text-center">
+              <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-4xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
+                  <p className="text-5xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
-                      <div key={item.label} className="flex items-center justify-between">
+                      <div key={item.label} className="flex items-center justify-between gap-4">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className="flex items-center gap-2">
-                               <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
-                              </div>
-                              <span className="text-sm font-semibold w-6 text-right">{item.value}</span>
+                          <div className="flex items-center gap-3 flex-1">
+                             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
+                            </div>
+                            <span className="text-sm font-semibold w-4 text-right">{item.value}</span>
                           </div>
                       </div>
                   ))}
@@ -291,41 +291,42 @@ function PhotoDetailDialog({
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="md:w-1/3 w-full relative aspect-square md:aspect-auto">
+        <div className="md:w-2/5 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image src={photo.imageUrl} alt="Analiz" fill className="object-contain" unoptimized priority />
         </div>
-        <div className="md:w-2/3 w-full overflow-y-auto flex flex-col p-6 space-y-6">
+        <div className="md:w-3/5 w-full overflow-y-auto flex flex-col p-6 space-y-6">
             <DialogHeader>
               <DialogTitle className="text-2xl">{t('dialog_title')}</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4">
-              {CameraInfo && (
-                  <div className={cn("flex items-center gap-2 text-sm p-3 rounded-lg border bg-secondary/30", CameraInfo.color)}>
-                      <CameraInfo.icon className={cn("h-5 w-5", CameraInfo.color ? CameraInfo.color : 'text-primary')} />
-                      <span className="font-medium">{CameraInfo.text}</span>
-                  </div>
-              )}
-              {photo.tags && photo.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                      {photo.tags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>
-                      ))}
-                  </div>
-              )}
-            </div>
+             {CameraInfo && (
+                <div className={cn("flex items-center gap-2 text-sm p-3 rounded-lg border bg-secondary/30", CameraInfo.color)}>
+                    <CameraInfo.icon className={cn("h-5 w-5", CameraInfo.color ? CameraInfo.color : 'text-primary')} />
+                    <span className="font-medium">{CameraInfo.text}</span>
+                </div>
+            )}
+            
+            {photo.tags && photo.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {photo.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>
+                    ))}
+                </div>
+            )}
 
             {photo.aiFeedback ? (
               <>
                 <RatingDisplay rating={photo.aiFeedback.rating} />
-                <DialogDescription>{photo.aiFeedback.analysis}</DialogDescription>
-                <ul className="space-y-4">
+                <DialogDescription className="text-base leading-relaxed text-foreground/80">{photo.aiFeedback.analysis}</DialogDescription>
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg">Geliştirme İpuçları</h4>
                   {photo.aiFeedback.improvements.map((tip, i) => (
-                    <li key={i} className="flex gap-3 text-sm text-muted-foreground">
-                      <Lightbulb className="h-5 w-5 text-amber-400 shrink-0" /> {tip}
+                    <li key={i} className="flex items-start gap-4 p-3 rounded-lg border bg-muted/30">
+                      <Lightbulb className="h-6 w-6 mt-0.5 flex-shrink-0 text-amber-400" />
+                      <span className="text-sm leading-snug">{tip}</span>
                     </li>
                   ))}
-                </ul>
+                </div>
               </>
             ) : (
               <div className="text-center py-10 space-y-4">
