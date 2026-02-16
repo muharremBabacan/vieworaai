@@ -155,7 +155,7 @@ service cloud.firestore {
        * @principle Enforces strict document ownership for sensitive financial data, with an exception for admin reporting.
        */
       match /transactions/{transactionId} {
-        allow get: if isOwner(userId);
+        allow get: if isOwner(userId) || isAdmin();
         allow list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && hasValidNewChildData(userId);
         allow update: if isExistingOwner(userId) && isChildDataImmutable();
