@@ -3,7 +3,8 @@
 import { useAuth, useFirestore } from '@/firebase';
 import {
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
 } from 'firebase/auth';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,9 @@ export default function PageContent() {
   const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Sayfa yüklenirken yönlendirme kontrolü için true başla
 
+  // Yönlendirme URI'sini query parametrelerinden sakla
   useEffect(() => {
     const redirectUri = searchParams.get('redirect_uri');
     if (redirectUri) {
@@ -39,83 +41,83 @@ export default function PageContent() {
     }
   }, [searchParams]);
 
-  const handleSignIn = async (providerName: 'google') => {
-    if (isLoading) return;
-    setIsLoading(true);
+  // Sayfa yüklendiğinde yönlendirme sonucunu işle
+  useEffect(() => {
+    const processRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // Kullanıcı başarıyla giriş yaptı.
+          toast({ title: 'Başarıyla giriş yaptınız. Yönlendiriliyorsunuz...' });
+          const firebaseUser = result.user;
+          const userRef = doc(firestore, 'users', firebaseUser.uid);
+          const docSnap = await getDoc(userRef);
 
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
+          if (!docSnap.exists()) {
+            await setDoc(userRef, {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
+              name: firebaseUser.displayName || 'İsimsiz Sanatçı',
+              auro_balance: 20,
+              current_xp: 0,
+              level_name: 'Neuner',
+              is_mentor: false,
+              weekly_free_refill_date: new Date().toISOString(),
+              completed_modules: [],
+              interests: [],
+              onboarded: false,
+              groups: [],
+            });
+          }
 
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
-
-      const userRef = doc(firestore, 'users', firebaseUser.uid);
-      const docSnap = await getDoc(userRef);
-
-      if (!docSnap.exists()) {
-        await setDoc(userRef, {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
-          name: firebaseUser.displayName || 'İsimsiz Sanatçı',
-          auro_balance: 20, // Hoş geldin hediyesi: 10 analiz (20 Auro)
-          current_xp: 0,
-          level_name: 'Neuner',
-          is_mentor: false,
-          weekly_free_refill_date: new Date().toISOString(),
-          completed_modules: [],
-          interests: [],
-          onboarded: false,
-          groups: [],
-        });
-      }
-
-      const redirectUri = sessionStorage.getItem('loginRedirectUri');
-      if (redirectUri) {
-        sessionStorage.removeItem('loginRedirectUri');
-        router.push(redirectUri as any);
-        return;
-      }
-
-      // Redirect user based on onboarding status.
-      // If docSnap doesn't exist, it means it's a new user who needs onboarding.
-      const isOnboarded = docSnap.exists() && docSnap.data().onboarded;
-      if (isOnboarded) {
-        router.push('/profile');
-      } else {
-        router.push('/onboarding');
-      }
-
-    } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-        console.info('Sign-in popup closed or cancelled by user.');
-        // Do not show a toast for this user action.
-      } else {
-        console.error(`Sign in with ${providerName} failed`, error);
-      
+          const redirectUri = sessionStorage.getItem('loginRedirectUri');
+          if (redirectUri) {
+            sessionStorage.removeItem('loginRedirectUri');
+            router.push(redirectUri as any);
+            return;
+          }
+          
+          const isOnboarded = docSnap.exists() && docSnap.data().onboarded;
+          if (isOnboarded) {
+            router.push('/profile');
+          } else {
+            router.push('/onboarding');
+          }
+        } else {
+          // Yönlendirme sonucu yok, normal sayfa yüklemesi
+          setIsLoading(false);
+        }
+      } catch (error: any) {
+        // getRedirectResult'tan gelen hataları yakala
+        console.error('Yönlendirme ile giriş başarısız', error);
         let description = 'Giriş yaparken bir hata oluştu. Lütfen daha sonra tekrar deneyin.';
-        if (error.code === 'auth/requests-to-this-api-identitytoolkit-method-google.cloud.identitytoolkit.v1.projectconfigservice.getprojectconfig-are-blocked.') {
-          description = 'Kimlik doğrulama servisleri projenizde etkin değil. Lütfen Google Cloud Console\'da "Identity Toolkit API"yi etkinleştirin.';
-        } else if (error.code === 'auth/operation-not-allowed') {
-          description = 'Lütfen Firebase projenizde Google ile girişi etkinleştirdiğinizden emin olun.'
+        if (error.code === 'auth/unauthorized-domain') {
+            description = `Bu alan adı, Firebase projenizde kimlik doğrulama için yetkilendirilmemiş. viewora.ai alan adını Firebase Console > Authentication > Settings > Authorized domains bölümüne eklemelisiniz.`;
         }
-        else if (error.code === 'auth/unauthorized-domain') {
-          description = `Bu alan adı, Firebase projenizde kimlik doğrulama için yetkilendirilmemiş. viewora.ai alan adını Firebase Console > Authentication > Settings > Authorized domains bölümüne eklemelisiniz.`;
-        } else if (error.message) {
-          description = error.message;
-        }
-        
         toast({
           variant: 'destructive',
           title: `Giriş Başarısız (${error.code || 'Bilinmeyen Hata'})`,
           description: description,
         });
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
+    };
+    if(auth && firestore) { // Firebase servislerinin hazır olduğundan emin ol
+      processRedirect();
     }
+  }, [auth, firestore, router, toast]);
+
+  const handleSignIn = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account',
+    });
+
+    await signInWithRedirect(auth, provider);
+    // Kullanıcı yönlendirilecek, bu yüzden burada setLoading(false) yapmaya gerek yok
   };
 
   return (
@@ -135,7 +137,7 @@ export default function PageContent() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => handleSignIn('google')}
+              onClick={handleSignIn}
               disabled={isLoading}
             >
               {isLoading ? (
