@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 
 
 function ScoresGrid({ scores }: { scores: PhotoAnalysis }) {
+  const t = useTranslations('DashboardPage');
   const scoreItems = [
     { label: "Işık", value: scores.light_score },
     { label: "Kompozisyon", value: scores.composition_score },
@@ -69,11 +70,11 @@ function AnalysisResult({ analysis, feedback }: { analysis: PhotoAnalysis, feedb
       <Card>
         <CardContent className="p-6 space-y-4">
            <div>
-              <h3 className="font-sans text-lg font-semibold mb-2 flex items-center gap-2"><Bot className="h-5 w-5"/> Objektif Analiz</h3>
+              <h3 className="font-sans text-lg font-semibold mb-2 flex items-center gap-2"><Bot className="h-5 w-5"/> {t('ai_analysis_title')}</h3>
               <p className="text-muted-foreground text-sm">{analysis.short_neutral_analysis}</p>
            </div>
            <div className="border-t pt-4">
-              <h3 className="font-sans text-lg font-semibold mb-2 flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-400"/> Gelişim Fırsatları</h3>
+              <h3 className="font-sans text-lg font-semibold mb-2 flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-400"/> {t('improvements_title')}</h3>
               <p className="text-muted-foreground">{feedback}</p>
            </div>
         </CardContent>
@@ -268,11 +269,11 @@ export default function PhotoAnalyzer() {
     <div className="space-y-8">
        {!analysisResult && !preview && (
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight">Merhaba, {userProfile?.name?.split(' ')[0]}.</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('greeting_title', { name: userProfile?.name?.split(' ')[0] })}</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Ben senin Görsel Koçunum. Fotoğraflarını birlikte geliştireceğiz. Işık, kompozisyon ve teknik detayları analiz ederim. Güçlü yanlarını gösterir, zayıf noktalarını net biçimde söylerim.
+            {t('greeting_desc_1')} {t('greeting_desc_2')}
           </p>
-          <p className="font-semibold text-foreground">Hazırsan ilk fotoğrafını yükle.</p>
+          <p className="font-semibold text-foreground">{t('greeting_cta')}</p>
         </div>
       )}
       {analysisResult && feedbackResult ? (
@@ -312,8 +313,8 @@ export default function PhotoAnalyzer() {
           <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
           <div className="space-y-2">
             <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
-            <p className="font-semibold text-muted-foreground">{t('upload_prompt_click')} {t('upload_prompt_drag')}</p>
-            <p className="text-sm text-muted-foreground/80">Analiz başlasın.</p>
+            <p className="font-semibold text-muted-foreground">{t('upload_prompt_main')}</p>
+            <p className="text-sm text-muted-foreground/80">{t('upload_prompt_sub')}</p>
           </div>
         </div>
       )}
