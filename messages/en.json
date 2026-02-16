@@ -52,8 +52,11 @@
     "main_title": "Viewora Academy",
     "main_description": "Take your photography knowledge from fundamentals to mastery.",
     "level_basic_title": "Beginner Level",
+    "level_basic_description": "Learn the basics of your camera, understand exposure, and master fundamental composition rules.",
     "level_intermediate_title": "Intermediate Level",
+    "level_intermediate_description": "Shoot in different genres, apply advanced techniques, and consciously manage light.",
     "level_advanced_title": "Advanced Level",
+    "level_advanced_description": "Create your own artistic style, learn professional lighting setups, and specialize in photography.",
     "button_view_lessons": "View Lessons"
   },
   "AcademyLevelPage": {

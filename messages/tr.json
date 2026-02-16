@@ -52,8 +52,11 @@
     "main_title": "Viewora Akademi",
     "main_description": "Fotoğrafçılık bilginizi temelden ustalığa taşıyın.",
     "level_basic_title": "Temel Seviye",
+    "level_basic_description": "Kameranızın temellerini öğrenin, pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.",
     "level_intermediate_title": "Orta Seviye",
+    "level_intermediate_description": "Farklı türlerde çekim yapın, gelişmiş teknikleri uygulayın ve ışığı bilinçli bir şekilde yönetin.",
     "level_advanced_title": "İleri Seviye",
+    "level_advanced_description": "Kendi sanatsal tarzınızı yaratın, profesyonel ışık kurulumlarını öğrenin ve fotoğrafçılıkta uzmanlaşın.",
     "button_view_lessons": "Dersleri Gör"
   },
   "AcademyLevelPage": {
