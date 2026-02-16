@@ -52,11 +52,8 @@
     "main_title": "Viewora Akademi",
     "main_description": "Fotoğrafçılık bilginizi temelden ustalığa taşıyın.",
     "level_basic_title": "Temel Seviye",
-    "level_basic_description": "Kamera kontrolü, ışık ve temel kompozisyon konularında sağlam bir temel oluşturun.",
     "level_intermediate_title": "Orta Seviye",
-    "level_intermediate_description": "Farklı fotoğrafçılık türlerinde teknik kontrol kazanın ve bilinçli estetik kararlar verin.",
     "level_advanced_title": "İleri Seviye",
-    "level_advanced_description": "Bir alanda uzmanlaşın, sanatsal kimliğinizi oluşturun ve profesyonel adımlar atın.",
     "button_view_lessons": "Dersleri Gör"
   },
   "AcademyLevelPage": {
@@ -106,10 +103,17 @@
     "button_ended": "Yarışma Sona Erdi"
   },
   "DashboardPage": {
+    "greeting_title": "Merhaba, {name}.",
+    "greeting_subtitle": "Ben senin Görsel Koçunum.",
+    "greeting_desc_1": "Fotoğraflarını birlikte geliştireceğiz.",
+    "greeting_desc_2": "Işık, kompozisyon ve teknik detayları analiz ederim. Güçlü yanlarını gösterir, zayıf noktalarını net biçimde söylerim.",
+    "greeting_cta": "Hazırsan ilk fotoğrafını yükle.",
+    "upload_prompt_main": "Yüklemek için tıkla veya sürükle bırak",
+    "upload_prompt_sub": "Analiz başlasın.",
     "rating_card_title": "Derecelendirme",
     "overall_score": "Genel Puan",
-    "ai_analysis_title": "YZ Analizi",
-    "improvements_title": "İyileştirme İpuçları",
+    "ai_analysis_title": "Objektif Analiz",
+    "improvements_title": "Gelişim Fırsatları",
     "button_new_analysis": "Yeni Analiz Başlat",
     "toast_file_size_title": "Dosya Boyutu Çok Büyük",
     "toast_file_size_description": "Lütfen 10MB'dan küçük bir resim dosyası yükleyin.",
@@ -138,10 +142,7 @@
     "state_wait": "Bu işlem biraz zaman alabilir, lütfen bekleyin.",
     "button_analyze": "Analiz Et ({cost} Auro)",
     "button_uploading": "Yükleniyor...",
-    "button_upload_only": "Sadece Yükle (Ücretsiz)",
-    "upload_prompt_click": "Yüklemek için tıklayın",
-    "upload_prompt_drag": "veya sürükleyip bırakın",
-    "upload_prompt_types": "PNG, JPG, GIF 10MB'a kadar"
+    "button_upload_only": "Sadece Yükle (Ücretsiz)"
   },
   "ExplorePage": {
     "title": "Sergi Salonu",
@@ -353,7 +354,7 @@
   "Ratings": {
     "lighting": "Işık",
     "composition": "Kompozisyon",
-    "emotion": "Duygu",
+    "focus": "Netlik",
     "overall": "Genel"
   },
   "Curriculum": {

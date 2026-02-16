@@ -52,11 +52,8 @@
     "main_title": "Viewora Academy",
     "main_description": "Take your photography knowledge from fundamentals to mastery.",
     "level_basic_title": "Beginner Level",
-    "level_basic_description": "Build a solid foundation in camera control, light, and basic composition.",
     "level_intermediate_title": "Intermediate Level",
-    "level_intermediate_description": "Gain technical control across photography genres and make intentional aesthetic decisions.",
     "level_advanced_title": "Advanced Level",
-    "level_advanced_description": "Specialize in a field, develop your artistic identity, and take professional steps.",
     "button_view_lessons": "View Lessons"
   },
   "AcademyLevelPage": {
@@ -106,6 +103,13 @@
     "button_ended": "Competition Ended"
   },
   "DashboardPage": {
+    "greeting_title": "Hello, {name}.",
+    "greeting_subtitle": "I am your Visual Coach.",
+    "greeting_desc_1": "We will improve your photos together.",
+    "greeting_desc_2": "I analyze light, composition, and technical details. I show your strengths and clearly state your weaknesses.",
+    "greeting_cta": "If you're ready, upload your first photo.",
+    "upload_prompt_main": "Click to upload or drag and drop",
+    "upload_prompt_sub": "Let the analysis begin.",
     "rating_card_title": "Rating",
     "overall_score": "Overall Score",
     "ai_analysis_title": "AI Analysis",
@@ -138,10 +142,7 @@
     "state_wait": "This may take a moment, please wait.",
     "button_analyze": "Analyze ({cost} Auro)",
     "button_uploading": "Uploading...",
-    "button_upload_only": "Upload Only (Free)",
-    "upload_prompt_click": "Click to upload",
-    "upload_prompt_drag": "or drag and drop",
-    "upload_prompt_types": "PNG, JPG, GIF up to 10MB"
+    "button_upload_only": "Upload Only (Free)"
   },
   "ExplorePage": {
     "title": "Exhibition Hall",
@@ -353,7 +354,7 @@
   "Ratings": {
     "lighting": "Lighting",
     "composition": "Composition",
-    "emotion": "Emotion",
+    "focus": "Focus",
     "overall": "Overall"
   },
   "Curriculum": {

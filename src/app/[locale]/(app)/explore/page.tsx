@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import type { Photo } from '@/types';
+import type { Photo, PhotoAnalysis } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -18,13 +18,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 
-function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
+function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   const t = useTranslations('ExplorePage');
   const tRatings = useTranslations('Ratings');
+  
+  const scores = [
+    analysis.light_score,
+    analysis.composition_score,
+    analysis.focus_score,
+    analysis.color_control_score,
+    analysis.background_control_score,
+    analysis.creativity_risk_score,
+  ];
+  const overallScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+
   const ratingItems = [
-      { label: tRatings('lighting'), value: rating.lighting },
-      { label: tRatings('composition'), value: rating.composition },
-      { label: tRatings('emotion'), value: rating.emotion },
+      { label: tRatings('lighting'), value: analysis.light_score },
+      { label: tRatings('composition'), value: analysis.composition_score },
+      { label: tRatings('focus'), value: analysis.focus_score },
   ];
   return (
       <div>
@@ -32,7 +43,7 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
+                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(1)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
@@ -42,7 +53,7 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
                             </div>
-                            <span className="text-sm font-semibold w-4 text-right">{item.value}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{item.value.toFixed(1)}</span>
                           </div>
                       </div>
                   ))}
@@ -67,32 +78,20 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
   const getCameraInfo = () => {
     if (!photo?.aiFeedback) return null;
     
-    if (photo.aiFeedback.isAiGenerated) {
-      return { icon: Bot, text: tGallery('camera_info_ai'), color: 'text-purple-400' };
-    }
+    const { device_estimation } = photo.aiFeedback;
 
-    const { cameraType, cameraMake, cameraModel } = photo.aiFeedback;
-
-    if (!cameraType || cameraType === 'Bilinmiyor') {
+    if (!device_estimation || device_estimation === 'unknown') {
         return { icon: HelpCircle, text: tGallery('camera_info_unknown') };
     }
 
-    const typeText = cameraType === 'Profesyonel' ? tGallery('camera_type_pro') : tGallery('camera_type_mobile');
-    const icon = cameraType === 'Profesyonel' ? Camera : Smartphone;
-
-    let detailText = '';
-    if (cameraMake && cameraMake !== 'Bilinmiyor') {
-      detailText += cameraMake;
-      if (cameraModel && cameraModel !== 'Bilinmiyor') {
-        detailText += ` ${cameraModel}`;
-      }
+    const typeMap = {
+        'pro_dslr': { text: tGallery('camera_type_pro'), icon: Camera},
+        'mirrorless': { text: tGallery('camera_type_pro'), icon: Camera},
+        'entry_dslr': { text: tGallery('camera_type_pro'), icon: Camera},
+        'mobile': { text: tGallery('camera_type_mobile'), icon: Smartphone},
     }
 
-    if (detailText) {
-      return { icon, text: `${typeText}: ${detailText}` };
-    }
-    
-    return { icon, text: cameraType === 'Profesyonel' ? tGallery('camera_shot_with_pro') : tGallery('camera_shot_with_mobile') };
+    return typeMap[device_estimation] || { icon: HelpCircle, text: tGallery('camera_info_unknown') };
   };
   
   const CameraInfo = getCameraInfo();
@@ -139,27 +138,12 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
             
             {photo.aiFeedback ? (
               <>
-                <RatingDisplay rating={photo.aiFeedback.rating} />
+                <RatingDisplay analysis={photo.aiFeedback} />
                 <div>
                   <h4 className="font-semibold text-lg mb-2">{t('analysis_summary_title')}</h4>
                   <DialogDescription className="text-base leading-relaxed text-foreground/80">
-                    {photo.aiFeedback.analysis}
+                    {photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis}
                   </DialogDescription>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-lg mb-3">{t('improvements_title')}</h4>
-                  <ul className="space-y-4">
-                    {photo.aiFeedback.improvements.map((tip, index) => {
-                      const Icon = improvements[index % improvements.length].icon;
-                      const color = improvements[index % improvements.length].color;
-                      return (
-                         <li key={index} className="flex items-start gap-4 p-3 rounded-lg border bg-muted/30">
-                          <Icon className={cn("h-6 w-6 mt-0.5 flex-shrink-0", color)} />
-                          <span className="text-sm leading-snug">{tip}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
                 </div>
               </>
             ) : (
@@ -208,12 +192,16 @@ export default function ExplorePage() {
                     <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
                         <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-                         {photo.aiFeedback && (
-                            <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
-                              <Star className="h-3 w-3 text-yellow-400" />
-                              <span className="text-xs font-bold">{photo.aiFeedback.rating.overall.toFixed(1)}</span>
-                            </Badge>
-                        )}
+                         {photo.aiFeedback && (() => {
+                            const scores = [photo.aiFeedback.light_score, photo.aiFeedback.composition_score, photo.aiFeedback.focus_score, photo.aiFeedback.color_control_score, photo.aiFeedback.background_control_score, photo.aiFeedback.creativity_risk_score];
+                            const overallScore = scores.reduce((s, v) => s + v, 0) / scores.length;
+                            return (
+                                <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                                  <Star className="h-3 w-3 text-yellow-400" />
+                                  <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                </Badge>
+                            )
+                         })()}
                     </Card>
                 ))}
             </div>

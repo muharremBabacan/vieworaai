@@ -2,8 +2,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/navigation';
-import { analyzePhotoAndSuggestImprovements, type AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
-import type { Photo, User as UserProfile } from '@/types';
+import { generatePhotoAnalysis, type PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
+import type { Photo, User as UserProfile, PhotoAnalysis } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
@@ -39,13 +39,24 @@ import {
 } from "@/components/ui/carousel";
 import { useLocale, useTranslations } from 'next-intl';
 
-function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
+function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   const t = useTranslations('GalleryPage');
   const tRatings = useTranslations('Ratings');
+  
+  const scores = [
+    analysis.light_score,
+    analysis.composition_score,
+    analysis.focus_score,
+    analysis.color_control_score,
+    analysis.background_control_score,
+    analysis.creativity_risk_score,
+  ];
+  const overallScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+
   const ratingItems = [
-      { label: tRatings('lighting'), value: rating.lighting },
-      { label: tRatings('composition'), value: rating.composition },
-      { label: tRatings('emotion'), value: rating.emotion },
+      { label: tRatings('lighting'), value: analysis.light_score },
+      { label: tRatings('composition'), value: analysis.composition_score },
+      { label: tRatings('focus'), value: analysis.focus_score },
   ];
   return (
       <div>
@@ -53,7 +64,7 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
+                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(1)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
@@ -63,7 +74,7 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
                             </div>
-                            <span className="text-sm font-semibold w-4 text-right">{item.value}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{item.value.toFixed(1)}</span>
                           </div>
                       </div>
                   ))}
@@ -113,32 +124,20 @@ function PhotoDetailDialog({
   const getCameraInfo = () => {
     if (!photo?.aiFeedback) return null;
     
-    if (photo.aiFeedback.isAiGenerated) {
-      return { icon: Bot, text: t('camera_info_ai'), color: 'text-purple-400' };
-    }
+    const { device_estimation } = photo.aiFeedback;
 
-    const { cameraType, cameraMake, cameraModel } = photo.aiFeedback;
-
-    if (!cameraType || cameraType === 'Bilinmiyor') {
+    if (!device_estimation || device_estimation === 'unknown') {
         return { icon: HelpCircle, text: t('camera_info_unknown') };
     }
 
-    const typeText = cameraType === 'Profesyonel' ? t('camera_type_pro') : t('camera_type_mobile');
-    const icon = cameraType === 'Profesyonel' ? Camera : Smartphone;
-
-    let detailText = '';
-    if (cameraMake && cameraMake !== 'Bilinmiyor') {
-      detailText += cameraMake;
-      if (cameraModel && cameraModel !== 'Bilinmiyor') {
-        detailText += ` ${cameraModel}`;
-      }
+    const typeMap = {
+        'pro_dslr': { text: t('camera_type_pro'), icon: Camera},
+        'mirrorless': { text: t('camera_type_pro'), icon: Camera},
+        'entry_dslr': { text: t('camera_type_pro'), icon: Camera},
+        'mobile': { text: t('camera_type_mobile'), icon: Smartphone},
     }
 
-    if (detailText) {
-      return { icon, text: `${typeText}: ${detailText}` };
-    }
-    
-    return { icon, text: cameraType === 'Profesyonel' ? t('camera_shot_with_pro') : t('camera_shot_with_mobile') };
+    return typeMap[device_estimation] || { icon: HelpCircle, text: t('camera_info_unknown') };
   };
   
   const CameraInfo = getCameraInfo();
@@ -159,11 +158,21 @@ function PhotoDetailDialog({
     toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
 
     try {
-      const analysisResult = await analyzePhotoAndSuggestImprovements({ photoUrl: photo.imageUrl, language: locale });
-      if (!analysisResult?.rating) throw new Error("Rating hatası.");
+      const analysisResult = await generatePhotoAnalysis({ photoUrl: photo.imageUrl });
       
       const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
-      const totalXpGained = 15 + (analysisResult.rating.overall >= 8.0 ? 50 : 0);
+      
+      const scores = [
+        analysisResult.light_score,
+        analysisResult.composition_score,
+        analysisResult.focus_score,
+        analysisResult.color_control_score,
+        analysisResult.background_control_score,
+        analysisResult.creativity_risk_score,
+      ];
+      const overallScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+      
+      const totalXpGained = 15 + (overallScore >= 8.0 ? 50 : 0);
       const newXp = currentXp + totalXpGained;
       const newLevel = getLevelFromXp(newXp);
       
@@ -171,7 +180,7 @@ function PhotoDetailDialog({
       if (newLevel.name !== getLevelFromXp(currentXp).name) userUpdatePayload.level_name = newLevel.name;
 
       updateDocumentNonBlocking(userDocRef, userUpdatePayload);
-      updateDocumentNonBlocking(originalPhotoRef, { aiFeedback: analysisResult, tags: analysisResult.tags || [] });
+      updateDocumentNonBlocking(originalPhotoRef, { aiFeedback: analysisResult, tags: [analysisResult.genre] });
 
       toast({ title: t('toast_success_title'), description: t('toast_analysis_complete') });
       onOpenChange(false);
@@ -316,17 +325,10 @@ function PhotoDetailDialog({
 
             {photo.aiFeedback ? (
               <>
-                <RatingDisplay rating={photo.aiFeedback.rating} />
-                <DialogDescription className="text-base leading-relaxed text-foreground/80">{photo.aiFeedback.analysis}</DialogDescription>
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg">Geliştirme İpuçları</h4>
-                  {photo.aiFeedback.improvements.map((tip, i) => (
-                    <li key={i} className="flex items-start gap-4 p-3 rounded-lg border bg-muted/30">
-                      <Lightbulb className="h-6 w-6 mt-0.5 flex-shrink-0 text-amber-400" />
-                      <span className="text-sm leading-snug">{tip}</span>
-                    </li>
-                  ))}
-                </div>
+                <RatingDisplay analysis={photo.aiFeedback} />
+                <DialogDescription className="text-base leading-relaxed text-foreground/80">
+                  {photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis}
+                </DialogDescription>
               </>
             ) : (
               <div className="text-center py-10 space-y-4">
@@ -431,12 +433,16 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
             )}
           </div>
 
-          {photo.aiFeedback && (
-             <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
-              <Star className="h-3 w-3 text-yellow-400" />
-              <span className="text-xs font-bold">{photo.aiFeedback.rating.overall.toFixed(1)}</span>
-            </Badge>
-          )}
+          {photo.aiFeedback && (() => {
+              const scores = [photo.aiFeedback.light_score, photo.aiFeedback.composition_score, photo.aiFeedback.focus_score, photo.aiFeedback.color_control_score, photo.aiFeedback.background_control_score, photo.aiFeedback.creativity_risk_score];
+              const overallScore = scores.reduce((s, v) => s + v, 0) / scores.length;
+              return (
+                <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                  <Star className="h-3 w-3 text-yellow-400" />
+                  <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                </Badge>
+              )
+          })()}
         </Card>
       ))}
     </div>
@@ -495,20 +501,26 @@ export default function GalleryPage() {
     
     if (selectedTag === filter_best_overall) {
       return photosToShow
-        .filter(p => p.aiFeedback?.rating?.overall)
-        .sort((a, b) => (b.aiFeedback!.rating.overall) - (a.aiFeedback!.rating.overall));
+        .filter(p => p.aiFeedback)
+        .sort((a, b) => {
+            const aScores = [a.aiFeedback!.light_score, a.aiFeedback!.composition_score, a.aiFeedback!.focus_score, a.aiFeedback!.color_control_score, a.aiFeedback!.background_control_score, a.aiFeedback!.creativity_risk_score];
+            const aOverall = aScores.reduce((s, v) => s + v, 0) / aScores.length;
+            const bScores = [b.aiFeedback!.light_score, b.aiFeedback!.composition_score, b.aiFeedback!.focus_score, b.aiFeedback!.color_control_score, b.aiFeedback!.background_control_score, b.aiFeedback!.creativity_risk_score];
+            const bOverall = bScores.reduce((s, v) => s + v, 0) / bScores.length;
+            return bOverall - aOverall;
+        });
     }
 
     if (selectedTag === filter_best_light) {
       return photosToShow
-        .filter(p => p.aiFeedback?.rating?.lighting)
-        .sort((a, b) => (b.aiFeedback!.rating.lighting) - (a.aiFeedback!.rating.lighting));
+        .filter(p => p.aiFeedback?.light_score)
+        .sort((a, b) => (b.aiFeedback!.light_score) - (a.aiFeedback!.light_score));
     }
     
     if (selectedTag === filter_best_composition) {
       return photosToShow
-        .filter(p => p.aiFeedback?.rating?.composition)
-        .sort((a, b) => (b.aiFeedback!.rating.composition) - (a.aiFeedback!.rating.composition));
+        .filter(p => p.aiFeedback?.composition_score)
+        .sort((a, b) => (b.aiFeedback!.composition_score) - (a.aiFeedback!.composition_score));
     }
 
     // Default to tag filtering
