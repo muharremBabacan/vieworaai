@@ -69,6 +69,10 @@ service cloud.firestore {
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
+    
+    function isGroupOwnerByGroupId(groupId) {
+      return isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
+    }
 
     //-------------------------------------------------------------------------
     // Validation Functions (Prototyping Mode: Authorization-critical fields only)
@@ -172,7 +176,12 @@ service cloud.firestore {
       match /notifications/{notificationId} {
         allow get, list, delete: if isOwner(userId);
         allow update: if isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
-        allow create: if isSignedIn() && request.resource.data.userId == userId;
+        // For system messages, maybe only admin can create? For now, no rule.
+        // For group invites, only the owner of that group can create an invite notification.
+        // The notification document must contain `type: 'group_invite'` and the `groupId`.
+        allow create: if request.resource.data.type == 'group_invite'
+                         && isGroupOwnerByGroupId(request.resource.data.groupId)
+                         && request.resource.data.userId == userId;
       }
     }
     

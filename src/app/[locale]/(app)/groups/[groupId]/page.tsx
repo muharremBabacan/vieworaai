@@ -133,6 +133,7 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
       const notificationsColRef = collection(firestore, 'users', userToAddId, 'notifications');
       addDocumentNonBlocking(notificationsColRef, {
           userId: userToAddId,
+          groupId: group.id,
           type: 'group_invite',
           title: tNotif('notification_group_invite_title'),
           body: tNotif('notification_group_invite_body', { inviterName: inviterName, groupName: group.name }),

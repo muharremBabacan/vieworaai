@@ -116,4 +116,5 @@ export type Notification = {
   link?: string;
   isRead: boolean;
   createdAt: string; // ISO string
+  groupId?: string;
 };
