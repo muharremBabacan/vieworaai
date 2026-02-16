@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { generatePhotoAnalysis, type PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback, type AdaptiveFeedbackOutput } from '@/ai/flows/generate-adaptive-feedback';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Zap, Upload, AlertTriangle, CheckCircle, Lightbulb, Bot } from 'lucide-react';
@@ -18,66 +18,77 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 
 
-function ScoresGrid({ scores }: { scores: PhotoAnalysis }) {
+function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   const t = useTranslations('DashboardPage');
-  const scoreItems = [
-    { label: "Işık", value: scores.light_score },
-    { label: "Kompozisyon", value: scores.composition_score },
-    { label: "Netlik", value: scores.focus_score },
-    { label: "Renk", value: scores.color_control_score },
-    { label: "Arka Plan", value: scores.background_control_score },
-    { label: "Yaratıcılık", value: scores.creativity_risk_score },
-  ];
+  const tRatings = useTranslations('Ratings');
 
+  const scores = [
+    analysis.light_score,
+    analysis.composition_score,
+    analysis.focus_score,
+    analysis.color_control_score,
+    analysis.background_control_score,
+    analysis.creativity_risk_score,
+  ].filter((score): score is number => typeof score === 'number' && isFinite(score));
+
+  const overallScore = scores.length > 0
+    ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+    : 0;
+
+  const ratingItems = [
+      { label: tRatings('lighting'), value: analysis.light_score ?? 0 },
+      { label: tRatings('composition'), value: analysis.composition_score ?? 0 },
+      { label: tRatings('focus'), value: analysis.focus_score ?? 0 },
+  ];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      {scoreItems.map(item => (
-        <div key={item.label} className="p-4 rounded-lg border bg-card text-center">
-          <p className="text-sm text-muted-foreground">{item.label}</p>
-          <p className="text-3xl font-bold text-primary">{item.value.toFixed(1)}</p>
-        </div>
-      ))}
-    </div>
-  );
+      <div>
+          <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
+          <div className="flex items-center gap-6 rounded-lg border p-4">
+              <div className="flex flex-col items-center justify-center">
+                  <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
+                  <p className="text-5xl font-bold text-primary">{(overallScore * 100).toFixed(0)}</p>
+              </div>
+              <div className="flex-1 space-y-2">
+                  {ratingItems.map(item => (
+                      <div key={item.label} className="flex items-center justify-between gap-4">
+                          <span className="text-sm text-muted-foreground">{item.label}</span>
+                          <div className="flex items-center gap-3 flex-1">
+                             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 100}%` }} />
+                            </div>
+                            <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0) * 100).toFixed(0)}</span>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      </div>
+  )
 }
 
-
-function AnalysisResult({ analysis, feedback }: { analysis: PhotoAnalysis, feedback: string }) {
+function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: PhotoAnalysis, feedback: string, photoPreviewUrl: string }) {
   const t = useTranslations('DashboardPage');
-  
-  const errorFlags = Object.entries(analysis.error_flags)
-    .filter(([, value]) => value)
-    .map(([key]) => key.replace(/_/g, ' '));
 
   return (
     <div className="space-y-6">
-      <ScoresGrid scores={analysis} />
+      <Card>
+        <CardContent className="p-0">
+          <div className="relative aspect-video bg-muted/20">
+            <Image src={photoPreviewUrl} alt="Analyzed Photo" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
+          </div>
+        </CardContent>
+      </Card>
       
-      {errorFlags.length > 0 && (
-         <Card>
-          <CardContent className="p-4">
-              <div className="flex flex-wrap gap-2">
-                {errorFlags.map(flag => (
-                  <Badge key={flag} variant="destructive" className="capitalize text-xs">
-                     <AlertTriangle className="mr-1.5 h-3 w-3"/>
-                     {flag}
-                  </Badge>
-                ))}
-              </div>
-          </CardContent>
-        </Card>
-      )}
+      <RatingDisplay analysis={analysis} />
 
       <Card>
-        <CardContent className="p-6 space-y-4">
-           <div>
-              <h3 className="font-sans text-lg font-semibold mb-2 flex items-center gap-2"><Bot className="h-5 w-5"/> {t('ai_analysis_title')}</h3>
-              <p className="text-muted-foreground text-sm">{analysis.short_neutral_analysis}</p>
-           </div>
-           <div className="border-t pt-4">
-              <h3 className="font-sans text-lg font-semibold mb-2 flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-400"/> {t('improvements_title')}</h3>
-              <p className="text-muted-foreground">{feedback}</p>
-           </div>
+        <CardHeader>
+           <CardTitle className="font-sans text-lg font-semibold flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-amber-400"/> {t('improvements_title')}
+            </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">{feedback}</p>
         </CardContent>
       </Card>
     </div>
@@ -277,9 +288,13 @@ export default function PhotoAnalyzer() {
           <p className="font-semibold text-foreground">{t('greeting_cta')}</p>
         </div>
       )}
-      {analysisResult && feedbackResult ? (
+      {analysisResult && feedbackResult && preview ? (
         <>
-          <AnalysisResult analysis={analysisResult} feedback={feedbackResult} />
+          <AnalysisResult 
+            analysis={analysisResult} 
+            feedback={feedbackResult} 
+            photoPreviewUrl={preview}
+          />
           <Button onClick={handleClear} variant="outline" className="w-full">
             {t('button_new_analysis')}
           </Button>
