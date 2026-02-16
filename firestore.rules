@@ -165,34 +165,6 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId) && isChildDataImmutable();
         allow delete: if isExistingOwner(userId);
       }
-
-       /**
-        * @description Controls access to a user's in-app notifications.
-        * This is a tricky ruleset because one user (a group owner) needs to create
-        * a document in another user's subcollection. This can confuse the rules validator.
-        * The rules are written to be as explicit as possible to avoid this.
-        */
-      match /notifications/{notificationId} {
-        // READ: A user can only read notifications in their own subcollection.
-        allow get: if request.auth.uid == userId;
-        allow list: if request.auth.uid == userId && request.query.limit <= 20;
-
-        // CREATE: A user CANNOT create their own notifications.
-        // Another user (a group owner) can create an invite notification for them.
-        allow create: if request.auth.uid != userId && // The creator is NOT the recipient
-                       request.resource.data.userId == userId && // The data's userId MUST match the path
-                       request.resource.data.type == 'group_invite' &&
-                       'groupId' in request.resource.data && // The groupId must exist
-                       // The creator MUST be the owner of the group they are inviting to.
-                       get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == request.auth.uid;
-
-        // UPDATE: A user can only update the `isRead` status of their own notifications.
-        allow update: if request.auth.uid == userId &&
-                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
-
-        // DELETE: A user can delete their own notifications.
-        allow delete: if request.auth.uid == userId;
-      }
     }
     
     /**
@@ -291,6 +263,29 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update: if false;
       allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to notifications. This is a top-level collection.
+     * A user can query for notifications where their UID is the recipient.
+     * A group owner can create notifications for other users.
+     */
+    match /notifications/{notificationId} {
+      // READ/DELETE: A user can read or delete notifications where they are the recipient.
+      // `read` covers `get` and `list` operations. The client MUST query `where('userId', '==', request.auth.uid)`.
+      allow read, delete: if request.auth.uid == resource.data.userId;
+
+      // UPDATE: A user can only update the `isRead` status on their own notifications.
+      allow update: if request.auth.uid == resource.data.userId &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+
+      // CREATE: A group owner can create an invite notification for another user.
+      allow create: if isSignedIn() &&
+                       request.auth.uid != request.resource.data.userId && // Creator is not the recipient
+                       request.resource.data.type == 'group_invite' &&
+                       'groupId' in request.resource.data && // Must have groupId
+                       // Creator must be the owner of the group they are inviting to.
+                       get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == request.auth.uid;
     }
 
     /**

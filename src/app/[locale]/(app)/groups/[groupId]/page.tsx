@@ -130,7 +130,7 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
       const inviterProfile = inviterProfileDoc.data() as UserProfile;
       const inviterName = inviterProfile?.name || tLogin('anonymous_artist');
       
-      const notificationsColRef = collection(firestore, 'users', userToAddId, 'notifications');
+      const notificationsColRef = collection(firestore, 'notifications');
       addDocumentNonBlocking(notificationsColRef, {
           userId: userToAddId,
           groupId: group.id,

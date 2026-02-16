@@ -482,18 +482,14 @@
         }
       },
       {
-        "path": "users/{userId}/notifications/{notificationId}",
+        "path": "notifications/{notificationId}",
         "definition": {
           "entityName": "Notification",
           "schema": {
             "$ref": "#/backend/entities/Notification"
           },
-          "description": "A subcollection for user-specific notifications. Users can read/manage their own notifications. Other users can create notifications here (e.g., for invites).",
+          "description": "A top-level collection for all user notifications. A user can query for notifications where the 'userId' field matches their own UID.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The user receiving the notification."
-            },
             {
               "name": "notificationId",
               "description": "The unique ID for the notification."
@@ -575,6 +571,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\n\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\n\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute.\n\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users.\n\n**Structural Segregation:** Data with different security postures is kept in separate collections. Public data (`/academyLessons`), private user data (`/users/{userId}`), and semi-private group data (`/groups/{groupId}`) do not mix, which simplifies rule logic and prevents accidental data exposure."
+    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\n\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\n\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute.\n\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users."
   }
 }

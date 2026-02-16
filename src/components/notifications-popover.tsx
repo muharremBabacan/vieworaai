@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, query, orderBy, limit, where } from 'firebase/firestore';
 import type { Notification } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -27,8 +27,13 @@ export function NotificationsPopover() {
   const dateFnsLocale = localeMap[locale] || enUS;
 
   const notificationsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc'), limit(20));
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'notifications'), 
+      where('userId', '==', user.uid), 
+      orderBy('createdAt', 'desc'), 
+      limit(20)
+    );
   }, [user, firestore]);
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
@@ -37,7 +42,7 @@ export function NotificationsPopover() {
 
   const handleNotificationClick = (notification: Notification) => {
     if (!user || notification.isRead) return;
-    const notifRef = doc(firestore, 'users', user.uid, 'notifications', notification.id);
+    const notifRef = doc(firestore, 'notifications', notification.id);
     updateDocumentNonBlocking(notifRef, { isRead: true });
   };
   
@@ -45,7 +50,7 @@ export function NotificationsPopover() {
     if (!user || !notifications) return;
     notifications.forEach(n => {
       if (!n.isRead) {
-        const notifRef = doc(firestore, 'users', user.uid, 'notifications', n.id);
+        const notifRef = doc(firestore, 'notifications', n.id);
         updateDocumentNonBlocking(notifRef, { isRead: true });
       }
     });
