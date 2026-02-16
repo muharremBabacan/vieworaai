@@ -336,7 +336,7 @@ export default function GroupsPage() {
   const groupIds = useMemo(() => userProfile?.groups, [userProfile]);
 
   const memberGroupsQuery = useMemoFirebase(() => {
-    if (!firestore || !groupIds || groupIds.length === 0) {
+    if (!firestore || !user || !groupIds || groupIds.length === 0) {
       return null;
     }
     // Firestore 'in' queries are limited to 30 items.
@@ -344,7 +344,7 @@ export default function GroupsPage() {
       console.warn("User is a member of more than 30 groups, query will be truncated to the first 30.");
     }
     return query(collection(firestore, 'groups'), where(documentId(), 'in', groupIds.slice(0, 30)));
-  }, [firestore, groupIds]);
+  }, [firestore, user, groupIds]);
 
   const { data: memberGroups, isLoading: isGroupsLoading } = useCollection<Group>(memberGroupsQuery);
 
