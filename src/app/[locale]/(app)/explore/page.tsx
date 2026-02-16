@@ -22,7 +22,6 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   const t = useTranslations('ExplorePage');
   const tRatings = useTranslations('Ratings');
   
-  // Safely collect scores, filtering out any that are not numbers.
   const scores = [
     analysis.light_score,
     analysis.composition_score,
@@ -32,12 +31,10 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
     analysis.creativity_risk_score,
   ].filter((score): score is number => typeof score === 'number' && isFinite(score));
 
-  // Calculate average only if there are valid scores to avoid division by zero.
   const overallScore = scores.length > 0
-    ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length) * 10
     : 0;
 
-  // Ensure rating items have a default value of 0.
   const ratingItems = [
       { label: tRatings('lighting'), value: analysis.light_score ?? 0 },
       { label: tRatings('composition'), value: analysis.composition_score ?? 0 },
@@ -57,10 +54,9 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
                           <span className="text-sm text-muted-foreground">{item.label}</span>
                           <div className="flex items-center gap-3 flex-1">
                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                {/* Use item.value directly as it's guaranteed to be a number now */}
                                 <div className="h-full bg-primary" style={{ width: `${(item.value ?? 0) * 10}%` }} />
                             </div>
-                            <span className="text-sm font-semibold w-8 text-right">{(item.value ?? 0).toFixed(0)}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0) * 10).toFixed(0)}</span>
                           </div>
                       </div>
                   ))}
@@ -202,7 +198,7 @@ export default function ExplorePage() {
                          {photo.aiFeedback && (() => {
                             const scores = [photo.aiFeedback.light_score, photo.aiFeedback.composition_score, photo.aiFeedback.focus_score, photo.aiFeedback.color_control_score, photo.aiFeedback.background_control_score, photo.aiFeedback.creativity_risk_score];
                             const validScores = scores.filter((score): score is number => typeof score === 'number' && isFinite(score));
-                            const overallScore = validScores.length > 0 ? validScores.reduce((s, v) => s + v, 0) / validScores.length : 0;
+                            const overallScore = validScores.length > 0 ? (validScores.reduce((s, v) => s + v, 0) / validScores.length) * 10 : 0;
                             return (
                                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                                   <Star className="h-3 w-3 text-yellow-400" />
