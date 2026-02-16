@@ -245,7 +245,7 @@
   "GroupDetailPage": {
     "tooltip_user_not_found": "Kullanıcı bulunamadı",
     "button_invite_member": "Üye Davet Et",
-    "invite_member_description": "Gruba eklemek istediğiniz kullanıcının e-posta adresini girin.",
+    "invite_member_description": "Gruba davet etmek istediğiniz kullanıcının e-posta adresini girin.",
     "form_error_email": "Geçerli bir e-posta adresi girin.",
     "toast_group_full_title": "Grup Dolu",
     "toast_group_full_description": "Bu grup en fazla {maxMembers} üyeye sahip olabilir.",
@@ -255,9 +255,11 @@
     "toast_already_member_description": "Bu kullanıcı zaten grubun bir üyesi.",
     "toast_member_added_title": "Üye Eklendi!",
     "toast_member_added_description": "{email} gruba başarıyla eklendi.",
+    "toast_invite_sent_title": "Davetiye Gönderildi!",
+    "toast_invite_sent_description": "{email} adresine bir grup davetiyesi gönderildi.",
     "toast_add_member_error_title": "Hata",
     "toast_add_member_no_permission": "Üye eklemek için izniniz yok.",
-    "toast_add_member_generic_error": "Üye eklenirken bir sorun oluştu.",
+    "toast_add_member_generic_error": "Üye davet edilirken bir sorun oluştu.",
     "button_invite": "Davet Et",
     "group_not_found_title": "Grup Bulunamadı",
     "group_not_found_error": "Bu grubu yüklerken bir hata oluştu.",
@@ -379,5 +381,12 @@
     "cat_a_advanced_techniques": "Gelişmiş Teknikler",
     "cat_a_style": "Sanatsal Kimlik ve Stil",
     "cat_a_business": "Ticari ve Marka Konumlandırma"
+  },
+  "Notifications": {
+    "title": "Bildirimler",
+    "no_notifications": "Henüz bildirim yok.",
+    "mark_all_as_read": "Tümünü okundu işaretle",
+    "notification_group_invite_title": "Grup Daveti",
+    "notification_group_invite_body": "{inviterName} sizi \"{groupName}\" grubuna davet etti."
   }
 }

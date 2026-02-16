@@ -351,6 +351,50 @@
         "maxMembers",
         "createdAt"
       ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents an in-app notification for a user, such as a group invitation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Notification."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who receives the notification."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["group_invite", "system_message"],
+          "description": "The type of notification."
+        },
+        "title": {
+          "type": "string",
+          "description": "The main title of the notification."
+        },
+        "body": {
+          "type": "string",
+          "description": "The detailed message content of the notification."
+        },
+        "link": {
+          "type": "string",
+          "description": "An optional URL for the notification's call-to-action.",
+          "format": "uri"
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Flag indicating if the notification has been read by the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the notification was created.",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "type", "title", "body", "isRead", "createdAt"]
     }
   },
   "auth": {
@@ -433,6 +477,26 @@
             {
               "name": "transactionId",
               "description": "The unique identifier for a specific transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "A subcollection for user-specific notifications. Users can read/manage their own notifications. Other users can create notifications here (e.g., for invites).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The user receiving the notification."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique ID for the notification."
             }
           ]
         }

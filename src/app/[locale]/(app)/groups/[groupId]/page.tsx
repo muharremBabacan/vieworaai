@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, where, getDocs, limit, updateDoc, arrayUnion } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, where, getDocs, limit, getDoc } from 'firebase/firestore';
 import type { Group, User as UserProfile } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -86,9 +86,12 @@ function MemberAvatar({ userId }: { userId: string }) {
   );
 }
 
-function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef: any; userLevel?: string; }) {
+function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string; }) {
   const t = useTranslations('GroupDetailPage');
+  const tLogin = useTranslations('LoginPage');
+  const tNotif = useTranslations('Notifications');
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
   const { toast } = useToast();
   const form = useForm<AddMemberValues>({
     resolver: zodResolver(addMemberSchema(t)),
@@ -98,6 +101,8 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
   const { maxMembers } = getGroupLimits(userLevel);
 
   async function onSubmit(values: AddMemberValues) {
+    if (!currentUser) return;
+    
     if (group.memberIds.length >= maxMembers) {
       toast({ variant: 'destructive', title: t('toast_group_full_title'), description: t('toast_group_full_description', { maxMembers }) });
       return;
@@ -120,19 +125,27 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
         toast({ variant: 'destructive', title: t('toast_already_member_title'), description: t('toast_already_member_description') });
         return;
       }
-
-      await updateDoc(groupRef, {
-        memberIds: arrayUnion(userToAddId),
+      
+      const inviterProfileDoc = await getDoc(doc(firestore, 'users', currentUser.uid));
+      const inviterProfile = inviterProfileDoc.data() as UserProfile;
+      const inviterName = inviterProfile?.name || tLogin('anonymous_artist');
+      
+      const notificationsColRef = collection(firestore, 'users', userToAddId, 'notifications');
+      addDocumentNonBlocking(notificationsColRef, {
+          userId: userToAddId,
+          type: 'group_invite',
+          title: tNotif('notification_group_invite_title'),
+          body: tNotif('notification_group_invite_body', { inviterName: inviterName, groupName: group.name }),
+          link: `/groups/join/${group.id}`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
       });
+      
 
-      await updateDoc(userToAddDoc.ref, {
-        groups: arrayUnion(group.id)
-      });
-
-      toast({ title: t('toast_member_added_title'), description: t('toast_member_added_description', { email: values.email }) });
+      toast({ title: t('toast_invite_sent_title'), description: t('toast_invite_sent_description', { email: values.email }) });
       form.reset();
     } catch (error: any) {
-      console.error("Üye ekleme hatası:", error);
+      console.error("Üye davet etme hatası:", error);
        toast({
         variant: 'destructive',
         title: t('toast_add_member_error_title'),
@@ -339,8 +352,8 @@ export default function GroupDetailPage() {
         </CardContent>
       </Card>
       
-      {isOwner && groupDocRef && (
-        <AddMemberForm group={group} groupRef={groupDocRef} userLevel={userProfile?.level_name} />
+      {isOwner && (
+        <AddMemberForm group={group} userLevel={userProfile?.level_name} />
       )}
 
       {/* Placeholder for future sections */}

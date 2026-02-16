@@ -20,6 +20,7 @@ import type { User as UserProfile } from '@/types';
 import { Skeleton } from './ui/skeleton';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/navigation';
+import { NotificationsPopover } from './notifications-popover';
 
 export function UserNav() {
   const t = useTranslations('UserNav');
@@ -67,65 +68,68 @@ export function UserNav() {
 
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            {authUser.photoURL && <AvatarImage src={authUser.photoURL} alt={displayName} />}
-            <AvatarFallback>{fallbackChar}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{displayName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {displayEmail}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-           <DropdownMenuItem asChild>
-             <Link href="/settings">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>{tNav('nav_settings')}</span>
+    <div className="flex items-center gap-2">
+      <NotificationsPopover />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-10 w-10">
+              {authUser.photoURL && <AvatarImage src={authUser.photoURL} alt={displayName} />}
+              <AvatarFallback>{fallbackChar}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{displayName}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {displayEmail}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>{tNav('nav_settings')}</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/pricing">
+                <Coins className="mr-2 h-4 w-4" />
+                <span>{t('buy_auro')}</span>
               </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/pricing">
-              <Coins className="mr-2 h-4 w-4" />
-              <span>{t('buy_auro')}</span>
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-         <DropdownMenuGroup>
-          <div className="px-2 py-1.5 text-sm flex items-center justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Gem className="h-4 w-4 text-cyan-400" />
-              <span>{t('auro')}</span>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <div className="px-2 py-1.5 text-sm flex items-center justify-between">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Gem className="h-4 w-4 text-cyan-400" />
+                <span>{t('auro')}</span>
+              </div>
+              <span className="font-semibold">{auroBalance}</span>
             </div>
-            <span className="font-semibold">{auroBalance}</span>
-          </div>
-          <div className="px-2 py-1.5 text-sm flex items-center justify-between">
-             <div className="flex items-center gap-2 text-muted-foreground">
-              <Award className="h-4 w-4" />
-              <span>{t('level')}</span>
+            <div className="px-2 py-1.5 text-sm flex items-center justify-between">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Award className="h-4 w-4" />
+                <span>{t('level')}</span>
+              </div>
+              <Badge variant={isMentor ? 'default' : 'secondary'} className="capitalize">
+                {isMentor && <ShieldCheck className="mr-1 h-3 w-3"/>}
+                {levelName}
+              </Badge>
             </div>
-            <Badge variant={isMentor ? 'default' : 'secondary'} className="capitalize">
-              {isMentor && <ShieldCheck className="mr-1 h-3 w-3"/>}
-              {levelName}
-            </Badge>
-          </div>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>{t('sign_out')}</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>{t('sign_out')}</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

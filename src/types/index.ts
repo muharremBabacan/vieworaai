@@ -106,3 +106,14 @@ export type ChatMessage = {
   userAvatar: string | null;
   timestamp: string; // ISO string
 };
+
+export type Notification = {
+  id: string;
+  userId: string;
+  type: 'group_invite' | 'system_message';
+  title: string;
+  body: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string; // ISO string
+};

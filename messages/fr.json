@@ -245,7 +245,7 @@
   "GroupDetailPage": {
     "tooltip_user_not_found": "User not found",
     "button_invite_member": "Invite Member",
-    "invite_member_description": "Enter the email address of the user you want to add to the group.",
+    "invite_member_description": "Enter the email address of the user you want to invite to the group.",
     "form_error_email": "Enter a valid email address.",
     "toast_group_full_title": "Group Full",
     "toast_group_full_description": "This group can have at most {maxMembers} members.",
@@ -255,9 +255,11 @@
     "toast_already_member_description": "This user is already a member of the group.",
     "toast_member_added_title": "Member Added!",
     "toast_member_added_description": "{email} has been successfully added to the group.",
+    "toast_invite_sent_title": "Invitation Sent!",
+    "toast_invite_sent_description": "A group invitation has been sent to {email}.",
     "toast_add_member_error_title": "Error",
     "toast_add_member_no_permission": "You do not have permission to add members.",
-    "toast_add_member_generic_error": "An issue occurred while adding the member.",
+    "toast_add_member_generic_error": "An issue occurred while inviting the member.",
     "button_invite": "Invite",
     "group_not_found_title": "Group Not Found",
     "group_not_found_error": "An error occurred while loading this group.",
@@ -379,5 +381,12 @@
     "cat_a_advanced_techniques": "Advanced Techniques",
     "cat_a_style": "Artistic Identity and Style",
     "cat_a_business": "Commercial and Brand Positioning"
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "no_notifications": "No notifications yet.",
+    "mark_all_as_read": "Mark all as read",
+    "notification_group_invite_title": "Group Invitation",
+    "notification_group_invite_body": "{inviterName} has invited you to join the group \"{groupName}\"."
   }
 }
