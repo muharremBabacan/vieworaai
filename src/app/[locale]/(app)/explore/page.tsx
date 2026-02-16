@@ -49,7 +49,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(1)}</p>
+                  <p className="text-5xl font-bold text-primary">{(overallScore * 10).toFixed(0)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
@@ -60,7 +60,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
                                 {/* Use item.value directly as it's guaranteed to be a number now */}
                                 <div className="h-full bg-primary" style={{ width: `${item.value * 10}%` }} />
                             </div>
-                            <span className="text-sm font-semibold w-8 text-right">{item.value.toFixed(1)}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{(item.value * 10).toFixed(0)}</span>
                           </div>
                       </div>
                   ))}
@@ -201,11 +201,12 @@ export default function ExplorePage() {
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                          {photo.aiFeedback && (() => {
                             const scores = [photo.aiFeedback.light_score, photo.aiFeedback.composition_score, photo.aiFeedback.focus_score, photo.aiFeedback.color_control_score, photo.aiFeedback.background_control_score, photo.aiFeedback.creativity_risk_score];
-                            const overallScore = scores.reduce((s, v) => s + v, 0) / scores.length;
+                            const validScores = scores.filter((score): score is number => typeof score === 'number' && isFinite(score));
+                            const overallScore = validScores.length > 0 ? validScores.reduce((s, v) => s + v, 0) / validScores.length : 0;
                             return (
                                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                                   <Star className="h-3 w-3 text-yellow-400" />
-                                  <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                  <span className="text-xs font-bold">{(overallScore * 10).toFixed(0)}</span>
                                 </Badge>
                             )
                          })()}
