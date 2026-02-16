@@ -284,7 +284,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
                   {isCompleted ? (
                     <>
                       <Check className="mr-2 h-4 w-4" />
-                      Öğrenildi!
+                      Bitti
                     </>
                   ) : (
                     <>
@@ -450,7 +450,8 @@ export default function LevelPage() {
   }
 
   const groupedLessons = useMemo(() => {
-    return lessons?.reduce((acc, lesson) => {
+    if (!lessons) return {};
+    return lessons.reduce((acc, lesson) => {
         const category = lesson.category || 'Diğer';
         if (!acc[category]) {
         acc[category] = [];
