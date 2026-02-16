@@ -67,25 +67,20 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{(overallScore * 10).toFixed(0)}</p>
+                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(0)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
                       <div key={item.label} className="flex items-center justify-between gap-4">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
                           <div className="flex items-center gap-3 flex-1">
-                            <div className="flex w-full h-1.5 items-center gap-0.5">
-                                {Array.from({ length: 10 }).map((_, i) => (
-                                    <div 
-                                        key={i} 
-                                        className={cn(
-                                            "h-full flex-1 rounded-sm",
-                                            i < Math.round(item.value ?? 0) ? 'bg-primary' : 'bg-muted'
-                                        )}
-                                    />
-                                ))}
+                            <div className="w-full bg-muted rounded-full h-2">
+                                <div
+                                    className="bg-primary h-2 rounded-full"
+                                    style={{ width: `${(item.value ?? 0) * 10}%` }}
+                                />
                             </div>
-                            <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0) * 10).toFixed(0)}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0)).toFixed(0)}</span>
                           </div>
                       </div>
                   ))}
@@ -447,7 +442,7 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
           {photo.aiFeedback && (() => {
               const scores = [photo.aiFeedback.light_score, photo.aiFeedback.composition_score, photo.aiFeedback.focus_score, photo.aiFeedback.color_control_score, photo.aiFeedback.background_control_score, photo.aiFeedback.creativity_risk_score];
               const validScores = scores.filter((score): score is number => typeof score === 'number' && isFinite(score));
-              const overallScore = validScores.length > 0 ? (validScores.reduce((s, v) => s + v, 0) / validScores.length) * 10 : 0;
+              const overallScore = validScores.length > 0 ? (validScores.reduce((s, v) => s + v, 0) / validScores.length) : 0;
               return (
                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                   <Star className="h-3 w-3 text-yellow-400" />
