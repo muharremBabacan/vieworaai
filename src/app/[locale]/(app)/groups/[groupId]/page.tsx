@@ -28,14 +28,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useTranslations } from 'next-intl';
 
-const addMemberSchema = z.object({
-  email: z.string().email('Geçerli bir e-posta adresi girin.'),
+const addMemberSchema = (t: Function) => z.object({
+  email: z.string().email(t('form_error_email')),
 });
 
-type AddMemberValues = z.infer<typeof addMemberSchema>;
+type AddMemberValues = z.infer<ReturnType<typeof addMemberSchema>>;
 
 function MemberAvatar({ userId }: { userId: string }) {
+  const t = useTranslations('GroupDetailPage');
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
   const userDocRef = useMemoFirebase(() => {
@@ -59,7 +61,7 @@ function MemberAvatar({ userId }: { userId: string }) {
                     </Avatar>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Kullanıcı bulunamadı</p>
+                    <p>{t('tooltip_user_not_found')}</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
@@ -85,10 +87,11 @@ function MemberAvatar({ userId }: { userId: string }) {
 }
 
 function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef: any; userLevel?: string; }) {
+  const t = useTranslations('GroupDetailPage');
   const firestore = useFirestore();
   const { toast } = useToast();
   const form = useForm<AddMemberValues>({
-    resolver: zodResolver(addMemberSchema),
+    resolver: zodResolver(addMemberSchema(t)),
     defaultValues: { email: '' },
   });
 
@@ -96,7 +99,7 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
 
   async function onSubmit(values: AddMemberValues) {
     if (group.memberIds.length >= maxMembers) {
-      toast({ variant: 'destructive', title: 'Grup Dolu', description: `Bu grup en fazla ${maxMembers} üyeye sahip olabilir.` });
+      toast({ variant: 'destructive', title: t('toast_group_full_title'), description: t('toast_group_full_description', { maxMembers }) });
       return;
     }
     
@@ -106,7 +109,7 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        toast({ variant: 'destructive', title: 'Kullanıcı Bulunamadı', description: 'Bu e-postaya sahip bir kullanıcı yok.' });
+        toast({ variant: 'destructive', title: t('toast_user_not_found_title'), description: t('toast_user_not_found_description') });
         return;
       }
       
@@ -114,7 +117,7 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
       const userToAddId = userToAddDoc.id;
 
       if (group.memberIds.includes(userToAddId)) {
-        toast({ variant: 'destructive', title: 'Zaten Üye', description: 'Bu kullanıcı zaten grubun bir üyesi.' });
+        toast({ variant: 'destructive', title: t('toast_already_member_title'), description: t('toast_already_member_description') });
         return;
       }
 
@@ -126,16 +129,16 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
         groups: arrayUnion(group.id)
       });
 
-      toast({ title: 'Üye Eklendi!', description: `${values.email} gruba başarıyla eklendi.` });
+      toast({ title: t('toast_member_added_title'), description: t('toast_member_added_description', { email: values.email }) });
       form.reset();
     } catch (error: any) {
       console.error("Üye ekleme hatası:", error);
        toast({
         variant: 'destructive',
-        title: 'Hata',
+        title: t('toast_add_member_error_title'),
         description: error.message.includes('permission-denied') 
-          ? 'Üye eklemek için izniniz yok.' 
-          : 'Üye eklenirken bir sorun oluştu.',
+          ? t('toast_add_member_no_permission') 
+          : t('toast_add_member_generic_error'),
       });
     }
   }
@@ -143,8 +146,8 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><UserPlus /> Üye Davet Et</CardTitle>
-        <CardDescription>Gruba eklemek istediğiniz kullanıcının e-posta adresini girin.</CardDescription>
+        <CardTitle className="flex items-center gap-2"><UserPlus /> {t('button_invite_member')}</CardTitle>
+        <CardDescription>{t('invite_member_description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -163,7 +166,7 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
             />
             <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Davet Et
+              {t('button_invite')}
             </Button>
           </form>
         </Form>
@@ -175,6 +178,7 @@ function AddMemberForm({ group, groupRef, userLevel }: { group: Group; groupRef:
 export default function GroupDetailPage() {
   const params = useParams();
   const groupId = Array.isArray(params.groupId) ? params.groupId[0] : params.groupId;
+  const t = useTranslations('GroupDetailPage');
 
   const { user: currentUser } = useUser();
   const firestore = useFirestore();
@@ -216,10 +220,11 @@ export default function GroupDetailPage() {
 
   const copyToClipboard = (text: string, type: 'Link' | 'Kod') => {
     if (!text) return;
+    const typeKey = type.toLowerCase() as 'link' | 'code';
     navigator.clipboard.writeText(text).then(() => {
-      toast({ title: 'Kopyalandı!', description: `${type} panoya kopyalandı.` });
+      toast({ title: t('toast_copied_title'), description: t(`toast_copied_${typeKey}` as any) });
     }, (err) => {
-      toast({ variant: 'destructive', title: 'Hata', description: `${type} kopyalanamadı.` });
+      toast({ variant: 'destructive', title: t('toast_add_member_error_title'), description: `${type} ${t('toast_copy_error')}` });
     });
   };
 
@@ -238,11 +243,11 @@ export default function GroupDetailPage() {
     return (
       <div className="container mx-auto text-center py-20">
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-          <h3 className="mt-4 text-xl font-semibold">Grup Bulunamadı</h3>
+          <h3 className="mt-4 text-xl font-semibold">{t('group_not_found_title')}</h3>
           <p className="text-muted-foreground mt-2">
-            {groupError ? 'Bu grubu yüklerken bir hata oluştu.' : 'Böyle bir grup mevcut değil veya görme izniniz yok.'}
+            {groupError ? t('group_not_found_error') : t('group_not_found_no_permission')}
           </p>
-          <Button onClick={() => window.history.back()} className="mt-6">Geri Dön</Button>
+          <Button onClick={() => window.history.back()} className="mt-6">{t('button_go_back')}</Button>
       </div>
     );
   }
@@ -259,21 +264,21 @@ export default function GroupDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2"><Users /> Üyeler</div>
+            <div className="flex items-center gap-2"><Users /> {t('members_title')}</div>
              <div className="flex items-center gap-2">
                 {isOwner && joinUrl && (
                     <Dialog open={isInviteDialogOpen} onOpenChange={handleInviteDialogOpenChange}>
                         <DialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <QrCode className="h-5 w-5" />
-                                <span className="sr-only">Davet Seçeneklerini Göster</span>
+                                <span className="sr-only">{t('button_show_invite')}</span>
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
-                                <DialogTitle>Gruba Katılım Daveti</DialogTitle>
+                                <DialogTitle>{t('invite_dialog_title')}</DialogTitle>
                                 <DialogDescription>
-                                    Bu QR kodu, linki veya 6 haneli kodu kullanarak yeni üyeleri grubunuza davet edebilirsiniz.
+                                    {t('invite_dialog_description')}
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="flex items-center justify-center p-4 bg-white rounded-lg my-4">
@@ -287,27 +292,27 @@ export default function GroupDetailPage() {
                             
                             <div className="relative my-4">
                                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">VEYA</span></div>
+                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t('or_divider')}</span></div>
                             </div>
                             
                             <div className="space-y-2">
-                              <Label htmlFor="join-code">6 Haneli Katılım Kodu</Label>
+                              <Label htmlFor="join-code">{t('label_join_code')}</Label>
                               <div className="flex items-center space-x-2">
                                 <Input id="join-code" value={group.joinCode || 'YOK'} readOnly className="font-mono text-center tracking-wider text-lg" />
-                                <Button onClick={() => copyToClipboard(group.joinCode || '', 'Kod')} disabled={!group.joinCode}>Kopyala</Button>
+                                <Button onClick={() => copyToClipboard(group.joinCode || '', 'Kod')} disabled={!group.joinCode}>{t('button_copy')}</Button>
                               </div>
                             </div>
 
                             <div className="relative my-4">
                                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">VEYA</span></div>
+                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t('or_divider')}</span></div>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="join-link">Paylaşılabilir Link</Label>
+                                <Label htmlFor="join-link">{t('label_shareable_link')}</Label>
                                 <div className="flex items-center space-x-2">
                                   <Input id="join-link" value={joinUrl} readOnly />
-                                  <Button onClick={() => copyToClipboard(joinUrl, 'Link')}>Kopyala</Button>
+                                  <Button onClick={() => copyToClipboard(joinUrl, 'Link')}>{t('button_copy')}</Button>
                                 </div>
                             </div>
 
@@ -341,7 +346,7 @@ export default function GroupDetailPage() {
       {/* Placeholder for future sections */}
       <Card className="border-dashed">
         <CardContent className="p-10 text-center text-muted-foreground">
-            <p>Gruba özel sergi ve ödev alanı yakında burada olacak.</p>
+            <p>{t('wip_placeholder')}</p>
         </CardContent>
       </Card>
 

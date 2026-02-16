@@ -16,8 +16,10 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebas
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
+  const t = useTranslations('ExplorePage');
   const ratingItems = [
       { label: 'Işık', value: rating.lighting },
       { label: 'Kompozisyon', value: rating.composition },
@@ -25,10 +27,10 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
   ];
   return (
       <div>
-          <h4 className="font-semibold text-lg mb-3">Puanlama</h4>
+          <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
           <div className="flex items-center gap-6 rounded-lg border p-4 bg-card/50">
               <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Genel</p>
+                  <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
                   <p className="text-4xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
               </div>
               <div className="flex-1 space-y-2">
@@ -50,6 +52,7 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
 }
 
 function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+  const t = useTranslations('ExplorePage');
   if (!photo) return null;
 
   const improvements = [
@@ -79,7 +82,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
           <div className="p-6 space-y-6">
             <DialogHeader>
               <DialogTitle className="font-sans text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
-                YZ Analiz Sonucu
+                {t('dialog_title')}
               </DialogTitle>
             </DialogHeader>
 
@@ -93,13 +96,13 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               <>
                 <RatingDisplay rating={photo.aiFeedback.rating} />
                 <div>
-                  <h4 className="font-semibold text-lg mb-2">Analiz Özeti</h4>
+                  <h4 className="font-semibold text-lg mb-2">{t('analysis_summary_title')}</h4>
                   <DialogDescription className="text-base leading-relaxed text-foreground/80">
                     {photo.aiFeedback.analysis}
                   </DialogDescription>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-lg mb-3">Neler İyi Yapılmış?</h4>
+                  <h4 className="font-semibold text-lg mb-3">{t('improvements_title')}</h4>
                   <ul className="space-y-4">
                     {photo.aiFeedback.improvements.map((tip, index) => {
                       const Icon = improvements[index % improvements.length].icon;
@@ -116,7 +119,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               </>
             ) : (
               <div className="text-center py-20 bg-muted/20 rounded-xl border border-dashed">
-                <p className="text-muted-foreground">Bu fotoğraf için detaylı YZ analizi yükleniyor...</p>
+                <p className="text-muted-foreground">{t('loading_analysis')}</p>
               </div>
             )}
           </div>
@@ -130,6 +133,7 @@ export default function ExplorePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const firestore = useFirestore();
   const { user } = useUser();
+  const t = useTranslations('ExplorePage');
 
   const publicPhotosQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -142,10 +146,10 @@ export default function ExplorePage() {
     <div className="container mx-auto">
         <div className="text-left mb-10">
             <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent inline-block">
-                Sergi Salonu
+                {t('title')}
             </h2>
             <p className="text-muted-foreground mt-2 text-lg">
-                Topluluğun en ilham verici kareleri burada buluşuyor.
+                {t('description')}
             </p>
         </div>
 
@@ -171,8 +175,8 @@ export default function ExplorePage() {
         ) : (
             <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
                 <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-2xl font-semibold">Henüz kimse eserini paylaşmadı</h3>
-                <p className="text-muted-foreground mt-2">Kendi galerinizden bir fotoğrafı sergiye göndererek salonu canlandırın!</p>
+                <h3 className="text-2xl font-semibold">{t('no_photos_title')}</h3>
+                <p className="text-muted-foreground mt-2">{t('no_photos_description')}</p>
             </div>
         )}
 

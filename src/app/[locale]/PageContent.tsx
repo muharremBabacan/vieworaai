@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { useRouter, Link } from '@/navigation';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
@@ -29,6 +30,7 @@ export default function PageContent() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations('LoginPage');
 
   // ❗ Redirect olmadığı için false başlıyoruz
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +50,7 @@ export default function PageContent() {
       const result = await signInWithPopup(auth, provider);
 
       toast({
-        title: 'Başarıyla giriş yaptınız. Yönlendiriliyorsunuz...',
+        title: t('toast_success'),
       });
 
       const firebaseUser = result.user;
@@ -60,7 +62,7 @@ export default function PageContent() {
         await setDoc(userRef, {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
-          name: firebaseUser.displayName || 'İsimsiz Sanatçı',
+          name: firebaseUser.displayName || t('anonymous_artist'),
           auro_balance: 20,
           current_xp: 0,
           level_name: 'Neuner',
@@ -83,8 +85,8 @@ export default function PageContent() {
 
       toast({
         variant: 'destructive',
-        title: `Giriş Başarısız (${error.code || 'Hata'})`,
-        description: 'Google ile giriş yapılamadı.',
+        title: t('toast_error_title', { code: error.code || 'Hata' }),
+        description: t('toast_error_description'),
       });
 
       setIsLoading(false);
@@ -98,10 +100,10 @@ export default function PageContent() {
           <div className="flex flex-col items-center space-y-2 text-center">
             <Logo />
             <h1 className="text-2xl font-semibold tracking-tight">
-              Hesap oluşturun veya giriş yapın
+              {t('title')}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Devam etmek için Google ile giriş yapın.
+              {t('description')}
             </p>
           </div>
 
@@ -114,22 +116,22 @@ export default function PageContent() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Giriş Yapılıyor...
+                {t('button_loading')}
               </>
             ) : (
               <>
                 <GoogleIcon />
-                Google ile Giriş Yap
+                {t('button_google')}
               </>
             )}
           </Button>
 
           <p className="px-8 text-center text-xs text-muted-foreground">
-            Devam ederek{' '}
+            {t('terms_prefix')}{' '}
             <Link href="/terms" className="underline">
-              Hizmet Şartlarını
+              {t('terms_link')}
             </Link>{' '}
-            kabul etmiş olursunuz.
+            {t('terms_suffix')}
           </p>
         </div>
       </main>

@@ -9,8 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { User as UserProfile, Package } from '@/types';
+import { useTranslations } from 'next-intl';
 
 export default function PricingPage() {
+  const t = useTranslations('PricingPage');
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -38,8 +40,8 @@ export default function PricingPage() {
     
     // Şimdilik, ödeme akışını SİMÜLE EDİYORUZ.
     toast({
-      title: 'Ödeme Sağlayıcıya Yönlendiriliyor...',
-      description: `Bu bir simülasyondur. Gerçek uygulamada iyzico'ya yönlendirileceksiniz.`,
+      title: t('toast_redirecting_title'),
+      description: t('toast_redirecting_description'),
     });
 
     // Simülasyon: 2 saniye sonra Auro ekle ve işlem kaydı oluştur
@@ -67,8 +69,8 @@ export default function PricingPage() {
 
         // 3. Kullanıcıyı bilgilendir
         toast({
-          title: 'Satın Alma Başarılı!',
-          description: `${pkg.auro} Auro hesabınıza eklendi.`,
+          title: t('toast_purchase_success_title'),
+          description: t('toast_purchase_success_description', { auro: pkg.auro }),
         });
 
         setPurchasingId(null);
@@ -78,9 +80,9 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto">
       <div className="text-center mb-12">
-        <h2 className="font-sans text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">Auro Paketleri</h2>
+        <h2 className="font-sans text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">{t('page_title')}</h2>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Yeteneklerinizi bir üst seviyeye taşımak ve sanatsal vizyonunuzun kilidini açmak için Auro satın alın.
+          {t('page_description')}
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
@@ -88,7 +90,7 @@ export default function PricingPage() {
           <Card key={pkg.id} className={`flex flex-col ${pkg.isBestValue ? 'border-primary ring-2 ring-primary' : ''}`}>
             {pkg.isBestValue && (
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                <Star className="mr-2 h-4 w-4" /> En İyi Teklif
+                <Star className="mr-2 h-4 w-4" /> {t('best_value_badge')}
               </Badge>
             )}
             <CardHeader className="text-center pb-4">
@@ -100,7 +102,7 @@ export default function PricingPage() {
                     <span className="text-5xl font-extrabold tracking-tight">{pkg.auro}</span>
                     <span className="ml-2 text-xl font-medium text-muted-foreground flex items-center gap-1">
                         <Gem className="h-5 w-5 text-cyan-400"/>
-                        Auro
+                        {t('auro_unit')}
                     </span>
                 </div>
                 <p className="text-muted-foreground italic mb-6">"{pkg.slogan}"</p>
@@ -120,10 +122,10 @@ export default function PricingPage() {
                 {purchasingId === pkg.id ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    İşleniyor...
+                    {t('button_processing')}
                   </>
                 ) : (
-                  'Hemen Satın Al'
+                  t('button_buy_now')
                 )}
               </Button>
             </CardFooter>

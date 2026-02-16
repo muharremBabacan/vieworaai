@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@/navigation';
+import { useTranslations } from 'next-intl';
 
 
 // Helper to map URL slugs to Firestore level names and titles
@@ -46,6 +47,7 @@ const levelCategoryMap: Record<string, string[]> = {
 };
 
 function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
+  const t = useTranslations('AcademyLevelPage');
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<EvaluatePracticeSubmissionOutput | null>(null);
@@ -63,8 +65,8 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
       if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
          toast({
           variant: 'destructive',
-          title: 'Dosya Boyutu Çok Büyük',
-          description: 'Lütfen 10MB\'dan küçük bir resim dosyası yükleyin.',
+          title: t('toast_file_size_title'),
+          description: t('toast_file_size_description'),
         });
         return;
       }
@@ -102,7 +104,7 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
     }
 
     setIsAnalyzing(true);
-    toast({ title: 'Analiz Başlatılıyor...', description: 'Ödevinize özel geri bildirim hazırlanıyor.' });
+    toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
 
     const filePath = `users/${authUser.uid}/practice-submissions/${Date.now()}-${file.name}`;
     const imageRef = storageRef(storage, filePath);
@@ -115,8 +117,8 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
       console.error("Storage upload failed:", storageError);
       toast({
         variant: 'destructive',
-        title: 'Yükleme Başarısız',
-        description: 'Fotoğrafınız depolanamadı. Lütfen tekrar deneyin.',
+        title: t('toast_upload_fail_title'),
+        description: t('toast_upload_fail_description'),
       });
       setIsAnalyzing(false);
       return;
@@ -130,13 +132,13 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
         language: locale,
       });
       setResult(analysisResult);
-      toast({ title: 'Geri Bildirim Hazır!', description: 'Aşağıdan sonucu görebilirsiniz.' });
+      toast({ title: t('toast_feedback_ready_title'), description: t('toast_feedback_ready_description') });
     } catch (error) {
       console.error('Practice analysis failed:', error);
       toast({
         variant: 'destructive',
-        title: 'Analiz Başarısız',
-        description: 'Yapay zeka geri bildirimi oluştururken bir hata oluştu.',
+        title: t('toast_analysis_fail_title'),
+        description: t('toast_analysis_fail_description'),
       });
     } finally {
       setIsAnalyzing(false);
@@ -154,18 +156,18 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
   
   return (
     <div className="mt-4 space-y-4 rounded-lg border bg-background/50 p-4">
-      <h4 className="font-semibold text-card-foreground">Pratiğini Göster</h4>
-      <p className="text-sm text-muted-foreground -mt-3">Bu ödev için çektiğin fotoğrafı yükle ve anında geri bildirim al.</p>
+      <h4 className="font-semibold text-card-foreground">{t('practice_submission_title')}</h4>
+      <p className="text-sm text-muted-foreground -mt-3">{t('practice_submission_description')}</p>
       
       {result ? (
         <Card className={cn("border-2", result.isSuccess ? "border-green-500" : "border-amber-500")}>
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-3">
               {result.isSuccess ? <CheckCircle className="h-6 w-6 text-green-500"/> : <XCircle className="h-6 w-6 text-amber-500"/>}
-              <p className="font-semibold text-lg">Puan: {result.score}/10</p>
+              <p className="font-semibold text-lg">{t('score', { score: result.score })}</p>
             </div>
             <p className="text-sm text-muted-foreground">{result.feedback}</p>
-            <Button onClick={handleClear} variant="outline" size="sm" className="w-full">Yeni Fotoğraf Yükle</Button>
+            <Button onClick={handleClear} variant="outline" size="sm" className="w-full">{t('button_new_photo')}</Button>
           </CardContent>
         </Card>
       ) : preview ? (
@@ -183,9 +185,9 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
           <div className="p-4">
              <Button onClick={handleAnalyze} disabled={isAnalyzing} className="w-full">
               {isAnalyzing ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Değerlendiriliyor...</>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('button_evaluating')}</>
               ) : (
-                <><Zap className="mr-2 h-4 w-4" /> Geri Bildirim Al</>
+                <><Zap className="mr-2 h-4 w-4" /> {t('button_get_feedback')}</>
               )}
             </Button>
           </div>
@@ -203,9 +205,9 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
           <div className="space-y-2">
             <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-primary">Yüklemek için tıklayın</span>
+              <span className="font-semibold text-primary">{t('upload_prompt_click')}</span>
             </p>
-            <p className="text-xs text-muted-foreground">veya sürükleyip bırakın</p>
+            <p className="text-xs text-muted-foreground">{t('upload_prompt_drag')}</p>
           </div>
         </div>
       )}
@@ -215,6 +217,7 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
 
 
 function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
+  const t = useTranslations('AcademyLevelPage');
   if (!lesson) return null;
 
   const xpForLesson = 10;
@@ -226,11 +229,11 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
   };
 
   const accordionItems = [
-    { value: 'objective', trigger: 'Öğrenim Hedefi', content: lesson.learningObjective, icon: Target },
-    { value: 'theory', trigger: 'Teori', content: lesson.theory, icon: FileText },
-    { value: 'criteria', trigger: 'Başarı Kriterleri', content: <ul className="list-disc space-y-2 pl-5">{lesson.analysisCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul>, icon: Info },
-    { value: 'task', trigger: 'Pratik Görevi', content: <><p>{lesson.practiceTask}</p><PracticeSubmission lesson={lesson}/></>, icon: Camera },
-    { value: 'auro', trigger: 'Auro Notu', content: lesson.auroNote, icon: Bot },
+    { value: 'objective', trigger: t('dialog_objective'), content: lesson.learningObjective, icon: Target },
+    { value: 'theory', trigger: t('dialog_theory'), content: lesson.theory, icon: FileText },
+    { value: 'criteria', trigger: t('dialog_criteria'), content: <ul className="list-disc space-y-2 pl-5">{lesson.analysisCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul>, icon: Info },
+    { value: 'task', trigger: t('dialog_task'), content: <><p>{lesson.practiceTask}</p><PracticeSubmission lesson={lesson}/></>, icon: Camera },
+    { value: 'auro', trigger: t('dialog_auro_note'), content: lesson.auroNote, icon: Bot },
   ];
 
   return (
@@ -284,12 +287,12 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
                   {isCompleted ? (
                     <>
                       <Check className="mr-2 h-4 w-4" />
-                      Bitti
+                      {t('button_completed')}
                     </>
                   ) : (
                     <>
                       <BookOpen className="mr-2 h-4 w-4" />
-                      Dersi Tamamla (+{xpForLesson} XP, +{auroForLesson} Auro)
+                      {t('button_complete_lesson', { xp: xpForLesson, auro: auroForLesson })}
                     </>
                   )}
                 </Button>
@@ -336,6 +339,7 @@ function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; 
 
 
 export default function LevelPage() {
+  const t = useTranslations('AcademyLevelPage');
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -415,22 +419,22 @@ export default function LevelPage() {
 
     updateDocumentNonBlocking(userDocRef, updatePayload);
     toast({
-      title: 'Ödül Kazandın!',
-      description: `Bu dersten ${xpToAdd} XP ve ${auroToAdd} Auro kazandın.`,
+      title: t('toast_reward_title'),
+      description: t('toast_reward_description', { xp: xpToAdd, auro: auroToAdd }),
     });
 
     if (updatePayload.level_name) {
       setTimeout(() => {
         toast({
-          title: '🎉 Seviye Atladın!',
-          description: `Tebrikler! Yeni seviyen: ${updatePayload.level_name}`,
+          title: t('toast_level_up_title'),
+          description: t('toast_level_up_description', { level: updatePayload.level_name }),
         });
       }, 100);
       if (updatePayload.is_mentor) {
         setTimeout(() => {
           toast({
-            title: '👑 Mentor Oldun!',
-            description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.',
+            title: t('toast_mentor_title'),
+            description: t('toast_mentor_description'),
           });
         }, 200);
       }
@@ -442,9 +446,9 @@ export default function LevelPage() {
       return (
           <div className="container mx-auto text-center py-20">
               <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-              <h3 className="mt-4 text-xl font-semibold">Geçersiz Seviye</h3>
-              <p className="text-muted-foreground mt-2">Aradığınız eğitim seviyesi bulunamadı.</p>
-              <Button onClick={() => router.push('/academy')} className="mt-6">Akademi'ye Dön</Button>
+              <h3 className="mt-4 text-xl font-semibold">{t('invalid_level_title')}</h3>
+              <p className="text-muted-foreground mt-2">{t('invalid_level_description')}</p>
+              <Button onClick={() => router.push('/academy')} className="mt-6">{t('button_back_to_academy')}</Button>
           </div>
       );
   }
@@ -452,14 +456,14 @@ export default function LevelPage() {
   const groupedLessons = useMemo(() => {
     if (!lessons) return {};
     return lessons.reduce((acc, lesson) => {
-        const category = lesson.category || 'Diğer';
+        const category = lesson.category || t('category_other');
         if (!acc[category]) {
         acc[category] = [];
         }
         acc[category].push(lesson);
         return acc;
     }, {} as Record<string, AcademyLesson[]>) ?? {};
-  }, [lessons]);
+  }, [lessons, t]);
 
   const orderedCategories = Object.keys(groupedLessons).sort();
 
@@ -494,8 +498,8 @@ export default function LevelPage() {
       {(!lessons || lessons.length === 0) ? (
         <div className="text-center py-20 rounded-lg border border-dashed">
             <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-xl font-semibold">Bu Seviyede Henüz Ders Yok</h3>
-            <p className="text-muted-foreground mt-2">Profil sayfasından yönetici aracıyla bu seviyeye ait dersler oluşturun.</p>
+            <h3 className="mt-4 text-xl font-semibold">{t('no_lessons_title')}</h3>
+            <p className="text-muted-foreground mt-2">{t('no_lessons_description')}</p>
         </div>
       ) : (
         <div className="space-y-12">

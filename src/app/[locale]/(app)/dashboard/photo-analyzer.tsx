@@ -16,9 +16,10 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovementsOutput['rating'] }) {
+  const t = useTranslations('DashboardPage');
   const data = [
     { subject: 'Işık', score: rating.lighting, fullMark: 10 },
     { subject: 'Kompozisyon', score: rating.composition, fullMark: 10 },
@@ -28,11 +29,11 @@ function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovements
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-sans text-xl font-semibold">Derecelendirme</CardTitle>
+        <CardTitle className="font-sans text-xl font-semibold">{t('rating_card_title')}</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         <div className="flex flex-col items-center justify-center space-y-2">
-          <h4 className="text-lg font-medium text-muted-foreground">Genel Puan</h4>
+          <h4 className="text-lg font-medium text-muted-foreground">{t('overall_score')}</h4>
           <div className="flex items-baseline">
             <p className="text-6xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
             <span className="text-2xl text-muted-foreground">/10</span>
@@ -62,6 +63,7 @@ function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovements
 }
 
 function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovementsOutput }) {
+  const t = useTranslations('DashboardPage');
   const improvements = [
     { icon: Lightbulb, color: 'text-amber-400' },
     { icon: LayoutPanelLeft, color: 'text-blue-400' },
@@ -73,13 +75,13 @@ function AnalysisResult({ result }: { result: AnalyzePhotoAndSuggestImprovements
       {result.rating && <AnalysisRating rating={result.rating} />}
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-sans text-xl font-semibold mb-4">YZ Analizi</h3>
+          <h3 className="font-sans text-xl font-semibold mb-4">{t('ai_analysis_title')}</h3>
           <p className="text-muted-foreground">{result.analysis}</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-sans text-xl font-semibold mb-4">İyileştirme İpuçları</h3>
+          <h3 className="font-sans text-xl font-semibold mb-4">{t('improvements_title')}</h3>
           <ul className="space-y-4">
             {result.improvements.map((tip, index) => {
               const Icon = improvements[index % improvements.length].icon;
@@ -110,6 +112,7 @@ export default function PhotoAnalyzer() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const locale = useLocale();
+  const t = useTranslations('DashboardPage');
 
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -136,8 +139,8 @@ export default function PhotoAnalyzer() {
       if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
          toast({
           variant: 'destructive',
-          title: 'Dosya Boyutu Çok Büyük',
-          description: 'Lütfen 10MB\'dan küçük bir resim dosyası yükleyin.',
+          title: t('toast_file_size_title'),
+          description: t('toast_file_size_description'),
         });
         return;
       }
@@ -151,8 +154,8 @@ export default function PhotoAnalyzer() {
     } else if (selectedFile) {
       toast({
         variant: 'destructive',
-        title: 'Geçersiz Dosya Türü',
-        description: 'Lütfen bir resim dosyası yükleyin (örn: JPG, PNG).',
+        title: t('toast_invalid_file_title'),
+        description: t('toast_invalid_file_description'),
       });
     }
   };
@@ -197,8 +200,8 @@ export default function PhotoAnalyzer() {
           console.error("Storage upload failed:", storageError);
           toast({
             variant: 'destructive',
-            title: 'Yükleme Başarısız',
-            description: 'Fotoğrafınız depolanamadı. Lütfen Firebase Storage kurallarınızı kontrol edin.',
+            title: t('toast_upload_fail_title'),
+            description: t('toast_upload_fail_description'),
           });
           setIsUploading(false);
           return;
@@ -218,8 +221,8 @@ export default function PhotoAnalyzer() {
       addDocumentNonBlocking(photosCollectionRef, photoData);
       
       toast({
-        title: 'Fotoğraf Yüklendi!',
-        description: 'Fotoğrafın galerine eklendi. Dilediğin zaman analiz edebilirsin.',
+        title: t('toast_upload_only_title'),
+        description: t('toast_upload_only_description'),
       });
 
       setPreview(null);
@@ -238,8 +241,8 @@ export default function PhotoAnalyzer() {
     if (currentAuro < analysisCost) {
       toast({
         variant: 'destructive',
-        title: 'Yetersiz Auro',
-        description: `Bir fotoğrafı analiz etmek için en az ${analysisCost} Auro'ya ihtiyacınız var.`,
+        title: t('toast_insufficient_auro_title'),
+        description: t('toast_insufficient_auro_description', { cost: analysisCost }),
       });
       return;
     }
@@ -257,8 +260,8 @@ export default function PhotoAnalyzer() {
           console.error("Storage upload failed:", storageError);
           toast({
             variant: 'destructive',
-            title: 'Yükleme Başarısız',
-            description: 'Fotoğrafınız depolanamadı. Lütfen Firebase Storage kurallarınızı kontrol edin.',
+            title: t('toast_upload_fail_title'),
+            description: t('toast_upload_fail_description'),
           });
           return;
       }
@@ -284,8 +287,8 @@ export default function PhotoAnalyzer() {
         console.error("Firestore document creation failed:", dbError);
         toast({
           variant: 'destructive',
-          title: 'Kayıt Başarısız',
-          description: 'Fotoğrafınız veritabanına kaydedilemedi. Lütfen tekrar deneyin.',
+          title: t('toast_db_fail_title'),
+          description: t('toast_db_fail_description'),
         });
         return;
       }
@@ -305,8 +308,8 @@ export default function PhotoAnalyzer() {
         console.error('Analiz başarısız:', error);
         toast({
           variant: 'destructive',
-          title: 'Analiz Başarısız',
-          description: 'YZ analizi başarısız oldu. Fotoğraf galerine eklendi, oradan tekrar deneyebilirsin.',
+          title: t('toast_analysis_fail_title'),
+          description: t('toast_analysis_fail_description'),
         });
         return; // Stop here, photo is already in gallery without analysis
       }
@@ -343,29 +346,29 @@ export default function PhotoAnalyzer() {
 
       // 5. Gamification Toasts
       toast({
-        title: 'XP Kazandın!',
-        description: `Analiz için ${xpFromAnalysis} XP kazandın.`,
+        title: t('toast_xp_gain_title'),
+        description: t('toast_xp_gain_description', { xp: xpFromAnalysis }),
       });
       if(bonusXp > 0) {
           setTimeout(() => {
             toast({
-              title: '✨ Bonus!',
-              description: `Yüksek puan için +${bonusXp} bonus XP kazandın!`,
+              title: t('toast_bonus_title'),
+              description: t('toast_bonus_description', { xp: bonusXp }),
             });
           }, 100);
       }
       if (updatePayload.level_name) {
           setTimeout(() => {
             toast({
-              title: '🎉 Seviye Atladın!',
-              description: `Tebrikler! Yeni seviyen: ${updatePayload.level_name}`,
+              title: t('toast_level_up_title'),
+              description: t('toast_level_up_description', { level: updatePayload.level_name }),
             });
           }, 200);
            if (updatePayload.is_mentor) {
             setTimeout(() => {
                 toast({
-                  title: '👑 Mentor Oldun!',
-                  description: 'Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin.',
+                  title: t('toast_mentor_title'),
+                  description: t('toast_mentor_description'),
                 });
               }, 300);
           }
@@ -382,7 +385,7 @@ export default function PhotoAnalyzer() {
         <>
           <AnalysisResult result={result} />
           <Button onClick={handleClear} variant="outline" className="w-full">
-            Yeni Analiz Başlat
+            {t('button_new_analysis')}
           </Button>
         </>
       ) : preview ? (
@@ -401,9 +404,9 @@ export default function PhotoAnalyzer() {
                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center backdrop-blur-sm">
                     <Loader2 className="h-8 w-8 animate-spin" />
                     <p className="mt-3 font-semibold text-lg">
-                        {isPending ? 'Analiz ediliyor...' : 'Fotoğraf yükleniyor...'}
+                        {isPending ? t('state_analyzing') : t('state_uploading')}
                     </p>
-                    {isPending && <p className="text-sm mt-1">Bu işlem biraz zaman alabilir, lütfen bekleyin.</p>}
+                    {isPending && <p className="text-sm mt-1">{t('state_wait')}</p>}
                 </div>
               )}
               
@@ -422,12 +425,12 @@ export default function PhotoAnalyzer() {
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analiz ediliyor...
+                    {t('state_analyzing')}
                   </>
                 ) : (
                   <>
                     <Zap className="mr-2 h-4 w-4" />
-                    Analiz Et (2 Auro)
+                    {t('button_analyze', { cost: 2 })}
                   </>
                 )}
               </Button>
@@ -435,12 +438,12 @@ export default function PhotoAnalyzer() {
                  {isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Yükleniyor...
+                    {t('button_uploading')}
                   </>
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Sadece Yükle (Ücretsiz)
+                    {t('button_upload_only')}
                   </>
                 )}
               </Button>
@@ -468,9 +471,9 @@ export default function PhotoAnalyzer() {
           <div className="space-y-4">
             <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
             <p className="text-muted-foreground">
-              <span className="font-semibold text-primary">Yüklemek için tıklayın</span> veya sürükleyip bırakın
+              <span className="font-semibold text-primary">{t('upload_prompt_click')}</span> {t('upload_prompt_drag')}
             </p>
-            <p className="text-xs text-muted-foreground">PNG, JPG, GIF 10MB'a kadar</p>
+            <p className="text-xs text-muted-foreground">{t('upload_prompt_types')}</p>
           </div>
         </div>
       )}

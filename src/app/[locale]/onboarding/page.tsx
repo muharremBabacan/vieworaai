@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Check, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from '@/navigation';
+import { useTranslations } from 'next-intl';
 
 const photographyInterests = [
   'Ürün & E-ticaret',
@@ -32,6 +33,7 @@ export default function OnboardingPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const t = useTranslations('OnboardingPage');
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -50,8 +52,7 @@ export default function OnboardingPage() {
     if (!userDocRef) {
       toast({
         variant: 'destructive',
-        title: 'Hata',
-        description: 'Kullanıcı bulunamadı. Lütfen tekrar giriş yapın.',
+        title: t('toast_error_user'),
       });
       router.push('/');
       return;
@@ -59,7 +60,7 @@ export default function OnboardingPage() {
     if (selectedInterests.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'Lütfen en az bir ilgi alanı seçin.',
+        title: t('toast_error_selection'),
       });
       return;
     }
@@ -80,15 +81,15 @@ export default function OnboardingPage() {
         <Card>
           <CardHeader className="items-center text-center">
             <Logo className="mb-4" />
-            <CardTitle className="font-sans text-2xl">Viewora'ya Hoş Geldiniz!</CardTitle>
+            <CardTitle className="font-sans text-2xl">{t('welcome')}</CardTitle>
             <CardDescription>
-              Size en uygun deneyimini sunabilmemiz için fotoğrafçılık ilgi alanlarınızı seçin.
+              {t('description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 py-6">
             <div>
-                 <h3 className="mb-4 text-center text-lg font-medium">İlgi alanlarınız nelerdir?</h3>
-                 <CardDescription className="text-center mb-4 -mt-2">İstediğiniz kadar seçebilirsiniz.</CardDescription>
+                 <h3 className="mb-4 text-center text-lg font-medium">{t('interests_title')}</h3>
+                 <CardDescription className="text-center mb-4 -mt-2">{t('interests_description')}</CardDescription>
                 <div className="flex flex-wrap justify-center gap-2">
                   {photographyInterests.map((interest) => {
                     const isSelected = selectedInterests.includes(interest);
@@ -116,7 +117,7 @@ export default function OnboardingPage() {
               {isUpdating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                'Devam Et'
+                t('button_continue')
               )}
             </Button>
           </CardFooter>

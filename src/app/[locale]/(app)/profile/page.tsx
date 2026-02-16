@@ -13,12 +13,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 function RevenueReport() {
     const firestore = useFirestore();
     const {toast} = useToast();
     const { user } = useUser();
+    const t = useTranslations('ProfilePage');
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -41,12 +42,12 @@ function RevenueReport() {
         if (error) {
             toast({
                 variant: 'destructive',
-                title: 'Rapor Hatası',
-                description: 'Gelir raporu verileri çekilirken bir hata oluştu. Bu özellik için yönetici izni gereklidir.'
+                title: t('admin_toast_report_error_title'),
+                description: t('admin_toast_report_error_description')
             });
             console.error("Revenue report error:", error);
         }
-    }, [error, toast]);
+    }, [error, toast, t]);
 
     const { totalRevenue, totalAuroSold } = useMemo(() => {
         if (!transactions) return { totalRevenue: 0, totalAuroSold: 0 };
@@ -88,22 +89,22 @@ function RevenueReport() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-3">
                     <Coins className="h-6 w-6 text-primary" />
-                    <span>Gelir Raporu (Geçici)</span>
+                    <span>{t('admin_revenue_report_title')}</span>
                 </CardTitle>
                 <CardDescription>
-                    Tüm kullanıcılardan gelen tamamlanmış satın alımların toplamı.
+                    {t('admin_revenue_report_description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
-                    <span className="font-medium text-muted-foreground">Toplam Satılan Auro</span>
+                    <span className="font-medium text-muted-foreground">{t('admin_total_auro_sold')}</span>
                     <div className="flex items-center gap-2">
                         <span className="text-2xl font-bold">{totalAuroSold.toLocaleString('tr-TR')}</span>
                         <Gem className="h-5 w-5 text-cyan-400"/>
                     </div>
                 </div>
                 <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
-                    <span className="font-medium text-muted-foreground">Toplam Kazanç</span>
+                    <span className="font-medium text-muted-foreground">{t('admin_total_revenue')}</span>
                     <div className="flex items-center gap-2">
                         <span className="text-2xl font-bold">{totalRevenue.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
                     </div>
@@ -117,6 +118,7 @@ function AdminTools() {
     const { toast } = useToast();
     const firestore = useFirestore();
     const locale = useLocale();
+    const t = useTranslations('ProfilePage');
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState<'Temel' | 'Orta' | 'İleri' | ''>('');
     const [selectedCategory, setSelectedCategory] = useState('');
@@ -142,16 +144,16 @@ function AdminTools() {
         if (!firestore || !selectedLevel || !selectedCategory) {
             toast({
                 variant: 'destructive',
-                title: 'Eksik Seçim',
-                description: 'Lütfen ders üretmek için bir seviye ve bir kategori seçin.',
+                title: t('admin_toast_missing_selection_title'),
+                description: t('admin_toast_missing_selection_description'),
             });
             return;
         }
 
         setIsGenerating(true);
         toast({
-            title: 'Dersler Üretiliyor...',
-            description: `YZ, '${selectedLevel}' seviyesi, '${selectedCategory}' kategorisi için 5 yeni ders hazırlıyor.`,
+            title: t('admin_toast_generating_title'),
+            description: t('admin_toast_generating_description', { level: selectedLevel, category: selectedCategory }),
         });
 
         try {
@@ -223,16 +225,16 @@ function AdminTools() {
             }
 
             toast({
-                title: 'Başarılı!',
-                description: `${newLessons.length} yeni ders '${selectedCategory}' kategorisine eklendi.`,
+                title: t('admin_toast_generate_success_title'),
+                description: t('admin_toast_generate_success_description', { count: newLessons.length, category: selectedCategory }),
             });
 
         } catch (error) {
             console.error("Failed to generate or save lessons:", error);
             toast({
                 variant: 'destructive',
-                title: 'Hata!',
-                description: 'Dersler üretilirken veya kaydedilirken bir sorun oluştu.',
+                title: t('admin_toast_generate_error_title'),
+                description: t('admin_toast_generate_error_description'),
             });
         } finally {
             setIsGenerating(false);
@@ -244,22 +246,22 @@ function AdminTools() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-3">
                     <SettingsIcon className="h-6 w-6 text-primary" />
-                    <span>Yönetici Araçları</span>
+                    <span>{t('admin_tools_title')}</span>
                 </CardTitle>
-                <CardDescription>Uygulama için yönetimsel görevleri buradan yapın.</CardDescription>
+                <CardDescription>{t('admin_tools_description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
                     <RevenueReport />
                     <div className="space-y-4 rounded-lg border p-4">
                         <div>
-                            <h4 className="font-semibold">Günlük Dersleri Üret</h4>
-                            <p className="text-sm text-muted-foreground">Yapay zekanın seçtiğiniz kategoriye özel 5 yeni ders oluşturmasını sağlayın.</p>
+                            <h4 className="font-semibold">{t('admin_generate_lessons_title')}</h4>
+                            <p className="text-sm text-muted-foreground">{t('admin_generate_lessons_description')}</p>
                         </div>
                         <div className='space-y-4'>
                            <Select value={selectedLevel} onValueChange={(value) => setSelectedLevel(value as 'Temel' | 'Orta' | 'İleri')}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Seviye Seçin" />
+                                    <SelectValue placeholder={t('admin_select_level')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Temel">Temel</SelectItem>
@@ -269,7 +271,7 @@ function AdminTools() {
                             </Select>
                              <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel || availableCategories.length === 0}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Kategori Seçin" />
+                                    <SelectValue placeholder={t('admin_select_category')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {availableCategories.map(cat => (
@@ -279,7 +281,7 @@ function AdminTools() {
                             </Select>
                             <Button className="w-full" onClick={handleGenerateLessons} disabled={isGenerating || !selectedLevel || !selectedCategory}>
                                 {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Üret ve Kaydet
+                                {t('admin_button_generate')}
                             </Button>
                         </div>
                     </div>
@@ -323,6 +325,7 @@ function LanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations('ProfilePage');
 
   const localesInfo: { code: string; name: string }[] = [
     { code: 'tr', name: 'Türkçe' },
@@ -349,13 +352,13 @@ function LanguageSwitcher() {
             <Languages className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-grow">
-            <p className="font-semibold text-card-foreground">Dil</p>
-            <p className="text-xs text-muted-foreground">Uygulama dilini değiştirin</p>
+            <p className="font-semibold text-card-foreground">{t('language_label')}</p>
+            <p className="text-xs text-muted-foreground">{t('language_description')}</p>
         </div>
         <div className="w-[150px]">
             <Select defaultValue={locale} onValueChange={onSelectChange} disabled={isPending}>
                 <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Dil seç..." />
+                    <SelectValue placeholder={t('language_select_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
                     {localesInfo.map((loc) => (
@@ -377,6 +380,7 @@ export default function SettingsPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const router = useRouter();
+    const t = useTranslations('ProfilePage');
     const [isRestoring, setIsRestoring] = useState(false);
 
     const userDocRef = useMemoFirebase(() => {
@@ -390,19 +394,19 @@ export default function SettingsPage() {
         try {
             await signOut(auth);
             router.push('/');
-            toast({ title: 'Başarıyla çıkış yaptınız.' });
+            toast({ title: t('toast_signout_success') });
         } catch (error) {
             console.error('Sign out failed', error);
-            toast({ variant: 'destructive', title: 'Çıkış yapılamadı.' });
+            toast({ variant: 'destructive', title: t('toast_signout_fail') });
         }
     };
     
     const handleRestorePurchases = () => {
         setIsRestoring(true);
-        toast({ title: "Satın Alımlar Kontrol Ediliyor..." });
+        toast({ title: t('toast_restoring_title') });
 
         setTimeout(() => {
-             toast({ title: "Kontrol Tamamlandı", description: "Mevcut satın alımlarınız hesabınızla senkronize edildi." });
+             toast({ title: t('toast_restore_complete_title'), description: t('toast_restore_complete_description') });
              setIsRestoring(false);
         }, 1500);
     }
@@ -427,27 +431,27 @@ export default function SettingsPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3">
                            <Gem className="h-6 w-6 text-cyan-400" />
-                           Auro Yönetimi
+                           {t('auro_management_title')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
-                            <span className="font-medium text-muted-foreground">Mevcut Bakiye</span>
+                            <span className="font-medium text-muted-foreground">{t('current_balance')}</span>
                             <div className="flex items-center gap-2">
                                 <span className="text-2xl font-bold">{auroBalance}</span>
-                                <span className="font-semibold text-cyan-400">Auro</span>
+                                <span className="font-semibold text-cyan-400">{t('auro_unit')}</span>
                             </div>
                         </div>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                              <Button asChild size="lg">
                                 <Link href="/pricing">
                                     <Coins className="mr-2 h-5 w-5" />
-                                    Auro Satın Al
+                                    {t('button_buy_auro')}
                                 </Link>
                             </Button>
                              <Button variant="outline" size="lg" onClick={handleRestorePurchases} disabled={isRestoring}>
                                 {isRestoring ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <History className="mr-2 h-5 w-5" />}
-                                Satın Almaları Geri Yükle
+                                {t('button_restore_purchases')}
                             </Button>
                          </div>
                     </CardContent>
@@ -457,14 +461,14 @@ export default function SettingsPage() {
                      <CardHeader>
                         <CardTitle className="flex items-center gap-3">
                            <SettingsIcon className="h-6 w-6 text-primary" />
-                           Uygulama & Hesap
+                           {t('app_account_title')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="divide-y divide-border -mx-3">
                         <LanguageSwitcher />
-                        <SettingsListItem icon={Info} title="Sürüm" description="1.0.0 (Build 1)" />
-                        <SettingsListItem icon={FileText} title="Hizmet Şartları" isLink href="/terms" />
-                        <SettingsListItem icon={ShieldQuestion} title="Gizlilik Politikası" isLink href="/privacy" />
+                        <SettingsListItem icon={Info} title={t('version_label')} description="1.0.0 (Build 1)" />
+                        <SettingsListItem icon={FileText} title={t('terms_label')} isLink href="/terms" />
+                        <SettingsListItem icon={ShieldQuestion} title={t('privacy_label')} isLink href="/privacy" />
                     </CardContent>
                 </Card>
                 
@@ -475,7 +479,7 @@ export default function SettingsPage() {
                 <div className="pt-4">
                      <Button variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10" onClick={handleSignOut}>
                         <LogOut className="mr-2 h-5 w-5" />
-                        Çıkış Yap
+                        {t('button_sign_out')}
                     </Button>
                 </div>
             </div>

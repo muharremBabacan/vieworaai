@@ -111,13 +111,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="relative h-16 w-16 animate-pulse">
             <Image
               src={logoUrl}
-              alt="Yükleniyor..."
+              alt={t('loading')}
               fill
               className="object-contain"
               unoptimized
             />
           </div>
-          <span className="animate-pulse">Yükleniyor...</span>
+          <span className="animate-pulse">{t('loading')}</span>
         </div>
       </div>
     );

@@ -23,6 +23,7 @@ import { Link, useRouter } from '@/navigation';
 
 export function UserNav() {
   const t = useTranslations('UserNav');
+  const tFallback = useTranslations('UserNavFallback');
   const { user: authUser, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -51,7 +52,7 @@ export function UserNav() {
   if (!authUser || !userProfile) {
     return (
       <Button variant="outline" onClick={() => router.push('/')}>
-        Giriş Yap
+        {tFallback('login')}
       </Button>
     )
   }
@@ -60,8 +61,8 @@ export function UserNav() {
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
   const levelName = userProfile.level_name ?? 'Neuner';
-  const displayName = userProfile.name || 'Kullanıcı';
-  const displayEmail = userProfile.email || 'E-posta yok';
+  const displayName = userProfile.name || tFallback('username_fallback');
+  const displayEmail = userProfile.email || tFallback('email_fallback');
   const fallbackChar = displayName?.charAt(0) || displayEmail?.charAt(0) || 'U';
 
 

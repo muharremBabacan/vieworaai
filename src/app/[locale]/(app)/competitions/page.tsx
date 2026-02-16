@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Trophy, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { tr, enUS, de, fr, es, ar, ru, el, zhCN, ja } from 'date-fns/locale';
 
 const localeMap: Record<string, Locale> = { tr, en: enUS, de, fr, es, ar, ru, el, zh: zhCN, ja };
@@ -17,6 +17,7 @@ function CompetitionCard({ competition }: { competition: Competition }) {
   const [isActive, setIsActive] = useState(false);
   const locale = useLocale();
   const dtfLocale = localeMap[locale] || enUS;
+  const t = useTranslations('CompetitionsPage');
 
   useEffect(() => {
     const now = new Date();
@@ -44,7 +45,7 @@ function CompetitionCard({ competition }: { competition: Competition }) {
              {isActive && (
                 <Badge className="absolute top-4 right-4 bg-green-500 text-white">
                     <Sparkles className="mr-2 h-4 w-4"/>
-                    Aktif
+                    {t('status_active')}
                 </Badge>
             )}
         </CardHeader>
@@ -53,12 +54,12 @@ function CompetitionCard({ competition }: { competition: Competition }) {
             <div className="mt-4 space-y-3">
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Trophy className="h-4 w-4 text-amber-400" />
-                    <span className="font-semibold">Ödül:</span>
+                    <span className="font-semibold">{t('prize_label')}</span>
                     <span>{competition.prize}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    <span className="font-semibold">Tarih:</span>
+                    <span className="font-semibold">{t('date_label')}</span>
                     <span>
                        {format(new Date(competition.startDate), 'd MMMM', { locale: dtfLocale })} - {format(new Date(competition.endDate), 'd MMMM yyyy', { locale: dtfLocale })}
                     </span>
@@ -67,7 +68,7 @@ function CompetitionCard({ competition }: { competition: Competition }) {
         </CardContent>
         <CardFooter className="p-6">
             <Button className="w-full" disabled={!isActive}>
-                {isActive ? 'Fotoğraf Yükle ve Katıl' : 'Yarışma Sona Erdi'}
+                {isActive ? t('button_join') : t('button_ended')}
             </Button>
         </CardFooter>
     </Card>

@@ -37,9 +37,10 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
+  const t = useTranslations('GalleryPage');
   const ratingItems = [
       { label: 'Işık', value: rating.lighting },
       { label: 'Kompozisyon', value: rating.composition },
@@ -47,10 +48,10 @@ function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['r
   ];
   return (
       <div>
-          <h4 className="font-semibold text-lg mb-3">Puanlama</h4>
+          <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Genel</p>
+                  <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
                   <p className="text-4xl font-bold text-primary">{rating.overall.toFixed(1)}</p>
               </div>
               <div className="flex-1 space-y-2">
@@ -84,6 +85,7 @@ function PhotoDetailDialog({
     userProfile: UserProfile | null,
     userDocRef: DocumentReference | null,
 }) {
+  const t = useTranslations('GalleryPage');
   const { toast } = useToast();
   const firestore = useFirestore();
   const locale = useLocale();
@@ -111,16 +113,16 @@ function PhotoDetailDialog({
     if (!photo?.aiFeedback) return null;
     
     if (photo.aiFeedback.isAiGenerated) {
-      return { icon: Bot, text: 'Bu görsel Yapay Zeka ile üretilmiştir', color: 'text-purple-400' };
+      return { icon: Bot, text: t('camera_info_ai'), color: 'text-purple-400' };
     }
 
     const { cameraType, cameraMake, cameraModel } = photo.aiFeedback;
 
     if (!cameraType || cameraType === 'Bilinmiyor') {
-        return { icon: HelpCircle, text: 'Kamera Türü Belirlenemedi' };
+        return { icon: HelpCircle, text: t('camera_info_unknown') };
     }
 
-    const typeText = cameraType === 'Profesyonel' ? 'Profesyonel Kamera' : 'Mobil Cihaz';
+    const typeText = cameraType === 'Profesyonel' ? t('camera_type_pro') : t('camera_type_mobile');
     const icon = cameraType === 'Profesyonel' ? Camera : Smartphone;
 
     let detailText = '';
@@ -135,7 +137,7 @@ function PhotoDetailDialog({
       return { icon, text: `${typeText}: ${detailText}` };
     }
     
-    return { icon, text: cameraType === 'Profesyonel' ? 'Profesyonel Kamera ile Çekildi' : 'Mobil Cihaz ile Çekildi' };
+    return { icon, text: cameraType === 'Profesyonel' ? t('camera_shot_with_pro') : t('camera_shot_with_mobile') };
   };
   
   const CameraInfo = getCameraInfo();
@@ -148,12 +150,12 @@ function PhotoDetailDialog({
     const currentXp = Number.isFinite(userProfile.current_xp) ? userProfile.current_xp : 0;
 
     if (currentAuro < analysisCost) {
-        toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Analiz için ${analysisCost} Auro gereklidir.` });
+        toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_analysis', { cost: analysisCost }) });
         return;
     }
 
     setIsAnalyzing(true);
-    toast({ title: 'Analiz Başlatılıyor...', description: 'Lütfen bekleyin.' });
+    toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
 
     try {
       const analysisResult = await analyzePhotoAndSuggestImprovements({ photoUrl: photo.imageUrl, language: locale });
@@ -170,11 +172,11 @@ function PhotoDetailDialog({
       updateDocumentNonBlocking(userDocRef, userUpdatePayload);
       updateDocumentNonBlocking(originalPhotoRef, { aiFeedback: analysisResult, tags: analysisResult.tags || [] });
 
-      toast({ title: 'Başarılı!', description: 'Analiz tamamlandı.' });
+      toast({ title: t('toast_success_title'), description: t('toast_analysis_complete') });
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'Analiz yapılamadı.' });
+      toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_analysis') });
     } finally {
       setIsAnalyzing(false);
     }
@@ -186,7 +188,7 @@ function PhotoDetailDialog({
     const currentAuro = userProfile.auro_balance || 0;
 
     if (currentAuro < submissionCost) {
-        toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Sergi için ${submissionCost} Auro lazım.` });
+        toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_submit', { cost: submissionCost }) });
         return;
     }
 
@@ -197,7 +199,7 @@ function PhotoDetailDialog({
     updateDocumentNonBlocking(userDocRef, { auro_balance: currentAuro - submissionCost });
     updateDocumentNonBlocking(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: true });
     
-    toast({ title: 'Başarılı!', description: 'Sergiye gönderildi.' });
+    toast({ title: t('toast_success_title'), description: t('toast_submit_complete') });
     onOpenChange(false);
     setIsSubmitting(false);
   };
@@ -211,7 +213,7 @@ function PhotoDetailDialog({
         const deletionPromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
         await Promise.all([...deletionPromises, updateDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: false })]);
         
-        toast({ title: 'Başarılı!', description: 'Fotoğrafınız sergiden başarıyla çekildi.' });
+        toast({ title: t('toast_success_title'), description: t('toast_withdraw_complete') });
 
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -225,7 +227,7 @@ function PhotoDetailDialog({
 
     } catch (error) {
         console.error("Çekme hatası:", error);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Sergiden çekme işlemi tamamlanamadı.' });
+        toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_withdraw') });
         setIsProcessing(false);
     }
   };
@@ -258,7 +260,7 @@ function PhotoDetailDialog({
 
         await Promise.all(deletionPromises);
         
-        toast({ title: 'İşlem Başarılı', description: 'Fotoğrafınız galeriden kalıcı olarak silindi.' });
+        toast({ title: t('toast_success_title'), description: t('toast_delete_complete') });
 
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -272,7 +274,7 @@ function PhotoDetailDialog({
 
     } catch (error) {
         console.error("Silme hatası:", error);
-        toast({ variant: 'destructive', title: 'Hata', description: 'Silme işlemi tamamlanamadı.' });
+        toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_delete') });
         setIsProcessing(false);
     }
   };
@@ -293,7 +295,7 @@ function PhotoDetailDialog({
         </div>
         <div className="md:w-2/3 w-full overflow-y-auto flex flex-col p-6 space-y-6">
             <DialogHeader>
-              <DialogTitle className="text-2xl">YZ Geri Bildirimi</DialogTitle>
+              <DialogTitle className="text-2xl">{t('dialog_title')}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -328,7 +330,7 @@ function PhotoDetailDialog({
               <div className="text-center py-10 space-y-4">
                 <p>Bu fotoğraf henüz analiz edilmedi.</p>
                 <Button onClick={handleAnalyzeNow} disabled={isLoading}>
-                    {isAnalyzing ? <Loader2 className="animate-spin"/> : 'Skoru Öğren (2 Auro)'}
+                    {isAnalyzing ? <Loader2 className="animate-spin"/> : t('button_get_score', { cost: 2 })}
                 </Button>
               </div>
             )}
@@ -336,16 +338,16 @@ function PhotoDetailDialog({
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
                     <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
-                        {isLoading && dialogAction === 'withdraw' ? <Loader2 className="animate-spin"/> : 'Sergiden Çek'}
+                        {isLoading && dialogAction === 'withdraw' ? <Loader2 className="animate-spin"/> : t('button_withdraw_from_public')}
                     </Button>
                 ) : (
                     <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading}>
-                        {isSubmitting ? <Loader2 className="animate-spin"/> : 'Sergiye Gönder (5 Auro)'}
+                        {isSubmitting ? <Loader2 className="animate-spin"/> : t('button_submit_to_public', { cost: 5 })}
                     </Button>
                 )
              )}
              <Button type="button" variant="outline" className="w-full text-destructive hover:text-destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>
-                {isLoading && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : 'Kalıcı Olarak Sil'}
+                {isLoading && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : t('button_delete_permanently')}
              </Button>
           </div>
         </div>
@@ -355,20 +357,20 @@ function PhotoDetailDialog({
     <AlertDialog open={!!dialogAction} onOpenChange={(open) => !open && setDialogAction(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                <AlertDialogTitle>{t('alert_dialog_title')}</AlertDialogTitle>
                 <AlertDialogDescription>
                   {dialogAction === 'delete' 
-                    ? "Bu fotoğraf hem galerinizden hem de sergiden (eğer gönderildiyse) kalıcı olarak silinecektir. Bu işlem geri alınamaz."
-                    : "Bu fotoğraf herkese açık sergi salonundan kaldırılacaktır. Galerinizde görünmeye devam edecektir."}
+                    ? t('alert_dialog_delete_description')
+                    : t('alert_dialog_withdraw_description')}
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setDialogAction(null)} disabled={isProcessing}>İptal</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setDialogAction(null)} disabled={isProcessing}>{t('alert_dialog_cancel')}</AlertDialogCancel>
                 <AlertDialogAction 
                   disabled={isProcessing}
                   className={cn(dialogAction === 'delete' && "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
                   onClick={() => dialogAction === 'withdraw' ? handleWithdrawFromPublic() : handleDeletePhoto()}>
-                    {isProcessing ? <Loader2 className="animate-spin" /> : 'Evet, Devam Et'}
+                    {isProcessing ? <Loader2 className="animate-spin" /> : t('alert_dialog_confirm')}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
@@ -390,12 +392,13 @@ function GallerySkeleton() {
 }
 
 function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (photo: Photo) => void }) {
+  const t = useTranslations('GalleryPage');
   if (photos.length === 0) {
     return (
       <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
         <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-        <h3 className="text-2xl font-semibold">Bu filtreyle eşleşen fotoğraf bulunamadı.</h3>
-        <p className="text-muted-foreground mt-2">Farklı bir etiket seçin veya tüm fotoğraflarınızı görmek için "Tümü" filtresini kullanın.</p>
+        <h3 className="text-2xl font-semibold">{t('no_photos_filtered_title')}</h3>
+        <p className="text-muted-foreground mt-2">{t('no_photos_filtered_description')}</p>
       </div>
     );
   }
@@ -413,7 +416,7 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
             {!photo.aiFeedback && (
               <div className="flex flex-col items-center gap-1">
                 <Clock className="h-6 w-6 text-white/80" />
-                <span className="text-xs text-white/80 font-semibold">Analiz Bekliyor</span>
+                <span className="text-xs text-white/80 font-semibold">{t('status_awaiting_analysis')}</span>
               </div>
             )}
           </div>
@@ -440,6 +443,7 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
 
 
 export default function GalleryPage() {
+  const t = useTranslations('GalleryPage');
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -458,18 +462,18 @@ export default function GalleryPage() {
     if (!userPhotos) return [];
     const allTags = userPhotos.flatMap(p => p.tags || []).filter(Boolean);
     const capitalizedTags = allTags.map(tag => tag.charAt(0).toUpperCase() + tag.slice(1));
-    return ['Tümü', ...Array.from(new Set(capitalizedTags))];
-  }, [userPhotos]);
+    return [t('filter_all'), ...Array.from(new Set(capitalizedTags))];
+  }, [userPhotos, t]);
 
   const filteredPhotos = useMemo(() => {
     if (!userPhotos) return [];
-    if (selectedTag === 'Tümü') {
+    if (selectedTag === t('filter_all')) {
       return userPhotos;
     }
     return userPhotos.filter(photo => 
       photo.tags?.some(tag => tag.toLowerCase() === selectedTag.toLowerCase())
     );
-  }, [userPhotos, selectedTag]);
+  }, [userPhotos, selectedTag, t]);
 
   // Handle case where there are no photos at all to avoid showing filter bar
   if (!isLoading && (!userPhotos || userPhotos.length === 0)) {
@@ -477,10 +481,10 @@ export default function GalleryPage() {
       <div className="container mx-auto">
         <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
           <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-          <h3 className="text-2xl font-semibold">Galerinizde Henüz Fotoğraf Yok</h3>
-          <p className="text-muted-foreground mt-2">Yapay zeka koçu ile ilk analizinizi yaparak galeriyi doldurun!</p>
+          <h3 className="text-2xl font-semibold">{t('no_photos_title')}</h3>
+          <p className="text-muted-foreground mt-2">{t('no_photos_description')}</p>
           <Button asChild className="mt-6">
-            <Link href="/dashboard">Analiz Başlat</Link>
+            <Link href="/dashboard">{t('button_start_analysis')}</Link>
           </Button>
         </div>
       </div>
