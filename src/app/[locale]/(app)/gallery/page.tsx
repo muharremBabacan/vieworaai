@@ -41,10 +41,11 @@ import { useLocale, useTranslations } from 'next-intl';
 
 function RatingDisplay({ rating }: { rating: NonNullable<Photo['aiFeedback']>['rating'] }) {
   const t = useTranslations('GalleryPage');
+  const tRatings = useTranslations('Ratings');
   const ratingItems = [
-      { label: 'Işık', value: rating.lighting },
-      { label: 'Kompozisyon', value: rating.composition },
-      { label: 'Duygu', value: rating.emotion },
+      { label: tRatings('lighting'), value: rating.lighting },
+      { label: tRatings('composition'), value: rating.composition },
+      { label: tRatings('emotion'), value: rating.emotion },
   ];
   return (
       <div>

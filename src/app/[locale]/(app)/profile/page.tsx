@@ -119,15 +119,17 @@ function AdminTools() {
     const firestore = useFirestore();
     const locale = useLocale();
     const t = useTranslations('ProfilePage');
+    const tAcademy = useTranslations('AcademyPage');
+    const tCurriculum = useTranslations('Curriculum');
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState<'Temel' | 'Orta' | 'İleri' | ''>('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [availableCategories, setAvailableCategories] = useState<string[]>([]);
     
     const levelCategoryMap: Record<string, string[]> = {
-        'Temel': ["Fotoğrafçılığa Giriş", "Pozlama Temelleri", "Netlik ve Odaklama", "Temel Kompozisyon", "Işık Bilgisi"],
-        'Orta': ["Tür Bazlı Çekim Teknikleri", "İleri Pozlama Teknikleri", "Işık Yönetimi", "Görsel Hikâye Anlatımı", "Post-Prodüksiyon Temelleri"],
-        'İleri': ["Uzmanlık Alanı Derinleşme", "Profesyonel Işık Kurulumu", "Gelişmiş Teknikler", "Sanatsal Kimlik ve Stil", "Ticari ve Marka Konumlandırma"],
+        'Temel': [tCurriculum('cat_b_intro'), tCurriculum('cat_b_exposure'), tCurriculum('cat_b_focus'), tCurriculum('cat_b_composition'), tCurriculum('cat_b_light')],
+        'Orta': [tCurriculum('cat_i_genres'), tCurriculum('cat_i_advanced_exposure'), tCurriculum('cat_i_light_management'), tCurriculum('cat_i_storytelling'), tCurriculum('cat_i_post_production')],
+        'İleri': [tCurriculum('cat_a_specialization'), tCurriculum('cat_a_studio_light'), tCurriculum('cat_a_advanced_techniques'), tCurriculum('cat_a_style'), tCurriculum('cat_a_business')],
     };
 
     useEffect(() => {
@@ -264,9 +266,9 @@ function AdminTools() {
                                     <SelectValue placeholder={t('admin_select_level')} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Temel">Temel</SelectItem>
-                                    <SelectItem value="Orta">Orta</SelectItem>
-                                    <SelectItem value="İleri">İleri</SelectItem>
+                                    <SelectItem value="Temel">{tAcademy('level_basic_title')}</SelectItem>
+                                    <SelectItem value="Orta">{tAcademy('level_intermediate_title')}</SelectItem>
+                                    <SelectItem value="İleri">{tAcademy('level_advanced_title')}</SelectItem>
                                 </SelectContent>
                             </Select>
                              <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel || availableCategories.length === 0}>

@@ -19,14 +19,9 @@ import type { User as UserProfile } from '@/types';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/navigation';
 
-const levelSlugMap: Record<string, string> = {
-  'temel': 'Temel Seviye',
-  'orta': 'Orta Seviye',
-  'ileri': 'İleri Seviye',
-};
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('AppLayout');
+  const tAcademy = useTranslations('AcademyPage');
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
@@ -82,6 +77,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     '/pricing': t('title_pricing'),
   };
 
+  const levelSlugTitleMap: Record<string, string> = {
+    temel: tAcademy('level_basic_title'),
+    orta: tAcademy('level_intermediate_title'),
+    ileri: tAcademy('level_advanced_title'),
+  };
+
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
@@ -125,8 +126,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const getPageTitle = () => {
     const pathSegments = pathname.split('/').filter(Boolean);
-    if (pathSegments[0] === 'academy' && pathSegments[1] && levelSlugMap[pathSegments[1]]) {
-      return levelSlugMap[pathSegments[1]];
+    if (pathSegments[0] === 'academy' && pathSegments[1] && levelSlugTitleMap[pathSegments[1]]) {
+      return levelSlugTitleMap[pathSegments[1]];
     }
     const staticTitle = pageTitleMap[pathname];
     if (staticTitle) return staticTitle;

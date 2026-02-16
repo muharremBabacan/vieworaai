@@ -20,10 +20,11 @@ import { useLocale, useTranslations } from 'next-intl';
 
 function AnalysisRating({ rating }: { rating: AnalyzePhotoAndSuggestImprovementsOutput['rating'] }) {
   const t = useTranslations('DashboardPage');
+  const tRatings = useTranslations('Ratings');
   const data = [
-    { subject: 'Işık', score: rating.lighting, fullMark: 10 },
-    { subject: 'Kompozisyon', score: rating.composition, fullMark: 10 },
-    { subject: 'Duygu', score: rating.emotion, fullMark: 10 },
+    { subject: tRatings('lighting'), score: rating.lighting, fullMark: 10 },
+    { subject: tRatings('composition'), score: rating.composition, fullMark: 10 },
+    { subject: tRatings('emotion'), score: rating.emotion, fullMark: 10 },
   ];
 
   return (

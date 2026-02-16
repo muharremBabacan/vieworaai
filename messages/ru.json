@@ -340,5 +340,31 @@
     "login": "Giriş Yap",
     "username_fallback": "Kullanıcı",
     "email_fallback": "E-posta yok"
+  },
+  "Ratings": {
+    "lighting": "Işık",
+    "composition": "Kompozisyon",
+    "emotion": "Duygu",
+    "overall": "Genel"
+  },
+  "Curriculum": {
+    "level_basic": "Temel",
+    "level_intermediate": "Orta",
+    "level_advanced": "İleri",
+    "cat_b_intro": "Fotoğrafçılığa Giriş",
+    "cat_b_exposure": "Pozlama Temelleri",
+    "cat_b_focus": "Netlik ve Odaklama",
+    "cat_b_composition": "Temel Kompozisyon",
+    "cat_b_light": "Işık Bilgisi",
+    "cat_i_genres": "Tür Bazlı Çekim Teknikleri",
+    "cat_i_advanced_exposure": "İleri Pozlama Teknikleri",
+    "cat_i_light_management": "Işık Yönetimi",
+    "cat_i_storytelling": "Görsel Hikâye Anlatımı",
+    "cat_i_post_production": "Post-Prodüksiyon Temelleri",
+    "cat_a_specialization": "Uzmanlık Alanı Derinleşme",
+    "cat_a_studio_light": "Profesyonel Işık Kurulumu",
+    "cat_a_advanced_techniques": "Gelişmiş Teknikler",
+    "cat_a_style": "Sanatsal Kimlik ve Stil",
+    "cat_a_business": "Ticari ve Marka Konumlandırma"
   }
 }
