@@ -1,20 +1,29 @@
 'use client';
 
-import type { AnalyzePhotoAndSuggestImprovementsOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
+import type { PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
+
+export type PhotoAnalysis = PhotoAnalysisOutput;
 
 export type User = {
   id: string;
   name: string | null;
   email: string | null;
-  auro_balance: number; // Renamed from aura_balance
-  current_xp: number; // Renamed from xp
-  level_name: string; // Renamed from level
-  is_mentor?: boolean; // New
-  weekly_free_refill_date: string; // New
-  completed_modules: string[]; // New
+  auro_balance: number;
+  current_xp: number;
+  level_name: string;
+  is_mentor?: boolean;
+  weekly_free_refill_date: string;
+  completed_modules: string[];
   interests: string[];
   onboarded: boolean;
   groups?: string[];
+  // New profile fields from user prompt
+  profile_index?: any; // Define properly later
+  technical_score?: number;
+  development_score?: number;
+  activity_score?: number;
+  dominant_genre?: string;
+  device_type?: string;
 };
 
 export type Photo = {
@@ -23,14 +32,15 @@ export type Photo = {
   imageUrl: string;
   filePath?: string;
   tags?: string[];
-  aiFeedback: AnalyzePhotoAndSuggestImprovementsOutput | null;
+  aiFeedback: PhotoAnalysis | null;
+  adaptiveFeedback?: string | null;
   createdAt: string;
   isSubmittedToPublic?: boolean;
 };
 
 export type Lesson = {
   id: string;
-  level: 'Temel' | 'Orta' | 'İleri'; // New curriculum levels
+  level: 'Temel' | 'Orta' | 'İleri';
   category: string;
   title: string;
   learningObjective: string;
@@ -57,12 +67,12 @@ export type Package = {
 export type Transaction = {
     id: string;
     userId: string;
-    amount: number; // Auro amount
+    amount: number;
     type: 'Purchase' | 'Gift' | 'Refill';
     status: 'Completed' | 'Pending' | 'Failed';
     transactionDate: string;
-    currencyAmount?: number; // Price in currency
-    currency?: string; // e.g., 'TRY'
+    currencyAmount?: number;
+    currency?: string;
 };
 
 export type Competition = {

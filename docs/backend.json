@@ -19,15 +19,15 @@
           "type": "string",
           "description": "The user's display name."
         },
-        "tokenBalance": {
+        "auro_balance": {
           "type": "number",
           "description": "The current number of tokens available to the user for AI analysis."
         },
-        "planLevel": {
+        "level_name": {
           "type": "string",
           "description": "The user's current gamification level (e.g., Basic, Mid, Pro)."
         },
-        "xp": {
+        "current_xp": {
           "type": "number",
           "description": "Experience points earned by the user, contributing to their gamification level."
         },
@@ -40,15 +40,39 @@
           "type": "string",
           "description": "Timestamp of the user's last login.",
           "format": "date-time"
+        },
+        "profile_index": {
+          "type": "object",
+          "description": "Aggregated profile metrics calculated after 5 photos."
+        },
+        "technical_score": {
+          "type": "number",
+          "description": "User's overall technical score."
+        },
+        "development_score": {
+          "type": "number",
+          "description": "User's progress score."
+        },
+        "activity_score": {
+          "type": "number",
+          "description": "User's engagement score."
+        },
+        "dominant_genre": {
+          "type": "string",
+          "description": "The user's most frequent photo genre."
+        },
+        "device_type": {
+          "type": "string",
+          "description": "The user's most frequent device type."
         }
       },
       "required": [
         "id",
         "email",
         "name",
-        "tokenBalance",
-        "planLevel",
-        "xp",
+        "auro_balance",
+        "level_name",
+        "current_xp",
         "createdAt"
       ]
     },
@@ -76,8 +100,34 @@
           "description": "The path to the photo file in Firebase Storage."
         },
         "aiFeedback": {
-          "type": "string",
-          "description": "The AI-generated analysis and improvement tips for the photo, covering aspects like Light, Composition, Emotion, and Technique. This is stored as a string, potentially containing formatted text or JSON."
+          "type": "object",
+          "description": "The raw JSON data from the AI analysis.",
+          "properties": {
+            "device_estimation": { "type": "string" },
+            "genre": { "type": "string" },
+            "light_score": { "type": "number" },
+            "composition_score": { "type": "number" },
+            "focus_score": { "type": "number" },
+            "color_control_score": { "type": "number" },
+            "background_control_score": { "type": "number" },
+            "creativity_risk_score": { "type": "number" },
+            "technical_level_estimation": { "type": "string" },
+            "error_flags": {
+              "type": "object",
+              "properties": {
+                "overexposed": { "type": "boolean" },
+                "underexposed": { "type": "boolean" },
+                "cluttered_background": { "type": "boolean" },
+                "weak_subject_isolation": { "type": "boolean" },
+                "horizon_misalignment": { "type": "boolean" }
+              }
+            },
+            "short_neutral_analysis": { "type": "string" }
+          }
+        },
+        "adaptiveFeedback": {
+            "type": "string",
+            "description": "The human-readable adaptive feedback generated based on the user's level and the photo's analysis data."
         },
         "createdAt": {
           "type": "string",
@@ -88,9 +138,7 @@
       "required": [
         "id",
         "userId",
-        "imageUrl",
-        "aiFeedback",
-        "createdAt"
+        "imageUrl"
       ]
     },
     "AcademyLesson": {
@@ -437,6 +485,27 @@
             {
               "name": "lessonId",
               "description": "The unique identifier for an academy lesson."
+            }
+          ]
+        }
+      },
+       {
+        "path": "weekly_profile_snapshots/{snapshotId}",
+        "definition": {
+          "entityName": "WeeklyProfileSnapshot",
+          "schema": {
+            "type": "object",
+            "properties": {
+                "user_id": {"type": "string"},
+                "profile_score": {"type": "number"},
+                "week_number": {"type": "number"}
+            }
+          },
+          "description": "Stores weekly snapshots of user profile scores for tracking progress.",
+          "params": [
+            {
+              "name": "snapshotId",
+              "description": "The unique identifier for a weekly snapshot."
             }
           ]
         }
