@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UploadCloud, X, Loader2, Zap, Upload, Bot, CheckCircle } from 'lucide-react';
+import { UploadCloud, X, Loader2, Zap, Upload, Bot } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -320,5 +320,3 @@ export default function PhotoAnalyzer() {
     </div>
   );
 }
-
-    
