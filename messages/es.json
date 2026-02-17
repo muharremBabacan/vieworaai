@@ -360,7 +360,8 @@
     "lighting": "Lighting",
     "composition": "Composition",
     "focus": "Focus",
-    "overall": "Overall"
+    "overall": "Overall",
+    "technical": "Technical"
   },
   "Curriculum": {
     "level_basic": "Beginner",
@@ -390,3 +391,5 @@
     "notification_group_invite_body": "{inviterName} has invited you to join the group \"{groupName}\"."
   }
 }
+
+    

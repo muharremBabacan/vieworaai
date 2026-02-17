@@ -16,56 +16,54 @@ import type { User as UserProfile, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 
 function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   const t = useTranslations('DashboardPage');
   const tRatings = useTranslations('Ratings');
 
-  const scores = [
-    analysis.light_score,
-    analysis.composition_score,
-    analysis.focus_score,
-    analysis.color_control_score,
-    analysis.background_control_score,
-    analysis.creativity_risk_score,
-  ].filter((score): score is number => typeof score === 'number' && isFinite(score));
+  const lightScore = analysis.light_score ?? 0;
+  const compositionScore = analysis.composition_score ?? 0;
+  // Technical score is an average of focus, color, and background control
+  const technicalScore =
+    ((analysis.focus_score ?? 0) +
+      (analysis.color_control_score ?? 0) +
+      (analysis.background_control_score ?? 0)) /
+    3;
 
-  const overallScore = scores.length > 0
-    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length)
-    : 0;
+  // Overall score is an average of light, composition, and our new technical score
+  const overallScore = (lightScore + compositionScore + technicalScore) / 3;
 
   const ratingItems = [
-      { label: tRatings('lighting'), value: analysis.light_score ?? 0 },
-      { label: tRatings('composition'), value: analysis.composition_score ?? 0 },
-      { label: tRatings('focus'), value: analysis.focus_score ?? 0 },
+    { label: tRatings('lighting'), value: lightScore },
+    { label: tRatings('composition'), value: compositionScore },
+    { label: tRatings('technical'), value: technicalScore },
   ];
+
   return (
-      <div>
-          <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
-          <div className="flex items-center gap-6 rounded-lg border p-4">
-              <div className="flex flex-col items-center justify-center">
-                  <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(0)}</p>
-              </div>
-              <div className="flex-1 space-y-2">
-                  {ratingItems.map(item => (
-                      <div key={item.label} className="flex items-center justify-between gap-4">
-                          <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="w-full bg-muted rounded-full h-2">
-                                <div
-                                    className="bg-primary h-2 rounded-full"
-                                    style={{ width: `${(item.value ?? 0) * 10}%` }}
-                                />
-                            </div>
-                            <span className="text-sm font-semibold w-8 text-right">{(item.value ?? 0).toFixed(0)}</span>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('rating_card_title')}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between gap-4 rounded-lg border bg-secondary/50 p-3">
+          <span className="text-lg font-bold text-primary">{t('overall_score')}</span>
+          <span className="text-2xl font-bold text-primary">{overallScore.toFixed(1)} / 10</span>
+        </div>
+        <div className="space-y-3 pt-2">
+            {ratingItems.map(item => (
+                <div key={item.label}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span className="font-semibold">{item.value.toFixed(1)} / 10</span>
+                    </div>
+                    <Progress value={item.value * 10} aria-label={`${item.label} score ${item.value.toFixed(1)} out of 10`} />
+                </div>
+            ))}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -73,40 +71,51 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: Pho
   const t = useTranslations('DashboardPage');
 
   return (
-    <div className="space-y-6">
-       <Card>
-        <CardHeader>
-           <CardTitle className="font-sans text-lg font-semibold flex items-center gap-2">
-              <Bot className="h-5 w-5 text-primary"/> {t('ai_analysis_title')}
-            </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{feedback}</div>
-        </CardContent>
-      </Card>
-      
-       <RatingDisplay analysis={analysis} />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        {/* Left Column: Image and Ratings */}
+        <div className="space-y-6">
+            <Card className="overflow-hidden sticky top-20">
+                <div className="relative aspect-[4/3] bg-muted/20">
+                    <Image src={photoPreviewUrl} alt="Analyzed photo" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
+                </div>
+            </Card>
+            <RatingDisplay analysis={analysis} />
+        </div>
 
-       <div className="space-y-4">
-          <h4 className="font-semibold text-lg">{t('improvements_title')}</h4>
-           <div className="space-y-2">
-                {Object.entries(analysis.error_flags).filter(([_, value]) => value === true).map(([key]) => (
-                    <div key={key} className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3">
-                        <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
-                        <div>
-                            <p className="font-semibold text-destructive">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                            <p className="text-sm text-destructive/80">Bu alanda gelişim için fırsat bulunuyor.</p>
+        {/* Right Column: Feedback and Improvements */}
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                   <CardTitle className="font-sans text-lg font-semibold flex items-center gap-2">
+                      <Bot className="h-5 w-5 text-primary"/> {t('ai_analysis_title')}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
+                </CardContent>
+            </Card>
+      
+            <div className="space-y-4">
+                <h4 className="font-semibold text-lg">{t('improvements_title')}</h4>
+                <div className="space-y-2">
+                    {Object.entries(analysis.error_flags).filter(([_, value]) => value === true).map(([key]) => (
+                        <div key={key} className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+                            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                            <div>
+                                <p className="font-semibold text-destructive">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                                <p className="text-sm text-destructive/80">Bu alanda gelişim için fırsat bulunuyor.</p>
+                            </div>
                         </div>
-                    </div>
-                ))}
-                {Object.values(analysis.error_flags).every(v => v === false) && (
-                     <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                        <p className="font-medium text-green-400">Bu analizde kritik bir teknik hataya rastlanmadı.</p>
-                    </div>
-                )}
+                    ))}
+                    {Object.values(analysis.error_flags).every(v => v === false) && (
+                         <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <p className="font-medium text-green-400">Bu analizde kritik bir teknik hataya rastlanmadı.</p>
+                        </div>
+                    )}
+                </div>
             </div>
-      </div>
+        </div>
     </div>
   );
 }
@@ -346,3 +355,5 @@ export default function PhotoAnalyzer() {
     </div>
   );
 }
+
+    

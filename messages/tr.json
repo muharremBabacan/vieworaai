@@ -360,7 +360,8 @@
     "lighting": "Işık",
     "composition": "Kompozisyon",
     "focus": "Netlik",
-    "overall": "Genel"
+    "overall": "Genel",
+    "technical": "Teknik"
   },
   "Curriculum": {
     "level_basic": "Temel",
@@ -390,3 +391,5 @@
     "notification_group_invite_body": "{inviterName} sizi \"{groupName}\" grubuna davet etti."
   }
 }
+
+    
