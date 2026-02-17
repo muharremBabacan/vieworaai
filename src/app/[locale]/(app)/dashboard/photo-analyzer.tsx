@@ -81,7 +81,7 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: Pho
             </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground leading-relaxed">{feedback}</p>
+          <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{feedback}</div>
         </CardContent>
       </Card>
       
@@ -247,11 +247,10 @@ export default function PhotoAnalyzer() {
       let feedbackData: AdaptiveFeedbackOutput;
       try {
         feedbackData = await generateAdaptiveFeedback({
-          userXpLevel: userProfile.level_name || 'Neuner',
-          profileLevel: analysisData.technical_level_estimation,
-          tone: 'gentle', // Defaulting to gentle for now
+          userGamificationLevel: userProfile.level_name || 'Neuner',
+          userProfileIndex: userProfile.profileIndex,
           language: locale,
-          photoData: analysisData
+          technicalAnalysis: analysisData,
         });
       } catch (e) { toast({ variant: 'destructive', title: 'Geri bildirim üretilemedi.' }); return; }
 
