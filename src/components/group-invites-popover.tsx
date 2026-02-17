@@ -38,41 +38,9 @@ export function GroupInvitesPopover() {
         orderBy('createdAt', 'desc')
     );
   }, [user, firestore]);
-  const { data: invitesById } = useCollection<GroupInvite>(invitesByIdQuery);
+  const { data: invites } = useCollection<GroupInvite>(invitesByIdQuery);
   
-  // Query for invites matching the user's email that haven't been claimed yet
-  const invitesByEmailQuery = useMemoFirebase(() => {
-    if (!user || !user.email || !firestore) return null;
-    return query(
-        collection(firestore, 'group_invites'),
-        where('inviteeEmail', '==', user.email),
-        where('status', '==', 'pending'),
-        where('inviteeId', '==', null) // Firestore doesn't support `!= null`, so we look for `null`
-    );
-  }, [user, firestore]);
-  const { data: invitesByEmail, isLoading: isLoadingEmailInvites } = useCollection<GroupInvite>(invitesByEmailQuery);
-
-  // Effect to "claim" email-based invites by updating them with the user's UID
-  useEffect(() => {
-    if (invitesByEmail && invitesByEmail.length > 0 && firestore && user) {
-        const batch = writeBatch(firestore);
-        invitesByEmail.forEach(invite => {
-            const inviteRef = doc(firestore, 'group_invites', invite.id);
-            batch.update(inviteRef, { inviteeId: user.uid });
-        });
-        batch.commit().catch(console.error);
-    }
-  }, [invitesByEmail, firestore, user]);
-
-  const invites = useMemo(() => {
-    const allInvites = [...(invitesById || [])];
-    return allInvites
-      .filter(invite => invite.status === 'pending')
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 20);
-  }, [invitesById]);
-
-  const unreadCount = invites.length;
+  const unreadCount = invites?.length || 0;
 
   const handleInviteAction = async (invite: GroupInvite, action: 'accepted' | 'declined') => {
     if (!user || !firestore) return;
@@ -121,7 +89,7 @@ export function GroupInvitesPopover() {
         </div>
         <ScrollArea className="h-96">
           <div className="p-2">
-            {invites.length > 0 ? (
+            {invites && invites.length > 0 ? (
               invites.map((invite) => (
                 <div key={invite.id} className="block rounded-md p-3 transition-colors hover:bg-accent">
                   <div className="flex items-start gap-3">
@@ -157,5 +125,3 @@ export function GroupInvitesPopover() {
     </Popover>
   );
 }
-
-    

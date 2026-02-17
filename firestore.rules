@@ -177,14 +177,9 @@ service cloud.firestore {
                     && isInvitingGroupOwner()
                     && request.resource.data.inviterId == request.auth.uid;
 
-      // READ (get, list): Inviter or the correct invitee (by ID or email) can read.
-      // List queries from the client must be constrained (e.g., where("inviteeId", "==", auth.uid))
-      // for this rule to authorize the query.
-      allow read: if isSignedIn()
-                 && (resource == null || // Allow list operations
-                     request.auth.uid == resource.data.inviterId ||
-                     request.auth.uid == resource.data.inviteeId ||
-                     request.auth.token.email == resource.data.inviteeEmail);
+      // READ (get, list): Only the designated invitee can read the invite.
+      // This simple rule works because the client query is constrained to `where('inviteeId', '==', auth.uid)`.
+      allow read: if isSignedIn() && request.auth.uid == resource.data.inviteeId;
       
       // UPDATE: Allow an invitee to accept/decline, or claim an email-based invite.
       allow update: if isSignedIn()
