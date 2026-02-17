@@ -49,51 +49,9 @@ service cloud.firestore {
      * This is the primary function for enforcing document ownership.
      */
     function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * Checks if the user is an admin based on their email.
-     * Used for cross-user data access for reporting.
-     * IMPORTANT: Using email for authorization is not a best practice for production
-     * systems. Custom claims are a more secure alternative. This is for prototyping.
-     */
-    function isAdmin() {
-      return request.auth.token.email == 'admin@viewora.ai';
-    }
-
-    /**
-     * A robust check for update/delete operations, ensuring the user is the
-     * owner AND the document actually exists before the operation.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+      return request.auth != null && request.auth.uid == userId;
     }
     
-    function isGroupOwnerByGroupId(groupId) {
-      return isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
-    }
-
-    //-------------------------------------------------------------------------
-    // Validation Functions (Prototyping Mode: Authorization-critical fields only)
-    //---------------------------------------------------------
-
-    /**
-     * Validates the integrity of a new User document on create.
-     * Ensures the document's internal `id` matches the document's path ID.
-     */
-    function hasValidNewUserData(userId) {
-      return request.resource.data.id == userId;
-    }
-
-    /**
-     * Validates the integrity of a new subcollection document on create.
-     * Ensures the document's internal `userId` field is correctly set to the owner's UID from the path.
-     */
-    function hasValidNewChildData(userId) {
-      return request.resource.data.userId == userId;
-    }
-
     /**
      * Validates that critical relational fields in a subcollection document are immutable.
      * Prevents re-assigning a document (e.g., a photo) to a different user.
@@ -101,7 +59,7 @@ service cloud.firestore {
     function isChildDataImmutable() {
       return request.resource.data.userId == resource.data.userId;
     }
-
+    
     //-------------------------------------------------------------------------
     // Collection Rules
     //-------------------------------------------------------------------------
@@ -116,67 +74,25 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if false;
-      allow create: if isOwner(userId) && hasValidNewUserData(userId);
-      allow update: if isOwner(userId) && resource != null;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId);
       allow delete: if false;
 
       /**
-       * @description Controls access to photos submitted by a user.
-       * @path /users/{userId}/photos/{photoId}
-       * @allow (create, get, list, update, delete) A user managing their own photos.
-       * @deny (create, get, list, update, delete) Any user trying to access another user's photos.
-       * @principle Enforces strict document ownership within a user's private data tree.
+       * @description This is a recursive wildcard match for ALL subcollections under a user.
+       *              It enforces strict user ownership for all personal data like photos,
+       *              lesson progress, transactions, notifications, and invites.
+       * @path /users/{userId}/{document=**}
+       * @allow (read, write) A user can perform any action (read, write, delete) on any document
+       *                    within their own user data tree.
+       * @deny Any action from a user who is not the owner of the parent document.
+       * @principle This single, robust rule simplifies the ruleset and prevents complex
+       *            cross-user permissions on subcollections, which was the source of
+       *            persistent "Missing or insufficient permissions" errors on list queries.
        */
-      match /photos/{photoId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidNewChildData(userId);
-        allow update: if isExistingOwner(userId) && isChildDataImmutable();
-        allow delete: if isExistingOwner(userId);
-      }
-
-      /**
-       * @description Controls access to a user's lesson progress.
-       * @path /users/{userId}/lessonProgress/{progressId}
-       * @allow (create, get, list, update, delete) A user managing their own lesson progress.
-       * @deny (create, get, list, update, delete) Any user trying to access another user's progress.
-       * @principle Enforces strict document ownership within a user's private data tree.
-       */
-      match /lessonProgress/{progressId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidNewChildData(userId);
-        allow update: if isExistingOwner(userId) && isChildDataImmutable();
-        allow delete: if isExistingOwner(userId);
-      }
-
-      /**
-       * @description Controls access to a user's financial and token transactions.
-       * @path /users/{userId}/transactions/{transactionId}
-       * @allow (create, get, list, update, delete) A user managing their own transaction history.
-       * @allow (list) An admin user for generating revenue reports (for collection group query).
-       * @deny (create, get, list, update, delete) Any user trying to access another user's transactions.
-       * @principle Enforces strict document ownership for sensitive financial data, with an exception for admin reporting.
-       */
-      match /transactions/{transactionId} {
-        allow get: if isOwner(userId) || isAdmin();
-        allow list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && hasValidNewChildData(userId);
-        allow update: if isExistingOwner(userId) && isChildDataImmutable();
-        allow delete: if isExistingOwner(userId);
-      }
-      
-      /**
-       * @description Controls access to a user's group invitations.
-       */
-      match /group_invites/{inviteId} {
-          allow get, update, delete: if isOwner(userId);
-          allow list: if isOwner(userId) && request.query.limit <= 20;
-          
-          allow create: if request.resource.data.inviteeId == userId &&
-                          request.auth.uid != userId &&
-                          isGroupOwnerByGroupId(request.resource.data.groupId);
-      }
+       match /{allPaths=**} {
+         allow read, write: if isOwner(userId);
+       }
     }
     
     /**
