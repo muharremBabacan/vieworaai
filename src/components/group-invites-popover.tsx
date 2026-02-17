@@ -28,19 +28,24 @@ export function GroupInvitesPopover() {
 
   const dateFnsLocale = localeMap[locale] || enUS;
 
-  const invitesQuery = useMemoFirebase(() => {
+  // Following your advice to memoize the collection reference to ensure stability
+  const invitesCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'group_invites'),
-      where('status', '==', 'pending'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+    return collection(firestore, 'users', user.uid, 'group_invites');
   }, [user, firestore]);
 
-  const { data: invites } = useCollection<GroupInvite>(invitesQuery);
+  const { data: allInvites } = useCollection<GroupInvite>(invitesCollectionRef);
 
-  const unreadCount = useMemo(() => invites?.length ?? 0, [invites]);
+  // Perform filtering and sorting on the client-side to simplify the Firestore query
+  const invites = useMemo(() => {
+    if (!allInvites) return [];
+    return allInvites
+      .filter(invite => invite.status === 'pending')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 20); // Manually limit to 20
+  }, [allInvites]);
+
+  const unreadCount = useMemo(() => invites.length, [invites]);
 
   const handleInviteAction = async (invite: GroupInvite, action: 'accepted' | 'declined') => {
     if (!user) return;
@@ -83,7 +88,7 @@ export function GroupInvitesPopover() {
         </div>
         <ScrollArea className="h-96">
           <div className="p-2">
-            {invites && invites.length > 0 ? (
+            {invites.length > 0 ? (
               invites.map((invite) => (
                 <div key={invite.id} className="block rounded-md p-3 transition-colors hover:bg-accent">
                   <div className="flex items-start gap-3">
