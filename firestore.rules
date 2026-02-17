@@ -76,7 +76,7 @@ service cloud.firestore {
 
     //-------------------------------------------------------------------------
     // Validation Functions (Prototyping Mode: Authorization-critical fields only)
-    //-------------------------------------------------------------------------
+    //---------------------------------------------------------
 
     /**
      * Validates the integrity of a new User document on create.
@@ -171,13 +171,8 @@ service cloud.firestore {
        */
       match /group_invites/{inviteId} {
           allow get, update, delete: if isOwner(userId);
-
-          // Allow a list operation only if the user is the owner AND the query from the client is limited.
-          // This assures the rules engine that the query is not overly broad and resolves
-          // the conflict with the 'create' rule, which allows a different user (group owner) to write here.
           allow list: if isOwner(userId) && request.query.limit <= 20;
           
-          // A group owner can create an invite for this user.
           allow create: if request.resource.data.inviteeId == userId &&
                           request.auth.uid != userId &&
                           isGroupOwnerByGroupId(request.resource.data.groupId);
@@ -243,16 +238,25 @@ service cloud.firestore {
           return isSignedIn() && groupDoc != null && request.auth.uid in groupDoc.data.memberIds;
         }
 
-        // Helper to check if the requester is the owner of the photo or the owner of the group.
-        function isPhotoOrGroupOwner() {
-          let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
-          let isPhotoOwner = request.auth.uid == resource.data.userId;
-          let isGroupOwner = groupDoc != null && isSignedIn() && request.auth.uid == groupDoc.data.ownerId;
-          return isPhotoOwner || isGroupOwner;
+        // Helper to check if the photo owner is the one making the request.
+        // This is safe because it doesn't depend on the parent group document.
+        function isPhotoOwner() {
+          return resource != null && isSignedIn() && request.auth.uid == resource.data.userId;
         }
 
-        // READ: Any member of the parent group can see the photos.
-        allow get, list: if parentGroupIsMember();
+        // Helper to check if the requester is the owner of the photo or the owner of the group.
+        function isPhotoOrGroupOwner() {
+          // Note: groupDoc can be null if the group was deleted.
+          let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
+          let isGroupOwner = groupDoc != null && isSignedIn() && request.auth.uid == groupDoc.data.ownerId;
+          return isPhotoOwner() || isGroupOwner;
+        }
+
+        // READ (SINGLE): A group member can view any photo. The photo's own author can also always view it, even if the group is deleted.
+        allow get: if parentGroupIsMember() || isPhotoOwner();
+
+        // READ (LIST): Only members of an existing group can list the photos in the gallery.
+        allow list: if parentGroupIsMember();
 
         // CREATE: Any member can upload a photo, but must correctly set their own userId.
         allow create: if parentGroupIsMember() && request.resource.data.userId == request.auth.uid;
@@ -296,7 +300,7 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if false;
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == request.data.userId;
     }
   }
 }
