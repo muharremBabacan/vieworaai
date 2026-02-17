@@ -4,6 +4,7 @@ import { useAuth, useFirestore } from '@/firebase';
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  browserPopupRedirectResolver,
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,7 @@ export default function PageContent() {
         prompt: 'select_account',
       });
 
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
 
       toast({
         title: t('toast_success'),
