@@ -106,31 +106,12 @@ service cloud.firestore {
       function isGroupMember() {
         return isSignedIn() && request.auth.uid in resource.data.memberIds;
       }
-
-			function isJoiningGroupAndNotFull() {
-        // This function is for a user joining a group. It validates that:
-        // 1. The user is signed in and the group exists.
-        // 2. The only field being changed is 'memberIds'.
-        // 3. Exactly one member is being added.
-        // 4. The user being added is the one making the request.
-        // 5. No existing members are being removed.
-        // 6. The group is not already at its maximum capacity.
-        if (!isSignedIn() || !exists(path)) { return false; }
-        
-        let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
-        
-        return changedKeys.hasOnly(['memberIds'])
-          && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
-          && request.auth.uid in request.resource.data.memberIds
-          && request.resource.data.memberIds.hasAll(resource.data.memberIds)
-          && request.resource.data.memberIds.size() <= ('maxMembers' in resource.data ? resource.data.maxMembers : 7);
-      }
 			
       // READ: Only members of the group can read its details.
       allow get: if isGroupMember();
 
-      // SEARCH: Allows searching for a group by its join code, but only for signed-in users and limited to one result.
-      allow list: if isSignedIn() && request.query.keys().hasOnly(['joinCode']) && request.query.limit == 1;
+      // SEARCH: This functionality is removed in favor of a more secure invite system.
+      allow list: if false;
 
       // CREATE: Any signed-in user can create a group, but they must be the owner and the only initial member.
       allow create: if isSignedIn()
@@ -138,8 +119,8 @@ service cloud.firestore {
                     && request.auth.uid in request.resource.data.memberIds
                     && request.resource.data.memberIds.size() == 1;
 
-      // UPDATE: The owner can modify the group, or another user can join if the conditions are met.
-      allow update: if isGroupOwner() || isJoiningGroupAndNotFull();
+      // UPDATE: Only the group owner can modify the group's details. A user can join via a valid invite.
+      allow update: if isGroupOwner();
 
       // DELETE: Only the group owner can delete the group.
       allow delete: if isGroupOwner();

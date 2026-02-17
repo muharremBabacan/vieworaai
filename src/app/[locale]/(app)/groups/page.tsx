@@ -63,7 +63,6 @@ function CreateGroupDialog({ canCreate, limit, ownedCount, userLevel }: { canCre
         description: values.description || '',
         ownerId: user.uid,
         memberIds: [user.uid],
-        joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
         createdAt: new Date().toISOString(),
         maxMembers: maxMembers,
       };
@@ -163,114 +162,6 @@ function CreateGroupDialog({ canCreate, limit, ownedCount, userLevel }: { canCre
     </Dialog>
   );
 }
-
-const joinGroupSchema = (t: Function) => z.object({
-  code: z.string().length(6, t('form_error_code_length')).regex(/^\d{6}$/, t('form_error_code_format')),
-});
-type JoinGroupValues = z.infer<ReturnType<typeof joinGroupSchema>>;
-
-function JoinGroupDialog() {
-  const [open, setOpen] = useState(false);
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const { toast } = useToast();
-  const router = useRouter();
-  const t = useTranslations('GroupsPage');
-
-  const form = useForm<JoinGroupValues>({
-    resolver: zodResolver(joinGroupSchema(t)),
-    defaultValues: { code: '' },
-  });
-
-  const onSubmit = async (values: JoinGroupValues) => {
-    if (!user || !firestore) return;
-
-    const code = values.code;
-    
-    try {
-      const q = query(collection(firestore, 'groups'), where('joinCode', '==', code), limit(1));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        toast({ variant: 'destructive', title: t('toast_join_not_found_title'), description: t('toast_join_not_found_description') });
-        return;
-      }
-
-      const groupDoc = querySnapshot.docs[0];
-      const group = groupDoc.data() as Group;
-      const groupRef = groupDoc.ref;
-
-      if (group.memberIds.includes(user.uid)) {
-        toast({ title: t('toast_join_already_member_title'), description: t('toast_join_already_member_description', { name: group.name }) });
-        router.push(`/groups/${groupDoc.id}`);
-        return;
-      }
-      
-      // The group is found, now attempt to join. Security rules will handle capacity check.
-      await updateDoc(groupRef, {
-        memberIds: arrayUnion(user.uid),
-      });
-
-      const userRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userRef, {
-          groups: arrayUnion(groupDoc.id)
-      });
-
-      toast({ title: t('toast_join_success_title'), description: t('toast_join_success_description', { name: group.name }) });
-      form.reset();
-      setOpen(false);
-
-    } catch (error) {
-      console.error('Koda göre katılma hatası:', error);
-      toast({
-        variant: 'destructive',
-        title: t('toast_join_fail_title'),
-        description: t('toast_join_fail_description'),
-      });
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <UserPlus className="mr-2 h-4 w-4" />
-          {t('button_join_by_code')}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{t('join_dialog_title')}</DialogTitle>
-          <DialogDescription>{t('join_dialog_description')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('form_label_invite_code')}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t('form_placeholder_code')} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('button_join')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 function GroupCard({ group }: { group: Group }) {
   const { user } = useUser();
@@ -372,7 +263,6 @@ export default function GroupsPage() {
           {/* Page title is already in layout */}
         </div>
         <div className="flex items-center gap-2">
-            <JoinGroupDialog />
             <CreateGroupDialog 
                 canCreate={canCreateGroup} 
                 limit={limits.maxGroups} 

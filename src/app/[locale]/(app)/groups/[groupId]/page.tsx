@@ -100,7 +100,7 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
   const { maxMembers } = getGroupLimits(userLevel);
 
   async function onSubmit(values: AddMemberValues) {
-    if (!currentUser) return;
+    if (!currentUser || !firestore) return;
     
     if (group.memberIds.length >= maxMembers) {
       toast({ variant: 'destructive', title: t('toast_group_full_title'), description: t('toast_group_full_description', { maxMembers }) });
@@ -195,17 +195,6 @@ export default function GroupDetailPage() {
 
   const { user: currentUser } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
-
-  const [joinUrl, setJoinUrl] = useState('');
-  const [isInviteDialogOpen, setInviteDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const url = `${window.location.origin}/groups/join/${groupId}`;
-        setJoinUrl(url);
-    }
-  }, [groupId]);
 
   const groupDocRef = useMemoFirebase(() => {
     if (!firestore || !groupId || !currentUser) return null;
@@ -218,28 +207,6 @@ export default function GroupDetailPage() {
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const isOwner = currentUser?.uid === group?.ownerId;
-
-  const handleInviteDialogOpenChange = (open: boolean) => {
-    if (open && isOwner && !group?.joinCode && groupDocRef) {
-      const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-      updateDocumentNonBlocking(groupDocRef, { joinCode: newCode });
-      toast({
-        title: "Katılım Kodu Oluşturuldu",
-        description: "Bu grup için yeni bir katılım kodu oluşturuldu ve kaydedildi."
-      });
-    }
-    setInviteDialogOpen(open);
-  };
-
-  const copyToClipboard = (text: string, type: 'Link' | 'Kod') => {
-    if (!text) return;
-    const typeKey = type.toLowerCase() as 'link' | 'code';
-    navigator.clipboard.writeText(text).then(() => {
-      toast({ title: t('toast_copied_title'), description: t(`toast_copied_${typeKey}` as any) });
-    }, (err) => {
-      toast({ variant: 'destructive', title: t('toast_add_member_error_title'), description: `${type} ${t('toast_copy_error')}` });
-    });
-  };
 
   if (isGroupLoading) {
     return (
@@ -279,59 +246,6 @@ export default function GroupDetailPage() {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2"><Users /> {t('members_title')}</div>
              <div className="flex items-center gap-2">
-                {isOwner && joinUrl && (
-                    <Dialog open={isInviteDialogOpen} onOpenChange={handleInviteDialogOpenChange}>
-                        <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <QrCode className="h-5 w-5" />
-                                <span className="sr-only">{t('button_show_invite')}</span>
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle>{t('invite_dialog_title')}</DialogTitle>
-                                <DialogDescription>
-                                    {t('invite_dialog_description')}
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="flex items-center justify-center p-4 bg-white rounded-lg my-4">
-                                <Image
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(joinUrl)}`}
-                                    alt="Grup Katılım QR Kodu"
-                                    width={192}
-                                    height={192}
-                                />
-                            </div>
-                            
-                            <div className="relative my-4">
-                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t('or_divider')}</span></div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <Label htmlFor="join-code">{t('label_join_code')}</Label>
-                              <div className="flex items-center space-x-2">
-                                <Input id="join-code" value={group.joinCode || 'YOK'} readOnly className="font-mono text-center tracking-wider text-lg" />
-                                <Button onClick={() => copyToClipboard(group.joinCode || '', 'Kod')} disabled={!group.joinCode}>{t('button_copy')}</Button>
-                              </div>
-                            </div>
-
-                            <div className="relative my-4">
-                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t('or_divider')}</span></div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="join-link">{t('label_shareable_link')}</Label>
-                                <div className="flex items-center space-x-2">
-                                  <Input id="join-link" value={joinUrl} readOnly />
-                                  <Button onClick={() => copyToClipboard(joinUrl, 'Link')}>{t('button_copy')}</Button>
-                                </div>
-                            </div>
-
-                        </DialogContent>
-                    </Dialog>
-                )}
                 <span className="text-sm font-normal text-muted-foreground">{group.memberIds.length} / {maxMembers}</span>
             </div>
           </CardTitle>
