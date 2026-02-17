@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { doc, getDoc, collection } from 'firebase/firestore';
@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Users, Crown, Loader2, AlertTriangle, UserPlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/navigation';
 
 const addMemberSchema = (t: Function) => z.object({
   userId: z.string().min(1, {message: 'Kullanıcı ID\'si gereklidir.'}),
@@ -171,6 +172,7 @@ export default function GroupDetailPage() {
   const params = useParams();
   const groupId = Array.isArray(params.groupId) ? params.groupId[0] : params.groupId;
   const t = useTranslations('GroupDetailPage');
+  const router = useRouter();
 
   const { user: currentUser } = useUser();
   const firestore = useFirestore();
@@ -206,7 +208,7 @@ export default function GroupDetailPage() {
           <p className="text-muted-foreground mt-2">
             {groupError ? t('group_not_found_error') : t('group_not_found_no_permission')}
           </p>
-          <Button onClick={() => window.history.back()} className="mt-6">{t('button_go_back')}</Button>
+          <Button onClick={() => router.back()} className="mt-6">{t('button_go_back')}</Button>
       </div>
     );
   }
@@ -259,5 +261,3 @@ export default function GroupDetailPage() {
     </div>
   );
 }
-
-    
