@@ -81,7 +81,7 @@ Write a concise, human-readable analysis. Structure your feedback into three dis
     *   If the user has a profile, acknowledge it subtly. For example, if their dominant genre is 'Street', you could say, "Sokak fotoğrafçılığı tarzına uygun olarak, bu anı yakalaman harika."
     *   If their technical score is high, use more professional language. If it's low, be simpler and more encouraging.
     *   If the user's gamification level is high (e.g., Vexer), treat them like a peer. If it's low (e.g., Neuner), be more guiding.
-4.  **Structure is Key:** Use Markdown bold for headers. For each of the three sections (Işık, Kompozisyon, Teknik), provide one key observation. `Teknik` should cover aspects like focus, color, and background control.
+4.  **Structure is Key:** Use Markdown bold for headers. For each of the three sections (Işık, Kompozisyon, Teknik), provide one key observation. \\\`Teknik\\\` should cover aspects like focus, color, and background control.
 5.  **Keep it Concise:** Each section should be 1-2 sentences max. The entire feedback should be around 5-6 sentences total.
 6.  **No Emojis.** Do not introduce yourself.
 
