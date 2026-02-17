@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, orderBy, where, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -29,7 +29,7 @@ export function GroupInvitesPopover() {
   const dateFnsLocale = localeMap[locale] || enUS;
   
   // This is the corrected, secure, and efficient query as per your instruction.
-  const invitesQuery = useMemo(() => {
+  const invitesQuery = useMemoFirebase(() => {
     if (!user || !firestore) {
       return null;
     }
