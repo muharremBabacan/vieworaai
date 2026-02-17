@@ -73,7 +73,6 @@ service cloud.firestore {
     
     match /group_invites/{inviteId} {
       // Allow any authenticated user to create an invitation.
-      // The `fromUserId` is validated against their auth token.
       allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
     
       // Allow a user to read an invite if they sent it or if it was sent to them.
@@ -105,3 +104,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

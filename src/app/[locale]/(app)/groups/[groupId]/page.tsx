@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection } from 'firebase/firestore';
 import type { Group, User as UserProfile } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -112,7 +112,8 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
           return;
         }
         
-        addDocumentNonBlocking(doc(firestore, 'group_invites'), {
+        const invitesCollectionRef = collection(firestore, 'group_invites');
+        addDocumentNonBlocking(invitesCollectionRef, {
             groupId: group.id,
             groupName: group.name,
             fromUserId: currentUser.uid,
@@ -258,3 +259,5 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+
+    
