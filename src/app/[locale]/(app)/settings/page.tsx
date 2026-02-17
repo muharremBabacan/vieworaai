@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo, useTransition } from 'react';
 import { Link, useRouter, usePathname } from '@/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, useCollection } from '@/firebase';
-import { collection, doc, collectionGroup } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import type { User as UserProfile, Transaction } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,105 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
 import { useLocale, useTranslations } from 'next-intl';
-
-function RevenueReport() {
-    const firestore = useFirestore();
-    const {toast} = useToast();
-    const { user } = useUser();
-    const t = useTranslations('ProfilePage');
-
-    const userDocRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
-
-    const transactionsQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile || userProfile.email !== 'admin@viewora.ai') {
-            return null;
-        }
-        return collectionGroup(firestore, 'transactions');
-    }, [firestore, userProfile]);
-
-    const { data: transactions, isLoading: isCollectionLoading, error } = useCollection<Transaction>(transactionsQuery);
-    
-    const isLoading = isProfileLoading || isCollectionLoading;
-
-    useEffect(() => {
-        if (error) {
-            toast({
-                variant: 'destructive',
-                title: t('admin_toast_report_error_title'),
-                description: t('admin_toast_report_error_description')
-            });
-            console.error("Revenue report error:", error);
-        }
-    }, [error, toast, t]);
-
-    const { totalRevenue, totalAuroSold } = useMemo(() => {
-        if (!transactions) return { totalRevenue: 0, totalAuroSold: 0 };
-
-        return transactions.reduce((acc, trans) => {
-            if (trans.type === 'Purchase' && trans.status === 'Completed') {
-                acc.totalAuroSold += trans.amount || 0;
-                acc.totalRevenue += trans.currencyAmount || 0;
-            }
-            return acc;
-        }, { totalRevenue: 0, totalAuroSold: 0 });
-
-    }, [transactions]);
-
-    if (isLoading) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                        <Skeleton className="h-6 w-6 rounded-full" />
-                        <Skeleton className="h-6 w-48" />
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <Skeleton className="h-12 w-full" />
-                     <Skeleton className="h-12 w-full" />
-                </CardContent>
-            </Card>
-        )
-    }
-
-    if (error || (!transactions && !isLoading)) {
-        return null;
-    }
-
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                    <Coins className="h-6 w-6 text-primary" />
-                    <span>{t('admin_revenue_report_title')}</span>
-                </CardTitle>
-                <CardDescription>
-                    {t('admin_revenue_report_description')}
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
-                    <span className="font-medium text-muted-foreground">{t('admin_total_auro_sold')}</span>
-                    <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold">{totalAuroSold.toLocaleString('tr-TR')}</span>
-                        <Gem className="h-5 w-5 text-cyan-400"/>
-                    </div>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
-                    <span className="font-medium text-muted-foreground">{t('admin_total_revenue')}</span>
-                    <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold">{totalRevenue.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</span>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
 
 function AdminTools() {
     const { toast } = useToast();
@@ -254,7 +155,6 @@ function AdminTools() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
-                    <RevenueReport />
                     <div className="space-y-4 rounded-lg border p-4">
                         <div>
                             <h4 className="font-semibold">{t('admin_generate_lessons_title')}</h4>
