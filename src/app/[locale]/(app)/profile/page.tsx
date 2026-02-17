@@ -8,9 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle } from 'lucide-react';
+import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, Copy } from 'lucide-react';
 import { getLevelFromXp, levels as allLevels } from '@/lib/gamification';
 import { useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 function ProfileSkeleton() {
   return (
@@ -59,6 +62,7 @@ const InfoListItem = ({ icon, title, href }: { icon: React.ElementType, title: s
 export default function ProfilePage() {
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const t = useTranslations('ProfilePage');
   const tNav = useTranslations('AppLayout');
 
@@ -76,6 +80,11 @@ export default function ProfilePage() {
       </div>
     );
   }
+  
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(authUser.uid);
+    toast({ title: "Kopyalandı!", description: "Kullanıcı ID'niz panoya kopyalandı." });
+  };
 
   const {
     name,
@@ -110,6 +119,14 @@ export default function ProfilePage() {
               <CardDescription>{email}</CardDescription>
             </div>
           </CardHeader>
+           <CardContent>
+            <div className="flex items-center space-x-2">
+              <Input value={authUser.uid} readOnly className="flex-1 bg-secondary/30" />
+              <Button variant="outline" size="icon" onClick={handleCopyId}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
         <Card>

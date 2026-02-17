@@ -1,37 +1,26 @@
 'use client';
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, where, getDocs, limit, getDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import type { Group, User as UserProfile } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Users, Crown, Loader2, AlertTriangle, UserPlus, QrCode } from 'lucide-react';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Users, Crown, Loader2, AlertTriangle, UserPlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
 
 const addMemberSchema = (t: Function) => z.object({
-  email: z.string().email(t('form_error_email')),
+  userId: z.string().min(1, {message: 'Kullanıcı ID\'si gereklidir.'}),
 });
 
 type AddMemberValues = z.infer<ReturnType<typeof addMemberSchema>>;
@@ -93,7 +82,7 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
   const { toast } = useToast();
   const form = useForm<AddMemberValues>({
     resolver: zodResolver(addMemberSchema(t)),
-    defaultValues: { email: '' },
+    defaultValues: { userId: '' },
   });
 
   const { maxMembers } = getGroupLimits(userLevel);
@@ -105,24 +94,35 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
       toast({ variant: 'destructive', title: t('toast_group_full_title'), description: t('toast_group_full_description', { maxMembers }) });
       return;
     }
+
+    if (group.memberIds.includes(values.userId)) {
+      toast({ variant: 'destructive', title: t('toast_already_member_title'), description: t('toast_already_member_description')});
+      return;
+    }
     
     try {
         const inviterProfileDoc = await getDoc(doc(firestore, 'users', currentUser.uid));
+        if(!inviterProfileDoc.exists()) throw new Error("Inviter profile not found");
         const inviterProfile = inviterProfileDoc.data() as UserProfile;
         const inviterName = inviterProfile?.name || 'Anonymous';
-
-        const invitesColRef = collection(firestore, 'group_invites');
-        addDocumentNonBlocking(invitesColRef, {
+        
+        const inviteeDoc = await getDoc(doc(firestore, 'users', values.userId));
+        if (!inviteeDoc.exists()) {
+          toast({ variant: 'destructive', title: t('toast_user_not_found_title'), description: "Bu ID'ye sahip bir kullanıcı bulunamadı." });
+          return;
+        }
+        
+        addDocumentNonBlocking(doc(firestore, 'group_invites'), {
             groupId: group.id,
             groupName: group.name,
-            inviterId: currentUser.uid,
-            inviterName: inviterName,
-            inviteeEmail: values.email.toLowerCase(),
+            fromUserId: currentUser.uid,
+            fromUserName: inviterName,
+            toUserId: values.userId,
             status: 'pending',
             createdAt: new Date().toISOString(),
         });
       
-      toast({ title: t('toast_invite_sent_title'), description: t('toast_invite_sent_description', { email: values.email }) });
+      toast({ title: t('toast_invite_sent_title'), description: `Grup davetiyesi gönderildi.` });
       form.reset();
     } catch (error: any) {
       console.error("Error sending invitation:", error);
@@ -138,18 +138,18 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><UserPlus /> {t('button_invite_member')}</CardTitle>
-        <CardDescription>{t('invite_member_description')}</CardDescription>
+        <CardDescription>Davet etmek istediğiniz kullanıcının Profil sayfasından kopyalayabileceğiniz Kullanıcı ID'sini girin.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-2">
             <FormField
               control={form.control}
-              name="email"
+              name="userId"
               render={({ field }) => (
                 <FormItem className="flex-grow">
                   <FormControl>
-                    <Input placeholder="kullanici@eposta.com" {...field} />
+                    <Input placeholder="Kullanıcı ID'si" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -258,5 +258,3 @@ export default function GroupDetailPage() {
     </div>
   );
 }
-
-    

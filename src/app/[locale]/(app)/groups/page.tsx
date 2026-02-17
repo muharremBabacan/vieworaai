@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useRouter } from '@/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, doc, query, where, getDocs, updateDoc, arrayUnion, limit, getDoc, documentId, addDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
+import { collection, doc, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, Users, Crown, User, Loader2, Info, UserPlus } from 'lucide-react';
+import { PlusCircle, Users, Crown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getGroupLimits } from '@/lib/gamification';
@@ -45,10 +45,7 @@ function CreateGroupDialog({ canCreate, limit, ownedCount, userLevel }: { canCre
 
   const form = useForm<CreateGroupValues>({
     resolver: zodResolver(createGroupSchema(t)),
-    defaultValues: {
-      name: '',
-      description: '',
-    },
+    defaultValues: { name: '', description: '' },
   });
 
   const onSubmit = async (values: CreateGroupValues) => {
@@ -67,13 +64,7 @@ function CreateGroupDialog({ canCreate, limit, ownedCount, userLevel }: { canCre
         maxMembers: maxMembers,
       };
       
-      const newGroupRef = await addDoc(groupsCollectionRef, newGroupData);
-
-      const userDocRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userDocRef, {
-          groups: arrayUnion(newGroupRef.id)
-      });
-
+      addDocumentNonBlocking(groupsCollectionRef, newGroupData);
 
       toast({
         title: t('toast_create_success_title'),
@@ -230,9 +221,7 @@ export default function GroupsPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const memberGroupsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) {
-      return null;
-    }
+    if (!user || !firestore) return null;
     return query(collection(firestore, 'groups'), where("memberIds", "array-contains", user.uid));
   }, [user, firestore]);
 

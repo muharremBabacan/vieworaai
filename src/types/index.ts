@@ -124,12 +124,9 @@ export type GroupInvite = {
   id: string;
   groupId: string;
   groupName: string;
-  inviterId: string;
-  inviterName: string;
-  inviteeEmail: string;
-  inviteeId?: string; // Optional: The UID of the user who is invited.
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
   status: 'pending' | 'accepted' | 'declined';
   createdAt: string; // ISO string
 };
-
-    

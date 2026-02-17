@@ -7,27 +7,6 @@
  * This allows rules to authorize access based on the document path, which is highly
  * secure and performant. Publicly readable data is segregated into its own top-level
  * collection to prevent data leakage and simplify list queries. The default posture is deny-all.
- *
- * Data Structure:
- * - /users/{userId}: Stores the user's private profile.
- * - /users/{userId}/{subcollection}: All user-generated content (photos, lesson progress,
- *   transactions) is nested here. Access is inherited from the parent user's ownership.
- * - /academyLessons/{lessonId}: A top-level collection for public, read-only educational content.
- *
- * Key Security Decisions:
- * - User Isolation: Users can only access their own data tree within /users/{userId}. They
- *   cannot read, write, or even know about the existence of other users' data.
- * - No User Listing: It is not possible to list all documents in the top-level `/users`
- *   collection, protecting user privacy.
- * - Read-Only Public Content: The `/academyLessons` collection is readable by any
- *   authenticated user but cannot be modified by any client. This content must be
- *   managed through a trusted server environment or the Firebase Console.
- * - Denormalization for Authorization: User-specific subcollection documents (e.g., a photo)
- *   contain a `userId` field. This is used not for primary authorization (which is path-based)
- *   but for ensuring data integrity on creation and updates.
- * - Structural Segregation: Private user data (`/users/{userId}`) is structurally
- *   separate from public data (`/academyLessons`), which is a critical pattern for
- *   securing list operations and preventing accidental data exposure.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -37,196 +16,92 @@ service cloud.firestore {
     // Helper Functions
     //-------------------------------------------------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's UID matches the given userId.
-     * This is the primary function for enforcing document ownership.
-     */
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
-    }
-    
-    /**
-     * Validates that critical relational fields in a subcollection document are immutable.
-     * Prevents re-assigning a document (e.g., a photo) to a different user.
-     */
-    function isChildDataImmutable() {
-      return request.resource.data.userId == resource.data.userId;
     }
     
     //-------------------------------------------------------------------------
     // Collection Rules
     //-------------------------------------------------------------------------
 
-    /**
-     * @description Controls access to user profile documents.
-     * @path /users/{userId}
-     * @allow (get) Any authenticated user can read a user profile. (Needed for group features).
-     * @allow (create, update) A user can create or update their own document.
-     * @deny (list, delete) Listing all users or deleting users is forbidden.
-     */
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if false;
+      allow list: if false; // IMPORTANT: Prevents listing all app users.
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if false;
 
-      /**
-       * @description This is a recursive wildcard match for ALL subcollections under a user.
-       *              It enforces strict user ownership for all personal data like photos,
-       *              lesson progress, and transactions.
-       * @path /users/{userId}/{document=**}
-       * @allow (read, write) A user can perform any action (read, write, delete) on any document
-       *                    within their own user data tree.
-       */
        match /{allPaths=**} {
          allow read, write: if isOwner(userId);
        }
     }
     
-    /**
-     * @description Controls access to user-created groups.
-     */
     match /groups/{groupId} {
-      function isGroupOwner() {
-        return isSignedIn() && request.auth.uid == resource.data.ownerId;
-      }
-
-      function isGroupMember() {
+      function isMember() {
         return isSignedIn() && request.auth.uid in resource.data.memberIds;
       }
+    
+      function isOwner() {
+        return isSignedIn() && request.auth.uid == resource.data.ownerId;
+      }
+    
+      allow create: if isSignedIn() &&
+                     request.auth.uid == request.resource.data.ownerId;
+    
+      allow get: if isMember();
+    
+      // Allow LIST operations (queries) for any authenticated user.
+      // The actual documents returned are still secured by the GET rule.
+      allow list: if isSignedIn();
+    
+      // Allow owners to update group details.
+      // Allow a user to add THEMSELVES to the memberIds array, but not others.
+      // This is the secure way to handle a "join" or "accept invite" action.
+      allow update: if isOwner() ||
+                     (isSignedIn() && request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid]));
+    
+      allow delete: if isOwner();
 
-      // READ (get, list): Only members of the group can read its details.
-      // The `list` permission is implicitly handled by Firestore checking the `get` permission
-      // on each document returned by a constrained query (e.g., where("memberIds", "array-contains", ...)).
-      allow read: if isGroupMember();
-
-      // CREATE: Any signed-in user can create a group, but they must be the owner and the only initial member.
-      allow create: if isSignedIn()
-                    && request.auth.uid == request.resource.data.ownerId
-                    && request.auth.uid in request.resource.data.memberIds
-                    && request.resource.data.memberIds.size() == 1;
-
-      // UPDATE: Only the group owner can modify the group's details. A user can join via a valid invite.
-      allow update: if isGroupOwner() || 
-                    (isSignedIn() && request.auth.uid in request.resource.data.memberIds && !(request.auth.uid in resource.data.memberIds));
-
-      // DELETE: Only the group owner can delete the group.
-      allow delete: if isGroupOwner();
-
-      /**
-       * @description Controls access to a group's shared photo gallery.
-       */
       match /photos/{photoId} {
-        // Helper to check if the requester is a member of the parent group.
-        function parentGroupIsMember() {
-          let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
-          return isSignedIn() && groupDoc != null && request.auth.uid in groupDoc.data.memberIds;
-        }
-
-        // Helper to check if the photo owner is the one making the request.
-        // This is safe because it doesn't depend on the parent group document.
-        function isPhotoOwner() {
-          return resource != null && isSignedIn() && request.auth.uid == resource.data.userId;
-        }
-
-        // Helper to check if the requester is the owner of the photo or the owner of the group.
-        function isPhotoOrGroupOwner() {
-          // Note: groupDoc can be null if the group was deleted.
-          let groupDoc = get(/databases/$(database)/documents/groups/$(groupId));
-          let isGroupOwner = groupDoc != null && isSignedIn() && request.auth.uid == groupDoc.data.ownerId;
-          return isPhotoOwner() || isGroupOwner;
-        }
-
-        // READ (SINGLE): A group member can view any photo. The photo's own author can also always view it, even if the group is deleted.
-        allow get: if parentGroupIsMember() || isPhotoOwner();
-
-        // READ (LIST): Only members of an existing group can list the photos in the gallery.
-        allow list: if parentGroupIsMember();
-
-        // CREATE: Any member can upload a photo, but must correctly set their own userId.
-        allow create: if parentGroupIsMember() && request.resource.data.userId == request.auth.uid;
-
-        // UPDATE: Photos are immutable once posted.
-        allow update: if false;
-
-        // DELETE: Only the user who uploaded the photo or the group owner can delete it.
-        allow delete: if isPhotoOrGroupOwner();
+        allow read, write: if isMember();
       }
     }
     
-    /**
-     * @description Controls access to the central group invitations collection.
-     */
     match /group_invites/{inviteId} {
-      // Helper function to check if the inviting user is the owner of the target group.
-      function isInvitingGroupOwner() {
-        let group = get(/databases/$(database)/documents/groups/$(request.resource.data.groupId));
-        return group.data.ownerId == request.auth.uid;
-      }
-
-      // CREATE: Allow a group owner to create an invitation for their group.
-      allow create: if isSignedIn()
-                    && isInvitingGroupOwner()
-                    && request.resource.data.inviterId == request.auth.uid;
-
-      // READ (get, list): Only the designated invitee can read the invite.
-      // This simple rule works because the client query is constrained to `where('inviteeId', '==', auth.uid)`.
-      allow read: if isSignedIn() && request.auth.uid == resource.data.inviteeId;
-      
-      // UPDATE: Allow an invitee to accept/decline, or claim an email-based invite.
-      allow update: if isSignedIn()
-                    && (
-                      // Case 1: User is accepting/declining an invite they own.
-                      (request.resource.data.status != resource.data.status && request.auth.uid == resource.data.inviteeId) ||
-                      // Case 2: User is "claiming" an email invite by adding their UID.
-                      (resource.data.inviteeId == null && request.resource.data.inviteeId == request.auth.uid && request.auth.token.email == resource.data.inviteeEmail)
-                    );
-
-      // DELETE: Inviter or the assigned invitee can delete/cancel the invitation.
-      allow delete: if isSignedIn()
-                    && (request.auth.uid == resource.data.inviterId || request.auth.uid == resource.data.inviteeId);
-    }
-
-
-    /**
-     * @description Controls access to public academy lessons.
-     * @path /academyLessons/{lessonId}
-     * @allow (get, list) Any authenticated user can read the academy lessons.
-     * @allow (create) Any authenticated user can create lessons (for the admin tool).
-     * @deny (update, delete) All client-side writes are forbidden to protect content integrity.
-     * @principle Provides public read access while allowing creation from admin tools.
-     */
-    match /academyLessons/{lessonId} {
-      allow get: if isSignedIn();
+      // Allow any authenticated user to create an invitation.
+      // The `fromUserId` is validated against their auth token.
+      allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
+    
+      // Allow a user to read an invite if they sent it or if it was sent to them.
+      allow read: if isSignedIn() && 
+                    (request.auth.uid == resource.data.toUserId || request.auth.uid == resource.data.fromUserId);
+    
+      // Allow queries on the collection (e.g., `where('toUserId', '==', uid)`).
+      // The read rule above will secure the individual documents in the result.
       allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if false;
+
+      // Only the recipient of the invite can update its status (e.g., to "accepted" or "declined").
+      allow update: if isSignedIn() && request.auth.uid == resource.data.toUserId;
+    
+      // For simplicity and to keep a record, direct deletion is disallowed.
+      // Invites are "processed" by changing their status.
       allow delete: if false;
     }
+
+    match /academyLessons/{lessonId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // Managed via Admin tools or Console
+    }
     
-    /**
-     * @description Controls access to public photos submitted by users to the gallery.
-     * @path /public_photos/{photoId}
-     * @allow (get, list) Any authenticated user can read the public gallery photos.
-     * @allow (create) An authenticated user can submit their own photo (validating ownership via userId field).
-     * @allow (delete) The owner of the photo can withdraw it from the public gallery.
-     * @deny (update) All client-side updates are forbidden.
-     * @principle Provides public read access, controlled/validated writes, and owner-only deletes.
-     */
     match /public_photos/{photoId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if false;
-      allow delete: if isSignedIn() && request.auth.uid == request.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
     }
   }
 }

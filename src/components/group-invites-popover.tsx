@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, orderBy, limit, where, updateDoc, arrayUnion, deleteDoc, writeBatch } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, orderBy, where, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -28,33 +28,38 @@ export function GroupInvitesPopover() {
 
   const dateFnsLocale = localeMap[locale] || enUS;
   
-  // Query for invites matching the user's ID
-  const invitesByIdQuery = useMemoFirebase(() => {
+  // This is now a secure and efficient query.
+  const invitesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
         collection(firestore, 'group_invites'),
-        where('inviteeId', '==', user.uid),
+        where('toUserId', '==', user.uid),
         where('status', '==', 'pending'),
         orderBy('createdAt', 'desc')
     );
   }, [user, firestore]);
-  const { data: invites } = useCollection<GroupInvite>(invitesByIdQuery);
+  const { data: invites } = useCollection<GroupInvite>(invitesQuery);
   
   const unreadCount = invites?.length || 0;
 
   const handleInviteAction = async (invite: GroupInvite, action: 'accepted' | 'declined') => {
     if (!user || !firestore) return;
-    const inviteRef = doc(firestore, 'group_invites', invite.id);
     
+    const batch = writeBatch(firestore);
+    const inviteRef = doc(firestore, 'group_invites', invite.id);
+
     if (action === 'accepted') {
        const groupRef = doc(firestore, 'groups', invite.groupId);
        const userRef = doc(firestore, 'users', user.uid);
        
        try {
-         // Firestore transaction or batch write could make this safer
-         await updateDoc(groupRef, { memberIds: arrayUnion(user.uid) });
-         await updateDoc(userRef, { groups: arrayUnion(invite.groupId) });
-         await deleteDoc(inviteRef);
+         // Use a batch write for an atomic operation.
+         batch.update(inviteRef, { status: 'accepted' });
+         batch.update(groupRef, { memberIds: arrayUnion(user.uid) });
+         // Optional: add group to user's profile if you store that
+         // batch.update(userRef, { groups: arrayUnion(invite.groupId) });
+
+         await batch.commit();
 
          toast({ title: tGroups('toast_join_success_title'), description: tGroups('toast_join_success_description', { name: invite.groupName }) });
 
@@ -63,11 +68,11 @@ export function GroupInvitesPopover() {
        } catch (error) {
          console.error("Failed to accept invite:", error);
          toast({ variant: 'destructive', title: tGroups('toast_join_fail_title'), description: tGroups('toast_join_fail_description')});
-         // Also delete the failed invite so user doesn't get stuck
-         await deleteDoc(inviteRef);
+         // Clean up the failed invite
+         await updateDoc(inviteRef, { status: 'declined' });
        }
     } else { // declined
-        await deleteDoc(inviteRef);
+        await updateDoc(inviteRef, { status: 'declined' });
     }
   };
 
@@ -98,7 +103,7 @@ export function GroupInvitesPopover() {
                     </div>
                     <div className="flex-1 space-y-1">
                       <p className="text-sm font-medium leading-none">{t('notification_group_invite_title')}</p>
-                      <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('notification_group_invite_body', { inviterName: `<b>${invite.inviterName}</b>`, groupName: `<b>${invite.groupName}</b>` }) }} />
+                      <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('notification_group_invite_body', { inviterName: `<b>${invite.fromUserName}</b>`, groupName: `<b>${invite.groupName}</b>` }) }} />
                       <p className="text-xs text-muted-foreground/70">
                         {formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true, locale: dateFnsLocale })}
                       </p>

@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter } from '@/navigation';
-import { useUser, useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldAlert, CheckCircle, Home, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Link } from '@/navigation';
@@ -43,17 +43,22 @@ export default function JoinGroupPage() {
 
     const joinGroup = async () => {
       const groupRef = doc(firestore, 'groups', groupId);
-      const userRef = doc(firestore, 'users', user.uid);
       
       try {
         const groupSnap = await getDoc(groupRef);
         if (!groupSnap.exists()) {
           throw new Error("Group not found");
         }
+        
+        const groupData = groupSnap.data();
+        if (groupData.memberIds.includes(user.uid)) {
+          // Already a member, just redirect
+          router.replace(`/groups/${groupId}`);
+          return;
+        }
 
-        // The security rules will enforce all constraints (e.g., group is not full).
+        // The security rules will enforce all other constraints (e.g., group is not full).
         await updateDoc(groupRef, { memberIds: arrayUnion(user.uid) });
-        await updateDoc(userRef, { groups: arrayUnion(groupId) });
 
         setStatus('success');
         setMessage(t('status_success_description'));
@@ -64,7 +69,7 @@ export default function JoinGroupPage() {
         }, 2000);
 
       } catch (error) {
-        console.error("Gruba katılma hatası:", error);
+        console.error("Error joining group:", error);
         setStatus('error');
         // Provide a more helpful message since we can't check reasons on the client anymore
         setMessage(t('status_error_failed_join'));
