@@ -270,7 +270,7 @@ service cloud.firestore {
      */
     match /group_invites/{inviteId} {
       // Allow a user to list invites, the client query MUST filter by inviteeId.
-      allow list: if isSignedIn();
+      allow list: if isSignedIn() && request.query.limit <= 20;
       
       // Allow a user to get/update/delete an invite only if they are the recipient.
       allow get, update, delete: if request.auth.uid == resource.data.inviteeId;
