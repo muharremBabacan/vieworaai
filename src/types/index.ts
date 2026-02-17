@@ -17,13 +17,6 @@ export type User = {
   interests: string[];
   onboarded: boolean;
   groups?: string[];
-  // New profile fields from user prompt
-  profile_index?: any; // Define properly later
-  technical_score?: number;
-  development_score?: number;
-  activity_score?: number;
-  dominant_genre?: string;
-  device_type?: string;
 };
 
 export type Photo = {

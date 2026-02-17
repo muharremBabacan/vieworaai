@@ -40,30 +40,6 @@
           "type": "string",
           "description": "Timestamp of the user's last login.",
           "format": "date-time"
-        },
-        "profile_index": {
-          "type": "object",
-          "description": "Aggregated profile metrics calculated after 5 photos."
-        },
-        "technical_score": {
-          "type": "number",
-          "description": "User's overall technical score."
-        },
-        "development_score": {
-          "type": "number",
-          "description": "User's progress score."
-        },
-        "activity_score": {
-          "type": "number",
-          "description": "User's engagement score."
-        },
-        "dominant_genre": {
-          "type": "string",
-          "description": "The user's most frequent photo genre."
-        },
-        "device_type": {
-          "type": "string",
-          "description": "The user's most frequent device type."
         }
       },
       "required": [
