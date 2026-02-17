@@ -8,63 +8,61 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UploadCloud, X, Loader2, Zap, Upload, AlertTriangle, CheckCircle, Lightbulb, Bot } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
-import { doc, collection, ref as firestoreRef } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { UploadCloud, X, Loader2, Zap, Upload, Bot, CheckCircle } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 
+// New component to display the summary of the analysis
+function SummaryCard({ analysis }: { analysis: PhotoAnalysis }) {
+    const t = useTranslations('DashboardPage');
 
-function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
-  const t = useTranslations('DashboardPage');
-  const tRatings = useTranslations('Ratings');
+    // Calculate Overall Score
+    const lightScore = analysis.light_score ?? 0;
+    const compositionScore = analysis.composition_score ?? 0;
+    const technicalScore =
+        ((analysis.focus_score ?? 0) +
+        (analysis.color_control_score ?? 0) +
+        (analysis.background_control_score ?? 0)) / 3;
+    const overallScore = (lightScore + compositionScore + technicalScore) / 3;
 
-  const lightScore = analysis.light_score ?? 0;
-  const compositionScore = analysis.composition_score ?? 0;
-  // Technical score is an average of focus, color, and background control
-  const technicalScore =
-    ((analysis.focus_score ?? 0) +
-      (analysis.color_control_score ?? 0) +
-      (analysis.background_control_score ?? 0)) /
-    3;
+    // Determine Strengths based on scores
+    const strengths: string[] = [];
+    if (compositionScore >= 7.5) strengths.push(t('strength_composition'));
+    if (lightScore >= 7.5) strengths.push(t('strength_lighting'));
+    if ((analysis.focus_score ?? 0) >= 8.0) strengths.push(t('strength_focus'));
+    if ((analysis.color_control_score ?? 0) >= 7.5) strengths.push(t('strength_color'));
+    if ((analysis.background_control_score ?? 0) >= 7.5) strengths.push(t('strength_background'));
+    if ((analysis.creativity_risk_score ?? 0) >= 8.0) strengths.push(t('strength_creativity'));
 
-  // Overall score is an average of light, composition, and our new technical score
-  const overallScore = (lightScore + compositionScore + technicalScore) / 3;
-
-  const ratingItems = [
-    { label: tRatings('lighting'), value: lightScore },
-    { label: tRatings('composition'), value: compositionScore },
-    { label: tRatings('technical'), value: technicalScore },
-  ];
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('rating_card_title')}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between gap-4 rounded-lg border bg-secondary/50 p-3">
-          <span className="text-lg font-bold text-primary">{t('overall_score')}</span>
-          <span className="text-2xl font-bold text-primary">{overallScore.toFixed(1)} / 10</span>
-        </div>
-        <div className="space-y-3 pt-2">
-            {ratingItems.map(item => (
-                <div key={item.label}>
-                    <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <span className="font-semibold">{item.value.toFixed(1)} / 10</span>
-                    </div>
-                    <Progress value={item.value * 10} aria-label={`${item.label} score ${item.value.toFixed(1)} out of 10`} />
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                    <CardTitle>{t('overall_score')}</CardTitle>
+                    <span className="text-2xl font-bold text-primary">{overallScore.toFixed(1)} / 10</span>
                 </div>
-            ))}
-        </div>
-      </CardContent>
-    </Card>
-  )
+            </CardHeader>
+            <CardContent>
+                <h4 className="font-semibold mb-3 text-card-foreground">{t('strengths_title')}</h4>
+                {strengths.length > 0 ? (
+                    <ul className="space-y-2">
+                        {strengths.map((strength, index) => (
+                            <li key={index} className="flex items-center gap-3 text-sm">
+                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                <span className="text-muted-foreground">{strength}</span>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-sm text-muted-foreground">{t('no_strengths')}</p>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: PhotoAnalysis, feedback: string, photoPreviewUrl: string }) {
@@ -72,18 +70,18 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: Pho
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        {/* Left Column: Image and Ratings */}
+        {/* Left Column: Image */}
         <div className="space-y-6">
             <Card className="overflow-hidden sticky top-20">
                 <div className="relative aspect-[4/3] bg-muted/20">
                     <Image src={photoPreviewUrl} alt="Analyzed photo" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
                 </div>
             </Card>
-            <RatingDisplay analysis={analysis} />
         </div>
 
-        {/* Right Column: Feedback and Improvements */}
+        {/* Right Column: Summary and Feedback */}
         <div className="space-y-6">
+            <SummaryCard analysis={analysis} />
             <Card>
                 <CardHeader>
                    <CardTitle className="font-sans text-lg font-semibold flex items-center gap-2">
@@ -94,27 +92,6 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: Pho
                   <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
                 </CardContent>
             </Card>
-      
-            <div className="space-y-4">
-                <h4 className="font-semibold text-lg">{t('improvements_title')}</h4>
-                <div className="space-y-2">
-                    {Object.entries(analysis.error_flags).filter(([_, value]) => value === true).map(([key]) => (
-                        <div key={key} className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3">
-                            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
-                            <div>
-                                <p className="font-semibold text-destructive">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                                <p className="text-sm text-destructive/80">Bu alanda gelişim için fırsat bulunuyor.</p>
-                            </div>
-                        </div>
-                    ))}
-                    {Object.values(analysis.error_flags).every(v => v === false) && (
-                         <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                            <p className="font-medium text-green-400">Bu analizde kritik bir teknik hataya rastlanmadı.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
         </div>
     </div>
   );
@@ -355,5 +332,3 @@ export default function PhotoAnalyzer() {
     </div>
   );
 }
-
-    

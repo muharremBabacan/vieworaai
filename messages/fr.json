@@ -116,7 +116,6 @@
     "rating_card_title": "Rating",
     "overall_score": "Overall Score",
     "ai_analysis_title": "AI Analysis",
-    "improvements_title": "Improvement Tips",
     "button_new_analysis": "Start New Analysis",
     "toast_file_size_title": "File Too Large",
     "toast_file_size_description": "Please upload an image smaller than 10MB.",
@@ -145,7 +144,15 @@
     "state_wait": "This may take a moment, please wait.",
     "button_analyze": "Analyze ({cost} Auro)",
     "button_uploading": "Uploading...",
-    "button_upload_only": "Upload Only (Free)"
+    "button_upload_only": "Upload Only (Free)",
+    "strengths_title": "Strengths",
+    "strength_composition": "Successful composition",
+    "strength_lighting": "Effective use of light",
+    "strength_focus": "Good sharpness and focus",
+    "strength_color": "Balanced color control",
+    "strength_background": "Simple and effective background",
+    "strength_creativity": "Creative and original perspective",
+    "no_strengths": "No specific strengths were identified in this photo, but it is a balanced shot overall."
   },
   "ExplorePage": {
     "title": "Exhibition Hall",
@@ -391,5 +398,3 @@
     "notification_group_invite_body": "{inviterName} has invited you to join the group \"{groupName}\"."
   }
 }
-
-    

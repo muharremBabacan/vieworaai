@@ -116,7 +116,6 @@
     "rating_card_title": "Derecelendirme",
     "overall_score": "Genel Puan",
     "ai_analysis_title": "Objektif Analiz",
-    "improvements_title": "Gelişim Fırsatları",
     "button_new_analysis": "Yeni Analiz Başlat",
     "toast_file_size_title": "Dosya Boyutu Çok Büyük",
     "toast_file_size_description": "Lütfen 10MB'dan küçük bir resim dosyası yükleyin.",
@@ -145,7 +144,15 @@
     "state_wait": "Bu işlem biraz zaman alabilir, lütfen bekleyin.",
     "button_analyze": "Analiz Et ({cost} Auro)",
     "button_uploading": "Yükleniyor...",
-    "button_upload_only": "Sadece Yükle (Ücretsiz)"
+    "button_upload_only": "Sadece Yükle (Ücretsiz)",
+    "strengths_title": "Güçlü Yönler",
+    "strength_composition": "Başarılı kompozisyon",
+    "strength_lighting": "Etkili ışık kullanımı",
+    "strength_focus": "İyi netlik ve odaklama",
+    "strength_color": "Dengeli renk kontrolü",
+    "strength_background": "Sade ve etkili arkaplan",
+    "strength_creativity": "Yaratıcı ve orijinal bakış açısı",
+    "no_strengths": "Bu fotoğrafta özellikle öne çıkan bir güçlü yön bulunamadı, ancak genel olarak dengeli bir kare."
   },
   "ExplorePage": {
     "title": "Sergi Salonu",
@@ -391,5 +398,3 @@
     "notification_group_invite_body": "{inviterName} sizi \"{groupName}\" grubuna davet etti."
   }
 }
-
-    
