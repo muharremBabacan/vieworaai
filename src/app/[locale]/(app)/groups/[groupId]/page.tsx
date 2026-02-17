@@ -129,7 +129,8 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
       const inviterProfile = inviterProfileDoc.data() as UserProfile;
       const inviterName = inviterProfile?.name || tLogin('anonymous_artist');
       
-      const invitesColRef = collection(firestore, 'group_invites');
+      // Create invite in the *invitee's* subcollection
+      const invitesColRef = collection(firestore, 'users', userToAddId, 'group_invites');
       addDocumentNonBlocking(invitesColRef, {
         groupId: group.id,
         groupName: group.name,

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, orderBy, limit, where, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, doc, query, orderBy, limit, where, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
 import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -31,8 +31,7 @@ export function GroupInvitesPopover() {
   const invitesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
-      collection(firestore, 'group_invites'),
-      where('inviteeId', '==', user.uid),
+      collection(firestore, 'users', user.uid, 'group_invites'),
       where('status', '==', 'pending'),
       orderBy('createdAt', 'desc'),
       limit(20)
@@ -45,20 +44,24 @@ export function GroupInvitesPopover() {
 
   const handleInviteAction = async (invite: GroupInvite, action: 'accepted' | 'declined') => {
     if (!user) return;
-    const inviteRef = doc(firestore, 'group_invites', invite.id);
+    const inviteRef = doc(firestore, 'users', user.uid, 'group_invites', invite.id);
     
-    await updateDoc(inviteRef, { status: action });
-
     if (action === 'accepted') {
        const groupRef = doc(firestore, 'groups', invite.groupId);
        const userRef = doc(firestore, 'users', user.uid);
+       // Note: security rules will handle capacity checks
        await updateDoc(groupRef, { memberIds: arrayUnion(user.uid) });
        await updateDoc(userRef, { groups: arrayUnion(invite.groupId) });
+       
+       // Delete the invite after accepting
+       await deleteDoc(inviteRef);
 
        toast({ title: tGroups('toast_join_success_title'), description: tGroups('toast_join_success_description', { name: invite.groupName }) });
 
        setIsOpen(false);
        router.push(`/groups/${invite.groupId}`);
+    } else { // declined
+        await updateDoc(inviteRef, { status: action });
     }
   };
 

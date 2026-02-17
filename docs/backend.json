@@ -434,6 +434,18 @@
           ]
         }
       },
+       {
+        "path": "users/{userId}/group_invites/{inviteId}",
+        "definition": {
+          "entityName": "GroupInvite",
+          "schema": { "$ref": "#/backend/entities/GroupInvite" },
+          "description": "A subcollection for group invitations sent to a specific user. This is a private collection where a user can manage their own invites, and group owners can create new invites for this user.",
+          "params": [
+            { "name": "userId", "description": "The unique ID of the user who is being invited." },
+            { "name": "inviteId", "description": "The unique ID for the group invitation." }
+          ]
+        }
+      },
       {
         "path": "users/{userId}/transactions/{transactionId}",
         "definition": {
@@ -452,15 +464,6 @@
               "description": "The unique identifier for a specific transaction."
             }
           ]
-        }
-      },
-      {
-        "path": "group_invites/{inviteId}",
-        "definition": {
-          "entityName": "GroupInvite",
-          "schema": { "$ref": "#/backend/entities/GroupInvite" },
-          "description": "Stores pending group invitations. Users can only read invites where their UID is the inviteeId.",
-          "params": [ { "name": "inviteId", "description": "The unique ID for the group invitation." } ]
         }
       },
       {

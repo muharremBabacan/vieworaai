@@ -165,6 +165,19 @@ service cloud.firestore {
         allow update: if isExistingOwner(userId) && isChildDataImmutable();
         allow delete: if isExistingOwner(userId);
       }
+      
+      /**
+       * @description Controls access to a user's group invitations.
+       */
+      match /group_invites/{inviteId} {
+          // A user can read, update, or delete their own invites.
+          allow get, list, update, delete: if isOwner(userId);
+          
+          // A group owner can create an invite for this user.
+          allow create: if request.auth.uid != userId &&
+                          isGroupOwnerByGroupId(request.resource.data.groupId) &&
+                          request.resource.data.inviteeId == userId;
+      }
     }
     
     /**
@@ -264,22 +277,7 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
-
-    /**
-     * @description Controls access to group invitations. This is a top-level collection.
-     */
-    match /group_invites/{inviteId} {
-      // Allow a user to list invites, the client query MUST filter by inviteeId.
-      allow list: if isSignedIn() && request.query.limit <= 20;
-      
-      // Allow a user to get/update/delete an invite only if they are the recipient.
-      allow get, update, delete: if request.auth.uid == resource.data.inviteeId;
-
-      // Allow an invite to be created only by the owner of the group.
-      allow create: if request.resource.data.inviterId == request.auth.uid &&
-                     get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == request.auth.uid;
-    }
-
+    
     /**
      * @description Controls access to public photos submitted by users to the gallery.
      * @path /public_photos/{photoId}
