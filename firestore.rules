@@ -103,12 +103,10 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid in resource.data.memberIds;
       }
 
-      // READ: Only members of the group can read its details.
-      allow get: if isGroupMember();
-
-      // LIST: Allow signed-in users to query the groups collection. 
-      // The subsequent 'get' rule on each document ensures they can only read groups they are members of.
-      allow list: if isSignedIn();
+      // READ (get, list): Only members of the group can read its details.
+      // The `list` permission is implicitly handled by Firestore checking the `get` permission
+      // on each document returned by a constrained query (e.g., where("memberIds", "array-contains", ...)).
+      allow read: if isGroupMember();
 
       // CREATE: Any signed-in user can create a group, but they must be the owner and the only initial member.
       allow create: if isSignedIn()
@@ -179,15 +177,15 @@ service cloud.firestore {
                     && isInvitingGroupOwner()
                     && request.resource.data.inviterId == request.auth.uid;
 
-      // READ: Inviter or the correct invitee (by ID or email) can read.
-      allow get: if isSignedIn()
-                 && (request.auth.uid == resource.data.inviterId ||
+      // READ (get, list): Inviter or the correct invitee (by ID or email) can read.
+      // List queries from the client must be constrained (e.g., where("inviteeId", "==", auth.uid))
+      // for this rule to authorize the query.
+      allow read: if isSignedIn()
+                 && (resource == null || // Allow list operations
+                     request.auth.uid == resource.data.inviterId ||
                      request.auth.uid == resource.data.inviteeId ||
                      request.auth.token.email == resource.data.inviteeEmail);
       
-      // LIST: Allow users to query for invites sent to them.
-      allow list: if isSignedIn();
-
       // UPDATE: Allow an invitee to accept/decline, or claim an email-based invite.
       allow update: if isSignedIn()
                     && (

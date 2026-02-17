@@ -229,18 +229,12 @@ export default function GroupsPage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  const groupIds = useMemo(() => userProfile?.groups, [userProfile]);
-
   const memberGroupsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !groupIds || groupIds.length === 0) {
+    if (!user || !firestore) {
       return null;
     }
-    // Firestore 'in' queries are limited to 30 items.
-    if (groupIds.length > 30) {
-      console.warn("User is a member of more than 30 groups, query will be truncated to the first 30.");
-    }
-    return query(collection(firestore, 'groups'), where(documentId(), 'in', groupIds.slice(0, 30)));
-  }, [firestore, user, groupIds]);
+    return query(collection(firestore, 'groups'), where("memberIds", "array-contains", user.uid));
+  }, [user, firestore]);
 
   const { data: memberGroups, isLoading: isGroupsLoading } = useCollection<Group>(memberGroupsQuery);
 
@@ -252,9 +246,9 @@ export default function GroupsPage() {
   const limits = getGroupLimits(userProfile?.level_name);
   const canCreateGroup = memberGroups ? ownedGroups.length < limits.maxGroups : false;
 
-  const isLoading = isProfileLoading || (userProfile && groupIds && groupIds.length > 0 && isGroupsLoading);
+  const isLoading = isProfileLoading || isGroupsLoading;
   
-  const noGroups = userProfile && (!groupIds || groupIds.length === 0);
+  const noGroups = !isLoading && (!memberGroups || memberGroups.length === 0);
 
   return (
     <div className="container mx-auto">
@@ -274,7 +268,7 @@ export default function GroupsPage() {
 
       {isLoading ? (
         <GroupsPageSkeleton />
-      ) : (noGroups || (memberGroups && memberGroups.length === 0)) ? (
+      ) : noGroups ? (
         <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
           <Users className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
           <h3 className="text-2xl font-semibold">{t('no_groups_title')}</h3>
