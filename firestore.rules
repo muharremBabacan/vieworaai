@@ -170,13 +170,17 @@ service cloud.firestore {
        * @description Controls access to a user's group invitations.
        */
       match /group_invites/{inviteId} {
-          // A user can read, update, or delete their own invites.
-          allow get, list, update, delete: if isOwner(userId);
+          allow get, update, delete: if isOwner(userId);
+
+          // Allow a list operation only if the user is the owner AND the query from the client is limited.
+          // This assures the rules engine that the query is not overly broad and resolves
+          // the conflict with the 'create' rule, which allows a different user (group owner) to write here.
+          allow list: if isOwner(userId) && request.query.limit <= 20;
           
           // A group owner can create an invite for this user.
-          allow create: if request.auth.uid != userId &&
-                          isGroupOwnerByGroupId(request.resource.data.groupId) &&
-                          request.resource.data.inviteeId == userId;
+          allow create: if request.resource.data.inviteeId == userId &&
+                          request.auth.uid != userId &&
+                          isGroupOwnerByGroupId(request.resource.data.groupId);
       }
     }
     
