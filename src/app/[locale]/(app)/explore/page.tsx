@@ -18,35 +18,42 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
+
 function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   const t = useTranslations('ExplorePage');
   const tRatings = useTranslations('Ratings');
   
-  const scores = [
-    analysis.light_score,
-    analysis.composition_score,
-    analysis.focus_score,
-    analysis.color_control_score,
-    analysis.background_control_score,
-    analysis.creativity_risk_score,
-  ].filter((score): score is number => typeof score === 'number' && isFinite(score));
+  const lightScore = normalizeScore(analysis.light_score);
+  const compositionScore = normalizeScore(analysis.composition_score);
+  
+  const technicalSubScores = [
+    normalizeScore(analysis.focus_score),
+    normalizeScore(analysis.color_control_score),
+    normalizeScore(analysis.background_control_score),
+    normalizeScore(analysis.creativity_risk_score),
+  ];
+  const technicalScore = technicalSubScores.reduce((sum, score) => sum + score, 0) / technicalSubScores.length;
 
-  const overallScore = scores.length > 0
-    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length)
-    : 0;
+  const mainScores = [lightScore, compositionScore, technicalScore];
+  const overallScore = mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
 
   const ratingItems = [
-      { label: tRatings('lighting'), value: analysis.light_score ?? 0 },
-      { label: tRatings('composition'), value: analysis.composition_score ?? 0 },
-      { label: tRatings('focus'), value: analysis.focus_score ?? 0 },
+      { label: tRatings('lighting'), value: lightScore },
+      { label: tRatings('composition'), value: compositionScore },
+      { label: tRatings('technical'), value: technicalScore },
   ];
+  
   return (
       <div>
           <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
           <div className="flex items-center gap-6 rounded-lg border p-4">
               <div className="flex flex-col items-center justify-center">
                   <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(0)}</p>
+                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(1)}</p>
               </div>
               <div className="flex-1 space-y-2">
                   {ratingItems.map(item => (
@@ -59,7 +66,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
                                     style={{ width: `${(item.value ?? 0) * 10}%` }}
                                 />
                             </div>
-                            <span className="text-sm font-semibold w-8 text-right">{((item.value ?? 0)).toFixed(0)}</span>
+                            <span className="text-sm font-semibold w-8 text-right">{item.value.toFixed(1)}</span>
                           </div>
                       </div>
                   ))}
@@ -199,13 +206,20 @@ export default function ExplorePage() {
                         <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                          {photo.aiFeedback && (() => {
-                            const scores = [photo.aiFeedback.light_score, photo.aiFeedback.composition_score, photo.aiFeedback.focus_score, photo.aiFeedback.color_control_score, photo.aiFeedback.background_control_score, photo.aiFeedback.creativity_risk_score];
-                            const validScores = scores.filter((score): score is number => typeof score === 'number' && isFinite(score));
+                            const scores = [
+                              normalizeScore(photo.aiFeedback.light_score),
+                              normalizeScore(photo.aiFeedback.composition_score),
+                              normalizeScore(photo.aiFeedback.focus_score),
+                              normalizeScore(photo.aiFeedback.color_control_score),
+                              normalizeScore(photo.aiFeedback.background_control_score),
+                              normalizeScore(photo.aiFeedback.creativity_risk_score)
+                            ];
+                            const validScores = scores.filter(score => !isNaN(score));
                             const overallScore = validScores.length > 0 ? (validScores.reduce((s, v) => s + v, 0) / validScores.length) : 0;
                             return (
                                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                                   <Star className="h-3 w-3 text-yellow-400" />
-                                  <span className="text-xs font-bold">{overallScore.toFixed(0)}</span>
+                                  <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
                                 </Badge>
                             )
                          })()}

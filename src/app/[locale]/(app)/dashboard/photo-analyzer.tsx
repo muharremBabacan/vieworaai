@@ -19,7 +19,6 @@ import { Progress } from '@/components/ui/progress';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
-    // If score is between 0 and 1 (inclusive of 1), multiply by 10. Otherwise, use as is.
     return score > 1 ? score : score * 10;
 };
 
@@ -27,17 +26,19 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl, onNewAnalysis }: 
   const t = useTranslations('DashboardPage');
   const tRatings = useTranslations('Ratings');
   
-  const scores = {
-    lighting: normalizeScore(analysis.light_score),
-    composition: normalizeScore(analysis.composition_score),
-    focus: normalizeScore(analysis.focus_score),
-    color: normalizeScore(analysis.color_control_score),
-    background: normalizeScore(analysis.background_control_score),
-    creativity: normalizeScore(analysis.creativity_risk_score),
-  };
+  const lightScore = normalizeScore(analysis.light_score);
+  const compositionScore = normalizeScore(analysis.composition_score);
   
-  const allScores = Object.values(scores);
-  const overallScore = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
+  const technicalScores = [
+    normalizeScore(analysis.focus_score),
+    normalizeScore(analysis.color_control_score),
+    normalizeScore(analysis.background_control_score),
+    normalizeScore(analysis.creativity_risk_score),
+  ];
+  const technicalScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
+
+  const mainScores = [lightScore, compositionScore, technicalScore];
+  const overallScore = mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
 
   const ScoreBar = ({ label, score }: { label: string; score: number }) => (
     <div className="space-y-2">
@@ -63,12 +64,9 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl, onNewAnalysis }: 
                 <span className="text-3xl font-bold text-primary">{overallScore.toFixed(1)}</span>
             </div>
             <div className="space-y-4 flex-grow">
-              <ScoreBar label={tRatings('lighting')} score={scores.lighting} />
-              <ScoreBar label={tRatings('composition')} score={scores.composition} />
-              <ScoreBar label={tRatings('focus')} score={scores.focus} />
-              <ScoreBar label={tRatings('color')} score={scores.color} />
-              <ScoreBar label={tRatings('background')} score={scores.background} />
-              <ScoreBar label={tRatings('creativity')} score={scores.creativity} />
+              <ScoreBar label={tRatings('lighting')} score={lightScore} />
+              <ScoreBar label={tRatings('composition')} score={compositionScore} />
+              <ScoreBar label={tRatings('technical')} score={technicalScore} />
             </div>
           </div>
         </div>
