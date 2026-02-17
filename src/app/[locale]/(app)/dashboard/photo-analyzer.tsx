@@ -15,87 +15,79 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
+import { Progress } from '@/components/ui/progress';
 
-// New component to display the summary of the analysis
-function SummaryCard({ analysis }: { analysis: PhotoAnalysis }) {
-    const t = useTranslations('DashboardPage');
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    // If score is between 0 and 1 (inclusive of 1), multiply by 10. Otherwise, use as is.
+    return score > 1 ? score : score * 10;
+};
 
-    // Calculate Overall Score
-    const lightScore = analysis.light_score ?? 0;
-    const compositionScore = analysis.composition_score ?? 0;
-    const technicalScore =
-        ((analysis.focus_score ?? 0) +
-        (analysis.color_control_score ?? 0) +
-        (analysis.background_control_score ?? 0)) / 3;
-    const overallScore = (lightScore + compositionScore + technicalScore) / 3;
-
-    // Determine Strengths based on scores
-    const strengths: string[] = [];
-    if (compositionScore >= 7.5) strengths.push(t('strength_composition'));
-    if (lightScore >= 7.5) strengths.push(t('strength_lighting'));
-    if ((analysis.focus_score ?? 0) >= 8.0) strengths.push(t('strength_focus'));
-    if ((analysis.color_control_score ?? 0) >= 7.5) strengths.push(t('strength_color'));
-    if ((analysis.background_control_score ?? 0) >= 7.5) strengths.push(t('strength_background'));
-    if ((analysis.creativity_risk_score ?? 0) >= 8.0) strengths.push(t('strength_creativity'));
-
-    return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between gap-4">
-                    <CardTitle>{t('overall_score')}</CardTitle>
-                    <span className="text-2xl font-bold text-primary">{overallScore.toFixed(1)} / 10</span>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <h4 className="font-semibold mb-3 text-card-foreground">{t('strengths_title')}</h4>
-                {strengths.length > 0 ? (
-                    <ul className="space-y-2">
-                        {strengths.map((strength, index) => (
-                            <li key={index} className="flex items-center gap-3 text-sm">
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                <span className="text-muted-foreground">{strength}</span>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="text-sm text-muted-foreground">{t('no_strengths')}</p>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-
-function AnalysisResult({ analysis, feedback, photoPreviewUrl }: { analysis: PhotoAnalysis, feedback: string, photoPreviewUrl: string }) {
+function AnalysisResult({ analysis, feedback, photoPreviewUrl, onNewAnalysis }: { analysis: PhotoAnalysis, feedback: string, photoPreviewUrl: string, onNewAnalysis: () => void }) {
   const t = useTranslations('DashboardPage');
+  const tRatings = useTranslations('Ratings');
+  
+  const scores = {
+    lighting: normalizeScore(analysis.light_score),
+    composition: normalizeScore(analysis.composition_score),
+    focus: normalizeScore(analysis.focus_score),
+    color: normalizeScore(analysis.color_control_score),
+    background: normalizeScore(analysis.background_control_score),
+    creativity: normalizeScore(analysis.creativity_risk_score),
+  };
+  
+  const allScores = Object.values(scores);
+  const overallScore = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
+
+  const ScoreBar = ({ label, score }: { label: string; score: number }) => (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <span className="text-sm font-bold">{score.toFixed(1)}</span>
+      </div>
+      <Progress value={score * 10} className="h-2 [&>div]:bg-primary" />
+    </div>
+  );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        {/* Left Column: Image */}
-        <div className="space-y-6">
-            <Card className="overflow-hidden sticky top-20">
-                <div className="relative aspect-[4/3] bg-muted/20">
-                    <Image src={photoPreviewUrl} alt="Analyzed photo" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
-                </div>
-            </Card>
+    <div className="space-y-6">
+      <Card className="overflow-hidden">
+        <div className="md:grid md:grid-cols-2">
+          <div className="relative aspect-[4/3] bg-muted/20">
+            <Image src={photoPreviewUrl} alt="Analyzed photo" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain" />
+          </div>
+          <div className="flex flex-col p-6">
+            <CardTitle className="font-sans text-xl mb-4">{t('rating_card_title')}</CardTitle>
+            <div className="flex items-center justify-between mb-6">
+                <span className="text-lg font-semibold">{t('overall_score')}</span>
+                <span className="text-3xl font-bold text-primary">{overallScore.toFixed(1)}</span>
+            </div>
+            <div className="space-y-4 flex-grow">
+              <ScoreBar label={tRatings('lighting')} score={scores.lighting} />
+              <ScoreBar label={tRatings('composition')} score={scores.composition} />
+              <ScoreBar label={tRatings('focus')} score={scores.focus} />
+              <ScoreBar label={tRatings('color')} score={scores.color} />
+              <ScoreBar label={tRatings('background')} score={scores.background} />
+              <ScoreBar label={tRatings('creativity')} score={scores.creativity} />
+            </div>
+          </div>
         </div>
 
-        {/* Right Column: Summary and Feedback */}
-        <div className="space-y-6">
-            <SummaryCard analysis={analysis} />
-            <Card>
-                <CardHeader>
-                   <CardTitle className="font-sans text-lg font-semibold flex items-center gap-2">
-                      <Bot className="h-5 w-5 text-primary"/> {t('ai_analysis_title')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
-                </CardContent>
-            </Card>
+        <div className="p-6 border-t">
+          <h3 className="font-sans text-lg font-semibold flex items-center gap-2 mb-3">
+            <Bot className="h-5 w-5 text-primary"/> {t('ai_analysis_title')}
+          </h3>
+          <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
         </div>
+      </Card>
+
+      <Button onClick={onNewAnalysis} variant="outline" className="w-full" size="lg">
+        {t('button_new_analysis')}
+      </Button>
     </div>
   );
 }
+
 
 export default function PhotoAnalyzer() {
   const [preview, setPreview] = useState<string | null>(null);
@@ -284,16 +276,12 @@ export default function PhotoAnalyzer() {
         </div>
       )}
       {analysisResult && feedbackResult && preview ? (
-        <>
-          <AnalysisResult 
-            analysis={analysisResult} 
-            feedback={feedbackResult} 
-            photoPreviewUrl={preview}
-          />
-          <Button onClick={handleClear} variant="outline" className="w-full">
-            {t('button_new_analysis')}
-          </Button>
-        </>
+        <AnalysisResult
+          analysis={analysisResult}
+          feedback={feedbackResult}
+          photoPreviewUrl={preview}
+          onNewAnalysis={handleClear}
+        />
       ) : preview ? (
         <Card className="overflow-hidden">
           <CardContent className="p-0">
@@ -332,3 +320,5 @@ export default function PhotoAnalyzer() {
     </div>
   );
 }
+
+    

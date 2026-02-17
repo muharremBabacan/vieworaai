@@ -367,6 +367,9 @@
     "lighting": "Lighting",
     "composition": "Composition",
     "focus": "Focus",
+    "color": "Color Control",
+    "background": "Background",
+    "creativity": "Creativity",
     "overall": "Overall",
     "technical": "Technical"
   },
@@ -398,3 +401,5 @@
     "notification_group_invite_body": "{inviterName} has invited you to join the group \"{groupName}\"."
   }
 }
+
+    

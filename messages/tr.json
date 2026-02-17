@@ -367,6 +367,9 @@
     "lighting": "Işık",
     "composition": "Kompozisyon",
     "focus": "Netlik",
+    "color": "Renk Kontrolü",
+    "background": "Arkaplan",
+    "creativity": "Yaratıcılık",
     "overall": "Genel",
     "technical": "Teknik"
   },
@@ -398,3 +401,5 @@
     "notification_group_invite_body": "{inviterName} sizi \"{groupName}\" grubuna davet etti."
   }
 }
+
+    
