@@ -107,14 +107,13 @@ export type ChatMessage = {
   timestamp: string; // ISO string
 };
 
-export type Notification = {
+export type GroupInvite = {
   id: string;
-  userId: string;
-  type: 'group_invite' | 'system_message';
-  title: string;
-  body: string;
-  link?: string;
-  isRead: boolean;
+  groupId: string;
+  groupName: string;
+  inviterId: string;
+  inviterName: string;
+  inviteeId: string;
+  status: 'pending' | 'accepted' | 'declined';
   createdAt: string; // ISO string
-  groupId?: string;
 };

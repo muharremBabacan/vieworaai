@@ -352,49 +352,22 @@
         "createdAt"
       ]
     },
-    "Notification": {
+    "GroupInvite": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Notification",
+      "title": "GroupInvite",
       "type": "object",
-      "description": "Represents an in-app notification for a user, such as a group invitation.",
+      "description": "Represents a pending invitation for a user to join a group.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Notification."
-        },
-        "userId": {
-          "type": "string",
-          "description": "ID of the user who receives the notification."
-        },
-        "type": {
-          "type": "string",
-          "enum": ["group_invite", "system_message"],
-          "description": "The type of notification."
-        },
-        "title": {
-          "type": "string",
-          "description": "The main title of the notification."
-        },
-        "body": {
-          "type": "string",
-          "description": "The detailed message content of the notification."
-        },
-        "link": {
-          "type": "string",
-          "description": "An optional URL for the notification's call-to-action.",
-          "format": "uri"
-        },
-        "isRead": {
-          "type": "boolean",
-          "description": "Flag indicating if the notification has been read by the user."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the notification was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "groupName": { "type": "string" },
+        "inviterId": { "type": "string" },
+        "inviterName": { "type": "string" },
+        "inviteeId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "type", "title", "body", "isRead", "createdAt"]
+      "required": ["groupId", "groupName", "inviterId", "inviterName", "inviteeId", "status", "createdAt"]
     }
   },
   "auth": {
@@ -482,19 +455,12 @@
         }
       },
       {
-        "path": "notifications/{notificationId}",
+        "path": "group_invites/{inviteId}",
         "definition": {
-          "entityName": "Notification",
-          "schema": {
-            "$ref": "#/backend/entities/Notification"
-          },
-          "description": "A top-level collection for all user notifications. A user can query for notifications where the 'userId' field matches their own UID.",
-          "params": [
-            {
-              "name": "notificationId",
-              "description": "The unique ID for the notification."
-            }
-          ]
+          "entityName": "GroupInvite",
+          "schema": { "$ref": "#/backend/entities/GroupInvite" },
+          "description": "Stores pending group invitations. Users can only read invites where their UID is the inviteeId.",
+          "params": [ { "name": "inviteId", "description": "The unique ID for the group invitation." } ]
         }
       },
       {

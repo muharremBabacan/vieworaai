@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter } from '@/navigation';
 import { useUser, useFirestore, updateDocumentNonBlocking } from '@/firebase';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldAlert, CheckCircle, Home, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,11 @@ export default function JoinGroupPage() {
       const userRef = doc(firestore, 'users', user.uid);
       
       try {
-        // We no longer read the group doc first. We just attempt to join.
+        const groupSnap = await getDoc(groupRef);
+        if (!groupSnap.exists()) {
+          throw new Error("Group not found");
+        }
+
         // The security rules will enforce all constraints (e.g., group is not full).
         await updateDoc(groupRef, { memberIds: arrayUnion(user.uid) });
         await updateDoc(userRef, { groups: arrayUnion(groupId) });

@@ -20,7 +20,7 @@ import type { User as UserProfile } from '@/types';
 import { Skeleton } from './ui/skeleton';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/navigation';
-import { NotificationsPopover } from './notifications-popover';
+import { GroupInvitesPopover } from './group-invites-popover';
 
 export function UserNav() {
   const t = useTranslations('UserNav');
@@ -69,7 +69,7 @@ export function UserNav() {
 
   return (
     <div className="flex items-center gap-2">
-      <NotificationsPopover />
+      <GroupInvitesPopover />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">

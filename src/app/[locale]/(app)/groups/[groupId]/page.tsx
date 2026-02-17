@@ -89,7 +89,6 @@ function MemberAvatar({ userId }: { userId: string }) {
 function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string; }) {
   const t = useTranslations('GroupDetailPage');
   const tLogin = useTranslations('LoginPage');
-  const tNotif = useTranslations('Notifications');
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
   const { toast } = useToast();
@@ -130,16 +129,15 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
       const inviterProfile = inviterProfileDoc.data() as UserProfile;
       const inviterName = inviterProfile?.name || tLogin('anonymous_artist');
       
-      const notificationsColRef = collection(firestore, 'notifications');
-      addDocumentNonBlocking(notificationsColRef, {
-          userId: userToAddId,
-          groupId: group.id,
-          type: 'group_invite',
-          title: tNotif('notification_group_invite_title'),
-          body: tNotif('notification_group_invite_body', { inviterName: inviterName, groupName: group.name }),
-          link: `/groups/join/${group.id}`,
-          isRead: false,
-          createdAt: new Date().toISOString(),
+      const invitesColRef = collection(firestore, 'group_invites');
+      addDocumentNonBlocking(invitesColRef, {
+        groupId: group.id,
+        groupName: group.name,
+        inviterId: currentUser.uid,
+        inviterName: inviterName,
+        inviteeId: userToAddId,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
       });
       
 

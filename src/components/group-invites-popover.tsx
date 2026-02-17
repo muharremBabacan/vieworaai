@@ -2,27 +2,29 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, orderBy, limit, where, updateDoc } from 'firebase/firestore';
+import { collection, doc, query, orderBy, limit, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Bell, Mail, Users, Check, X } from 'lucide-react';
+import { Bell, Users, Check, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useRouter, Link } from '@/navigation';
-import { cn } from '@/lib/utils';
+import { useRouter } from '@/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS, de, fr, es, ar, ru, el, zhCN, ja } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 
 const localeMap: Record<string, Locale> = { tr, en: enUS, de, fr, es, ar, ru, el, zh: zhCN, ja };
 
 export function GroupInvitesPopover() {
   const t = useTranslations('Notifications');
+  const tGroups = useTranslations('GroupsPage');
   const locale = useLocale();
   const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const dateFnsLocale = localeMap[locale] || enUS;
 
@@ -45,12 +47,16 @@ export function GroupInvitesPopover() {
     if (!user) return;
     const inviteRef = doc(firestore, 'group_invites', invite.id);
     
-    // Optimistically update the UI if needed, for now we just update backend
     await updateDoc(inviteRef, { status: action });
 
     if (action === 'accepted') {
        const groupRef = doc(firestore, 'groups', invite.groupId);
-       await updateDoc(groupRef, { memberIds: [user.uid] }); // Note: arrayUnion is better here if possible
+       const userRef = doc(firestore, 'users', user.uid);
+       await updateDoc(groupRef, { memberIds: arrayUnion(user.uid) });
+       await updateDoc(userRef, { groups: arrayUnion(invite.groupId) });
+
+       toast({ title: tGroups('toast_join_success_title'), description: tGroups('toast_join_success_description', { name: invite.groupName }) });
+
        setIsOpen(false);
        router.push(`/groups/${invite.groupId}`);
     }

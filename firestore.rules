@@ -266,26 +266,18 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to notifications. This is a top-level collection.
-     * A user can query for notifications where their UID is the recipient.
-     * A group owner can create notifications for other users.
+     * @description Controls access to group invitations. This is a top-level collection.
      */
-    match /notifications/{notificationId} {
-      // READ/DELETE: A user can read or delete notifications where they are the recipient.
-      // `read` covers `get` and `list` operations. The client MUST query `where('userId', '==', request.auth.uid)`.
-      allow read, delete: if request.auth.uid == resource.data.userId;
+    match /group_invites/{inviteId} {
+      // Allow a user to list invites, the client query MUST filter by inviteeId.
+      allow list: if isSignedIn();
+      
+      // Allow a user to get/update/delete an invite only if they are the recipient.
+      allow get, update, delete: if request.auth.uid == resource.data.inviteeId;
 
-      // UPDATE: A user can only update the `isRead` status on their own notifications.
-      allow update: if request.auth.uid == resource.data.userId &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
-
-      // CREATE: A group owner can create an invite notification for another user.
-      allow create: if isSignedIn() &&
-                       request.auth.uid != request.resource.data.userId && // Creator is not the recipient
-                       request.resource.data.type == 'group_invite' &&
-                       'groupId' in request.resource.data && // Must have groupId
-                       // Creator must be the owner of the group they are inviting to.
-                       get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == request.auth.uid;
+      // Allow an invite to be created only by the owner of the group.
+      allow create: if request.resource.data.inviterId == request.auth.uid &&
+                     get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.ownerId == request.auth.uid;
     }
 
     /**
