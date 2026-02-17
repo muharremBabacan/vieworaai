@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, orderBy, limit, where, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
+import { collection, doc, query, orderBy, limit, where, updateDoc, arrayUnion, deleteDoc, writeBatch } from 'firebase/firestore';
 import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -27,46 +27,79 @@ export function GroupInvitesPopover() {
   const { toast } = useToast();
 
   const dateFnsLocale = localeMap[locale] || enUS;
-
-  // Following your advice to memoize the collection reference to ensure stability
-  const invitesCollectionRef = useMemoFirebase(() => {
+  
+  // Query for invites matching the user's ID
+  const invitesByIdQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'group_invites');
+    return query(
+        collection(firestore, 'group_invites'),
+        where('inviteeId', '==', user.uid),
+        where('status', '==', 'pending'),
+        orderBy('createdAt', 'desc')
+    );
   }, [user, firestore]);
+  const { data: invitesById } = useCollection<GroupInvite>(invitesByIdQuery);
+  
+  // Query for invites matching the user's email that haven't been claimed yet
+  const invitesByEmailQuery = useMemoFirebase(() => {
+    if (!user || !user.email || !firestore) return null;
+    return query(
+        collection(firestore, 'group_invites'),
+        where('inviteeEmail', '==', user.email),
+        where('status', '==', 'pending'),
+        where('inviteeId', '==', null) // Firestore doesn't support `!= null`, so we look for `null`
+    );
+  }, [user, firestore]);
+  const { data: invitesByEmail, isLoading: isLoadingEmailInvites } = useCollection<GroupInvite>(invitesByEmailQuery);
 
-  const { data: allInvites } = useCollection<GroupInvite>(invitesCollectionRef);
+  // Effect to "claim" email-based invites by updating them with the user's UID
+  useEffect(() => {
+    if (invitesByEmail && invitesByEmail.length > 0 && firestore && user) {
+        const batch = writeBatch(firestore);
+        invitesByEmail.forEach(invite => {
+            const inviteRef = doc(firestore, 'group_invites', invite.id);
+            batch.update(inviteRef, { inviteeId: user.uid });
+        });
+        batch.commit().catch(console.error);
+    }
+  }, [invitesByEmail, firestore, user]);
 
-  // Perform filtering and sorting on the client-side to simplify the Firestore query
   const invites = useMemo(() => {
-    if (!allInvites) return [];
+    const allInvites = [...(invitesById || [])];
     return allInvites
       .filter(invite => invite.status === 'pending')
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 20); // Manually limit to 20
-  }, [allInvites]);
+      .slice(0, 20);
+  }, [invitesById]);
 
-  const unreadCount = useMemo(() => invites.length, [invites]);
+  const unreadCount = invites.length;
 
   const handleInviteAction = async (invite: GroupInvite, action: 'accepted' | 'declined') => {
-    if (!user) return;
-    const inviteRef = doc(firestore, 'users', user.uid, 'group_invites', invite.id);
+    if (!user || !firestore) return;
+    const inviteRef = doc(firestore, 'group_invites', invite.id);
     
     if (action === 'accepted') {
        const groupRef = doc(firestore, 'groups', invite.groupId);
        const userRef = doc(firestore, 'users', user.uid);
-       // Note: security rules will handle capacity checks
-       await updateDoc(groupRef, { memberIds: arrayUnion(user.uid) });
-       await updateDoc(userRef, { groups: arrayUnion(invite.groupId) });
        
-       // Delete the invite after accepting
-       await deleteDoc(inviteRef);
+       try {
+         // Firestore transaction or batch write could make this safer
+         await updateDoc(groupRef, { memberIds: arrayUnion(user.uid) });
+         await updateDoc(userRef, { groups: arrayUnion(invite.groupId) });
+         await deleteDoc(inviteRef);
 
-       toast({ title: tGroups('toast_join_success_title'), description: tGroups('toast_join_success_description', { name: invite.groupName }) });
+         toast({ title: tGroups('toast_join_success_title'), description: tGroups('toast_join_success_description', { name: invite.groupName }) });
 
-       setIsOpen(false);
-       router.push(`/groups/${invite.groupId}`);
+         setIsOpen(false);
+         router.push(`/groups/${invite.groupId}`);
+       } catch (error) {
+         console.error("Failed to accept invite:", error);
+         toast({ variant: 'destructive', title: tGroups('toast_join_fail_title'), description: tGroups('toast_join_fail_description')});
+         // Also delete the failed invite so user doesn't get stuck
+         await deleteDoc(inviteRef);
+       }
     } else { // declined
-        await updateDoc(inviteRef, { status: action });
+        await deleteDoc(inviteRef);
     }
   };
 
@@ -124,3 +157,5 @@ export function GroupInvitesPopover() {
     </Popover>
   );
 }
+
+    

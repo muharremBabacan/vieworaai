@@ -88,7 +88,6 @@ function MemberAvatar({ userId }: { userId: string }) {
 
 function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string; }) {
   const t = useTranslations('GroupDetailPage');
-  const tLogin = useTranslations('LoginPage');
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
   const { toast } = useToast();
@@ -108,50 +107,29 @@ function AddMemberForm({ group, userLevel }: { group: Group; userLevel?: string;
     }
     
     try {
-      const usersRef = collection(firestore, 'users');
-      const q = query(usersRef, where('email', '==', values.email), limit(1));
-      const querySnapshot = await getDocs(q);
+        const inviterProfileDoc = await getDoc(doc(firestore, 'users', currentUser.uid));
+        const inviterProfile = inviterProfileDoc.data() as UserProfile;
+        const inviterName = inviterProfile?.name || 'Anonymous';
 
-      if (querySnapshot.empty) {
-        toast({ variant: 'destructive', title: t('toast_user_not_found_title'), description: t('toast_user_not_found_description') });
-        return;
-      }
+        const invitesColRef = collection(firestore, 'group_invites');
+        addDocumentNonBlocking(invitesColRef, {
+            groupId: group.id,
+            groupName: group.name,
+            inviterId: currentUser.uid,
+            inviterName: inviterName,
+            inviteeEmail: values.email.toLowerCase(),
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+        });
       
-      const userToAddDoc = querySnapshot.docs[0];
-      const userToAddId = userToAddDoc.id;
-
-      if (group.memberIds.includes(userToAddId)) {
-        toast({ variant: 'destructive', title: t('toast_already_member_title'), description: t('toast_already_member_description') });
-        return;
-      }
-      
-      const inviterProfileDoc = await getDoc(doc(firestore, 'users', currentUser.uid));
-      const inviterProfile = inviterProfileDoc.data() as UserProfile;
-      const inviterName = inviterProfile?.name || tLogin('anonymous_artist');
-      
-      // Create invite in the *invitee's* subcollection
-      const invitesColRef = collection(firestore, 'users', userToAddId, 'group_invites');
-      addDocumentNonBlocking(invitesColRef, {
-        groupId: group.id,
-        groupName: group.name,
-        inviterId: currentUser.uid,
-        inviterName: inviterName,
-        inviteeId: userToAddId,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      });
-      
-
       toast({ title: t('toast_invite_sent_title'), description: t('toast_invite_sent_description', { email: values.email }) });
       form.reset();
     } catch (error: any) {
-      console.error("Üye davet etme hatası:", error);
+      console.error("Error sending invitation:", error);
        toast({
         variant: 'destructive',
         title: t('toast_add_member_error_title'),
-        description: error.message.includes('permission-denied') 
-          ? t('toast_add_member_no_permission') 
-          : t('toast_add_member_generic_error'),
+        description: t('toast_add_member_generic_error'),
       });
     }
   }
@@ -280,3 +258,5 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+
+    
