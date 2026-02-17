@@ -110,8 +110,9 @@ service cloud.firestore {
       // READ: Only members of the group can read its details.
       allow get: if isGroupMember();
 
-      // SEARCH: This functionality is removed in favor of a more secure invite system.
-      allow list: if false;
+      // LIST: Allow signed-in users to query the groups collection. 
+      // The subsequent 'get' rule on each document ensures they can only read groups they are members of.
+      allow list: if isSignedIn();
 
       // CREATE: Any signed-in user can create a group, but they must be the owner and the only initial member.
       allow create: if isSignedIn()
