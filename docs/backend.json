@@ -40,6 +40,10 @@
           "type": "string",
           "description": "Timestamp of the user's last login.",
           "format": "date-time"
+        },
+        "profileIndex": {
+          "$ref": "#/backend/entities/UserProfileIndex",
+          "description": "The user's calculated photographic profile index. This is calculated on-demand."
         }
       },
       "required": [
@@ -51,6 +55,22 @@
         "current_xp",
         "createdAt"
       ]
+    },
+     "UserProfileIndex": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User Profile Index",
+      "type": "object",
+      "description": "Stores a calculated index of a user's photographic profile based on their best work.",
+      "properties": {
+        "overall_profile_score": { "type": "number" },
+        "technical_score": { "type": "number" },
+        "progress_score": { "type": "number" },
+        "activity_score": { "type": "number" },
+        "dominant_genre": { "type": "string" },
+        "dominant_device": { "type": "string" },
+        "last_calculated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["overall_profile_score", "technical_score", "last_calculated_at"]
     },
     "Photo": {
       "$schema": "http://json-schema.org/draft-07/schema#",
