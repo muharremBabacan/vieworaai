@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { collection, doc, query, orderBy, where, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,17 +28,25 @@ export function GroupInvitesPopover() {
 
   const dateFnsLocale = localeMap[locale] || enUS;
   
-  // This is now a secure and efficient query.
-  const invitesQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+  // This is the corrected, secure, and efficient query as per your instruction.
+  const invitesQuery = useMemo(() => {
+    if (!user || !firestore) {
+      return null;
+    }
     return query(
         collection(firestore, 'group_invites'),
         where('toUserId', '==', user.uid),
-        where('status', '==', 'pending'),
-        orderBy('createdAt', 'desc')
+        where('status', '==', 'pending')
     );
   }, [user, firestore]);
-  const { data: invites } = useCollection<GroupInvite>(invitesQuery);
+
+  const { data: invitesData } = useCollection<GroupInvite>(invitesQuery);
+
+  const invites = useMemo(() => {
+    if (!invitesData) return [];
+    // Manually sort by date since orderBy may require an index
+    return [...invitesData].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [invitesData]);
   
   const unreadCount = invites?.length || 0;
 
@@ -50,15 +58,12 @@ export function GroupInvitesPopover() {
 
     if (action === 'accepted') {
        const groupRef = doc(firestore, 'groups', invite.groupId);
-       const userRef = doc(firestore, 'users', user.uid);
        
        try {
          // Use a batch write for an atomic operation.
          batch.update(inviteRef, { status: 'accepted' });
          batch.update(groupRef, { memberIds: arrayUnion(user.uid) });
-         // Optional: add group to user's profile if you store that
-         // batch.update(userRef, { groups: arrayUnion(invite.groupId) });
-
+         
          await batch.commit();
 
          toast({ title: tGroups('toast_join_success_title'), description: tGroups('toast_join_success_description', { name: invite.groupName }) });
