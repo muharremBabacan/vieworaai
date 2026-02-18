@@ -180,33 +180,27 @@ export default function ExplorePage() {
 
   return (
     <div className="container mx-auto">
-        <div className="text-left mb-10">
-            <p className="text-muted-foreground mt-2 text-lg">
-                {t('description')}
-            </p>
-        </div>
-
-        {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {Array.from({ length: 18 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
-            </div>
-        ) : photos && photos.length > 0 ? (
-             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {photos.map((photo) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            {isLoading ? (
+                Array.from({ length: 18 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)
+            ) : photos && photos.length > 0 ? (
+                 photos.map((photo) => (
                     <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
                         <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                          {photo.aiFeedback && (() => {
-                            const scores = [
-                              normalizeScore(photo.aiFeedback.light_score),
-                              normalizeScore(photo.aiFeedback.composition_score),
+                            const lightScore = normalizeScore(photo.aiFeedback.light_score);
+                            const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
+                            const technicalSubScores = [
                               normalizeScore(photo.aiFeedback.focus_score),
                               normalizeScore(photo.aiFeedback.color_control_score),
                               normalizeScore(photo.aiFeedback.background_control_score),
-                              normalizeScore(photo.aiFeedback.creativity_risk_score)
+                              normalizeScore(photo.aiFeedback.creativity_risk_score),
                             ];
-                            const validScores = scores.filter(score => !isNaN(score));
-                            const overallScore = validScores.length > 0 ? (validScores.reduce((s, v) => s + v, 0) / validScores.length) : 0;
+                            const technicalScore = technicalSubScores.length > 0 ? technicalSubScores.reduce((sum, score) => sum + score, 0) / technicalSubScores.length : 0;
+                            const mainScores = [lightScore, compositionScore, technicalScore].filter(s => !isNaN(s));
+                            const overallScore = mainScores.length > 0 ? mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length : 0;
+
                             return (
                                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                                   <Star className="h-3 w-3 text-yellow-400" />
@@ -215,15 +209,15 @@ export default function ExplorePage() {
                             )
                          })()}
                     </Card>
-                ))}
-            </div>
-        ) : (
-            <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
-                <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-2xl font-semibold">{t('no_photos_title')}</h3>
-                <p className="text-muted-foreground mt-2">{t('no_photos_description')}</p>
-            </div>
-        )}
+                ))
+            ) : (
+                <div className="col-span-full text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
+                    <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
+                    <h3 className="text-2xl font-semibold">{t('no_photos_title')}</h3>
+                    <p className="text-muted-foreground mt-2">{t('no_photos_description')}</p>
+                </div>
+            )}
+        </div>
 
         <PhotoDetailDialog 
             photo={selectedPhoto} 

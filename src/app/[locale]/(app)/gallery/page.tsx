@@ -440,16 +440,18 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
           </div>
 
           {photo.aiFeedback && (() => {
-              const scores = [
-                normalizeScore(photo.aiFeedback.light_score),
-                normalizeScore(photo.aiFeedback.composition_score),
+              const lightScore = normalizeScore(photo.aiFeedback.light_score);
+              const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
+              const technicalSubScores = [
                 normalizeScore(photo.aiFeedback.focus_score),
                 normalizeScore(photo.aiFeedback.color_control_score),
                 normalizeScore(photo.aiFeedback.background_control_score),
-                normalizeScore(photo.aiFeedback.creativity_risk_score)
+                normalizeScore(photo.aiFeedback.creativity_risk_score),
               ];
-              const validScores = scores.filter(score => !isNaN(score));
-              const overallScore = validScores.length > 0 ? (validScores.reduce((s, v) => s + v, 0) / validScores.length) : 0;
+              const technicalScore = technicalSubScores.length > 0 ? technicalSubScores.reduce((sum, score) => sum + score, 0) / technicalSubScores.length : 0;
+              const mainScores = [lightScore, compositionScore, technicalScore].filter(s => !isNaN(s));
+              const overallScore = mainScores.length > 0 ? mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length : 0;
+              
               return (
                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                   <Star className="h-3 w-3 text-yellow-400" />
