@@ -3,121 +3,40 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useRouter, Link } from '@/navigation';
-import type { Photo, PhotoAnalysis, User as UserProfile } from '@/types';
+import type { Photo, User as UserProfile } from '@/types';
 import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
-import { Star, Camera, Smartphone, HelpCircle, Bot, X } from 'lucide-react';
+import { Star, Camera, X } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
-import { Progress } from '@/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
     return score > 1 ? score : score * 10;
 };
 
-function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
+function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const t = useTranslations('ExplorePage');
-  const tRatings = useTranslations('Ratings');
-  
-  const lightScore = normalizeScore(analysis.light_score);
-  const compositionScore = normalizeScore(analysis.composition_score);
-  
-  const technicalSubScores = [
-    normalizeScore(analysis.focus_score),
-    normalizeScore(analysis.color_control_score),
-    normalizeScore(analysis.background_control_score),
-    normalizeScore(analysis.creativity_risk_score),
-  ];
-  const technicalScore = technicalSubScores.length > 0 ? technicalSubScores.reduce((sum, score) => sum + score, 0) / technicalSubScores.length : 0;
-
-  const mainScores = [lightScore, compositionScore, technicalScore].filter(s => !isNaN(s));
-  const overallScore = mainScores.length > 0 ? mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length : 0;
-  
-  const ScoreBar = ({ label, score }: { label: string; score: number }) => (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        <span className="text-sm font-bold">{score.toFixed(1)}</span>
-      </div>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Progress value={score * 10} className="h-2 [&>div]:bg-primary" />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{score.toFixed(2)}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
-
-  return (
-    <div>
-      <h4 className="font-semibold text-lg mb-4">{t('rating_card_title')}</h4>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-lg font-semibold">{t('overall_score')}</span>
-          <span className="text-3xl font-bold text-primary">{overallScore.toFixed(1)}</span>
-        </div>
-        <div className="space-y-4 flex-grow">
-          <ScoreBar label={tRatings('lighting')} score={lightScore} />
-          <ScoreBar label={tRatings('composition')} score={compositionScore} />
-          <ScoreBar label={tRatings('technical')} score={technicalScore} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
-  const t = useTranslations('ExplorePage');
-  const tGallery = useTranslations('GalleryPage');
   const firestore = useFirestore();
 
   const authorDocRef = useMemoFirebase(() => {
     if (!firestore || !photo?.userId) return null;
     return doc(firestore, 'users', photo.userId);
   }, [firestore, photo?.userId]);
-  const { data: authorProfile } = useDoc<UserProfile>(authorDocRef);
+  const { data: authorProfile, isLoading: isAuthorLoading } = useDoc<UserProfile>(authorDocRef);
 
   if (!photo) return null;
-  
-  const getCameraInfo = () => {
-    if (!photo?.aiFeedback) return null;
-    
-    const { device_estimation } = photo.aiFeedback;
-
-    if (!device_estimation || device_estimation === 'unknown') {
-        return { icon: HelpCircle, text: tGallery('camera_info_unknown') };
-    }
-
-    const typeMap = {
-        'pro_dslr': { text: tGallery('camera_type_pro'), icon: Camera},
-        'mirrorless': { text: tGallery('camera_type_pro'), icon: Camera},
-        'entry_dslr': { text: tGallery('camera_type_pro'), icon: Camera},
-        'mobile': { text: tGallery('camera_type_mobile'), icon: Smartphone},
-    }
-
-    return typeMap[device_estimation] || { icon: HelpCircle, text: tGallery('camera_info_unknown') };
-  };
-  
-  const CameraInfo = getCameraInfo();
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -139,7 +58,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
         <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image
             src={photo.imageUrl}
-            alt="Viewora Fuaye Fotoğrafı"
+            alt="Sergi fotoğrafı"
             fill
             sizes="(max-width: 768px) 100vw, 60vw"
             className="object-contain"
@@ -155,8 +74,16 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               </DialogTitle>
             </DialogHeader>
 
-            {authorProfile ? (
-              <Link href={`/u/${authorProfile.id}`} className="group" onClick={() => onOpenChange(false)}>
+            {isAuthorLoading ? (
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            ) : authorProfile ? (
+              <Link href={`/u/${authorProfile.id}`} className="group block" onClick={() => onOpenChange(false)}>
                 <div className="flex items-center gap-3 rounded-lg p-2 -ml-2 transition-colors group-hover:bg-secondary">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback>{authorProfile.name?.charAt(0) || '?'}</AvatarFallback>
@@ -167,42 +94,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
                   </div>
                 </div>
               </Link>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="space-y-1">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            )}
-
-            {CameraInfo && (
-                <div className={cn("flex items-center gap-2 text-sm p-3 rounded-lg border bg-secondary/30", CameraInfo.color)}>
-                    <CameraInfo.icon className={cn("h-5 w-5", CameraInfo.color ? CameraInfo.color : 'text-primary')} />
-                    <span className="font-medium">{CameraInfo.text}</span>
-                </div>
-            )}
-
-            {photo.tags && photo.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {photo.tags.map(tag => <Badge key={tag} variant="secondary" className="capitalize px-3 py-1">{tag}</Badge>)}
-              </div>
-            )}
-            
-            {photo.aiFeedback ? (
-              <>
-                <RatingDisplay analysis={photo.aiFeedback} />
-                <div>
-                  <h4 className="font-semibold text-lg mb-2 flex items-center gap-2"><Bot className="h-5 w-5" /> {t('analysis_summary_title')}</h4>
-                   <div className="text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: (photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-20 bg-muted/20 rounded-xl border border-dashed">
-                <p className="text-muted-foreground">{t('loading_analysis')}</p>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </DialogContent>
@@ -257,7 +149,7 @@ export default function ExplorePage() {
             ) : photos && photos.length > 0 ? (
                  photos.map((photo) => (
                     <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
-                        <Image src={photo.imageUrl} alt="Fuaye Fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
+                        <Image src={photo.imageUrl} alt="Sergi Fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                          {photo.aiFeedback && (() => {
                             const lightScore = normalizeScore(photo.aiFeedback.light_score);
@@ -290,7 +182,7 @@ export default function ExplorePage() {
             )}
         </div>
 
-        <PhotoDetailDialog 
+        <PublicPhotoDialog 
             photo={selectedPhoto} 
             isOpen={!!selectedPhoto}
             onOpenChange={(open) => !open && setSelectedPhoto(null)}

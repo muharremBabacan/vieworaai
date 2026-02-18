@@ -6,9 +6,9 @@ import {
   GalleryVertical,
   GraduationCap,
   Sparkles,
-  Compass,
   Users,
   User as UserIcon,
+  ShoppingBag,
 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
@@ -36,7 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     },
     {
       href: '/explore',
-      icon: Compass,
+      icon: ShoppingBag,
       label: t('nav_explore'),
       shortLabel: t('nav_explore'),
     },

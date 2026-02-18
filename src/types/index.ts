@@ -61,7 +61,8 @@ export type Photo = {
   aiFeedback: PhotoAnalysis | null;
   adaptiveFeedback?: string | null;
   createdAt: string;
-  isSubmittedToPublic?: boolean;
+  isSubmittedToExhibition?: boolean;
+  isInFoyer?: boolean;
 };
 
 export type Lesson = {
