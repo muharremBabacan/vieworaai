@@ -4,20 +4,17 @@ service firebase.storage {
   match /b/{bucket}/o {
     // User-specific uploads
     // A user can read, write, and delete files inside their own user-specific folder.
-    // This allows them to upload for analysis, practice submissions, and manage their own content.
-    // The path /{allPaths=**} is a recursive wildcard, granting access to all files and folders
-    // under the user's directory.
     match /users/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Academy lesson images
-    // Any authenticated user can read them.
-    // The admin (based on UID) can write (upload/update/delete) lesson images.
+    // ⭐ VIEWORA ACADEMY (ADMIN YÜKLEME)
+    // Bu kural, "admin" custom claim'ine sahip olan kullanıcıların
+    // /academy-lessons/ klasörüne yazmasına (yükleme, silme) izin verir.
+    // Diğer tüm kimliği doğrulanmış kullanıcılar yalnızca okuyabilir.
     match /academy-lessons/{lessonId}/{allPaths=**} {
       allow read: if request.auth != null;
-      // TEMPORARY DEBUGGING: Use admin UID directly to isolate the issue.
-      allow write, delete: if request.auth != null && request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43';
+      allow write, delete: if request.auth != null && request.auth.token.admin == true;
     }
   }
 }
