@@ -155,6 +155,12 @@
       "description": "A professional photo studio lighting setup.",
       "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-studio-light.jpg?alt=media",
       "imageHint": "studio lighting setup"
+    },
+    {
+      "id": "academy-uploaded-1",
+      "description": "User uploaded image.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Fimage%20%281%29.jpg?alt=media",
+      "imageHint": "camera photo"
     }
   ]
 }
