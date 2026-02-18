@@ -8,8 +8,8 @@
       {
         "source": "**",
         "run": {
-          "serviceId": "viewora-ai",
-          "region": "us-west1"
+          "serviceId": "studio",
+          "region": "us-central1"
         }
       }
     ]
