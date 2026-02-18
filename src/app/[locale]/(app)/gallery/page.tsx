@@ -57,11 +57,11 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
     normalizeScore(analysis.background_control_score),
     normalizeScore(analysis.creativity_risk_score),
   ];
-  const technicalScore = technicalSubScores.reduce((sum, score) => sum + score, 0) / technicalSubScores.length;
+  const technicalScore = technicalSubScores.length > 0 ? technicalSubScores.reduce((sum, score) => sum + score, 0) / technicalSubScores.length : 0;
 
-  const mainScores = [lightScore, compositionScore, technicalScore];
-  const overallScore = mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
-  
+  const mainScores = [lightScore, compositionScore, technicalScore].filter(s => !isNaN(s));
+  const overallScore = mainScores.length > 0 ? mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length : 0;
+
   const ratingItems = [
       { label: tRatings('lighting'), value: lightScore },
       { label: tRatings('composition'), value: compositionScore },
@@ -71,28 +71,28 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   return (
       <div>
           <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
-          <div className="flex items-center gap-6 rounded-lg border p-4">
-              <div className="flex flex-col items-center justify-center">
-                  <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                  <p className="text-5xl font-bold text-primary">{overallScore.toFixed(1)}</p>
-              </div>
-              <div className="flex-1 space-y-2">
-                  {ratingItems.map(item => (
-                      <div key={item.label} className="flex items-center justify-between gap-4">
-                          <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="w-full bg-muted rounded-full h-2">
-                                <div
-                                    className="bg-primary h-2 rounded-full"
-                                    style={{ width: `${(item.value ?? 0) * 10}%` }}
-                                />
-                            </div>
-                            <span className="text-sm font-semibold w-8 text-right">{item.value.toFixed(1)}</span>
-                          </div>
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-baseline justify-between">
+                <p className="text-base font-semibold">{t('overall_score')}</p>
+                <p className="text-3xl font-bold text-primary">{overallScore.toFixed(1)}</p>
+            </div>
+            <div className="space-y-3 pt-4 border-t">
+                {ratingItems.map(item => (
+                    <div key={item.label} className="grid grid-cols-3 items-center gap-2">
+                      <span className="text-sm text-muted-foreground col-span-1">{item.label}</span>
+                      <div className="col-span-2 flex items-center gap-2">
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full"
+                            style={{ width: `${(item.value ?? 0) * 10}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-semibold w-8 text-right">{item.value.toFixed(1)}</span>
                       </div>
-                  ))}
-              </div>
-          </div>
+                    </div>
+                ))}
+            </div>
+        </div>
       </div>
   )
 }
@@ -398,8 +398,8 @@ function PhotoDetailDialog({
 
 function GallerySkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {Array.from({ length: 10 }).map((_, i) => (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+      {Array.from({ length: 18 }).map((_, i) => (
         <div key={i} className="aspect-square">
           <Skeleton className="w-full h-full rounded-lg" />
         </div>
@@ -421,7 +421,7 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
       {photos.map((photo) => (
         <Card 
           key={photo.id} 
