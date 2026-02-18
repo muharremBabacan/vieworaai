@@ -251,6 +251,11 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
            <div className="absolute top-4 left-4">
             <Badge variant="secondary">{lesson.category}</Badge>
           </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute bottom-4 left-4 text-white">
+            <p className="font-bold text-xl drop-shadow-md">Viewora</p>
+            <p className="text-lg drop-shadow-md">Akademi</p>
+          </div>
         </div>
         <div className="md:w-3/5 w-full overflow-y-auto flex flex-col">
             <div className='p-6 flex flex-col h-full'>
@@ -320,6 +325,10 @@ function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; 
                   data-ai-hint={lesson.imageHint}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-4 left-4 text-white">
+                    <p className="font-bold text-xl drop-shadow-md">Viewora</p>
+                    <p className="text-lg drop-shadow-md">Akademi</p>
+                </div>
             </>
         ) : (
             <Camera className="h-12 w-12 text-muted-foreground" />
