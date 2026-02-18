@@ -1,14 +1,15 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowRight, BookOpen, Layers, Trophy, Lock } from 'lucide-react';
+import { ArrowRight, BookOpen, Layers, Trophy, Lock, Lightbulb } from 'lucide-react';
 import { Link } from '@/navigation';
 import { useTranslations } from 'next-intl';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { User as UserProfile } from '@/types';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query } from 'firebase/firestore';
+import type { User as UserProfile, Lesson } from '@/types';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
 // Helper function to determine if a user has access to a certain academy level
 const hasLevelAccess = (targetLevel: 'Temel' | 'Orta' | 'İleri', userLevelName: string | undefined): boolean => {
@@ -39,6 +40,44 @@ export default function AcademyHubPage() {
 
   const { data: userProfile, isLoading } = useDoc<UserProfile>(userDocRef);
 
+  // NEW: Fetch all lessons for recommendations
+  const { data: allLessons, isLoading: areLessonsLoading } = useCollection<Lesson>(
+    useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'academyLessons'));
+    }, [firestore])
+  );
+
+  // NEW: Recommendation logic
+  const recommendedLessons = useMemo(() => {
+    if (!userProfile?.profileIndex || !allLessons) return [];
+
+    const { dominant_genre } = userProfile.profileIndex;
+    if (!dominant_genre || dominant_genre === 'other') return [];
+
+    const genreKeywordMap: Record<string, string[]> = {
+        'portrait': ['portre'],
+        'street': ['sokak'],
+        'landscape': ['manzara', 'doğa'],
+        'macro': ['makro'],
+        'architecture': ['mimari'],
+        'documentary': ['belgesel']
+    };
+
+    const keywords = genreKeywordMap[dominant_genre.toLowerCase()] || [];
+    if (keywords.length === 0) return [];
+    
+    return allLessons
+        .filter(lesson => {
+            const hasAccess = hasLevelAccess(lesson.level, userProfile.level_name);
+            if (!hasAccess) return false;
+            
+            const lessonContent = `${lesson.title} ${lesson.category}`.toLowerCase();
+            return keywords.some(keyword => lessonContent.includes(keyword));
+        })
+        .slice(0, 3); // Limit to 3 recommendations
+  }, [userProfile, allLessons]);
+
   const levels = [
     {
       title: t('level_basic_title'),
@@ -63,7 +102,7 @@ export default function AcademyHubPage() {
     },
   ];
 
-  if (isLoading) {
+  if (isLoading || areLessonsLoading) {
       return (
           <div className="container mx-auto">
               <div className="text-center mb-12">
@@ -99,6 +138,29 @@ export default function AcademyHubPage() {
         <h1 className="font-sans text-3xl font-bold tracking-tight">{t('main_title')}</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">{t('main_description')}</p>
       </div>
+
+      {/* NEW: Recommended Lessons Section */}
+      {recommendedLessons.length > 0 && (
+        <div className="mb-12">
+            <h2 className="font-sans text-2xl font-bold tracking-tight mb-4 flex items-center gap-3">
+                <Lightbulb className="text-amber-400" />
+                Sana Özel Öneriler
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {recommendedLessons.map(lesson => (
+                    <Link href={`/academy/${lesson.level.toLowerCase()}`} key={lesson.id} className="group block h-full">
+                        <Card className="h-full transition-all duration-300 group-hover:border-primary group-hover:shadow-lg group-hover:-translate-y-1">
+                            <CardHeader>
+                                <CardDescription>{lesson.category}</CardDescription>
+                                <CardTitle className="font-sans text-lg leading-snug">{lesson.title}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                    </Link>
+                ))}
+            </div>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
         {levels.map((level) => {
