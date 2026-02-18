@@ -24,10 +24,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, BookOpen, Camera, Info, Target, FileText, Bot, AlertTriangle, UploadCloud, X, Loader2, Zap, CheckCircle, XCircle, Pencil } from 'lucide-react';
+import { Check, BookOpen, Camera, Info, Target, FileText, Bot, AlertTriangle, UploadCloud, X, Loader2, Zap, CheckCircle, XCircle, Pencil, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { getLevelFromXp } from '@/lib/gamification';
+import { getLevelFromXp, levels as gamificationLevels } from '@/lib/gamification';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@/navigation';
 import { useTranslations } from 'next-intl';
@@ -39,6 +39,22 @@ const levelSlugMap: Record<string, { name: 'Temel' | 'Orta' | 'İleri'; title: s
     'orta': { name: 'Orta', title: 'Orta Seviye Dersleri' },
     'ileri': { name: 'İleri', title: 'İleri Seviye Dersleri' }
 };
+
+const hasLevelAccess = (targetLevel: 'Temel' | 'Orta' | 'İleri', userLevelName: string | undefined): boolean => {
+  if (targetLevel === 'Temel') return true;
+  if (!userLevelName) return false;
+
+  const userLevelIndex = gamificationLevels.findIndex(l => l.name === userLevelName);
+  if (userLevelIndex === -1) return false;
+
+  const requiredLevelIndices = {
+    'Orta': 1, // Requires 'Viewner' (index 1) or higher
+    'İleri': 2, // Requires 'Sytner' (index 2) or higher
+  };
+
+  return userLevelIndex >= (requiredLevelIndices[targetLevel] || 99);
+};
+
 
 const levelCategoryMap: Record<string, string[]> = {
   'Temel': ["Fotoğrafçılığa Giriş", "Pozlama Temelleri", "Netlik ve Odaklama", "Temel Kompozisyon", "Işık Bilgisi"],
@@ -421,14 +437,17 @@ export default function LevelPage() {
     return doc(firestore, 'users', authUser.uid);
   }, [authUser, firestore]);
 
-  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const lessonsQuery = useMemoFirebase(() => {
     if (!firestore || !authUser) return null;
     return collection(firestore, 'academyLessons');
   }, [firestore, authUser]);
   
-  const { data: allLessons, isLoading } = useCollection<AcademyLesson>(lessonsQuery);
+  const { data: allLessons, isLoading: areLessonsLoading } = useCollection<AcademyLesson>(lessonsQuery);
+  const isLoading = isProfileLoading || areLessonsLoading;
+  
+  const hasAccess = levelInfo ? hasLevelAccess(levelInfo.name, userProfile?.level_name) : false;
 
   // Filter and sort lessons on the client-side
   const lessons = useMemo(() => {
@@ -511,6 +530,19 @@ export default function LevelPage() {
           </div>
       );
   }
+
+  // If the user doesn't have access, show a locked screen
+  if (!isLoading && !hasAccess) {
+      return (
+          <div className="container mx-auto text-center py-20">
+              <Lock className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-xl font-semibold">Bu Seviye Henüz Açık Değil</h3>
+              <p className="text-muted-foreground mt-2">Daha fazla XP kazanarak ve seviye atlayarak bu dersleri açabilirsiniz.</p>
+              <Button onClick={() => router.push('/academy')} className="mt-6">{t('button_back_to_academy')}</Button>
+          </div>
+      );
+  }
+
 
   const groupedLessons = useMemo(() => {
     if (!lessons) return {};
