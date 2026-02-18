@@ -266,7 +266,7 @@ export default function PhotoAnalyzer() {
     <div className="space-y-8">
        {!analysisResult && !preview && (
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight">{t('greeting_title', { name: userProfile?.name?.split(' ')[0] })}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('greeting_title', { name: userProfile?.name?.split(' ')[0] })}</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {t('greeting_desc_1')} {t('greeting_desc_2')}
           </p>

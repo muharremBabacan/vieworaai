@@ -181,9 +181,6 @@ export default function ExplorePage() {
   return (
     <div className="container mx-auto">
         <div className="text-left mb-10">
-            <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent inline-block">
-                {t('title')}
-            </h2>
             <p className="text-muted-foreground mt-2 text-lg">
                 {t('description')}
             </p>

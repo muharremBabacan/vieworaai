@@ -106,7 +106,6 @@ export default function AcademyHubPage() {
       return (
           <div className="container mx-auto">
               <div className="text-center mb-12">
-                  <h1 className="font-sans text-3xl font-bold tracking-tight">{t('main_title')}</h1>
                   <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">{t('main_description')}</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -135,7 +134,6 @@ export default function AcademyHubPage() {
   return (
     <div className="container mx-auto">
        <div className="text-center mb-12">
-        <h1 className="font-sans text-3xl font-bold tracking-tight">{t('main_title')}</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">{t('main_description')}</p>
       </div>
 
