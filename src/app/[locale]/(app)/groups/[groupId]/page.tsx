@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { useParams, useRouter } from '@/navigation';
+import { useRouter } from '@/navigation';
+import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, getDoc, collection, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { Group, User as UserProfile } from '@/types';
@@ -16,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Users, Crown, Loader2, AlertTriangle, UserPlus, X, Trash2, Settings, QrCode, Link as LinkIcon, Copy } from 'lucide-react';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import { Label } from '@/components/ui/label';
 
 function MemberItem({ userId, isOwner, onRemove }: { userId: string, isOwner: boolean, onRemove: (userId: string, userName: string) => void }) {
   const t = useTranslations('GroupDetailPage');
@@ -60,6 +62,7 @@ function MemberItem({ userId, isOwner, onRemove }: { userId: string, isOwner: bo
   }
 
   const isCurrentUserOwner = userId === currentUser?.uid && isOwner;
+  const isSelf = userId === currentUser?.uid;
 
   return (
     <>
@@ -69,9 +72,9 @@ function MemberItem({ userId, isOwner, onRemove }: { userId: string, isOwner: bo
             <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
           </Avatar>
           <span className="text-sm font-medium">{userProfile.name}</span>
-          {isCurrentUserOwner && <Crown className="h-4 w-4 text-amber-400" />}
+          {isOwner && isSelf && <Crown className="h-4 w-4 text-amber-400" />}
         </div>
-        {isOwner && !isCurrentUserOwner && (
+        {isOwner && !isSelf && (
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setIsAlertOpen(true)}>
             <X className="h-4 w-4" />
           </Button>
