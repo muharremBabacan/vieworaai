@@ -24,7 +24,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, BookOpen, Camera, Info, Target, FileText, Bot, AlertTriangle, UploadCloud, X, Loader2, Zap, CheckCircle, XCircle } from 'lucide-react';
+import { Check, BookOpen, Camera, Info, Target, FileText, Bot, AlertTriangle, UploadCloud, X, Loader2, Zap, CheckCircle, XCircle, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -216,16 +216,63 @@ function PracticeSubmission({ lesson }: { lesson: AcademyLesson }) {
 }
 
 
-function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; }) {
+function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted, userProfile }: { lesson: AcademyLesson | null; isOpen: boolean; onOpenChange: (open: boolean) => void; onLearn: (lessonId: string, xp: number, auro: number) => void; isCompleted: boolean; userProfile: UserProfile | null; }) {
   const t = useTranslations('AcademyLevelPage');
+  const firestore = useFirestore();
+  const storage = useStorage();
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   if (!lesson) return null;
 
+  const isAdmin = userProfile?.email === 'admin@viewora.ai';
   const xpForLesson = 10;
   const auroForLesson = 2;
 
   const handleLearn = () => {
     if (isCompleted) return;
     onLearn(lesson.id, xpForLesson, auroForLesson);
+  };
+
+  const handleImageChangeClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !lesson) return;
+
+    setIsUploading(true);
+    toast({ title: t('toast_upload_image_title') });
+
+    const imagePath = `academy-lessons/${lesson.id}/${file.name.replace(/\s/g, '_')}`;
+    const imageRef = storageRef(storage, imagePath);
+
+    try {
+      await uploadBytes(imageRef, file);
+      const downloadURL = await getDownloadURL(imageRef);
+
+      const lessonDocRef = doc(firestore, 'academyLessons', lesson.id);
+      updateDocumentNonBlocking(lessonDocRef, {
+          imageUrl: downloadURL
+      });
+
+      toast({
+        title: t('toast_upload_image_success_title'),
+        description: t('toast_upload_image_success_description'),
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      toast({
+        variant: 'destructive',
+        title: t('toast_upload_image_error_title'),
+        description: t('toast_upload_image_error_description'),
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const accordionItems = [
@@ -239,7 +286,8 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
-        <div className="md:w-2/5 w-full relative aspect-video">
+        <div className="md:w-2/5 w-full relative aspect-video group">
+           <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
            <Image
             src={lesson.imageUrl}
             alt={lesson.title}
@@ -252,10 +300,16 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
             <Badge variant="secondary">{lesson.category}</Badge>
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-4 left-4 text-white">
-            <p className="font-bold text-xl drop-shadow-md">Viewora</p>
-            <p className="text-lg drop-shadow-md">Akademi</p>
-          </div>
+          
+          {isAdmin && (
+             <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Button onClick={handleImageChangeClick} disabled={isUploading} variant="secondary">
+                  {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Pencil className="mr-2 h-4 w-4" />}
+                  {t('button_change_image')}
+                </Button>
+            </div>
+          )}
+
         </div>
         <div className="md:w-3/5 w-full overflow-y-auto flex flex-col">
             <div className='p-6 flex flex-col h-full'>
@@ -534,6 +588,7 @@ export default function LevelPage() {
         onOpenChange={(isOpen) => { if (!isOpen) setSelectedLesson(null); }}
         onLearn={handleLearn}
         isCompleted={!!selectedLesson && (userProfile?.completed_modules?.includes(selectedLesson.id) || false)}
+        userProfile={userProfile}
       />
     </div>
   );

@@ -96,7 +96,13 @@
     "button_back_to_academy": "Back to Academy",
     "category_other": "Other",
     "no_lessons_title": "No Lessons Yet at This Level",
-    "no_lessons_description": "Create lessons for this level using the admin tool in the profile page."
+    "no_lessons_description": "Create lessons for this level using the admin tool in the profile page.",
+    "button_change_image": "Change Image",
+    "toast_upload_image_title": "Uploading Image...",
+    "toast_upload_image_success_title": "Success!",
+    "toast_upload_image_success_description": "The lesson image has been updated.",
+    "toast_upload_image_error_title": "Error",
+    "toast_upload_image_error_description": "The image could not be uploaded."
   },
   "CompetitionsPage": {
     "status_active": "Active",
@@ -372,26 +378,6 @@
     "creativity": "Creativity",
     "overall": "Overall",
     "technical": "Technical"
-  },
-  "Curriculum": {
-    "level_basic": "Beginner",
-    "level_intermediate": "Intermediate",
-    "level_advanced": "Advanced",
-    "cat_b_intro": "Introduction to Photography",
-    "cat_b_exposure": "Exposure Basics",
-    "cat_b_focus": "Sharpness and Focusing",
-    "cat_b_composition": "Basic Composition",
-    "cat_b_light": "Understanding Light",
-    "cat_i_genres": "Genre-Based Shooting Techniques",
-    "cat_i_advanced_exposure": "Advanced Exposure Techniques",
-    "cat_i_light_management": "Light Management",
-    "cat_i_storytelling": "Visual Storytelling",
-    "cat_i_post_production": "Post-Production Basics",
-    "cat_a_specialization": "Specialization Deep Dive",
-    "cat_a_studio_light": "Professional Lighting Setup",
-    "cat_a_advanced_techniques": "Advanced Techniques",
-    "cat_a_style": "Artistic Identity and Style",
-    "cat_a_business": "Commercial and Brand Positioning"
   },
   "Notifications": {
     "title": "Notifications",

@@ -96,7 +96,13 @@
     "button_back_to_academy": "Akademi'ye Dön",
     "category_other": "Diğer",
     "no_lessons_title": "Bu Seviyede Henüz Ders Yok",
-    "no_lessons_description": "Profil sayfasından yönetici aracıyla bu seviyeye ait dersler oluşturun."
+    "no_lessons_description": "Profil sayfasından yönetici aracıyla bu seviyeye ait dersler oluşturun.",
+    "button_change_image": "Görseli Değiştir",
+    "toast_upload_image_title": "Görsel Yükleniyor...",
+    "toast_upload_image_success_title": "Başarılı!",
+    "toast_upload_image_success_description": "Ders görseli güncellendi.",
+    "toast_upload_image_error_title": "Hata",
+    "toast_upload_image_error_description": "Görsel yüklenemedi."
   },
   "CompetitionsPage": {
     "status_active": "Aktif",
