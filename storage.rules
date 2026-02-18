@@ -13,10 +13,11 @@ service firebase.storage {
 
     // Academy lesson images
     // Any authenticated user can read them.
-    // The admin (based on email) can write (upload/update/delete) lesson images.
+    // The admin (based on UID) can write (upload/update/delete) lesson images.
     match /academy-lessons/{lessonId}/{allPaths=**} {
       allow read: if request.auth != null;
-      allow write, delete: if request.auth != null && request.auth.token.email == 'admin@viewora.ai';
+      // TEMPORARY DEBUGGING: Use admin UID directly to isolate the issue.
+      allow write, delete: if request.auth != null && request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43';
     }
   }
 }
