@@ -123,11 +123,23 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden"
+        onInteractOutside={(e) => {
+          e.preventDefault();
+          onOpenChange(false);
+        }}
       >
+        <div className="absolute right-4 top-4 z-10">
+            <DialogClose asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-background/60 backdrop-blur-sm text-foreground/80 hover:bg-background/80 hover:text-foreground">
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">Close</span>
+                </Button>
+            </DialogClose>
+        </div>
         <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image
             src={photo.imageUrl}
-            alt="Viewora Sergi Fotoğrafı"
+            alt="Viewora Fuaye Fotoğrafı"
             fill
             sizes="(max-width: 768px) 100vw, 60vw"
             className="object-contain"
@@ -245,20 +257,20 @@ export default function ExplorePage() {
             ) : photos && photos.length > 0 ? (
                  photos.map((photo) => (
                     <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
-                        <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
+                        <Image src={photo.imageUrl} alt="Fuaye Fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                          {photo.aiFeedback && (() => {
                             const lightScore = normalizeScore(photo.aiFeedback.light_score);
                             const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
-                            const technicalSubScores = [
-                              normalizeScore(photo.aiFeedback.focus_score),
-                              normalizeScore(photo.aiFeedback.color_control_score),
-                              normalizeScore(photo.aiFeedback.background_control_score),
-                              normalizeScore(photo.aiFeedback.creativity_risk_score),
-                            ];
-                            const technicalScore = technicalSubScores.length > 0 ? technicalSubScores.reduce((sum, score) => sum + score, 0) / technicalSubScores.length : 0;
-                            const mainScores = [lightScore, compositionScore, technicalScore].filter(s => !isNaN(s));
-                            const overallScore = mainScores.length > 0 ? mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length : 0;
+                            const technicalScore = normalizeScore(
+                              (
+                                normalizeScore(photo.aiFeedback.focus_score) +
+                                normalizeScore(photo.aiFeedback.color_control_score) +
+                                normalizeScore(photo.aiFeedback.background_control_score) +
+                                normalizeScore(photo.aiFeedback.creativity_risk_score)
+                              ) / 4
+                            );
+                            const overallScore = (lightScore + compositionScore + technicalScore) / 3;
 
                             return (
                                 <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
