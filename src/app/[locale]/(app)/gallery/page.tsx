@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Star, Loader2, Rocket, Clock, Zap, Trash2, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
+import { Star, Loader2, Rocket, Clock, Zap, Trash2, Camera, Smartphone, HelpCircle, Bot, LibrarySquare, Eye } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
@@ -121,7 +121,18 @@ function PhotoDetailDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [dialogAction, setDialogAction] = useState<'withdraw' | 'delete' | null>(null);
+  const [dialogAction, setDialogAction] = useState<'withdrawExhibition' | 'delete' | null>(null);
+  const [foyerPhotosCount, setFoyerPhotosCount] = useState(0);
+
+  useEffect(() => {
+    if (!isOpen || !firestore || !photo?.userId) return;
+    const foyerQuery = query(collection(firestore, 'users', photo.userId, 'photos'), where("isInFoyer", "==", true), limit(11));
+    getDocs(foyerQuery).then(snapshot => {
+      setFoyerPhotosCount(snapshot.size);
+    });
+  }, [firestore, photo?.userId, isOpen]);
+  
+  const canAddToFoyer = foyerPhotosCount < 10;
 
   useEffect(() => {
     if (isOpen) {
@@ -131,6 +142,29 @@ function PhotoDetailDialog({
       setDialogAction(null);
     }
   }, [isOpen]);
+  
+  const handleToggleFoyer = async () => {
+    if (!photo || !photo.userId || !firestore || isProcessing) return;
+    
+    if (!photo.isInFoyer && !canAddToFoyer) {
+      toast({ variant: "destructive", title: t('foyer_limit_reached') });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const photoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
+      await updateDoc(photoRef, { isInFoyer: !photo.isInFoyer });
+      toast({ title: t('toast_success_title'), description: photo.isInFoyer ? t('toast_remove_foyer_complete') : t('toast_add_foyer_complete') });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Foyer toggle error:", error);
+      toast({ variant: "destructive", title: t('toast_error_title'), description: t('toast_error_foyer') });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
 
   const getCameraInfo = () => {
     if (!photo?.aiFeedback) return null;
@@ -203,13 +237,13 @@ function PhotoDetailDialog({
     }
   };
 
-  const handleSubmitToPublic = () => {
+  const handleSubmitToExhibition = () => {
     if (!photo || !userProfile || !userDocRef || !photo.userId || !firestore) return;
     const submissionCost = 5;
     const currentAuro = userProfile.auro_balance || 0;
 
     if (currentAuro < submissionCost) {
-        toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_submit', { cost: submissionCost }) });
+        toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_analysis', { cost: submissionCost }) });
         return;
     }
 
@@ -218,23 +252,23 @@ function PhotoDetailDialog({
     const { id, ...publicPhotoData } = photo;
     addDocumentNonBlocking(publicPhotosRef, publicPhotoData);
     updateDocumentNonBlocking(userDocRef, { auro_balance: currentAuro - submissionCost });
-    updateDocumentNonBlocking(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: true });
+    updateDocumentNonBlocking(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToExhibition: true });
     
-    toast({ title: t('toast_success_title'), description: t('toast_submit_complete') });
+    toast({ title: t('toast_success_title'), description: t('toast_submit_exhibition_complete') });
     onOpenChange(false);
     setIsSubmitting(false);
   };
   
-  const handleWithdrawFromPublic = async () => {
+  const handleWithdrawFromExhibition = async () => {
     if (!photo || !photo.userId || !firestore || isProcessing) return;
     setIsProcessing(true);
     try {
         const publicPhotosQuery = query(collection(firestore, 'public_photos'), where('imageUrl', '==', photo.imageUrl), where('userId', '==', photo.userId), limit(1));
         const querySnapshot = await getDocs(publicPhotosQuery);
         const deletionPromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
-        await Promise.all([...deletionPromises, updateDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToPublic: false })]);
+        await Promise.all([...deletionPromises, updateDoc(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToExhibition: false })]);
         
-        toast({ title: t('toast_success_title'), description: t('toast_withdraw_complete') });
+        toast({ title: t('toast_success_title'), description: t('toast_withdraw_exhibition_complete') });
 
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -247,8 +281,8 @@ function PhotoDetailDialog({
         }, 200);
 
     } catch (error) {
-        console.error("Çekme hatası:", error);
-        toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_withdraw') });
+        console.error("Withdrawal error:", error);
+        toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_exhibition') });
         setIsProcessing(false);
     }
   };
@@ -270,10 +304,10 @@ function PhotoDetailDialog({
         if (filePath) {
             const storage = getStorage();
             const imageRef = storageRef(storage, filePath);
-            deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage silinemedi:", e)));
+            deletionPromises.push(deleteObject(imageRef).catch(e => console.warn("Storage deletion failed:", e)));
         }
         
-        if (photo.isSubmittedToPublic) {
+        if (photo.isSubmittedToExhibition) {
             const pubQuery = query(collection(firestore, 'public_photos'), where('imageUrl', '==', photo.imageUrl), where('userId', '==', photo.userId));
             const snap = await getDocs(pubQuery);
             snap.forEach(d => deletionPromises.push(deleteDoc(d.ref)));
@@ -294,7 +328,7 @@ function PhotoDetailDialog({
         }, 200);
 
     } catch (error) {
-        console.error("Silme hatası:", error);
+        console.error("Deletion error:", error);
         toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_delete') });
         setIsProcessing(false);
     }
@@ -350,15 +384,38 @@ function PhotoDetailDialog({
             )}
           <div className="pt-6 border-t space-y-3 !mt-auto">
              {photo.aiFeedback && (
-                photo.isSubmittedToPublic ? (
-                    <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
-                        {isLoading && dialogAction === 'withdraw' ? <Loader2 className="animate-spin"/> : t('button_withdraw_from_public')}
-                    </Button>
-                ) : (
-                    <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading}>
-                        {isSubmitting ? <Loader2 className="animate-spin"/> : <><Rocket className="mr-2 h-4 w-4" />{t('button_submit_to_public', { cost: 5 })}</>}
-                    </Button>
-                )
+                <div className="space-y-3">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="w-full">
+                          {photo.isInFoyer ? (
+                            <Button variant="secondary" className="w-full" onClick={handleToggleFoyer} disabled={isLoading}>
+                              {isProcessing ? <Loader2 className="animate-spin" /> : <><LibrarySquare className="mr-2 h-4 w-4"/>{t('button_remove_from_foyer')}</>}
+                            </Button>
+                          ) : (
+                            <Button variant="secondary" className="w-full" onClick={handleToggleFoyer} disabled={isLoading || !canAddToFoyer}>
+                               {isProcessing ? <Loader2 className="animate-spin" /> : <><LibrarySquare className="mr-2 h-4 w-4"/>{t('button_add_to_foyer')}</>}
+                            </Button>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      {!photo.isInFoyer && !canAddToFoyer && (
+                        <TooltipContent><p>{t('foyer_limit_reached')}</p></TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  {photo.isSubmittedToExhibition ? (
+                      <Button variant="outline" className="w-full" onClick={() => setDialogAction('withdrawExhibition')} disabled={isLoading}>
+                          {isLoading && dialogAction === 'withdrawExhibition' ? <Loader2 className="animate-spin"/> : <><Eye className="mr-2 h-4 w-4"/>{t('button_withdraw_from_exhibition')}</>}
+                      </Button>
+                  ) : (
+                      <Button className="w-full" onClick={handleSubmitToExhibition} disabled={isLoading}>
+                          {isSubmitting ? <Loader2 className="animate-spin"/> : <><Eye className="mr-2 h-4 w-4"/>{t('button_submit_to_exhibition', { cost: 5 })}</>}
+                      </Button>
+                  )}
+                </div>
              )}
              <Button type="button" variant="outline" className="w-full text-destructive hover:text-destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>
                 {isLoading && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : <><Trash2 className="mr-2 h-4 w-4" />{t('button_delete_permanently')}</>}
@@ -383,7 +440,7 @@ function PhotoDetailDialog({
                 <AlertDialogAction 
                   disabled={isProcessing}
                   className={cn(dialogAction === 'delete' && "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
-                  onClick={() => dialogAction === 'withdraw' ? handleWithdrawFromPublic() : handleDeletePhoto()}>
+                  onClick={() => dialogAction === 'withdrawExhibition' ? handleWithdrawFromExhibition() : handleDeletePhoto()}>
                     {isProcessing ? <Loader2 className="animate-spin" /> : t('alert_dialog_confirm')}
                 </AlertDialogAction>
             </AlertDialogFooter>
@@ -435,10 +492,15 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
             )}
           </div>
           
-          <div className="absolute top-2 left-2">
-            {photo.isSubmittedToPublic && (
+          <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+            {photo.isSubmittedToExhibition && (
               <Badge variant="secondary" className="bg-purple-600 text-white border-transparent p-1 backdrop-blur-sm">
-                <Rocket className="h-3 w-3" />
+                <Eye className="h-3 w-3" />
+              </Badge>
+            )}
+             {photo.isInFoyer && (
+              <Badge variant="secondary" className="bg-cyan-500 text-white border-transparent p-1 backdrop-blur-sm">
+                <LibrarySquare className="h-3 w-3" />
               </Badge>
             )}
           </div>

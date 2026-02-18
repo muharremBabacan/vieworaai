@@ -1,7 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useRouter, Link } from '@/navigation';
+import { usePathname, useRouter, Link } from '@/navigation';
 import { useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, collection, where, query, orderBy } from 'firebase/firestore';
 import type { User as UserProfile, Group, Photo } from '@/types';
@@ -10,7 +9,7 @@ import Image from 'next/image';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Camera, Users, Award, ShieldCheck, ArrowLeft, Star, X } from 'lucide-react';
@@ -18,8 +17,6 @@ import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogClose,
 } from '@/components/ui/dialog';
 
@@ -86,6 +83,7 @@ function FoyerPhotoDialog({ photo, author, isOpen, onOpenChange }: { photo: Phot
         <div className="md:w-2/5 w-full overflow-y-auto p-6 space-y-6">
           <div className="flex items-center gap-3 rounded-lg p-2 -ml-2">
             <Avatar className="h-10 w-10">
+               {author.photoURL && <AvatarImage src={author.photoURL} alt={author.name || ''} />}
               <AvatarFallback>{author.name?.charAt(0) || '?'}</AvatarFallback>
             </Avatar>
             <div>
@@ -104,9 +102,9 @@ function FoyerPhotoDialog({ photo, author, isOpen, onOpenChange }: { photo: Phot
 
 
 export default function PublicProfilePage() {
-  const params = useParams();
+  const pathname = usePathname();
+  const userId = pathname.split('/').pop();
   const router = useRouter();
-  const userId = Array.isArray(params.userId) ? params.userId[0] : params.userId;
   const t = useTranslations('PublicProfilePage');
 
   const firestore = useFirestore();
@@ -149,7 +147,7 @@ export default function PublicProfilePage() {
     )
   }
 
-  const { name, level_name, profileIndex } = userProfile;
+  const { name, photoURL, level_name, profileIndex } = userProfile;
   const isMentor = userProfile.is_mentor ?? false;
   const fallbackChar = name?.charAt(0) || '?';
 
@@ -158,6 +156,7 @@ export default function PublicProfilePage() {
         <Card>
             <CardHeader className="items-center text-center p-6">
                 <Avatar className="h-24 w-24 text-4xl mb-4">
+                  {photoURL && <AvatarImage src={photoURL} alt={name || ''} />}
                   <AvatarFallback>{fallbackChar.toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <CardTitle className="font-sans text-3xl">{name}</CardTitle>
@@ -252,7 +251,7 @@ export default function PublicProfilePage() {
             photo={selectedPhoto}
             author={userProfile}
             isOpen={!!selectedPhoto}
-            onOpenChange={setSelectedPhoto}
+            onOpenChange={(isOpen) => !isOpen && setSelectedPhoto(null)}
         />
     </div>
   );

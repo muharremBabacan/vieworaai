@@ -219,7 +219,7 @@
     "toast_withdraw_exhibition_complete": "Your photo was withdrawn from the Exhibition.",
     "toast_add_foyer_complete": "Your photo has been added to your Foyer.",
     "toast_remove_foyer_complete": "Your photo has been removed from your Foyer.",
-    "toast_error_exhibition": "Could not withdraw from exhibition.",
+    "toast_error_exhibition": "Could not update Exhibition status.",
     "toast_error_foyer": "Could not update Foyer status.",
     "alert_dialog_withdraw_description": "This photo will be removed from the public Exhibition. It will remain in your gallery."
   },

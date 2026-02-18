@@ -42,10 +42,6 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden"
-        onInteractOutside={(e) => {
-          e.preventDefault();
-          onOpenChange(false);
-        }}
       >
         <div className="absolute right-4 top-4 z-10">
             <DialogClose asChild>
@@ -66,14 +62,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
             priority
           />
         </div>
-        <div className="md:w-2/5 w-full overflow-y-auto">
-          <div className="p-6 space-y-6">
-            <DialogHeader>
-              <DialogTitle className="font-sans text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
-                {t('dialog_title')}
-              </DialogTitle>
-            </DialogHeader>
-
+        <div className="md:w-2/5 w-full overflow-y-auto p-6 space-y-6">
             {isAuthorLoading ? (
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-full" />
@@ -95,7 +84,9 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
                 </div>
               </Link>
             ) : null}
-          </div>
+             {photo.adaptiveFeedback && (
+                <p className="text-sm text-muted-foreground italic">"{photo.adaptiveFeedback}"</p>
+            )}
         </div>
       </DialogContent>
     </Dialog>
