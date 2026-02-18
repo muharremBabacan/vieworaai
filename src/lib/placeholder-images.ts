@@ -63,37 +63,37 @@ export const PlaceHolderImages: ImagePlaceholder[] = [
     {
       "id": "academy-composition",
       "description": "A photo demonstrating the rule of thirds in composition.",
-      "imageUrl": "https://images.unsplash.com/photo-1663427840251-d81f1434dc35?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxydWxlJTIwdGhpcmRzfGVufDB8fHx8MTc3MDY2NzU2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-composition.jpg?alt=media",
       "imageHint": "composition rule thirds"
     },
     {
       "id": "academy-light",
       "description": "A portrait taken during the golden hour with warm light.",
-      "imageUrl": "https://images.unsplash.com/photo-1496614932623-0a3a9743552e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxnb2xkZW4lMjBob3VyfGVufDB8fHx8MTc3MDY2NzU2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-light.jpg?alt=media",
       "imageHint": "light golden hour"
     },
     {
       "id": "academy-technique",
       "description": "A long exposure shot of city traffic at night.",
-      "imageUrl": "https://images.unsplash.com/photo-1447966531936-911738a2a722?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxsb25nJTIwZXhwb3N1cmV8ZW58MHx8fHwxNzcwNjY3NTY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-technique.jpg?alt=media",
       "imageHint": "technique long exposure"
     },
     {
       "id": "academy-portrait",
       "description": "A classic portrait with a blurred background.",
-      "imageUrl": "https://images.unsplash.com/photo-1599842057874-37393e9342df?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdCUyMGxpZ2h0aW5nfGVufDB8fHx8MTc3MDk4NTU0NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-portrait.jpg?alt=media",
       "imageHint": "portrait light"
     },
     {
       "id": "academy-landscape",
       "description": "A wide landscape showing leading lines.",
-      "imageUrl": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsZWFkaW5nJTIwbGluZXN8ZW58MHx8fHwxNzcwOTg1NjMxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-landscape.jpg?alt=media",
       "imageHint": "composition landscape"
     },
     {
       "id": "academy-street",
       "description": "A candid street photography moment.",
-      "imageUrl": "https://images.unsplash.com/photo-1517585489219-95c9a797c33b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzdHJlZXQlMjBjYW5kaWR8ZW58MHx8fHwxNzcwOTg1NjYzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-street.jpg?alt=media",
       "imageHint": "street candid"
     },
     {
@@ -105,61 +105,61 @@ export const PlaceHolderImages: ImagePlaceholder[] = [
     {
       "id": "academy-camera-modes",
       "description": "A camera's mode dial showing P, A, S, M modes.",
-      "imageUrl": "https://images.unsplash.com/photo-1516253593875-bd7ba0421f75?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBtb2RlJTIwZGlhbHxlbnwwfHx8fDE3NzA5ODg0MDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-camera-modes.jpg?alt=media",
       "imageHint": "camera mode dial"
     },
     {
       "id": "academy-aperture",
       "description": "The aperture blades of a camera lens.",
-      "imageUrl": "https://images.unsplash.com/photo-1599202569522-1b3c9b763c5b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBhcGVydHVyZXxlbnwwfHx8fDE3NzA5ODg0NDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-aperture.jpg?alt=media",
       "imageHint": "aperture f-stop"
     },
     {
       "id": "academy-shutter",
       "description": "A photo showing motion blur from a slow shutter speed.",
-      "imageUrl": "https://images.unsplash.com/photo-1558256247-3ce249a888d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzaHV0dGVyJTIwc3BlZWQlMjBibHVyfGVufDB8fHx8MTc3MDk4ODQ4OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-shutter.jpg?alt=media",
       "imageHint": "shutter speed blur"
     },
     {
       "id": "academy-iso",
       "description": "A grainy photo demonstrating high ISO.",
-      "imageUrl": "https://images.unsplash.com/photo-1595044558519-8b5d41d1f01c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpc28lMjBncmFpbiUyMHBob3RvfGVufDB8fHx8MTc3MDk4ODUxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-iso.jpg?alt=media",
       "imageHint": "iso grain photo"
     },
     {
       "id": "academy-sensor",
       "description": "A close-up of a digital camera's image sensor.",
-      "imageUrl": "https://images.unsplash.com/photo-1607347369794-3d73a9b3a696?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBzZW5zb3J8ZW58MHx8fHwxNzcwOTg4NTQxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-sensor.jpg?alt=media",
       "imageHint": "camera sensor"
     },
     {
       "id": "academy-lens",
       "description": "A collection of different camera lenses.",
-      "imageUrl": "https://images.unsplash.com/photo-1512756290469-ec264b7fbf87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBsZW5zfGVufDB8fHx8MTc3MDk4ODU2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-lens.jpg?alt=media",
       "imageHint": "camera lens"
     },
     {
       "id": "academy-focus",
       "description": "A viewfinder showing focus points on a subject.",
-      "imageUrl": "https://images.unsplash.com/photo-1560322339-a636e7a2a7a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW1lcmElMjBmb2N1cyUyMHBvaW50fGVufDB8fHx8MTc3MDk4ODU4Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-focus.jpg?alt=media",
       "imageHint": "camera focus point"
     },
     {
       "id": "academy-storytelling",
       "description": "A series of photos that tell a story.",
-      "imageUrl": "https://images.unsplash.com/photo-1522026852445-2b04c86121b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdG9yeXRlbGxpbmclMjBwaG90byUyMHNlcmllc3xlbnwwfHx8fDE3NzA5ODg2MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-storytelling.jpg?alt=media",
       "imageHint": "storytelling photo series"
     },
     {
       "id": "academy-post-production",
       "description": "A person editing a photo on a computer.",
-      "imageUrl": "https://images.unsplash.com/photo-1562975435-8c76f6fb0c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwaG90byUyMGVkaXRpbmclMjBzb2Z0d2FyZXxlbnwwfHx8fDE3NzA5ODg2MzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-post-production.jpg?alt=media",
       "imageHint": "photo editing software"
     },
     {
       "id": "academy-studio-light",
       "description": "A professional photo studio lighting setup.",
-      "imageUrl": "https://images.unsplash.com/photo-1611606013533-b45a49443b35?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdHVkaW8lMjBsaWdodGluZyUyMHNldHVwfGVufDB8fHx8MTc3MDk4ODY1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flesons%2Facademy-studio-light.jpg?alt=media",
       "imageHint": "studio lighting setup"
     }
   ];
