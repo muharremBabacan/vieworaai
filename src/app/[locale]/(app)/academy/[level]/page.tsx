@@ -325,10 +325,6 @@ function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; 
                   data-ai-hint={lesson.imageHint}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-4 left-4 text-white">
-                    <p className="font-bold text-xl drop-shadow-md">Viewora</p>
-                    <p className="text-lg drop-shadow-md">Akademi</p>
-                </div>
             </>
         ) : (
             <Camera className="h-12 w-12 text-muted-foreground" />
