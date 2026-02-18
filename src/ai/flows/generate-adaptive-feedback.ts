@@ -20,8 +20,10 @@ const PhotoTechnicalDataSchema = z.object({
 // This is a subset of the full UserProfileIndex, defined in src/types
 const UserProfileIndexSchema = z.object({
   technical_score: z.number().optional(),
-  dominant_genre: z.string().optional(),
+  dominant_style: z.string().optional(),
   dominant_device: z.string().optional(),
+  weakest_area: z.string().optional(),
+  communication_style: z.enum(["soft", "balanced", "technical"]).optional(),
 }).optional();
 
 
@@ -57,7 +59,7 @@ You must respond in the specified language: {{{language}}}.
 {{#if userProfileIndex}}
 - **User's Photographic Profile:**
   - **Overall Technical Skill:** {{userProfileIndex.technical_score}}/10
-  - **Preferred Genre:** {{userProfileIndex.dominant_genre}}
+  - **Preferred Style:** {{userProfileIndex.dominant_style}}
   - **Preferred Device:** {{userProfileIndex.dominant_device}}
 {{else}}
 - **User's Photographic Profile:** Not yet calculated. Provide general feedback.
@@ -78,7 +80,7 @@ Write a concise, human-readable analysis. Structure your feedback into three dis
 1.  **Do NOT mention numeric scores in your feedback.** Use descriptive language (e.g., "excellent light control," "composition could be stronger").
 2.  **Be a Mentor, Not a Machine:** Your tone should be professional, calm, and growth-oriented. Avoid generic AI phrases.
 3.  **Personalize Your Feedback:**
-    *   If the user has a profile, acknowledge it subtly. For example, if their dominant genre is 'Street', you could say, "Sokak fotoğrafçılığı tarzına uygun olarak, bu anı yakalaman harika."
+    *   If the user has a profile, acknowledge it subtly. For example, if their dominant style is 'Street', you could say, "Sokak fotoğrafçılığı tarzına uygun olarak, bu anı yakalaman harika."
     *   If their technical score is high, use more professional language. If it's low, be simpler and more encouraging.
     *   If the user's gamification level is high (e.g., Vexer), treat them like a peer. If it's low (e.g., Neuner), be more guiding.
 4.  **Structure is Key:** Use Markdown bold for headers. For each of the three sections (Işık, Kompozisyon, Teknik), provide one key observation. \`Teknik\` should cover aspects like focus, color, and background control.
@@ -103,5 +105,3 @@ const feedbackFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

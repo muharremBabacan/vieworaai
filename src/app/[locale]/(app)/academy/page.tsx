@@ -52,8 +52,8 @@ export default function AcademyHubPage() {
   const recommendedLessons = useMemo(() => {
     if (!userProfile?.profileIndex || !allLessons) return [];
 
-    const { dominant_genre } = userProfile.profileIndex;
-    if (!dominant_genre || dominant_genre === 'other') return [];
+    const { dominant_style } = userProfile.profileIndex;
+    if (!dominant_style || dominant_style === 'other') return [];
 
     const genreKeywordMap: Record<string, string[]> = {
         'portrait': ['portre'],
@@ -64,7 +64,7 @@ export default function AcademyHubPage() {
         'documentary': ['belgesel']
     };
 
-    const keywords = genreKeywordMap[dominant_genre.toLowerCase()] || [];
+    const keywords = genreKeywordMap[dominant_style.toLowerCase()] || [];
     if (keywords.length === 0) return [];
     
     return allLessons

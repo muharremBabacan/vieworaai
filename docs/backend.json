@@ -56,21 +56,103 @@
         "createdAt"
       ]
     },
-     "UserProfileIndex": {
+    "UserProfileIndex": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User Profile Index",
       "type": "object",
-      "description": "Stores a calculated index of a user's photographic profile based on their best work.",
+      "description": "Stores a calculated index of a user's photographic profile based on their best work, including strengths, weaknesses, and learning preferences for personalized coaching.",
       "properties": {
-        "overall_profile_score": { "type": "number" },
-        "technical_score": { "type": "number" },
-        "progress_score": { "type": "number" },
-        "activity_score": { "type": "number" },
-        "dominant_genre": { "type": "string" },
-        "dominant_device": { "type": "string" },
-        "last_calculated_at": { "type": "string", "format": "date-time" }
+        "overall_score": {
+          "type": "number",
+          "description": "Overall calculated profile score."
+        },
+        "technical_score": {
+          "type": "number",
+          "description": "Score based on technical aspects like focus, color, etc."
+        },
+        "progress_score": {
+          "type": "number",
+          "description": "Score tracking the user's improvement over time."
+        },
+        "activity_score": {
+          "type": "number",
+          "description": "Score based on user's activity in the app."
+        },
+        "dominant_style": {
+          "type": "string",
+          "description": "The user's most frequent photographic style (e.g., landscape, portrait)."
+        },
+        "dominant_device": {
+          "type": "string",
+          "description": "The device type most frequently used by the user."
+        },
+        "strength_map": {
+          "type": "object",
+          "description": "A map of scores for different photographic skill areas.",
+          "properties": {
+            "composition": {
+              "type": "number"
+            },
+            "light": {
+              "type": "number"
+            },
+            "exposure": {
+              "type": "number"
+            },
+            "storytelling": {
+              "type": "number"
+            },
+            "consistency": {
+              "type": "number"
+            }
+          }
+        },
+        "weakest_area": {
+          "type": "string",
+          "description": "The skill area that needs the most improvement."
+        },
+        "learning_style": {
+          "type": "string",
+          "enum": [
+            "visual",
+            "technical",
+            "soft"
+          ],
+          "description": "The user's preferred learning style."
+        },
+        "communication_style": {
+          "type": "string",
+          "enum": [
+            "soft",
+            "balanced",
+            "technical"
+          ],
+          "description": "The preferred communication style for AI feedback."
+        },
+        "trend_direction": {
+          "type": "string",
+          "enum": [
+            "improving",
+            "plateau",
+            "declining"
+          ],
+          "description": "The user's recent performance trend."
+        },
+        "confidence_index": {
+          "type": "number",
+          "description": "An index representing the user's confidence, from 0 to 100."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the profile index was last calculated."
+        }
       },
-      "required": ["overall_profile_score", "technical_score", "last_calculated_at"]
+      "required": [
+        "overall_score",
+        "technical_score",
+        "updated_at"
+      ]
     },
     "Photo": {
       "$schema": "http://json-schema.org/draft-07/schema#",

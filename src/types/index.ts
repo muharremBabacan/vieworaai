@@ -5,20 +5,32 @@ import type { PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-i
 export type PhotoAnalysis = PhotoAnalysisOutput;
 
 export type UserProfileIndex = {
-  overall_profile_score: number;
+  overall_score: number;
   technical_score: number;
-  progress_score: number;
-  activity_score: number;
-  dominant_genre: string;
-  dominant_device: string;
-  last_calculated_at: string;
+  updated_at: string;
+  progress_score?: number;
+  activity_score?: number;
+  dominant_style?: string;
+  dominant_device?: string;
+  strength_map?: {
+    composition: number;
+    light: number;
+    exposure: number;
+    storytelling: number;
+    consistency: number;
+  };
+  weakest_area?: string;
+  learning_style?: 'visual' | 'technical' | 'soft';
+  communication_style?: 'soft' | 'balanced' | 'technical';
+  trend_direction?: 'improving' | 'plateau' | 'declining';
+  confidence_index?: number;
 };
 
 export type UserProfileIndexInput = {
   photoUrl: string;
   overallScore: number;
   deviceEstimation: string;
-  genre: string;
+  style: string;
   createdAt: string;
 }[];
 
