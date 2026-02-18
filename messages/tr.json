@@ -385,7 +385,10 @@
     "privacy_label": "Gizlilik Politikası",
     "button_sign_out": "Çıkış Yap",
     "toast_signout_success": "Başarıyla çıkış yaptınız.",
-    "toast_signout_fail": "Çıkış yapılamadı."
+    "toast_signout_fail": "Çıkış yapılamadı.",
+    "public_profile_preview_title": "Misafir Profili Önizlemesi",
+    "public_profile_preview_description": "Diğer kullanıcılar profilinizi bu şekilde görür.",
+    "public_profile_preview_button": "Tam Profili Gör"
   },
   "UserNavFallback": {
     "login": "Giriş Yap",
@@ -437,6 +440,6 @@
     "user_not_found": "Kullanıcı bulunamadı.",
     "button_go_back": "Geri Dön",
     "groups_title": "Üyesi Olduğu Gruplar",
-    "view_public_photos": "Herkese Açık Fotoğrafları Gör"
+    "fuaye_button": "Fuaye"
   }
 }

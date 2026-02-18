@@ -39,6 +39,7 @@ export type User = {
   id: string;
   name: string | null;
   email: string | null;
+  photoURL?: string | null; // Added for public profile preview
   auro_balance: number;
   current_xp: number;
   level_name: string;

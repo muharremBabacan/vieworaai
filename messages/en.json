@@ -385,7 +385,10 @@
     "privacy_label": "Privacy Policy",
     "button_sign_out": "Sign Out",
     "toast_signout_success": "Successfully signed out.",
-    "toast_signout_fail": "Could not sign out."
+    "toast_signout_fail": "Could not sign out.",
+    "public_profile_preview_title": "Public Profile Preview",
+    "public_profile_preview_description": "This is how other users see your profile.",
+    "public_profile_preview_button": "View Full Profile"
   },
   "UserNavFallback": {
     "login": "Sign In",
@@ -417,6 +420,6 @@
     "user_not_found": "User not found.",
     "button_go_back": "Go Back",
     "groups_title": "Member of Groups",
-    "view_public_photos": "View Public Photos"
+    "fuaye_button": "Fuaye"
   }
 }

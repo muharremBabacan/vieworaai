@@ -1,6 +1,7 @@
 'use client';
 
-import { useParams, useRouter } from '@/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, collection, where, query } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
@@ -146,7 +147,7 @@ export default function PublicProfilePage() {
         <Button size="lg" className="w-full" asChild>
             <Link href={`/explore?user=${userId}`}>
                 <Camera className="mr-2 h-4 w-4" />
-                {t('view_public_photos')}
+                {t('fuaye_button')}
             </Link>
         </Button>
     </div>
