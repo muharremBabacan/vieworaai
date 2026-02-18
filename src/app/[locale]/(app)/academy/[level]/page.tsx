@@ -302,7 +302,7 @@ function LessonDetailDialog({ lesson, isOpen, onOpenChange, onLearn, isCompleted
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
-        <div className="md:w-2/5 w-full relative aspect-video group">
+        <div className="md:w-2/5 w-full relative aspect-video md:aspect-auto group">
            <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
            <Image
             src={lesson.imageUrl}
@@ -395,6 +395,9 @@ function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; 
                   data-ai-hint={lesson.imageHint}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                 <div className="absolute bottom-0 left-0 p-4">
+                    <CardTitle className="font-sans text-base text-white line-clamp-2 leading-snug">{lesson.title}</CardTitle>
+                </div>
             </>
         ) : (
             <Camera className="h-12 w-12 text-muted-foreground" />
@@ -405,9 +408,6 @@ function LessonCard({ lesson, onSelect, isCompleted }: { lesson: AcademyLesson; 
           </div>
         )}
       </CardHeader>
-       <CardContent className="p-4 flex-grow flex flex-col justify-center">
-        <CardTitle className="font-sans text-base line-clamp-2 leading-snug">{lesson.title}</CardTitle>
-      </CardContent>
     </Card>
   );
 }
@@ -598,7 +598,7 @@ export default function LevelPage() {
                 groupedLessons[category] && groupedLessons[category].length > 0 && (
                     <section key={category}>
                         <h2 className="text-2xl font-bold tracking-tight mb-6 border-b pb-2">{category}</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {groupedLessons[category].map(lesson => (
                                 <LessonCard 
                                     key={lesson.id} 

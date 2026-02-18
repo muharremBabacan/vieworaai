@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
+import { Star, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -81,12 +81,6 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
   const tGallery = useTranslations('GalleryPage');
 
   if (!photo) return null;
-
-  const improvements = [
-    { icon: Lightbulb, color: 'text-amber-400' },
-    { icon: LayoutPanelLeft, color: 'text-blue-400' },
-    { icon: Heart, color: 'text-rose-400' },
-  ];
   
   const getCameraInfo = () => {
     if (!photo?.aiFeedback) return null;
@@ -117,18 +111,18 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="md:w-2/5 w-full relative aspect-square md:aspect-auto bg-black/5">
+        <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image
             src={photo.imageUrl}
             alt="Viewora Sergi Fotoğrafı"
             fill
-            sizes="(max-width: 768px) 100vw, 40vw"
+            sizes="(max-width: 768px) 100vw, 60vw"
             className="object-contain"
             unoptimized={true}
             priority
           />
         </div>
-        <div className="md:w-3/5 w-full overflow-y-auto">
+        <div className="md:w-2/5 w-full overflow-y-auto">
           <div className="p-6 space-y-6">
             <DialogHeader>
               <DialogTitle className="font-sans text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
@@ -153,7 +147,7 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               <>
                 <RatingDisplay analysis={photo.aiFeedback} />
                 <div>
-                  <h4 className="font-semibold text-lg mb-2">{t('analysis_summary_title')}</h4>
+                  <h4 className="font-semibold text-lg mb-2 flex items-center gap-2"><Bot className="h-5 w-5" /> {t('analysis_summary_title')}</h4>
                   <DialogDescription className="text-base leading-relaxed text-foreground/80">
                     {photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis}
                   </DialogDescription>
@@ -196,11 +190,11 @@ export default function ExplorePage() {
         </div>
 
         {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                {Array.from({ length: 16 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                {Array.from({ length: 18 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
             </div>
         ) : photos && photos.length > 0 ? (
-             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
                 {photos.map((photo) => (
                     <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
                         <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Link } from '@/navigation';
 import { generatePhotoAnalysis, type PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { Photo, User as UserProfile, PhotoAnalysis } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Lightbulb, LayoutPanelLeft, Heart, Star, Loader2, Rocket, Clock, Zap, Undo2, Trash2, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
+import { Star, Loader2, Rocket, Clock, Zap, Trash2, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
@@ -113,7 +113,6 @@ function PhotoDetailDialog({
   const t = useTranslations('GalleryPage');
   const { toast } = useToast();
   const firestore = useFirestore();
-  const locale = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -127,12 +126,6 @@ function PhotoDetailDialog({
       setDialogAction(null);
     }
   }, [isOpen]);
-
-  const improvements = [
-    { icon: Lightbulb, color: 'text-amber-400' },
-    { icon: LayoutPanelLeft, color: 'text-blue-400' },
-    { icon: Heart, color: 'text-rose-400' },
-  ];
 
   const getCameraInfo = () => {
     if (!photo?.aiFeedback) return null;
@@ -313,10 +306,10 @@ function PhotoDetailDialog({
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="md:w-2/5 w-full relative aspect-square md:aspect-auto bg-black/5">
+        <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image src={photo.imageUrl} alt="Analiz" fill className="object-contain" unoptimized priority />
         </div>
-        <div className="md:w-3/5 w-full overflow-y-auto flex flex-col p-6 space-y-6">
+        <div className="md:w-2/5 w-full overflow-y-auto flex flex-col p-6 space-y-6">
             <DialogHeader>
               <DialogTitle className="text-2xl">{t('dialog_title')}</DialogTitle>
             </DialogHeader>
@@ -345,13 +338,13 @@ function PhotoDetailDialog({
               </>
             ) : (
               <div className="text-center py-10 space-y-4">
-                <p>Bu fotoğraf henüz analiz edilmedi.</p>
+                <p className="text-muted-foreground">{t('status_awaiting_analysis')}</p>
                 <Button onClick={handleAnalyzeNow} disabled={isLoading}>
-                    {isAnalyzing ? <Loader2 className="animate-spin"/> : t('button_get_score', { cost: 2 })}
+                    {isAnalyzing ? <Loader2 className="animate-spin"/> : <><Zap className="mr-2 h-4 w-4" />{t('button_get_score', { cost: 2 })}</>}
                 </Button>
               </div>
             )}
-          <div className="pt-6 border-t space-y-3">
+          <div className="pt-6 border-t space-y-3 !mt-auto">
              {photo.aiFeedback && (
                 photo.isSubmittedToPublic ? (
                     <Button type="button" variant="outline" className="w-full" onClick={() => setDialogAction('withdraw')} disabled={isLoading}>
@@ -359,12 +352,12 @@ function PhotoDetailDialog({
                     </Button>
                 ) : (
                     <Button type="button" className="w-full" onClick={handleSubmitToPublic} disabled={isLoading}>
-                        {isSubmitting ? <Loader2 className="animate-spin"/> : t('button_submit_to_public', { cost: 5 })}
+                        {isSubmitting ? <Loader2 className="animate-spin"/> : <><Rocket className="mr-2 h-4 w-4" />{t('button_submit_to_public', { cost: 5 })}</>}
                     </Button>
                 )
              )}
              <Button type="button" variant="outline" className="w-full text-destructive hover:text-destructive" onClick={() => setDialogAction('delete')} disabled={isLoading}>
-                {isLoading && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : t('button_delete_permanently')}
+                {isLoading && dialogAction === 'delete' ? <Loader2 className="animate-spin"/> : <><Trash2 className="mr-2 h-4 w-4" />{t('button_delete_permanently')}</>}
              </Button>
           </div>
         </div>
