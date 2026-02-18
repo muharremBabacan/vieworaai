@@ -364,6 +364,102 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["groupId", "groupName", "fromUserId", "fromUserName", "toUserId", "status", "createdAt"]
+    },
+    "GroupAssignment": {
+      "title": "Group Assignment",
+      "type": "object",
+      "description": "An assignment or task given by a group owner to the members.",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["groupId", "title", "dueDate", "createdAt"]
+    },
+    "AssignmentSubmission": {
+      "title": "Assignment Submission",
+      "type": "object",
+      "description": "A member's submission for a group assignment.",
+      "properties": {
+        "id": { "type": "string" },
+        "assignmentId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "photoUrl": { "type": "string", "format": "uri" },
+        "filePath": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["assignmentId", "userId", "userName", "photoUrl", "submittedAt"]
+    },
+    "GroupEvent": {
+      "title": "Group Event",
+      "type": "object",
+      "description": "An event or trip planned for a group.",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "eventDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "rsvps": {
+          "type": "object",
+          "description": "A map of user IDs to their RSVP status ('attending', 'declined').",
+          "additionalProperties": { "type": "string", "enum": ["attending", "declined"] }
+        }
+      },
+      "required": ["groupId", "title", "eventDate", "createdAt"]
+    },
+    "GroupCompetition": {
+      "title": "Group Competition",
+      "type": "object",
+      "description": "A competition held within a group.",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "theme": { "type": "string" },
+        "prize": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["groupId", "title", "startDate", "endDate", "createdAt"]
+    },
+    "CompetitionEntry": {
+      "title": "Competition Entry",
+      "type": "object",
+      "description": "A member's entry for a group competition.",
+      "properties": {
+        "id": { "type": "string" },
+        "competitionId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "photoUrl": { "type": "string", "format": "uri" },
+        "filePath": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "votes": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["competitionId", "userId", "userName", "photoUrl", "submittedAt"]
+    },
+    "GroupTraining": {
+      "title": "Group Training",
+      "type": "object",
+      "description": "A training or educational material assigned to a group.",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "linkedLessonId": { "type": "string", "description": "Optional ID of a lesson from the main Academy." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["groupId", "title", "createdAt"]
     }
   },
   "auth": {
@@ -533,10 +629,56 @@
             }
           ]
         }
+      },
+      {
+        "path": "groups/{groupId}/assignments/{assignmentId}",
+        "definition": {
+          "entityName": "GroupAssignment",
+          "schema": { "$ref": "#/backend/entities/GroupAssignment" },
+          "description": "Stores assignments for a specific group. Writable only by group owner."
+        }
+      },
+      {
+        "path": "groups/{groupId}/assignments/{assignmentId}/submissions/{submissionId}",
+        "definition": {
+          "entityName": "AssignmentSubmission",
+          "schema": { "$ref": "#/backend/entities/AssignmentSubmission" },
+          "description": "Stores member submissions for a specific assignment. Writable only by the submitting member."
+        }
+      },
+      {
+        "path": "groups/{groupId}/events/{eventId}",
+        "definition": {
+          "entityName": "GroupEvent",
+          "schema": { "$ref": "#/backend/entities/GroupEvent" },
+          "description": "Stores events (trips, meetings) for a specific group. Writable by owner, but members can update their own RSVP status."
+        }
+      },
+      {
+        "path": "groups/{groupId}/competitions/{competitionId}",
+        "definition": {
+          "entityName": "GroupCompetition",
+          "schema": { "$ref": "#/backend/entities/GroupCompetition" },
+          "description": "Stores competitions for a specific group. Writable only by group owner."
+        }
+      },
+      {
+        "path": "groups/{groupId}/competitions/{competitionId}/entries/{entryId}",
+        "definition": {
+          "entityName": "CompetitionEntry",
+          "schema": { "$ref": "#/backend/entities/CompetitionEntry" },
+          "description": "Stores member entries for a specific competition. Writable only by the submitting member, members can vote."
+        }
+      },
+      {
+        "path": "groups/{groupId}/trainings/{trainingId}",
+        "definition": {
+          "entityName": "GroupTraining",
+          "schema": { "$ref": "#/backend/entities/GroupTraining" },
+          "description": "Stores trainings for a specific group. Writable only by group owner."
+        }
       }
     ],
-    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\n\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\n\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute.\n\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users."
+    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\n\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\n\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute. New subcollections for assignments, competitions, events, and trainings under each group follow this pattern, with write access restricted to group owners and read access granted to members, ensuring a secure and organized environment for group activities.\n\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users."
   }
 }
-
-    

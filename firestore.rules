@@ -54,13 +54,8 @@ service cloud.firestore {
     
       allow get: if isMember();
     
-      // Allow LIST operations (queries) for any authenticated user.
-      // The actual documents returned are still secured by the GET rule.
       allow list: if isSignedIn();
     
-      // Allow owners to update group details.
-      // Allow a user to add THEMSELVES to the memberIds array, but not others.
-      // This is the secure way to handle a "join" or "accept invite" action.
       allow update: if isOwner() ||
                      (isSignedIn() && request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid]));
     
@@ -69,25 +64,50 @@ service cloud.firestore {
       match /photos/{photoId} {
         allow read, write: if isMember();
       }
+
+      // Group Activities
+      match /assignments/{assignmentId} {
+        allow read: if isMember();
+        allow write: if isOwner();
+
+        match /submissions/{submissionId} {
+          allow read: if isMember();
+          allow create: if isMember() && request.resource.data.userId == request.auth.uid;
+          allow update: if isOwner();
+          allow delete: if isOwner() || (isMember() && resource.data.userId == request.auth.uid);
+        }
+      }
+
+      match /competitions/{competitionId} {
+        allow read: if isMember();
+        allow write: if isOwner();
+
+        match /entries/{entryId} {
+          allow read: if isMember();
+          allow create: if isMember() && request.resource.data.userId == request.auth.uid;
+          allow update: if isMember() && request.resource.data.votes == resource.data.votes.concat([request.auth.uid]);
+          allow delete: if isOwner() || (isMember() && resource.data.userId == request.auth.uid);
+        }
+      }
+
+      match /events/{eventId} {
+        allow read: if isMember();
+        allow create, delete: if isOwner();
+        allow update: if isOwner() || (isMember() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rsvps', 'rsvps.' + request.auth.uid]));
+      }
+
+      match /trainings/{trainingId} {
+        allow read: if isMember();
+        allow write: if isOwner();
+      }
     }
     
     match /group_invites/{inviteId} {
-      // Allow any authenticated user to create an invitation.
       allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
-    
-      // Allow a user to read an invite if they sent it or if it was sent to them.
       allow read: if isSignedIn() && 
                     (request.auth.uid == resource.data.toUserId || request.auth.uid == resource.data.fromUserId);
-    
-      // Allow queries on the collection (e.g., `where('toUserId', '==', uid)`).
-      // The read rule above will secure the individual documents in the result.
       allow list: if isSignedIn();
-
-      // Only the recipient of the invite can update its status (e.g., to "accepted" or "declined").
       allow update: if isSignedIn() && request.auth.uid == resource.data.toUserId;
-    
-      // For simplicity and to keep a record, direct deletion is disallowed.
-      // Invites are "processed" by changing their status.
       allow delete: if false;
     }
 
