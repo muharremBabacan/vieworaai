@@ -47,9 +47,11 @@ service cloud.firestore {
          // An owner can do anything to their photos.
          allow write: if isOwner(userId);
          
-         // An owner can read all their photos.
-         // Any signed in user can read a photo if it is in the owner's Foyer (isInFoyer == true).
-         allow read: if isOwner(userId) || (resource.data.isInFoyer == true && isSignedIn());
+         // GET: An owner can get their own photo. Anyone can get a photo if it's in the Foyer.
+         allow get: if isOwner(userId) || (resource.data.isInFoyer == true && isSignedIn());
+         
+         // LIST: Only the owner can list their own photos.
+         allow list: if isOwner(userId);
        }
     }
     
@@ -138,7 +140,7 @@ service cloud.firestore {
     
     match /public_photos/{photoId} {
       // Any authenticated user can read the public exhibition photos.
-      allow get, list: if request.auth != null;
+      allow read: if request.auth != null;
       // Users can only add photos to the exhibition if they own the content.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       // Updating is disallowed to prevent data tampering. Withdraw/resubmit is the intended flow.
