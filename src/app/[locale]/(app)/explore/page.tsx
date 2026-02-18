@@ -1,8 +1,10 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import type { Photo, PhotoAnalysis } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { useSearchParams } from 'next/navigation';
+import { useRouter, Link } from '@/navigation';
+import type { Photo, PhotoAnalysis, User as UserProfile } from '@/types';
+import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -10,14 +12,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { Star, Camera, Smartphone, HelpCircle, Bot } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { Star, Camera, Smartphone, HelpCircle, Bot, X } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { collection, query, orderBy, doc, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 
 
 const normalizeScore = (score: number | undefined | null): number => {
@@ -83,6 +87,13 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
 function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const t = useTranslations('ExplorePage');
   const tGallery = useTranslations('GalleryPage');
+  const firestore = useFirestore();
+
+  const authorDocRef = useMemoFirebase(() => {
+    if (!firestore || !photo?.userId) return null;
+    return doc(firestore, 'users', photo.userId);
+  }, [firestore, photo?.userId]);
+  const { data: authorProfile } = useDoc<UserProfile>(authorDocRef);
 
   if (!photo) return null;
   
@@ -132,6 +143,28 @@ function PhotoDetailDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               </DialogTitle>
             </DialogHeader>
 
+            {authorProfile ? (
+              <Link href={`/u/${authorProfile.id}`} className="group" onClick={() => onOpenChange(false)}>
+                <div className="flex items-center gap-3 rounded-lg p-2 -ml-2 transition-colors group-hover:bg-secondary">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>{authorProfile.name?.charAt(0) || '?'}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-sm">{authorProfile.name}</p>
+                    <p className="text-xs text-muted-foreground">{authorProfile.level_name}</p>
+                  </div>
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            )}
+
             {CameraInfo && (
                 <div className={cn("flex items-center gap-2 text-sm p-3 rounded-lg border bg-secondary/30", CameraInfo.color)}>
                     <CameraInfo.icon className={cn("h-5 w-5", CameraInfo.color ? CameraInfo.color : 'text-primary')} />
@@ -170,16 +203,42 @@ export default function ExplorePage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const t = useTranslations('ExplorePage');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const filterUserId = searchParams.get('user');
 
   const publicPhotosQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc'));
-  }, [firestore, user]);
+    
+    let q = query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc'));
+    
+    if (filterUserId) {
+        q = query(q, where('userId', '==', filterUserId));
+    }
+    
+    return q;
+  }, [firestore, user, filterUserId]);
   
   const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
+  const { data: filterUser, isLoading: isFilterUserLoading } = useDoc<UserProfile>(useMemoFirebase(() => filterUserId ? doc(firestore, 'users', filterUserId) : null, [firestore, filterUserId]));
+
 
   return (
     <div className="container mx-auto">
+        {filterUserId && (
+            <div className="mb-6 flex items-center justify-between rounded-lg border p-3 bg-secondary/50">
+                {isFilterUserLoading ? <Skeleton className="h-6 w-48" /> : 
+                <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8"><AvatarFallback>{filterUser?.name?.charAt(0)}</AvatarFallback></Avatar>
+                    <span className="font-semibold">{t('showing_photos_by', {name: filterUser?.name})}</span>
+                </div>
+                }
+                <Button variant="ghost" onClick={() => router.push('/explore')}>
+                    <X className="mr-2 h-4 w-4" />
+                    {t('clear_filter')}
+                </Button>
+            </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
             {isLoading ? (
                 Array.from({ length: 18 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)

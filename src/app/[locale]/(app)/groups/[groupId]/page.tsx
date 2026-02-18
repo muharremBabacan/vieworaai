@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { useRouter } from '@/navigation';
+import { useRouter, Link } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, getDoc, collection, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { Group, User as UserProfile } from '@/types';
@@ -61,19 +61,19 @@ function MemberItem({ userId, isOwner, onRemove }: { userId: string, isOwner: bo
     );
   }
 
-  const isCurrentUserOwner = userId === currentUser?.uid && isOwner;
+  const isCurrentUserOwner = userProfile.id === group?.ownerId;
   const isSelf = userId === currentUser?.uid;
 
   return (
     <>
       <div className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50">
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium">{userProfile.name}</span>
-          {isOwner && isSelf && <Crown className="h-4 w-4 text-amber-400" />}
-        </div>
+        <Link href={`/u/${userId}`} className="flex items-center gap-3 flex-1">
+            <Avatar>
+              <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium">{userProfile.name}</span>
+            {isCurrentUserOwner && <Crown className="h-4 w-4 text-amber-400" />}
+        </Link>
         {isOwner && !isSelf && (
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setIsAlertOpen(true)}>
             <X className="h-4 w-4" />
@@ -266,7 +266,7 @@ export default function GroupDetailPage() {
             <CardContent>
               <div className="space-y-1">
                 {group.memberIds.map(memberId => (
-                  <MemberItem key={memberId} userId={memberId} isOwner={isOwner} onRemove={handleRemoveMember} />
+                  <MemberItem key={memberId} userId={memberId} isOwner={memberId === group.ownerId} onRemove={handleRemoveMember} />
                 ))}
               </div>
             </CardContent>

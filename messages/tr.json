@@ -170,7 +170,9 @@
     "improvements_title": "Neler İyi Yapılmış?",
     "loading_analysis": "Bu fotoğraf için detaylı YZ analizi yükleniyor...",
     "no_photos_title": "Henüz kimse eserini paylaşmadı",
-    "no_photos_description": "Kendi galerinizden bir fotoğrafı sergiye göndererek salonu canlandırın!"
+    "no_photos_description": "Kendi galerinizden bir fotoğrafı sergiye göndererek salonu canlandırın!",
+    "showing_photos_by": "{name} kullanıcısının fotoğrafları gösteriliyor",
+    "clear_filter": "Filtreyi Temizle"
   },
   "GalleryPage": {
     "rating_card_title": "Puanlama",
@@ -430,5 +432,11 @@
     "mark_all_as_read": "Tümünü okundu işaretle",
     "notification_group_invite_title": "Grup Daveti",
     "notification_group_invite_body": "{inviterName} sizi \"{groupName}\" grubuna davet etti."
+  },
+  "PublicProfilePage": {
+    "user_not_found": "Kullanıcı bulunamadı.",
+    "button_go_back": "Geri Dön",
+    "groups_title": "Üyesi Olduğu Gruplar",
+    "view_public_photos": "Herkese Açık Fotoğrafları Gör"
   }
 }

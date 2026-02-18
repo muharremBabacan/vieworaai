@@ -170,7 +170,9 @@
     "improvements_title": "What Was Done Well?",
     "loading_analysis": "Loading detailed AI analysis for this photo...",
     "no_photos_title": "No one has shared their work yet",
-    "no_photos_description": "Revive the hall by sending a photo from your gallery to the exhibition!"
+    "no_photos_description": "Revive the hall by sending a photo from your gallery to the exhibition!",
+    "showing_photos_by": "Showing photos by {name}",
+    "clear_filter": "Clear Filter"
   },
   "GalleryPage": {
     "rating_card_title": "Scoring",
@@ -404,11 +406,37 @@
     "storytelling": "Storytelling",
     "consistency": "Consistency"
   },
+  "Curriculum": {
+    "level_basic": "Beginner",
+    "level_intermediate": "Intermediate",
+    "level_advanced": "Advanced",
+    "cat_b_intro": "Introduction to Photography",
+    "cat_b_exposure": "Exposure Basics",
+    "cat_b_focus": "Sharpness and Focusing",
+    "cat_b_composition": "Basic Composition",
+    "cat_b_light": "Understanding Light",
+    "cat_i_genres": "Genre-Based Shooting Techniques",
+    "cat_i_advanced_exposure": "Advanced Exposure Techniques",
+    "cat_i_light_management": "Light Management",
+    "cat_i_storytelling": "Visual Storytelling",
+    "cat_i_post_production": "Post-Production Basics",
+    "cat_a_specialization": "Specialization Deep Dive",
+    "cat_a_studio_light": "Professional Lighting Setup",
+    "cat_a_advanced_techniques": "Advanced Techniques",
+    "cat_a_style": "Artistic Identity and Style",
+    "cat_a_business": "Commercial and Brand Positioning"
+  },
    "Notifications": {
     "title": "Notifications",
     "no_notifications": "No notifications yet.",
     "mark_all_as_read": "Mark all as read",
     "notification_group_invite_title": "Group Invitation",
     "notification_group_invite_body": "{inviterName} has invited you to join the group \"{groupName}\"."
+  },
+  "PublicProfilePage": {
+    "user_not_found": "User not found.",
+    "button_go_back": "Go Back",
+    "groups_title": "Member of Groups",
+    "view_public_photos": "View Public Photos"
   }
 }
