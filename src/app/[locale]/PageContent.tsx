@@ -2,8 +2,7 @@
 
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   type UserCredential,
 } from 'firebase/auth';
 
@@ -12,7 +11,7 @@ import Logo from '@/components/logo';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, Link } from '@/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -33,26 +32,31 @@ export default function PageContent() {
   const router = useRouter();
   const { toast } = useToast();
   const t = useTranslations('LoginPage');
-  
-  const [isLoading, setIsLoading] = useState(true); // Start loading to check for redirect result
 
-  useEffect(() => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignIn = async () => {
     if (!auth || !firestore) return;
+    if (isLoading) return;
 
-    const processSignInResult = async (result: UserCredential) => {
-      if (!result) {
-        setIsLoading(false);
-        return;
-      }
-    
+    setIsLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account',
+      });
+
+      const result: UserCredential = await signInWithPopup(auth, provider);
+
       toast({
         title: t('toast_success'),
       });
-    
+
       const firebaseUser = result.user;
       const userRef = doc(firestore, 'users', firebaseUser.uid);
       const docSnap = await getDoc(userRef);
-    
+
       if (!docSnap.exists()) {
         await setDoc(userRef, {
           id: firebaseUser.uid,
@@ -69,57 +73,20 @@ export default function PageContent() {
           groups: [],
         });
       }
-    
+
       const onboarded = docSnap.exists()
         ? (docSnap.data() as any).onboarded
         : false;
-    
+
       router.push(onboarded ? '/profile' : '/onboarding');
-    }
-
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          // User has signed in via redirect.
-          processSignInResult(result);
-        } else {
-          // No user signed in via redirect, so we're done loading.
-          setIsLoading(false);
-        }
-      })
-      .catch((error) => {
-        console.error('Redirect login error:', error);
-        toast({
-          variant: 'destructive',
-          title: t('toast_error_title', { code: error.code || 'Hata' }),
-          description: t('toast_error_description'),
-        });
-        setIsLoading(false);
-      });
-  }, [auth, firestore, router, t, toast]);
-
-
-  const handleSignIn = async () => {
-    if (!auth) return;
-    if (isLoading) return;
-
-    setIsLoading(true);
-
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account',
-      });
-      // Start the redirect flow. The page will reload.
-      await signInWithRedirect(auth, provider);
     } catch (error: any) {
-        console.error('signInWithRedirect error:', error);
-        toast({
-          variant: 'destructive',
-          title: t('toast_error_title', { code: error.code || 'Hata' }),
-          description: t('toast_error_description'),
-        });
-        setIsLoading(false);
+      console.error('Popup login error:', error);
+      toast({
+        variant: 'destructive',
+        title: t('toast_error_title', { code: error.code || 'Hata' }),
+        description: t('toast_error_description'),
+      });
+      setIsLoading(false);
     }
   };
 

@@ -241,15 +241,17 @@ export default function GroupDetailPage() {
       </div>
 
       <Tabs defaultValue="members" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-7">
-          <TabsTrigger value="members">{t('tab_members')}</TabsTrigger>
-          <TabsTrigger value="gallery" disabled>{t('tab_gallery')}</TabsTrigger>
-          <TabsTrigger value="assignments" disabled>{t('tab_assignments')}</TabsTrigger>
-          <TabsTrigger value="competitions" disabled>{t('tab_competitions')}</TabsTrigger>
-          <TabsTrigger value="events" disabled>{t('tab_events')}</TabsTrigger>
-          <TabsTrigger value="trainings" disabled>{t('tab_trainings')}</TabsTrigger>
-          {isOwner && <TabsTrigger value="settings">{t('tab_settings')}</TabsTrigger>}
-        </TabsList>
+        <div className="w-full overflow-x-auto pb-2 no-scrollbar">
+            <TabsList>
+              <TabsTrigger value="members">{t('tab_members')}</TabsTrigger>
+              <TabsTrigger value="gallery" disabled>{t('tab_gallery')}</TabsTrigger>
+              <TabsTrigger value="assignments" disabled>{t('tab_assignments')}</TabsTrigger>
+              <TabsTrigger value="competitions" disabled>{t('tab_competitions')}</TabsTrigger>
+              <TabsTrigger value="events" disabled>{t('tab_events')}</TabsTrigger>
+              <TabsTrigger value="trainings" disabled>{t('tab_trainings')}</TabsTrigger>
+              {isOwner && <TabsTrigger value="settings">{t('tab_settings')}</TabsTrigger>}
+            </TabsList>
+        </div>
         <TabsContent value="members" className="mt-6">
           <Card>
             <CardHeader>
