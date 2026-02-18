@@ -1,127 +1,195 @@
 'use server';
 /**
- * @fileOverview AI flow for generating daily photography lessons based on a structured curriculum.
- *
- * This file defines a Genkit flow that connects to a Google AI model
- * to generate a set of five photography lessons based on a detailed, multi-level curriculum.
- * The flow is designed to be triggered by an admin action to populate the Viewora Academy
- * with fresh, dynamic, and structured content.
- *
- * - generateDailyLessons: The main exported function that initiates the lesson generation flow.
- * - GeneratedLesson: The TypeScript type definition for a single lesson object returned by the AI.
+ * AI flow for generating structured photography lessons for Viewora Academy.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
-// Schema for the input of the lesson generation flow
+/* -------------------------------------------------------------------------- */
+/*                               INPUT SCHEMA                                 */
+/* -------------------------------------------------------------------------- */
+
 const GenerateLessonsInputSchema = z.object({
   level: z.enum(['Temel', 'Orta', 'İleri']),
-  category: z.string().optional().describe("The specific category to generate lessons for. If not provided, generate from diverse categories within the level."),
-  language: z.string().describe('The language for the response (e.g., "tr", "en").'),
+  category: z
+    .string()
+    .optional()
+    .describe(
+      "Specific curriculum category. If not provided, lessons must be diverse within the selected level."
+    ),
+  language: z
+    .string()
+    .describe('Language code for the output (e.g., "tr", "en").'),
 });
-export type GenerateLessonsInput = z.infer<typeof GenerateLessonsInputSchema>;
 
-// Schema for a single generated lesson, based on the user's provided curriculum.
-// This ensures the AI's output is structured and type-safe.
+export type GenerateLessonsInput = z.infer<
+  typeof GenerateLessonsInputSchema
+>;
+
+/* -------------------------------------------------------------------------- */
+/*                               OUTPUT SCHEMA                                */
+/* -------------------------------------------------------------------------- */
+
 const GeneratedLessonSchema = z.object({
-  level: z.enum(['Temel', 'Orta', 'İleri']).describe("The level of the lesson. Must be one of: 'Temel', 'Orta', 'İleri'."),
-  category: z.string().describe("The specific category from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı', 'Profesyonel Işık Kurulumu')."),
-  title: z.string().describe('The title of the lesson, corresponding to a sub-point in the curriculum.'),
-  learningObjective: z.string().describe("What skill the user will gain from this specific lesson."),
-  theory: z.string().describe("Explain the lesson's topic in its simplest form, in 3-4 friendly and solution-oriented sentences."),
-  analysisCriteria: z.array(z.string()).length(3).describe("List 3 technical criteria for a photo to be considered 'successful' according to this lesson."),
-  practiceTask: z.string().describe("Give the user a specific, actionable shooting task related to the lesson."),
-  auroNote: z.string().describe("The 'Auro Note'. Explain why this specific analysis will provide a professional perspective to the user."),
-  imageHint: z.string().describe("Provide 1-2 relevant English keywords for finding a suitable stock photo for this lesson (e.g., 'aperture f-stop', 'leading lines composition').")
+  level: z
+    .enum(['Temel', 'Orta', 'İleri'])
+    .describe("Must match requested level exactly."),
+  category: z
+    .string()
+    .describe("Specific curriculum category name."),
+  title: z
+    .string()
+    .describe("Specific and technical subtopic title."),
+  learningObjective: z
+    .string()
+    .describe("Clear and measurable skill outcome."),
+  theory: z
+    .string()
+    .describe(
+      "3–4 practical sentences including at least one concrete technical reference (camera settings, lens focal length, lighting direction, etc.)."
+    ),
+  analysisCriteria: z
+    .array(z.string())
+    .length(3)
+    .describe(
+      "Three measurable technical criteria for evaluating photo success."
+    ),
+  practiceTask: z
+    .string()
+    .describe("Clear and actionable shooting assignment."),
+  auroNote: z
+    .string()
+    .describe(
+      "Explain how this analysis provides a professional-level perspective."
+    ),
+  imageHint: z
+    .string()
+    .describe(
+      "Exactly 2 concrete, searchable English photography keywords. No abstract terms. No sentences."
+    ),
 });
 
-// The final output of the flow is an array of lesson objects.
 const GenerateLessonsOutputSchema = z.array(GeneratedLessonSchema);
+
 export type GeneratedLesson = z.infer<typeof GeneratedLessonSchema>;
 
-/**
- * The main function to be called from the application to trigger the lesson generation process.
- * It invokes the Genkit flow and returns a promise that resolves to an array of generated lessons.
- */
-export async function generateDailyLessons(input: GenerateLessonsInput): Promise<GeneratedLesson[]> {
-    return generateLessonsFlow(input);
+/* -------------------------------------------------------------------------- */
+/*                                MAIN EXPORT                                 */
+/* -------------------------------------------------------------------------- */
+
+export async function generateDailyLessons(
+  input: GenerateLessonsInput
+): Promise<GeneratedLesson[]> {
+  return generateLessonsFlow(input);
 }
 
-// Define the prompt for the AI model, specifying the desired output schema.
+/* -------------------------------------------------------------------------- */
+/*                                  PROMPT                                    */
+/* -------------------------------------------------------------------------- */
+
 const generationPrompt = ai.definePrompt({
-    name: 'structuredCurriculumPrompt',
-    input: { schema: GenerateLessonsInputSchema },
-    output: { schema: GenerateLessonsOutputSchema },
-    prompt: `You are the head instructor of Viewora AI Coach. Your task is to generate FIVE (5) distinct mini-lessons in the specified language: {{{language}}}, for the **{{{level}}}** level, based on the structured curriculum provided below.
+  name: 'structuredCurriculumPromptV2',
+  input: { schema: GenerateLessonsInputSchema },
+  output: { schema: GenerateLessonsOutputSchema },
+  prompt: `
+You are the Head Instructor of Viewora AI Coach.
+
+Generate EXACTLY FIVE (5) distinct mini-lessons in {{{language}}}
+for the **{{{level}}}** level based strictly on the curriculum below.
 
 {{#if category}}
-**IMPORTANT: All five lessons MUST be from the '{{{category}}}' category.**
+IMPORTANT: All five lessons MUST belong to the '{{{category}}}' category.
 {{else}}
-Ensure the generated lessons are diverse, covering different categories within the selected level.
+The five lessons must be diverse and cover DIFFERENT categories within the selected level.
 {{/if}}
 
-**CURRICULUM (This is in Turkish, but generate the output in the requested language: {{{language}}}):**
+CRITICAL RULES:
+- All five lessons must cover DIFFERENT subtopics.
+- No repetition of techniques.
+- No overlapping concepts.
+- Avoid generic or motivational filler language.
+- Include at least ONE concrete technical reference in the theory 
+  (camera setting, aperture value, shutter speed, ISO, lens focal length, lighting direction, etc.).
 
-📸 **TEMEL SEVİYE (Foundation)**
-Amaç: Kamera kontrolü + ışık + temel kompozisyon hakimiyeti.
-- **Fotoğrafçılığa Giriş:** Fotoğraf makinesi türleri, Sensör, Lens türleri, Odak uzaklığı, Çekim modları.
-- **Pozlama Temelleri:** Diyafram, Enstantane, ISO, Pozlama üçgeni, Histogram okuma.
-- **Netlik ve Odaklama:** Manuel/Oto odak, Netleme noktaları, Alan derinliği, Hareketli obje netleme.
-- **Temel Kompozisyon:** Üçler kuralı, Kadrajlama, Simetri, Negatif alan, Ufuk çizgisi.
-- **Işık Bilgisi:** Doğal ışık, Altın saat, Sert / yumuşak ışık, Gölge kullanımı, Reflektör.
+LEVEL BEHAVIOR:
+- 'Temel': Simple explanations but still include one technical reference.
+- 'Orta': Include situational comparison or decision-making insight.
+- 'İleri': Include professional workflow, commercial value, or advanced execution insight.
 
-📷 **ORTA SEVİYE (Applied Control)**
-Amaç: Tür bazlı teknik kontrol + bilinçli estetik üretim.
-- **Tür Bazlı Çekim Teknikleri:** Manzara, Portre, Sokak, Gece, Makro başlangıç.
-- **İleri Pozlama Teknikleri:** Uzun pozlama, HDR, Bracketing, Pan tekniği, Hareket dondurma.
-- **Işık Yönetimi:** Yan ışık, Ters ışık, Siluet, Basit yapay ışık, Flaş temelleri.
-- **Görsel Hikâye Anlatımı:** Seri fotoğraf, Duygu yakalama, Çerçeve içinde çerçeve, Katmanlı kompozisyon.
-- **Post-Prodüksiyon Temelleri:** RAW vs JPEG, Renk düzeltme, Kontrast, Kırpma, Netlik.
+CURRICULUM:
 
-🎯 **İLERİ SEVİYE (Mastery & Specialization)**
-Amaç: Uzmanlaşma + ticari değer + sanatsal kimlik.
-- **Uzmanlık Alanı Derinleşme:** Spor, Moda, Drone, Astrofotoğraf, Profesyonel makro.
-- **Profesyonel Işık Kurulumu:** Stüdyo şemaları, Softbox, Rim light, 3 nokta aydınlatma, Dramatic lighting.
-- **Gelişmiş Teknikler:** Focus stacking, Light painting, High speed, Çoklu pozlama, Kreatif filtre.
-- **Sanatsal Kimlik ve Stil:** Tarz oluşturma, Renk paleti, Minimal vs maksimal, Konsept üretimi.
-- **Ticari ve Marka Konumlandırma:** Niş seçimi, Portföy stratejisi, Fiyatlandırma, Müşteri iletişimi.
+TEMEL:
+- Fotoğrafçılığa Giriş
+- Pozlama Temelleri
+- Netlik ve Odaklama
+- Temel Kompozisyon
+- Işık Bilgisi
 
----
+ORTA:
+- Tür Bazlı Çekim Teknikleri
+- İleri Pozlama Teknikleri
+- Işık Yönetimi
+- Görsel Hikâye Anlatımı
+- Post-Prodüksiyon Temelleri
 
-For each of the FIVE lessons, strictly follow this JSON format and provide the content in the requested language: {{{language}}}:
+İLERİ:
+- Uzmanlık Alanı Derinleşme
+- Profesyonel Işık Kurulumu
+- Gelişmiş Teknikler
+- Sanatsal Kimlik ve Stil
+- Ticari ve Marka Konumlandırma
+
+STRICT OUTPUT RULES:
+- Return ONLY valid JSON.
+- Do NOT include markdown.
+- Do NOT wrap in code blocks.
+- Output must be a JSON array containing EXACTLY five lesson objects.
+
+Each object must follow this structure:
 
 {
-  "level": "The level name: 'Temel', 'Orta', or 'İleri'. This MUST match the requested level: {{{level}}}.",
-  "category": "The specific category from the curriculum (e.g., 'Pozlama Temelleri', 'Görsel Hikâye Anlatımı'). {{#if category}}This MUST be '{{{category}}}'{{/if}}",
-  "title": "A compelling title for a specific sub-point within the category (e.g., 'Aperture and Depth of Field').",
-  "learningObjective": "A concise learning objective for this specific title.",
-  "theory": "Explain the topic simply in 3-4 solution-oriented sentences.",
+  "level": "Must match {{{level}}}",
+  "category": "Specific curriculum category",
+  "title": "Technical and specific title",
+  "learningObjective": "Clear measurable outcome",
+  "theory": "3–4 sentences including at least one technical reference",
   "analysisCriteria": [
-    "A technical criterion for success.",
-    "A second technical criterion.",
-    "A third technical criterion."
+    "Concrete measurable criterion",
+    "Second measurable criterion",
+    "Third measurable criterion"
   ],
-  "practiceTask": "A specific, actionable shooting task for the user.",
-  "auroNote": "The 'Auro Note'. Explain why this analysis will provide a professional perspective.",
-  "imageHint": "Provide 1-2 relevant English keywords for finding a suitable image (e.g., 'aperture f-stop', 'portrait side light')."
+  "practiceTask": "Actionable assignment",
+  "auroNote": "Professional perspective explanation",
+  "imageHint": "EXACTLY 2 concrete English keywords describing a visible subject or technique (e.g., 'portrait side light', 'golden hour landscape'). No abstract words."
 }
 
-Ensure the output is a valid JSON array containing exactly five lesson objects for the requested level.
+Ensure:
+- imageHint is exactly 2 keywords or a 2-word phrase.
+- No abstract words like 'creative', 'concept', 'example'.
+- No repetition across lessons.
+
+Return only the JSON array.
 `,
 });
 
-// Define the Genkit flow that orchestrates the AI call.
+/* -------------------------------------------------------------------------- */
+/*                                   FLOW                                     */
+/* -------------------------------------------------------------------------- */
+
 const generateLessonsFlow = ai.defineFlow(
-    {
-        name: 'generateLessonsFlow',
-        inputSchema: GenerateLessonsInputSchema,
-        outputSchema: GenerateLessonsOutputSchema,
-    },
-    async (input) => {
-        // Execute the prompt and await the structured output.
-        const { output } = await generationPrompt(input);
-        // Return the generated lessons, or an empty array if the output is null.
-        return output || [];
+  {
+    name: 'generateLessonsFlowV2',
+    inputSchema: GenerateLessonsInputSchema,
+    outputSchema: GenerateLessonsOutputSchema,
+  },
+  async (input) => {
+    const { output } = await generationPrompt(input);
+
+    if (!output) {
+      throw new Error('AI lesson generation failed: empty output.');
     }
+
+    return output;
+  }
 );

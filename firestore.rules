@@ -93,7 +93,7 @@ service cloud.firestore {
 
     match /academyLessons/{lessonId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if false; // Managed via Admin tools or Console
+      allow create, update, delete: if request.auth.token.email == 'admin@viewora.ai';
     }
     
     match /public_photos/{photoId} {
@@ -104,5 +104,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
