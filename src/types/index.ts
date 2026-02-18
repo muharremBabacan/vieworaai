@@ -7,7 +7,6 @@ export type PhotoAnalysis = PhotoAnalysisOutput;
 export type UserProfileIndex = {
   overall_score: number;
   technical_score: number;
-  updated_at: string;
   progress_score?: number;
   activity_score?: number;
   dominant_style?: string;
@@ -24,6 +23,7 @@ export type UserProfileIndex = {
   communication_style?: 'soft' | 'balanced' | 'technical';
   trend_direction?: 'improving' | 'plateau' | 'declining';
   confidence_index?: number;
+  updated_at: string;
 };
 
 export type UserProfileIndexInput = {

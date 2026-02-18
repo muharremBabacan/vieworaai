@@ -391,6 +391,7 @@
     "email_fallback": "No email"
   },
   "Ratings": {
+    "light": "Light",
     "lighting": "Lighting",
     "composition": "Composition",
     "focus": "Focus",
@@ -398,7 +399,10 @@
     "background": "Background",
     "creativity": "Creativity",
     "overall": "Overall",
-    "technical": "Technical"
+    "technical": "Technical",
+    "exposure": "Exposure",
+    "storytelling": "Storytelling",
+    "consistency": "Consistency"
   },
   "Notifications": {
     "title": "Notifications",

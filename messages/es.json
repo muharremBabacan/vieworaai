@@ -322,7 +322,7 @@
     "status_success_description": "You have successfully joined the group! Redirecting...",
     "toast_welcome_title": "Welcome!",
     "toast_welcome_description": "You have successfully joined the group.",
-    "status_error_failed_join": "You could not join the group. The group may be full, private, or the link may be invalid.",
+    "status_error_failed_join": "You could not join the group. The group may be full or an error occurred.",
     "toast_error_title": "Error",
     "toast_error_description": "An issue occurred during the process.",
     "status_error_main_title": "An Issue Occurred",
@@ -391,6 +391,7 @@
     "email_fallback": "No email"
   },
   "Ratings": {
+    "light": "Light",
     "lighting": "Lighting",
     "composition": "Composition",
     "focus": "Focus",
@@ -398,7 +399,10 @@
     "background": "Background",
     "creativity": "Creativity",
     "overall": "Overall",
-    "technical": "Technical"
+    "technical": "Technical",
+    "exposure": "Exposure",
+    "storytelling": "Storytelling",
+    "consistency": "Consistency"
   },
   "Notifications": {
     "title": "Notifications",

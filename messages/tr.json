@@ -391,6 +391,7 @@
     "email_fallback": "E-posta yok"
   },
   "Ratings": {
+    "light": "Işık",
     "lighting": "Işık",
     "composition": "Kompozisyon",
     "focus": "Netlik",
@@ -398,7 +399,10 @@
     "background": "Arkaplan",
     "creativity": "Yaratıcılık",
     "overall": "Genel",
-    "technical": "Teknik"
+    "technical": "Teknik",
+    "exposure": "Pozlama",
+    "storytelling": "Hikaye Anlatımı",
+    "consistency": "Tutarlılık"
   },
   "Curriculum": {
     "level_basic": "Temel",
