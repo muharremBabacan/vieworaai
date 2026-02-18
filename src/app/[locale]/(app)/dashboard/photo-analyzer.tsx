@@ -16,6 +16,8 @@ import type { User as UserProfile, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -46,7 +48,16 @@ function AnalysisResult({ analysis, feedback, photoPreviewUrl, onNewAnalysis }: 
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
         <span className="text-sm font-bold">{score.toFixed(1)}</span>
       </div>
-      <Progress value={score * 10} className="h-2 [&>div]:bg-primary" />
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Progress value={score * 10} className="h-2 [&>div]:bg-primary" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{score.toFixed(2)}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 

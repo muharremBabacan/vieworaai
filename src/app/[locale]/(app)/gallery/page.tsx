@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -38,6 +37,9 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useLocale, useTranslations } from 'next-intl';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -62,35 +64,37 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   const mainScores = [lightScore, compositionScore, technicalScore].filter(s => !isNaN(s));
   const overallScore = mainScores.length > 0 ? mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length : 0;
 
-  const ratingItems = [
-      { label: tRatings('lighting'), value: lightScore },
-      { label: tRatings('composition'), value: compositionScore },
-      { label: tRatings('technical'), value: technicalScore },
-  ];
+  const ScoreBar = ({ label, score }: { label: string; score: number }) => (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <span className="text-sm font-bold">{score.toFixed(1)}</span>
+      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Progress value={score * 10} className="h-2 [&>div]:bg-primary" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{score.toFixed(2)}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
   
   return (
       <div>
-          <h4 className="font-semibold text-lg mb-3">{t('rating_card_title')}</h4>
-          <div className="space-y-4 rounded-lg border p-4">
-            <div className="flex items-baseline justify-between">
-                <p className="text-base font-semibold">{t('overall_score')}</p>
-                <p className="text-3xl font-bold text-primary">{overallScore.toFixed(1)}</p>
+        <h4 className="font-semibold text-lg mb-4">{t('rating_card_title')}</h4>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+                <span className="text-lg font-semibold">{t('overall_score')}</span>
+                <span className="text-3xl font-bold text-primary">{overallScore.toFixed(1)}</span>
             </div>
-            <div className="space-y-3 pt-4 border-t">
-                {ratingItems.map(item => (
-                    <div key={item.label} className="grid grid-cols-3 items-center gap-2">
-                      <span className="text-sm text-muted-foreground col-span-1">{item.label}</span>
-                      <div className="col-span-2 flex items-center gap-2">
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full"
-                            style={{ width: `${(item.value ?? 0) * 10}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-semibold w-8 text-right">{item.value.toFixed(1)}</span>
-                      </div>
-                    </div>
-                ))}
+            <div className="space-y-4 flex-grow">
+                <ScoreBar label={tRatings('lighting')} score={lightScore} />
+                <ScoreBar label={tRatings('composition')} score={compositionScore} />
+                <ScoreBar label={tRatings('technical')} score={technicalScore} />
             </div>
         </div>
       </div>
@@ -111,6 +115,7 @@ function PhotoDetailDialog({
     userDocRef: DocumentReference | null,
 }) {
   const t = useTranslations('GalleryPage');
+  const tExplore = useTranslations('ExplorePage');
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -332,9 +337,10 @@ function PhotoDetailDialog({
             {photo.aiFeedback ? (
               <>
                 <RatingDisplay analysis={photo.aiFeedback} />
-                <DialogDescription className="text-base leading-relaxed text-foreground/80">
-                  {photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis}
-                </DialogDescription>
+                 <div>
+                  <h4 className="font-semibold text-lg mb-2 flex items-center gap-2"><Bot className="h-5 w-5" /> {tExplore('analysis_summary_title')}</h4>
+                   <div className="text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: (photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />') }} />
+                </div>
               </>
             ) : (
               <div className="text-center py-10 space-y-4">
