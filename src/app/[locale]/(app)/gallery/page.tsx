@@ -308,8 +308,6 @@ function PhotoDetailDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onOpenChange(false)}>
       <DialogContent 
         className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
       >
         <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black/5">
           <Image src={photo.imageUrl} alt="Analiz" fill className="object-contain" unoptimized priority />
