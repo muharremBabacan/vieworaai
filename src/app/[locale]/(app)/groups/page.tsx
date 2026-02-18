@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, doc, query, where, updateDoc, arrayUnion, getDocs, limit } from 'firebase/firestore';
 import type { User as UserProfile, Group } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,6 +62,7 @@ function CreateGroupDialog({ canCreate, limit, ownedCount, userLevel }: { canCre
         memberIds: [user.uid],
         createdAt: new Date().toISOString(),
         maxMembers: maxMembers,
+        joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
       };
       
       addDocumentNonBlocking(groupsCollectionRef, newGroupData);
@@ -145,6 +146,103 @@ function CreateGroupDialog({ canCreate, limit, ownedCount, userLevel }: { canCre
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('button_create')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const joinByCodeSchema = (t: Function) => z.object({
+  code: z.string().length(6, t('form_error_code_length')).regex(/^\d{6}$/, t('form_error_code_format')),
+});
+
+type JoinByCodeValues = z.infer<ReturnType<typeof joinByCodeSchema>>;
+
+function JoinByCodeDialog() {
+  const [open, setOpen] = useState(false);
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const t = useTranslations('GroupsPage');
+  const router = useRouter();
+
+  const form = useForm<JoinByCodeValues>({
+    resolver: zodResolver(joinByCodeSchema(t)),
+    defaultValues: { code: '' },
+  });
+
+  const onSubmit = async (values: JoinByCodeValues) => {
+    if (!user || !firestore) return;
+
+    try {
+      const q = query(collection(firestore, 'groups'), where("joinCode", "==", values.code), limit(1));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast({ variant: 'destructive', title: t('toast_join_not_found_title'), description: t('toast_join_not_found_description') });
+        return;
+      }
+      
+      const groupDoc = querySnapshot.docs[0];
+      const group = { id: groupDoc.id, ...groupDoc.data() } as Group;
+
+      if (group.memberIds.includes(user.uid)) {
+        toast({ title: t('toast_join_already_member_title'), description: t('toast_join_already_member_description', {name: group.name}) });
+        router.push(`/groups/${group.id}`);
+        return;
+      }
+
+      await updateDoc(groupDoc.ref, {
+        memberIds: arrayUnion(user.uid),
+      });
+
+      toast({ title: t('toast_join_success_title'), description: t('toast_join_success_description', { name: group.name }) });
+      form.reset();
+      setOpen(false);
+      router.push(`/groups/${group.id}`);
+
+    } catch (error: any) {
+        console.error('Kod ile gruba katılma hatası:', error);
+        toast({
+            variant: 'destructive',
+            title: t('toast_join_fail_title'),
+            description: t('toast_join_fail_description'),
+        });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">{t('button_join_by_code')}</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{t('join_dialog_title')}</DialogTitle>
+          <DialogDescription>{t('join_dialog_description')}</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('form_label_invite_code')}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={t('form_placeholder_code')} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('button_join')}
               </Button>
             </DialogFooter>
           </form>
@@ -246,6 +344,7 @@ export default function GroupsPage() {
           {/* Page title is already in layout */}
         </div>
         <div className="flex items-center gap-2">
+            <JoinByCodeDialog />
             <CreateGroupDialog 
                 canCreate={canCreateGroup} 
                 limit={limits.maxGroups} 

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { useRouter } from '@/navigation';
 import { useParams } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, getDoc, collection, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { Group, User as UserProfile } from '@/types';
@@ -102,6 +102,7 @@ function InviteOptionsDialog({ group }: { group: Group }) {
     const { toast } = useToast();
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const inviteLink = `${origin}/groups/join/${group.id}`;
+    const joinCode = group.joinCode;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(inviteLink)}`;
 
     const copyToClipboard = (text: string, type: 'link' | 'code') => {
@@ -134,13 +135,15 @@ function InviteOptionsDialog({ group }: { group: Group }) {
                         </div>
                     </div>
 
-                    <div className="w-full space-y-2">
+                   {joinCode && (
+                     <div className="w-full space-y-2">
                         <Label htmlFor="join-code" className="text-sm font-medium">{t('label_join_code')}</Label>
                         <div className="flex items-center gap-2">
-                            <Input id="join-code" value={group.id.slice(0, 6).toUpperCase()} readOnly className="font-mono text-lg tracking-widest text-center" />
-                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(group.id.slice(0, 6).toUpperCase(), 'code')}><Copy /></Button>
+                            <Input id="join-code" value={joinCode} readOnly className="font-mono text-lg tracking-widest text-center" />
+                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(joinCode, 'code')}><Copy /></Button>
                         </div>
                     </div>
+                   )}
                     
                     <div className="w-full space-y-2">
                         <Label htmlFor="share-link" className="text-sm font-medium">{t('label_shareable_link')}</Label>
