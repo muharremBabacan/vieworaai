@@ -44,14 +44,9 @@ service cloud.firestore {
        }
 
        match /photos/{photoId} {
-         // An owner can do anything to their photos.
-         allow write: if isOwner(userId);
-         
-         // GET: An owner can get their own photo. Anyone can get a photo if it's in the Foyer.
-         allow get: if isOwner(userId) || (resource.data.isInFoyer == true && isSignedIn());
-         
-         // LIST: Only the owner can list their own photos.
-         allow list: if isOwner(userId);
+         // The owner can read and write their own photos. This rule is simple and secure.
+         // Public visibility (like Foyer or Exhibition) is handled by separate collections or more specific rules on `get`.
+         allow read, write: if isOwner(userId);
        }
     }
     
