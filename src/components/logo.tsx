@@ -17,9 +17,12 @@ export default function Logo({ className }: { className?: string }) {
           unoptimized={true} // Firebase URL'lerinde Next.js işlemci hatalarını (400) engeller
         />
       </div>
-      <span className="font-sans text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
-        Viewora<sup>®</sup>
-      </span>
+      <div className="flex items-baseline">
+        <span className="font-sans text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
+          Viewora
+        </span>
+        <sup className="font-bold text-lg text-foreground/80">®</sup>
+      </div>
     </div>
   );
 }
