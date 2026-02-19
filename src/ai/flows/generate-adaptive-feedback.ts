@@ -7,7 +7,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-// This is a subset of the full analysis, only what's needed for the prompt.
 const PhotoTechnicalDataSchema = z.object({
   light_score: z.number(),
   composition_score: z.number(),
@@ -22,6 +21,9 @@ const AdaptiveFeedbackInputSchema = z.object({
   userGamificationLevel: z.string().describe("The user's gamification level name (e.g., 'Neuner', 'Vexer')."),
   language: z.string().describe('The language for the response (e.g., "tr", "en").'),
   technicalAnalysis: PhotoTechnicalDataSchema.describe("The objective technical analysis scores for the current photo."),
+  communicationStyle: z.enum(['soft', 'balanced', 'technical']).optional().describe("User's preferred communication style."),
+  scoreTrend: z.enum(['improving', 'stagnant', 'declining']).describe("User's recent performance trend."),
+  averageScore: z.number().describe("User's recent average score out of 10."),
 });
 export type AdaptiveFeedbackInput = z.infer<typeof AdaptiveFeedbackInputSchema>;
 
@@ -44,13 +46,12 @@ const feedbackPrompt = ai.definePrompt({
 
 You must respond in the specified language: {{{language}}}.
 
-**CONTEXT ABOUT THE USER (Use this to tailor your feedback):**
+**CONTEXT ABOUT THE USER & PHOTO (Use this to tailor your feedback):**
 - **Gamification Level:** {{{userGamificationLevel}}} (Neuner=New, Viewner/Sytner=Mid, Omner/Vexer=Advanced).
-
-**HOW TO DETERMINE YOUR TONE (This is the most important rule):**
-- Use a **"soft"** tone for new users (Gamification Level: 'Neuner'). Be very encouraging and simple.
-- Use a **"technical"** tone for advanced users (Gamification Level: 'Vexer' or 'Omner'). Be professional and detailed.
-- For everyone else (e.g., 'Viewner', 'Sytner' levels), use a **"balanced"** tone that is encouraging but also provides clear technical points.
+- **User's Explicit Tone Preference:** {{{communicationStyle}}}
+- **Recent Performance Trend:** {{{scoreTrend}}}
+- **Recent Average Score:** {{{averageScore}}}/10
+- **Current Photo's Overall Score:** {{(technicalAnalysis.light_score + technicalAnalysis.composition_score + technicalAnalysis.focus_score + technicalAnalysis.color_control_score + technicalAnalysis.background_control_score + technicalAnalysis.creativity_risk_score) / 6}}/10
 
 **OBJECTIVE ANALYSIS OF THE CURRENT PHOTO (Scores are out of 10):**
 - **Lighting Score:** {{{technicalAnalysis.light_score}}}
@@ -59,6 +60,13 @@ You must respond in the specified language: {{{language}}}.
 - **Color Control Score:** {{{technicalAnalysis.color_control_score}}}
 - **Background Control Score:** {{{technicalAnalysis.background_control_score}}}
 - **Creativity/Risk Score:** {{{technicalAnalysis.creativity_risk_score}}}
+
+**HOW TO DETERMINE YOUR TONE (This is the most important rule):**
+1.  **If a \`communicationStyle\` is set by the user, ALWAYS use that tone.** This is the user's explicit choice.
+2.  **If \`communicationStyle\` is NOT set, use the AUTOMATED TONE logic below:**
+    - **"Soft" Tone:** Use if user is 'Neuner'. Be very encouraging and simple.
+    - **"Technical" Tone:** Use if user is 'Omner' or 'Vexer' AND their \`scoreTrend\` is 'improving'. Be professional and detailed.
+    - **"Balanced" Tone:** Use for ALL other cases (e.g., 'Viewner', 'Sytner' levels, or stagnant/declining advanced users). This should be encouraging but also provide clear technical points.
 
 **YOUR TASK:**
 Write a concise, human-readable analysis. Structure your feedback into three distinct sections using Markdown for headers: **Işık**, **Kompozisyon**, and **Teknik**.

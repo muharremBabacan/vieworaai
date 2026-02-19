@@ -20,10 +20,8 @@ export type User = {
   groups?: string[];
   createdAt?: string; // For admin stats
   lastLoginAt?: string; // For admin stats
-  profileIndex?: {
-    dominant_style: string;
-    strengths: string[];
-  }
+  communication_style?: 'soft' | 'balanced' | 'technical';
+  score_history?: { score: number; date: string }[];
 };
 
 export type Photo = {

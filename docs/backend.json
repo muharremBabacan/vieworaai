@@ -40,6 +40,22 @@
           "type": "string",
           "description": "Timestamp of the user's last login.",
           "format": "date-time"
+        },
+        "communication_style": {
+          "type": "string",
+          "description": "User's preferred communication style for AI feedback.",
+          "enum": ["soft", "balanced", "technical"]
+        },
+        "score_history": {
+          "type": "array",
+          "description": "A recent history of analysis scores to determine trends.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "score": { "type": "number" },
+              "date": { "type": "string", "format": "date-time" }
+            }
+          }
         }
       },
       "required": [

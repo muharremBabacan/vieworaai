@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { UploadCloud, X, Loader2, Zap, Upload, Bot } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User as UserProfile, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
@@ -231,12 +230,33 @@ export default function PhotoAnalyzer() {
         analysisData = await generatePhotoAnalysis({ photoUrl: downloadURL });
       } catch (e) { toast({ variant: 'destructive', title: t('toast_analysis_fail_title') }); return; }
 
+      const scores = [
+        analysisData.light_score, analysisData.composition_score, analysisData.focus_score,
+        analysisData.color_control_score, analysisData.background_control_score, analysisData.creativity_risk_score,
+      ].map(normalizeScore);
+      const overallScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+      
+      const scoreHistory = userProfile.score_history || [];
+      const recentScores = scoreHistory.slice(-5).map(h => h.score);
+      const averageScore = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
+      let scoreTrend: 'improving' | 'stagnant' | 'declining' = 'stagnant';
+      if (recentScores.length > 1) {
+          if (overallScore > averageScore + 0.5) {
+              scoreTrend = 'improving';
+          } else if (overallScore < averageScore - 0.5) {
+              scoreTrend = 'declining';
+          }
+      }
+
       let feedbackData: AdaptiveFeedbackOutput;
       try {
         feedbackData = await generateAdaptiveFeedback({
           userGamificationLevel: userProfile.level_name || 'Neuner',
           language: locale,
           technicalAnalysis: analysisData,
+          communicationStyle: userProfile.communication_style,
+          scoreTrend: scoreTrend,
+          averageScore: averageScore,
         });
       } catch (e) { toast({ variant: 'destructive', title: 'Geri bildirim üretilemedi.' }); return; }
 
@@ -251,7 +271,8 @@ export default function PhotoAnalyzer() {
       
       const userUpdatePayload: Partial<UserProfile> = {
         auro_balance: (userProfile.auro_balance || 0) - analysisCost,
-        current_xp: newXp
+        current_xp: newXp,
+        score_history: [...scoreHistory, { score: overallScore, date: new Date().toISOString() }].slice(-10),
       };
       if (newLevel.name !== currentLevel.name) {
         userUpdatePayload.level_name = newLevel.name;
