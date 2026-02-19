@@ -1,10 +1,12 @@
-import { getRequestConfig } from 'next-intl/server';
-
-export default getRequestConfig(async ({ locale }) => {
+import {getRequestConfig} from 'next-intl/server';
+import {headers} from 'next/headers';
+ 
+export default getRequestConfig(async () => {
+  // Read the active locale from the request headers.
+  const headersList = await headers();
+  const locale = headersList.get('X-NEXT-INTL-LOCALE') || 'tr';
+ 
   return {
-    // Hatayı çözen kritik satır: locale bilgisini geri döndürün
-    locale, 
-    // Kök dizindeki messages klasörüne erişim yolu
     messages: (await import(`../../messages/${locale}.json`)).default
   };
 });
