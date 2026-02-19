@@ -21,7 +21,7 @@ export default function Logo({ className }: { className?: string }) {
         <span className="font-sans text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
           Viewora
         </span>
-        <sup className="font-bold text-lg text-foreground/80">®</sup>
+        <sup className="font-bold text-lg text-purple-600">®</sup>
       </div>
     </div>
   );
