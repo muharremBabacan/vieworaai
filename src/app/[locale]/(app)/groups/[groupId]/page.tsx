@@ -1,22 +1,18 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, use } from 'react'; // use eklendi
 import { useParams } from 'next/navigation';
 import { useRouter, Link } from '@/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { doc, getDoc, collection, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { Group, User as UserProfile } from '@/types';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Users, Crown, Loader2, AlertTriangle, UserPlus, X, Trash2, Settings, QrCode, Link as LinkIcon, Copy } from 'lucide-react';
+import { Users, Crown, Loader2, AlertTriangle, X, Copy } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
@@ -34,7 +30,13 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 
-function MemberItem({ userId, isOwner, onRemove }: { userId: string, isOwner: boolean, onRemove: (userId: string, userName: string) => void }) {
+// group prop'u eklendi
+function MemberItem({ userId, isOwner, onRemove, group }: { 
+  userId: string, 
+  isOwner: boolean, 
+  onRemove: (userId: string, userName: string) => void,
+  group: Group 
+}) {
   const t = useTranslations('GroupDetailPage');
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
@@ -61,6 +63,7 @@ function MemberItem({ userId, isOwner, onRemove }: { userId: string, isOwner: bo
     );
   }
 
+  // Artık group tanımlı olduğu için hata vermez
   const isCurrentUserOwner = userProfile.id === group?.ownerId;
   const isSelf = userId === currentUser?.uid;
 
@@ -96,7 +99,6 @@ function MemberItem({ userId, isOwner, onRemove }: { userId: string, isOwner: bo
   );
 }
 
-
 function InviteOptionsDialog({ group }: { group: Group }) {
     const t = useTranslations('GroupDetailPage');
     const { toast } = useToast();
@@ -127,29 +129,26 @@ function InviteOptionsDialog({ group }: { group: Group }) {
                     <div className="bg-white p-2 rounded-lg">
                         <Image src={qrCodeUrl} alt="Group Invite QR Code" width={150} height={150} />
                     </div>
-
                     <div className="relative w-full text-center">
                         <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                         <div className="relative flex justify-center text-xs uppercase">
                             <span className="bg-background px-2 text-muted-foreground">{t('or_divider')}</span>
                         </div>
                     </div>
-
                    {joinCode && (
                      <div className="w-full space-y-2">
                         <Label htmlFor="join-code" className="text-sm font-medium">{t('label_join_code')}</Label>
                         <div className="flex items-center gap-2">
                             <Input id="join-code" value={joinCode} readOnly className="font-mono text-lg tracking-widest text-center" />
-                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(joinCode, 'code')}><Copy /></Button>
+                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(joinCode, 'code')}><Copy className="h-4 w-4" /></Button>
                         </div>
                     </div>
                    )}
-                    
                     <div className="w-full space-y-2">
                         <Label htmlFor="share-link" className="text-sm font-medium">{t('label_shareable_link')}</Label>
                          <div className="flex items-center gap-2">
                             <Input id="share-link" value={inviteLink} readOnly />
-                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(inviteLink, 'link')}><Copy /></Button>
+                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(inviteLink, 'link')}><Copy className="h-4 w-4" /></Button>
                         </div>
                     </div>
                 </div>
@@ -160,11 +159,13 @@ function InviteOptionsDialog({ group }: { group: Group }) {
 
 export default function GroupDetailPage() {
   const params = useParams();
-  const groupId = Array.isArray(params.groupId) ? params.groupId[0] : params.groupId;
+  // Next.js 15 uyumluluğu için
+  const rawGroupId = params?.groupId;
+  const groupId = Array.isArray(rawGroupId) ? rawGroupId[0] : rawGroupId;
+
   const t = useTranslations('GroupDetailPage');
   const router = useRouter();
   const { toast } = useToast();
-
   const { user: currentUser } = useUser();
   const firestore = useFirestore();
 
@@ -174,7 +175,6 @@ export default function GroupDetailPage() {
   }, [firestore, groupId, currentUser]);
 
   const { data: group, isLoading: isGroupLoading, error: groupError } = useDoc<Group>(groupDocRef);
-  
   const [isDeletingGroup, setIsDeletingGroup] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
@@ -213,7 +213,7 @@ export default function GroupDetailPage() {
 
   if (isGroupLoading) {
     return (
-      <div className="container mx-auto max-w-4xl space-y-6">
+      <div className="container mx-auto max-w-4xl space-y-6 p-4">
         <Skeleton className="h-10 w-3/4" /> <Skeleton className="h-6 w-1/2" />
         <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
       </div>
@@ -222,7 +222,7 @@ export default function GroupDetailPage() {
 
   if (groupError || !group) {
     return (
-      <div className="container mx-auto text-center py-20">
+      <div className="container mx-auto text-center py-20 px-4">
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
           <h3 className="mt-4 text-xl font-semibold">{t('group_not_found_title')}</h3>
           <p className="text-muted-foreground mt-2">{groupError ? t('group_not_found_error') : t('group_not_found_no_permission')}</p>
@@ -234,7 +234,7 @@ export default function GroupDetailPage() {
   const { maxMembers } = getGroupLimits(userProfile?.level_name);
 
   return (
-    <div className="container mx-auto max-w-4xl space-y-8">
+    <div className="container mx-auto max-w-4xl space-y-8 p-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
         {group.description && <p className="text-lg text-muted-foreground mt-2">{group.description}</p>}
@@ -255,9 +255,9 @@ export default function GroupDetailPage() {
         <TabsContent value="members" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2"><Users /> {t('members_title')}</div>
-                 <div className="flex items-center gap-4">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-2"><Users className="h-5 w-5" /> {t('members_title')}</div>
+                 <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                     <span className="text-sm font-normal text-muted-foreground">{group.memberIds.length} / {maxMembers}</span>
                     {isOwner && <InviteOptionsDialog group={group} />}
                 </div>
@@ -266,7 +266,13 @@ export default function GroupDetailPage() {
             <CardContent>
               <div className="space-y-1">
                 {group.memberIds.map(memberId => (
-                  <MemberItem key={memberId} userId={memberId} isOwner={memberId === group.ownerId} onRemove={handleRemoveMember} />
+                  <MemberItem 
+                    key={memberId} 
+                    userId={memberId} 
+                    isOwner={isOwner} // GroupDetailPage'deki isOwner'ı kullanıyoruz
+                    onRemove={handleRemoveMember}
+                    group={group} // group prop'u eklendi
+                  />
                 ))}
               </div>
             </CardContent>

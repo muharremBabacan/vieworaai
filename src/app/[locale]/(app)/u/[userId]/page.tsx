@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter, Link } from '@/navigation';
+import { useParams, useRouter } from 'next/navigation'; // useParams eklendi
+import { Link } from '@/navigation';
 import { useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, collection, where, query, orderBy } from 'firebase/firestore';
 import type { User as UserProfile, Group, Photo } from '@/types';
@@ -54,7 +55,6 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
-
 function FoyerPhotoDialog({ photo, author, isOpen, onOpenChange }: { photo: Photo | null; author: UserProfile | null; isOpen: boolean; onOpenChange: (open: boolean) => void; }) {
   if (!photo || !author) return null;
 
@@ -100,10 +100,9 @@ function FoyerPhotoDialog({ photo, author, isOpen, onOpenChange }: { photo: Phot
   );
 }
 
-
 export default function PublicProfilePage() {
-  const pathname = usePathname();
-  const userId = pathname.split('/').pop();
+  const params = useParams();
+  const userId = params?.userId as string; // userId'yi params'tan güvenli alıyoruz
   const router = useRouter();
   const t = useTranslations('PublicProfilePage');
 
@@ -111,6 +110,7 @@ export default function PublicProfilePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [showFoyer, setShowFoyer] = useState(false);
 
+  // 🛡️ KRİTİK: userId yoksa referans null döner, "unknown" hatası engellenir
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
     return doc(firestore, 'users', userId);
@@ -122,21 +122,27 @@ export default function PublicProfilePage() {
     if (!firestore || !userId) return null;
     return query(collection(firestore, 'groups'), where("memberIds", "array-contains", userId));
   }, [firestore, userId]);
+  
   const { data: groups, isLoading: areGroupsLoading } = useCollection<Group>(groupsQuery);
 
   const foyerPhotosQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return query(collection(firestore, 'users', userId, 'photos'), where("isInFoyer", "==", true), orderBy('createdAt', 'desc'));
+    return query(
+      collection(firestore, 'users', userId, 'photos'), 
+      where("isInFoyer", "==", true), 
+      orderBy('createdAt', 'desc')
+    );
   }, [firestore, userId]);
+  
   const { data: foyerPhotos, isLoading: areFoyerPhotosLoading } = useCollection<Photo>(foyerPhotosQuery);
   
   const isLoading = isProfileLoading || areGroupsLoading || areFoyerPhotosLoading;
 
   if (isLoading) {
-    return <div className="container mx-auto max-w-2xl"><ProfilePageSkeleton /></div>;
+    return <div className="container mx-auto max-w-2xl p-4"><ProfilePageSkeleton /></div>;
   }
 
-  if (!userProfile) {
+  if (!userProfile || !userId) {
     return (
         <div className="container mx-auto text-center py-20">
             <p>{t('user_not_found')}</p>
@@ -153,7 +159,7 @@ export default function PublicProfilePage() {
   const fallbackChar = name?.charAt(0) || '?';
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-6">
+    <div className="container mx-auto max-w-2xl space-y-6 p-4">
         <Card>
             <CardHeader className="items-center text-center p-6">
                 <Avatar className="h-24 w-24 text-4xl mb-4">
@@ -199,28 +205,38 @@ export default function PublicProfilePage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {foyerPhotos.map(photo => (
-                             <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
-                                <Image src={photo.imageUrl} alt="Fuaye Fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
+                             <Card 
+                               key={photo.id} 
+                               className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" 
+                               onClick={() => setSelectedPhoto(photo)}
+                             >
+                                <Image 
+                                  src={photo.imageUrl} 
+                                  alt="Fuaye Fotoğrafı" 
+                                  fill 
+                                  className="object-cover transition-transform group-hover:scale-110" 
+                                  unoptimized={true} 
+                                />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 {photo.aiFeedback && (() => {
                                     const lightScore = normalizeScore(photo.aiFeedback.light_score);
                                     const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
                                     const technicalScore = normalizeScore(
-                                    (
+                                      (
                                         normalizeScore(photo.aiFeedback.focus_score) +
                                         normalizeScore(photo.aiFeedback.color_control_score) +
                                         normalizeScore(photo.aiFeedback.background_control_score) +
                                         normalizeScore(photo.aiFeedback.creativity_risk_score)
-                                    ) / 4
+                                      ) / 4
                                     );
                                     const overallScore = (lightScore + compositionScore + technicalScore) / 3;
 
                                     return (
                                         <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
-                                        <Star className="h-3 w-3 text-yellow-400" />
-                                        <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                          <Star className="h-3 w-3 text-yellow-400" />
+                                          <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
                                         </Badge>
                                     )
                                 })()}
