@@ -1,14 +1,14 @@
 'use client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from '@/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import type { User as UserProfile, UserProfileIndex } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, Copy, TrendingUp, TrendingDown, Minus, Target, Brush, Camera, Smartphone, AlertTriangle } from 'lucide-react';
+import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, Copy, TrendingUp, TrendingDown, Minus, Target, Brush, Camera, Smartphone, AlertTriangle, UserCheck, CalendarDays } from 'lucide-react';
 import { getLevelFromXp, levels as allLevels } from '@/lib/gamification';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts';
+import { isWithinInterval, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
 function ProfileSkeleton() {
   return (
@@ -151,6 +152,117 @@ function ProfileInsights({ profileIndex }: { profileIndex: UserProfileIndex }) {
     )
 }
 
+function StatCard({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+            </CardContent>
+        </Card>
+    )
+}
+
+function UserStatsAdminTool() {
+    const firestore = useFirestore();
+    const [filter, setFilter] = useState<'week' | 'today' | 'all'>('week');
+
+    const usersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'users');
+    }, [firestore]);
+
+    const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
+
+    const stats = useMemo(() => {
+        if (!users) return { total: 0, active: 0, newUsers: 0 };
+
+        const now = new Date();
+        
+        const totalUsers = users.length;
+        
+        const last30Days = subDays(now, 30);
+        const activeUsers = users.filter(u => u.lastLoginAt && isWithinInterval(new Date(u.lastLoginAt), { start: last30Days, end: now })).length;
+
+        let newUsersCount = 0;
+        if (filter === 'today') {
+            const todayStart = startOfDay(now);
+            const todayEnd = endOfDay(now);
+            newUsersCount = users.filter(u => u.createdAt && isWithinInterval(new Date(u.createdAt), { start: todayStart, end: todayEnd })).length;
+        } else if (filter === 'week') {
+            const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+            const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+            newUsersCount = users.filter(u => u.createdAt && isWithinInterval(new Date(u.createdAt), { start: weekStart, end: weekEnd })).length;
+        } else { // 'all'
+            newUsersCount = totalUsers;
+        }
+        
+        return {
+            total: totalUsers,
+            active: activeUsers,
+            newUsers: newUsersCount
+        };
+    }, [users, filter]);
+
+    const getNewUsersTitle = () => {
+        switch(filter) {
+            case 'today': return 'Bugün Katılan Üyeler';
+            case 'week': return 'Bu Hafta Katılan Üyeler';
+            case 'all': default: return 'Toplam Üye';
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <div>
+                <h3 className="font-semibold text-lg">Üye İstatistikleri</h3>
+                <p className="text-sm text-muted-foreground mb-4">Uygulamanın kullanıcı özeti.</p>
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Skeleton className="h-24" />
+                        <Skeleton className="h-24" />
+                    </div>
+                     <div className="flex gap-2 my-4">
+                        <Skeleton className="h-9 w-24" />
+                        <Skeleton className="h-9 w-20" />
+                        <Skeleton className="h-9 w-20" />
+                    </div>
+                    <Skeleton className="h-24 w-full" />
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div>
+            <h3 className="font-semibold text-lg">Üye İstatistikleri</h3>
+            <p className="text-sm text-muted-foreground mb-4">Uygulamanın kullanıcı özeti.</p>
+            
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <StatCard title="Toplam Üye" value={stats.total} icon={Users} />
+                    <StatCard title="Aktif Üyeler (Son 30 gün)" value={stats.active} icon={UserCheck} />
+                </div>
+                <div>
+                    <div className="flex items-center gap-2 my-4">
+                        <Button variant={filter === 'week' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('week')}>Bu Hafta</Button>
+                        <Button variant={filter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('today')}>Bugün</Button>
+                        <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>Tümü</Button>
+                    </div>
+                    <StatCard 
+                        title={getNewUsersTitle()} 
+                        value={stats.newUsers} 
+                        icon={CalendarDays} 
+                    />
+                </div>
+            </div>
+        </div>
+    )
+}
+
 export default function ProfilePage() {
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -197,6 +309,7 @@ export default function ProfilePage() {
   const progress = nextLevel ? Math.max(0, Math.min(100, ((current_xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100)) : 100;
   
   const auroBalance = Number.isFinite(auro_balance) ? auro_balance : 0;
+  const isAdmin = userProfile.email === 'admin@viewora.ai';
 
   return (
     <div className="container mx-auto max-w-2xl">
@@ -292,6 +405,18 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+        
+        {isAdmin && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('admin_tools_title')}</CardTitle>
+                    <CardDescription>{t('admin_tools_description')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <UserStatsAdminTool />
+                </CardContent>
+            </Card>
+        )}
         
         <Card>
             <CardContent className="p-3 divide-y divide-border">
