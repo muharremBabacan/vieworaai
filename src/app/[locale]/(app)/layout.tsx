@@ -1,33 +1,14 @@
-import type { Metadata } from 'next';
-import { Toaster } from '@/components/ui/toaster';
-import { FirebaseClientProvider } from '@/firebase';
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { AppHeader } from '@/components/app-header';
 
-export const metadata: Metadata = {
-  title: 'Viewora',
-  description: 'AI Photo Coach',
-};
-
-export default async function LocaleLayout(props: {
+export default function AppLayout({
+  children,
+}: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
 }) {
-  const { children } = props;
-  const { locale } = await props.params;
-
-  const messages = await getMessages();
-
   return (
-    <html lang={locale} className="dark">
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          <FirebaseClientProvider>
-            {children}
-            <Toaster />
-          </FirebaseClientProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <div className="relative flex min-h-screen flex-col">
+      <AppHeader />
+      <main className="flex-1 py-8">{children}</main>
+    </div>
   );
 }
