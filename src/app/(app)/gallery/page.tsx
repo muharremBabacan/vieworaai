@@ -1,6 +1,3 @@
-// This file is intentionally left blank.
-// The content has been moved to src/app/[locale]/(app)/gallery/page.tsx
-// to support internationalized routing.
-export default function Page() {
-    return null;
-}
+// This file is intentionally left without a default export to prevent route conflicts.
+// The correct page is at src/app/[locale]/(app)/gallery/page.tsx
+export const placeholder = true;
