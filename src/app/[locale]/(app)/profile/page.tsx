@@ -3,19 +3,17 @@ import React, { useMemo, useState } from 'react';
 import { Link } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import type { User as UserProfile, UserProfileIndex } from '@/types';
+import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, Copy, TrendingUp, TrendingDown, Minus, Target, Brush, Camera, Smartphone, AlertTriangle, UserCheck, CalendarDays } from 'lucide-react';
+import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, Copy, UserCheck, CalendarDays } from 'lucide-react';
 import { getLevelFromXp, levels as allLevels } from '@/lib/gamification';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend } from 'recharts';
 import { isWithinInterval, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
 function ProfileSkeleton() {
@@ -88,69 +86,6 @@ const InfoListItem = ({ icon, title, href }: { icon: React.ElementType, title: s
         </div>
     </Link>
 );
-
-
-function StrengthChart({ strengthMap }: { strengthMap: UserProfileIndex['strength_map'] }) {
-    const tRatings = useTranslations('Ratings');
-    const chartData = useMemo(() => [
-        { subject: tRatings('composition'), value: strengthMap?.composition || 0, fullMark: 100 },
-        { subject: tRatings('light'), value: strengthMap?.light || 0, fullMark: 100 },
-        { subject: tRatings('exposure'), value: strengthMap?.exposure || 0, fullMark: 100 },
-        { subject: tRatings('storytelling'), value: strengthMap?.storytelling || 0, fullMark: 100 },
-        { subject: tRatings('consistency'), value: strengthMap?.consistency || 0, fullMark: 100 },
-    ], [strengthMap, tRatings]);
-
-    const chartConfig = {
-      value: { label: "Skor", color: "hsl(var(--primary))" },
-    };
-
-    return (
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square h-full w-full">
-            <RadarChart data={chartData}>
-                 <ChartTooltip content={<ChartTooltipContent />} />
-                 <PolarGrid />
-                 <PolarAngleAxis dataKey="subject" />
-                 <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                 <Radar name="Skor" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
-                 <Legend />
-            </RadarChart>
-        </ChartContainer>
-    );
-}
-
-const StatItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string | number | null }) => {
-    if (!value) return null;
-    return (
-        <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg">
-            <Icon className="h-5 w-5 text-primary mt-0.5" />
-            <div>
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="font-semibold capitalize">{value}</p>
-            </div>
-        </div>
-    );
-};
-
-function ProfileInsights({ profileIndex }: { profileIndex: UserProfileIndex }) {
-    const TrendIcon = profileIndex.trend_direction === 'improving' ? TrendingUp : profileIndex.trend_direction === 'declining' ? TrendingDown : Minus;
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                    <Brush className="h-6 w-6 text-primary" />
-                    Stratejik Analiz
-                </CardTitle>
-                 <CardDescription>Yapay zeka koçunun senin hakkındaki öngörüleri.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-                 <StatItem icon={TrendIcon} label="Performans Trendi" value={profileIndex.trend_direction} />
-                 <StatItem icon={Target} label="En Zayıf Alan" value={profileIndex.weakest_area} />
-                 <StatItem icon={Camera} label="Dominant Tarz" value={profileIndex.dominant_style} />
-                 <StatItem icon={Smartphone} label="Dominant Cihaz" value={profileIndex.dominant_device} />
-            </CardContent>
-        </Card>
-    )
-}
 
 function StatCard({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
     return (
@@ -263,7 +198,6 @@ export default function ProfilePage() {
     auro_balance,
     current_xp,
     level_name,
-    profileIndex
   } = userProfile;
   
   const fallbackChar = name?.charAt(0) || email?.charAt(0) || 'P';
@@ -303,34 +237,6 @@ export default function ProfilePage() {
         </Card>
         
         <PublicProfilePreviewCard userProfile={{...userProfile, photoURL: authUser.photoURL}} userId={authUser.uid} />
-
-        {profileIndex ? (
-            <>
-                <ProfileInsights profileIndex={profileIndex} />
-                 {profileIndex.strength_map && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3">
-                                <Trophy className="h-6 w-6 text-primary" />
-                                Güçlü Yönler Haritası
-                            </CardTitle>
-                            <CardDescription>Fotoğrafçılık yeteneklerinin dağılımı.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-80">
-                           <StrengthChart strengthMap={profileIndex.strength_map} />
-                        </CardContent>
-                    </Card>
-                )}
-            </>
-        ) : (
-             <Card className="border-dashed">
-                <CardHeader className="text-center items-center">
-                    <AlertTriangle className="h-8 w-8 text-amber-500" />
-                    <CardTitle>Profil Analizi Bekleniyor</CardTitle>
-                    <CardDescription className="max-w-xs">Genel fotoğrafçılık profiliniz henüz oluşturulmadı. Daha fazla fotoğraf analiz ederek koçunuzun sizi tanımasına yardımcı olun.</CardDescription>
-                </CardHeader>
-            </Card>
-        )}
 
         <Card>
             <CardHeader>

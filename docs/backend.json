@@ -40,10 +40,6 @@
           "type": "string",
           "description": "Timestamp of the user's last login.",
           "format": "date-time"
-        },
-        "profileIndex": {
-          "$ref": "#/backend/entities/UserProfileIndex",
-          "description": "The user's calculated photographic profile index. This is calculated on-demand."
         }
       },
       "required": [
@@ -54,104 +50,6 @@
         "level_name",
         "current_xp",
         "createdAt"
-      ]
-    },
-    "UserProfileIndex": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User Profile Index",
-      "type": "object",
-      "description": "Stores a calculated index of a user's photographic profile based on their best work, including strengths, weaknesses, and learning preferences for personalized coaching.",
-      "properties": {
-        "overall_score": {
-          "type": "number",
-          "description": "Overall calculated profile score."
-        },
-        "technical_score": {
-          "type": "number",
-          "description": "Score based on technical aspects like focus, color, etc."
-        },
-        "progress_score": {
-          "type": "number",
-          "description": "Score tracking the user's improvement over time."
-        },
-        "activity_score": {
-          "type": "number",
-          "description": "Score based on user's activity in the app."
-        },
-        "dominant_style": {
-          "type": "string",
-          "description": "The user's most frequent photographic style (e.g., landscape, portrait)."
-        },
-        "dominant_device": {
-          "type": "string",
-          "description": "The device type most frequently used by the user."
-        },
-        "strength_map": {
-          "type": "object",
-          "description": "A map of scores for different photographic skill areas.",
-          "properties": {
-            "composition": {
-              "type": "number"
-            },
-            "light": {
-              "type": "number"
-            },
-            "exposure": {
-              "type": "number"
-            },
-            "storytelling": {
-              "type": "number"
-            },
-            "consistency": {
-              "type": "number"
-            }
-          }
-        },
-        "weakest_area": {
-          "type": "string",
-          "description": "The skill area that needs the most improvement."
-        },
-        "learning_style": {
-          "type": "string",
-          "enum": [
-            "visual",
-            "technical",
-            "soft"
-          ],
-          "description": "The user's preferred learning style."
-        },
-        "communication_style": {
-          "type": "string",
-          "enum": [
-            "soft",
-            "balanced",
-            "technical"
-          ],
-          "description": "The preferred communication style for AI feedback."
-        },
-        "trend_direction": {
-          "type": "string",
-          "enum": [
-            "improving",
-            "plateau",
-            "declining"
-          ],
-          "description": "The user's recent performance trend."
-        },
-        "confidence_index": {
-          "type": "number",
-          "description": "An index representing the user's confidence, from 0 to 100."
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of when the profile index was last calculated."
-        }
-      },
-      "required": [
-        "overall_score",
-        "technical_score",
-        "updated_at"
       ]
     },
     "Photo": {
@@ -761,6 +659,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\n\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\n\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute. New subcollections for assignments, competitions, events, and trainings under each group follow this pattern, with write access restricted to group owners and read access granted to members, ensuring a secure and organized environment for group activities.\n\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users."
+    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\\n\\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\\n\\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute. New subcollections for assignments, competitions, events, and trainings under each group follow this pattern, with write access restricted to group owners and read access granted to members, ensuring a secure and organized environment for group activities.\\n\\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users."
   }
 }

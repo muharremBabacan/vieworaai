@@ -4,37 +4,6 @@ import type { PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-i
 
 export type PhotoAnalysis = PhotoAnalysisOutput;
 
-export type UserProfileIndex = {
-  overall_score: number;
-  technical_score: number;
-  progress_score?: number;
-  activity_score?: number;
-  dominant_style?: string;
-  dominant_device?: string;
-  strength_map?: {
-    composition: number;
-    light: number;
-    exposure: number;
-    storytelling: number;
-    consistency: number;
-  };
-  weakest_area?: string;
-  learning_style?: 'visual' | 'technical' | 'soft';
-  communication_style?: 'soft' | 'balanced' | 'technical';
-  trend_direction?: 'improving' | 'plateau' | 'declining';
-  confidence_index?: number;
-  updated_at: string;
-};
-
-export type UserProfileIndexInput = {
-  photoUrl: string;
-  overallScore: number;
-  deviceEstimation: string;
-  style: string;
-  createdAt: string;
-}[];
-
-
 export type User = {
   id: string;
   name: string | null;
@@ -49,7 +18,8 @@ export type User = {
   interests: string[];
   onboarded: boolean;
   groups?: string[];
-  profileIndex?: UserProfileIndex;
+  createdAt?: string; // For admin stats
+  lastLoginAt?: string; // For admin stats
 };
 
 export type Photo = {
@@ -62,6 +32,7 @@ export type Photo = {
   adaptiveFeedback?: string | null;
   createdAt: string;
   isSubmittedToExhibition?: boolean;
+  isInFoyer?: boolean;
 };
 
 export type Lesson = {

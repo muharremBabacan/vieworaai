@@ -235,7 +235,6 @@ export default function PhotoAnalyzer() {
       try {
         feedbackData = await generateAdaptiveFeedback({
           userGamificationLevel: userProfile.level_name || 'Neuner',
-          userProfileIndex: userProfile.profileIndex,
           language: locale,
           technicalAnalysis: analysisData,
         });
