@@ -1,11 +1,11 @@
 {
   "name": "Viewora AI Coach",
   "short_name": "Viewora",
-  "description": "Fotoğrafçılık becerilerinizi geliştirmek için yapay zeka destekli koçluk.",
+  "description": "Yapay zeka destekli fotoğrafçılık koçluğu ile becerilerinizi geliştirin.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1019",
-  "theme_color": "#4338ca",
+  "background_color": "#0D0F13",
+  "theme_color": "#3B82F6",
   "icons": [
     {
       "src": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc",

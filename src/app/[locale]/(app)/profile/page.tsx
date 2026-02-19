@@ -166,102 +166,69 @@ function StatCard({ title, value, icon: Icon }: { title: string, value: string |
     )
 }
 
-function UserStatsAdminTool() {
-    const firestore = useFirestore();
-    const [filter, setFilter] = useState<'week' | 'today' | 'all'>('week');
+function UserStatsAdminTool({ isAdmin }: { isAdmin: boolean }) {
+  const firestore = useFirestore();
+  const [filter, setFilter] = useState<'week' | 'today' | 'all'>('week');
 
-    const usersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'users');
-    }, [firestore]);
+  const usersQuery = useMemoFirebase(() => {
+      if (!firestore || !isAdmin) return null; // 🔥 kritik fix
+      return collection(firestore, 'users');
+  }, [firestore, isAdmin]);
 
-    const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
+  const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
 
-    const stats = useMemo(() => {
-        if (!users) return { total: 0, active: 0, newUsers: 0 };
+  if (!isAdmin) return null; // 🔥 güvenlik katmanı
 
-        const now = new Date();
-        
-        const totalUsers = users.length;
-        
-        const last30Days = subDays(now, 30);
-        const activeUsers = users.filter(u => u.lastLoginAt && isWithinInterval(new Date(u.lastLoginAt), { start: last30Days, end: now })).length;
+  const stats = useMemo(() => {
+      if (!users) return { total: 0, active: 0, newUsers: 0 };
 
-        let newUsersCount = 0;
-        if (filter === 'today') {
-            const todayStart = startOfDay(now);
-            const todayEnd = endOfDay(now);
-            newUsersCount = users.filter(u => u.createdAt && isWithinInterval(new Date(u.createdAt), { start: todayStart, end: todayEnd })).length;
-        } else if (filter === 'week') {
-            const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-            const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-            newUsersCount = users.filter(u => u.createdAt && isWithinInterval(new Date(u.createdAt), { start: weekStart, end: weekEnd })).length;
-        } else { // 'all'
-            newUsersCount = totalUsers;
-        }
-        
-        return {
-            total: totalUsers,
-            active: activeUsers,
-            newUsers: newUsersCount
-        };
-    }, [users, filter]);
+      const now = new Date();
+      const totalUsers = users.length;
 
-    const getNewUsersTitle = () => {
-        switch(filter) {
-            case 'today': return 'Bugün Katılan Üyeler';
-            case 'week': return 'Bu Hafta Katılan Üyeler';
-            case 'all': default: return 'Toplam Üye';
-        }
-    }
+      const last30Days = subDays(now, 30);
+      const activeUsers = users.filter(
+          u => u.lastLoginAt &&
+          isWithinInterval(new Date(u.lastLoginAt), { start: last30Days, end: now })
+      ).length;
 
-    if (isLoading) {
-        return (
-            <div>
-                <h3 className="font-semibold text-lg">Üye İstatistikleri</h3>
-                <p className="text-sm text-muted-foreground mb-4">Uygulamanın kullanıcı özeti.</p>
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Skeleton className="h-24" />
-                        <Skeleton className="h-24" />
-                    </div>
-                     <div className="flex gap-2 my-4">
-                        <Skeleton className="h-9 w-24" />
-                        <Skeleton className="h-9 w-20" />
-                        <Skeleton className="h-9 w-20" />
-                    </div>
-                    <Skeleton className="h-24 w-full" />
-                </div>
-            </div>
-        )
-    }
+      let newUsersCount = 0;
+      if (filter === 'today') {
+          const todayStart = startOfDay(now);
+          const todayEnd = endOfDay(now);
+          newUsersCount = users.filter(
+              u => u.createdAt &&
+              isWithinInterval(new Date(u.createdAt), { start: todayStart, end: todayEnd })
+          ).length;
+      } else if (filter === 'week') {
+          const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+          const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+          newUsersCount = users.filter(
+              u => u.createdAt &&
+              isWithinInterval(new Date(u.createdAt), { start: weekStart, end: weekEnd })
+          ).length;
+      } else {
+          newUsersCount = totalUsers;
+      }
 
-    return (
-        <div>
-            <h3 className="font-semibold text-lg">Üye İstatistikleri</h3>
-            <p className="text-sm text-muted-foreground mb-4">Uygulamanın kullanıcı özeti.</p>
-            
-            <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <StatCard title="Toplam Üye" value={stats.total} icon={Users} />
-                    <StatCard title="Aktif Üyeler (Son 30 gün)" value={stats.active} icon={UserCheck} />
-                </div>
-                <div>
-                    <div className="flex items-center gap-2 my-4">
-                        <Button variant={filter === 'week' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('week')}>Bu Hafta</Button>
-                        <Button variant={filter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('today')}>Bugün</Button>
-                        <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>Tümü</Button>
-                    </div>
-                    <StatCard 
-                        title={getNewUsersTitle()} 
-                        value={stats.newUsers} 
-                        icon={CalendarDays} 
-                    />
-                </div>
-            </div>
-        </div>
-    )
+      return {
+          total: totalUsers,
+          active: activeUsers,
+          newUsers: newUsersCount
+      };
+  }, [users, filter]);
+
+  if (isLoading) return null;
+
+  return (
+      <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <StatCard title="Toplam Üye" value={stats.total} icon={Users} />
+              <StatCard title="Aktif Üyeler (Son 30 gün)" value={stats.active} icon={UserCheck} />
+          </div>
+      </div>
+  );
 }
+
 
 export default function ProfilePage() {
   const { user: authUser, isUserLoading } = useUser();
@@ -413,7 +380,7 @@ export default function ProfilePage() {
                     <CardDescription>{t('admin_tools_description')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <UserStatsAdminTool />
+                <UserStatsAdminTool isAdmin={isAdmin} />
                 </CardContent>
             </Card>
         )}

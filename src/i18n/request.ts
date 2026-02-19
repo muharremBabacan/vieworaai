@@ -1,12 +1,12 @@
-import {getRequestConfig} from 'next-intl/server';
-import {headers} from 'next/headers';
- 
-export default getRequestConfig(async () => {
-  // Read the active locale from the request headers.
-  const headersList = await headers();
-  const locale = headersList.get('X-NEXT-INTL-LOCALE') || 'tr';
- 
+import { getRequestConfig } from 'next-intl/server';
+
+export default getRequestConfig(async ({ requestLocale }) => {
+  const locale = await requestLocale;   // 🔥 KRİTİK
+
+  const finalLocale = locale ?? 'tr';
+
   return {
-    messages: (await import(`../../messages/${locale}.json`)).default
+    locale: finalLocale,
+    messages: (await import(`../../messages/${finalLocale}.json`)).default
   };
 });
