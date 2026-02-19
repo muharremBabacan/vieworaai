@@ -194,7 +194,7 @@
     "toast_error_analysis": "Analiz yapılamadı.",
     "toast_error_delete": "Silme işlemi tamamlanamadı.",
     "alert_dialog_title": "Emin misiniz?",
-    "alert_dialog_delete_description": "Bu fotoğraf hem galerinizden, hem Fuaye'den, hem de Sergi'den (eğer eklenmişse) kalıcı olarak silinecektir. Bu işlem geri alınamaz.",
+    "alert_dialog_delete_description": "Bu fotoğraf hem galerinizden hem de Sergi'den (eğer eklenmişse) kalıcı olarak silinecektir. Bu işlem geri alınamaz.",
     "alert_dialog_cancel": "İptal",
     "alert_dialog_confirm": "Evet, Devam Et",
     "dialog_title": "YZ Geri Bildirimi",
@@ -210,17 +210,11 @@
     "filter_best_overall": "En İyilerim",
     "filter_best_light": "En İyi Işık",
     "filter_best_composition": "En İyi Kompozisyon",
-    "foyer_limit_reached": "Fuaye'nizde en fazla 10 fotoğraf sergileyebilirsiniz.",
     "button_submit_to_exhibition": "Sergi'ye Gönder ({cost} Auro)",
     "button_withdraw_from_exhibition": "Sergi'den Çek",
-    "button_add_to_foyer": "Fuaye'ye Ekle",
-    "button_remove_from_foyer": "Fuaye'den Kaldır",
     "toast_submit_exhibition_complete": "Fotoğrafınız Sergi'ye gönderildi.",
     "toast_withdraw_exhibition_complete": "Fotoğrafınız Sergi'den geri çekildi.",
-    "toast_add_foyer_complete": "Fotoğrafınız Fuaye'ye eklendi.",
-    "toast_remove_foyer_complete": "Fotoğrafınız Fuaye'den kaldırıldı.",
     "toast_error_exhibition": "Sergi işlemi sırasında bir hata oluştu.",
-    "toast_error_foyer": "Fuaye işlemi sırasında bir hata oluştu.",
     "alert_dialog_withdraw_description": "Bu fotoğraf genel Sergi'den kaldırılacaktır. Galerinizde görünmeye devam edecektir."
   },
   "GroupsPage": {
@@ -445,6 +439,6 @@
     "user_not_found": "Kullanıcı bulunamadı.",
     "button_go_back": "Geri Dön",
     "groups_title": "Üyesi Olduğu Gruplar",
-    "foyer_button": "Fuaye'yi Gör"
+    "view_public_photos": "Herkese Açık Fotoğrafları Görüntüle"
   }
 }

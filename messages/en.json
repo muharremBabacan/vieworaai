@@ -194,7 +194,7 @@
     "toast_error_analysis": "Analysis could not be completed.",
     "toast_error_delete": "Deletion could not be completed.",
     "alert_dialog_title": "Are you sure?",
-    "alert_dialog_delete_description": "This photo will be permanently deleted from your gallery, your Foyer, and the Exhibition (if submitted). This action cannot be undone.",
+    "alert_dialog_delete_description": "This photo will be permanently deleted from your gallery and the Exhibition (if submitted). This action cannot be undone.",
     "alert_dialog_cancel": "Cancel",
     "alert_dialog_confirm": "Yes, Continue",
     "dialog_title": "AI Feedback",
@@ -210,17 +210,11 @@
     "filter_best_overall": "My Bests",
     "filter_best_light": "Best Light",
     "filter_best_composition": "Best Composition",
-    "foyer_limit_reached": "You can feature a maximum of 10 photos in your Foyer.",
     "button_submit_to_exhibition": "Submit to Exhibition ({cost} Auro)",
     "button_withdraw_from_exhibition": "Withdraw from Exhibition",
-    "button_add_to_foyer": "Add to Foyer",
-    "button_remove_from_foyer": "Remove from Foyer",
     "toast_submit_exhibition_complete": "Your photo has been submitted to the Exhibition.",
     "toast_withdraw_exhibition_complete": "Your photo was withdrawn from the Exhibition.",
-    "toast_add_foyer_complete": "Your photo has been added to your Foyer.",
-    "toast_remove_foyer_complete": "Your photo has been removed from your Foyer.",
     "toast_error_exhibition": "Could not update Exhibition status.",
-    "toast_error_foyer": "Could not update Foyer status.",
     "alert_dialog_withdraw_description": "This photo will be removed from the public Exhibition. It will remain in your gallery."
   },
   "GroupsPage": {
@@ -425,6 +419,6 @@
     "user_not_found": "User not found.",
     "button_go_back": "Go Back",
     "groups_title": "Member of Groups",
-    "foyer_button": "View Foyer"
+    "view_public_photos": "View Public Photos"
   }
 }

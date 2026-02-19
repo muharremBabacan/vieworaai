@@ -62,7 +62,6 @@ export type Photo = {
   adaptiveFeedback?: string | null;
   createdAt: string;
   isSubmittedToExhibition?: boolean;
-  isInFoyer?: boolean;
 };
 
 export type Lesson = {
