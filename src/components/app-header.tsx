@@ -1,18 +1,8 @@
 'use client';
 
 import { UserNav } from '@/components/user-nav';
-import { Link, usePathname } from '@/navigation';
-import { useTranslations } from 'next-intl';
-import { cn } from '@/lib/utils';
+import { Link } from '@/navigation';
 import Image from 'next/image';
-
-const navItems = [
-    { href: '/academy', label: 'nav_academy' },
-    { href: '/explore', label: 'nav_explore' },
-    { href: '/groups', label: 'nav_groups' },
-    { href: '/dashboard', label: 'nav_coach' },
-    { href: '/gallery', label: 'nav_gallery' },
-];
 
 function HeaderLogo() {
     const logoUrl = "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc";
@@ -39,28 +29,10 @@ function HeaderLogo() {
 }
 
 export function AppHeader() {
-  const t = useTranslations('AppLayout');
-  const pathname = usePathname();
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center">
         <HeaderLogo />
-        
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                    "transition-colors hover:text-foreground/80",
-                    pathname.startsWith(item.href) ? "text-foreground" : "text-foreground/60"
-                )}
-              >
-                {t(item.label)}
-              </Link>
-            ))}
-        </nav>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <UserNav />
         </div>
