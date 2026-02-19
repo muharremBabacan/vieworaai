@@ -18,7 +18,7 @@ import { collection, query, orderBy, doc, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
 const normalizeScore = (score: number | undefined | null): number => {
@@ -75,6 +75,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               <Link href={`/u/${authorProfile.id}`} className="group block" onClick={() => onOpenChange(false)}>
                 <div className="flex items-center gap-3 rounded-lg p-2 -ml-2 transition-colors group-hover:bg-secondary">
                   <Avatar className="h-10 w-10">
+                    {authorProfile.photoURL && <AvatarImage src={authorProfile.photoURL} alt={authorProfile.name || ''} />}
                     <AvatarFallback>{authorProfile.name?.charAt(0) || '?'}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -85,7 +86,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
               </Link>
             ) : null}
              {photo.adaptiveFeedback && (
-                <p className="text-sm text-muted-foreground italic">"{photo.adaptiveFeedback}"</p>
+                <p className="text-sm text-muted-foreground italic">"{photo.aiFeedback?.short_neutral_analysis}"</p>
             )}
         </div>
       </DialogContent>

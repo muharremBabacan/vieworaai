@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Star, Loader2, Rocket, Clock, Zap, Trash2, Camera, Smartphone, HelpCircle, Bot, LibrarySquare, Eye } from 'lucide-react';
+import { Star, Loader2, Eye, Clock, Zap, Trash2, Camera, Smartphone, HelpCircle, Bot, LibrarySquare } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';

@@ -139,13 +139,9 @@ service cloud.firestore {
     }
     
     match /public_photos/{photoId} {
-      // Any authenticated user can read the public exhibition photos.
       allow read: if request.auth != null;
-      // Users can only add photos to the exhibition if they own the content.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // Updating is disallowed to prevent data tampering. Withdraw/resubmit is the intended flow.
       allow update: if false;
-      // Users can only delete their own photos from the exhibition.
       allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
   }

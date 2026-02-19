@@ -91,8 +91,8 @@ function FoyerPhotoDialog({ photo, author, isOpen, onOpenChange }: { photo: Phot
               <p className="text-xs text-muted-foreground">{author.level_name}</p>
             </div>
           </div>
-          {photo.adaptiveFeedback && (
-              <p className="text-sm text-muted-foreground italic">"{photo.adaptiveFeedback}"</p>
+          {photo.aiFeedback?.short_neutral_analysis && (
+              <p className="text-sm text-muted-foreground italic">"{photo.aiFeedback.short_neutral_analysis}"</p>
           )}
         </div>
       </DialogContent>
@@ -109,6 +109,7 @@ export default function PublicProfilePage() {
 
   const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [showFoyer, setShowFoyer] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
@@ -173,17 +174,23 @@ export default function PublicProfilePage() {
                     )}
                 </div>
             </CardHeader>
-            {profileIndex?.dominant_style && (
-              <CardContent className="border-t p-6">
-                <div className="flex items-center justify-center gap-3 text-lg text-muted-foreground">
-                    <Camera className="h-6 w-6 text-primary" />
-                    <span className="font-semibold capitalize">{profileIndex.dominant_style}</span>
-                </div>
-              </CardContent>
-            )}
+            <CardContent className="border-t p-6 text-center">
+                 {foyerPhotos && foyerPhotos.length > 0 && !showFoyer &&(
+                    <Button onClick={() => setShowFoyer(true)}>
+                        <Camera className="mr-2 h-4 w-4"/>
+                        {t('foyer_button')}
+                    </Button>
+                )}
+                {profileIndex?.dominant_style && (
+                    <div className="flex items-center justify-center gap-3 text-lg text-muted-foreground mt-4">
+                        <Camera className="h-6 w-6 text-primary" />
+                        <span className="font-semibold capitalize">{profileIndex.dominant_style}</span>
+                    </div>
+                )}
+            </CardContent>
         </Card>
 
-        {foyerPhotos && foyerPhotos.length > 0 && (
+        {showFoyer && foyerPhotos && foyerPhotos.length > 0 && (
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3">
