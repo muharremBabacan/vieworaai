@@ -1,5 +1,4 @@
 'use client';
-
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -78,7 +77,8 @@ export default function PageContent() {
         ? (docSnap.data() as any).onboarded
         : false;
 
-      router.push(onboarded ? '/profile' : '/onboarding');
+      router.push(onboarded ? '/profile' : '/onboarding', { locale: auth.currentUser?.languageCode || undefined });
+
     } catch (error: any) {
       console.error('Popup login error:', error);
       toast({

@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
-const withNextIntl = require('next-intl/plugin')();
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -18,12 +19,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**.appspot.com', // Preload kodundaki o eski domain için
+        hostname: '**.appspot.com',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: '**.firebasestorage.app', // Yeni Firebase yapısı için önlem
+        hostname: '**.firebasestorage.app',
         pathname: '/**',
       },
       {

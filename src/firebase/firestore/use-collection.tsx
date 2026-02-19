@@ -67,9 +67,14 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
+        let path = 'unknown';
+        if (memoizedTargetRefOrQuery && 'path' in memoizedTargetRefOrQuery) {
+          path = (memoizedTargetRefOrQuery as CollectionReference).path;
+        }
+
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path: 'unknown',
+          path: path,
         });
 
         setError(contextualError);
