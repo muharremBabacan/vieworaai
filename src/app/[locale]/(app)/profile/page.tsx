@@ -1,20 +1,22 @@
 'use client';
 import React, { useMemo, useState } from 'react';
-import { Link } from '@/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { Link, useRouter } from '@/navigation';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, Copy, UserCheck, CalendarDays } from 'lucide-react';
+import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, BrainCircuit, BarChart3, Bot } from 'lucide-react';
 import { getLevelFromXp, levels as allLevels } from '@/lib/gamification';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/components/ui/input';
-import { isWithinInterval, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
+import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Loader2 } from 'lucide-react';
 
 function ProfileSkeleton() {
   return (
@@ -45,104 +47,134 @@ function ProfileSkeleton() {
   );
 }
 
-const InfoListItem = ({ icon, title, href }: { icon: React.ElementType, title: string, href: string }) => (
-    <Link href={href} className="block w-full p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-        <div className="flex items-center gap-4 w-full">
-            <div className="flex-shrink-0 bg-secondary p-3 rounded-lg">
-                {React.createElement(icon, { className: "h-5 w-5 text-primary" })}
-            </div>
-            <div className="flex-grow">
-                <p className="font-semibold text-card-foreground">{title}</p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground ml-auto" />
-        </div>
-    </Link>
-);
+const curriculumMap = {
+    'Temel': ["Fotoğrafçılığa Giriş", "Pozlama Temelleri", "Netlik ve Odaklama", "Temel Kompozisyon", "Işık Bilgisi"],
+    'Orta': ["Tür Bazlı Çekim Teknikleri", "İleri Pozlama Teknikleri", "Işık Yönetimi", "Görsel Hikâye Anlatımı", "Post-Prodüksiyon Temelleri"],
+    'İleri': ["Uzmanlık Alanı Derinleşme", "Profesyonel Işık Kurulumu", "Gelişmiş Teknikler", "Sanatsal Kimlik ve Stil", "Ticari ve Marka Konumlandırma"]
+};
 
-function StatCard({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
+function AdminTools({ userProfile }: { userProfile: UserProfile }) {
+    const t = useTranslations('ProfilePage');
+    const tCurriculum = useTranslations('Curriculum');
+    const { toast } = useToast();
+    const firestore = useFirestore();
+    const locale = useLocale();
+    const [selectedLevel, setSelectedLevel] = useState<'Temel' | 'Orta' | 'İleri' | ''>('');
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    const categories = useMemo(() => {
+        if (!selectedLevel) return [];
+        return curriculumMap[selectedLevel];
+    }, [selectedLevel]);
+
+    const handleGenerate = async () => {
+        if (!selectedLevel || !selectedCategory) {
+             toast({
+                variant: "destructive",
+                title: t('admin_toast_missing_selection_title'),
+                description: t('admin_toast_missing_selection_description'),
+            });
+            return;
+        }
+
+        setIsGenerating(true);
+        toast({
+            title: t('admin_toast_generating_title'),
+            description: t('admin_toast_generating_description', { level: tCurriculum(`level_${selectedLevel.toLowerCase()}`), category: tCurriculum(`cat_${selectedCategory.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`) }),
+            duration: 10000,
+        });
+
+        try {
+            const generatedLessons = await generateDailyLessons({
+                level: selectedLevel,
+                category: tCurriculum(`cat_${selectedCategory.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`),
+                language: locale,
+            });
+
+            if (!generatedLessons || generatedLessons.length === 0) {
+                throw new Error("No lessons were generated.");
+            }
+
+            const lessonsCollectionRef = collection(firestore, "academyLessons");
+            let savedCount = 0;
+            for (const lesson of generatedLessons) {
+                // Find a random placeholder image
+                const randomImage = PlaceHolderImages[Math.floor(Math.random() * PlaceHolderImages.length)];
+                
+                const newLesson = {
+                    ...lesson,
+                    imageUrl: randomImage.imageUrl, // Use placeholder
+                    imageHint: randomImage.imageHint, // Use hint from placeholder
+                    createdAt: new Date().toISOString(),
+                };
+                await addDocumentNonBlocking(lessonsCollectionRef, newLesson);
+                savedCount++;
+            }
+            
+            toast({
+                title: t('admin_toast_generate_success_title'),
+                description: t('admin_toast_generate_success_description', { count: savedCount, category: tCurriculum(`cat_${selectedCategory.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`) }),
+            });
+
+        } catch (error) {
+            console.error("Failed to generate or save lessons:", error);
+            toast({
+                variant: "destructive",
+                title: t('admin_toast_generate_error_title'),
+                description: t('admin_toast_generate_error_description'),
+            });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+    
+    if (userProfile.email !== 'admin@viewora.ai') return null;
+
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+            <CardHeader>
+                <CardTitle>{t('admin_tools_title')}</CardTitle>
+                <CardDescription>{t('admin_tools_description')}</CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
+            <CardContent className="space-y-4">
+                <div className="p-4 border rounded-lg space-y-4">
+                     <h4 className="font-semibold">{t('admin_generate_lessons_title')}</h4>
+                     <p className="text-sm text-muted-foreground">{t('admin_generate_lessons_description')}</p>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Select onValueChange={(value) => setSelectedLevel(value as any)} value={selectedLevel}>
+                            <SelectTrigger><SelectValue placeholder={t('admin_select_level')} /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Temel">{tCurriculum('level_basic')}</SelectItem>
+                                <SelectItem value="Orta">{tCurriculum('level_intermediate')}</SelectItem>
+                                <SelectItem value="İleri">{tCurriculum('level_advanced')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select onValueChange={setSelectedCategory} value={selectedCategory} disabled={!selectedLevel}>
+                            <SelectTrigger><SelectValue placeholder={t('admin_select_category')} /></SelectTrigger>
+                            <SelectContent>
+                                {categories.map(cat => (
+                                    <SelectItem key={cat} value={cat}>
+                                        {tCurriculum(`cat_${cat.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                     </div>
+                     <Button onClick={handleGenerate} disabled={isGenerating || !selectedLevel || !selectedCategory}>
+                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {t('admin_button_generate')}
+                     </Button>
+                </div>
             </CardContent>
         </Card>
     )
 }
 
-function UserStatsAdminTool({ isAdmin }: { isAdmin: boolean }) {
-  const firestore = useFirestore();
-  const [filter, setFilter] = useState<'week' | 'today' | 'all'>('week');
-
-  const usersQuery = useMemoFirebase(() => {
-      if (!firestore || !isAdmin) return null; // 🔥 kritik fix
-      return collection(firestore, 'users');
-  }, [firestore, isAdmin]);
-
-  const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
-
-  if (!isAdmin) return null; // 🔥 güvenlik katmanı
-
-  const stats = useMemo(() => {
-      if (!users) return { total: 0, active: 0, newUsers: 0 };
-
-      const now = new Date();
-      const totalUsers = users.length;
-
-      const last30Days = subDays(now, 30);
-      const activeUsers = users.filter(
-          u => u.lastLoginAt &&
-          isWithinInterval(new Date(u.lastLoginAt), { start: last30Days, end: now })
-      ).length;
-
-      let newUsersCount = 0;
-      if (filter === 'today') {
-          const todayStart = startOfDay(now);
-          const todayEnd = endOfDay(now);
-          newUsersCount = users.filter(
-              u => u.createdAt &&
-              isWithinInterval(new Date(u.createdAt), { start: todayStart, end: todayEnd })
-          ).length;
-      } else if (filter === 'week') {
-          const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-          const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-          newUsersCount = users.filter(
-              u => u.createdAt &&
-              isWithinInterval(new Date(u.createdAt), { start: weekStart, end: weekEnd })
-          ).length;
-      } else {
-          newUsersCount = totalUsers;
-      }
-
-      return {
-          total: totalUsers,
-          active: activeUsers,
-          newUsers: newUsersCount
-      };
-  }, [users, filter]);
-
-  if (isLoading) return null;
-
-  return (
-      <div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <StatCard title="Toplam Üye" value={stats.total} icon={Users} />
-              <StatCard title="Aktif Üyeler (Son 30 gün)" value={stats.active} icon={UserCheck} />
-          </div>
-      </div>
-  );
-}
-
-
 export default function ProfilePage() {
   const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   const t = useTranslations('ProfilePage');
-  const tNav = useTranslations('AppLayout');
 
   const userDocRef = useMemoFirebase(() => {
     if (!authUser || !firestore) return null;
@@ -158,11 +190,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-  
-  const handleCopyId = () => {
-    navigator.clipboard.writeText(authUser.uid);
-    toast({ title: "Kopyalandı!", description: "Kullanıcı ID'niz panoya kopyalandı." });
-  };
 
   const {
     name,
@@ -182,7 +209,6 @@ export default function ProfilePage() {
   const progress = nextLevel ? Math.max(0, Math.min(100, ((current_xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100)) : 100;
   
   const auroBalance = Number.isFinite(auro_balance) ? auro_balance : 0;
-  const isAdmin = userProfile.email === 'admin@viewora.ai';
 
   return (
     <div className="container mx-auto max-w-2xl">
@@ -198,14 +224,6 @@ export default function ProfilePage() {
               <CardDescription>{email}</CardDescription>
             </div>
           </CardHeader>
-           <CardContent>
-            <div className="flex items-center space-x-2">
-              <Input value={authUser.uid} readOnly className="flex-1 bg-secondary/30" />
-              <Button variant="outline" size="icon" onClick={handleCopyId}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
         </Card>
 
         <Card>
@@ -249,24 +267,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
         
-        {isAdmin && (
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t('admin_tools_title')}</CardTitle>
-                    <CardDescription>{t('admin_tools_description')}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                <UserStatsAdminTool isAdmin={isAdmin} />
-                </CardContent>
-            </Card>
-        )}
-        
-        <Card>
-            <CardContent className="p-3 divide-y divide-border">
-                <InfoListItem icon={Users} title={tNav('nav_groups')} href="/groups" />
-                <InfoListItem icon={Trophy} title={tNav('title_competitions')} href="/competitions" />
-            </CardContent>
-        </Card>
+        <AdminTools userProfile={userProfile} />
 
       </div>
     </div>
