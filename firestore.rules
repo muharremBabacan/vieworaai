@@ -30,7 +30,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if false; // IMPORTANT: Prevents listing all app users.
+      allow list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if false;
@@ -55,7 +55,7 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid in resource.data.memberIds;
       }
     
-      function isOwner() {
+      function isGroupOwner() {
         return isSignedIn() && request.auth.uid == resource.data.ownerId;
       }
     
@@ -68,7 +68,7 @@ service cloud.firestore {
     
       // Allow owners to update anything.
       // Allow non-members to add themselves to the members list if the group is not full.
-      allow update: if isOwner() || (
+      allow update: if isGroupOwner() || (
         isSignedIn() &&
         !(request.auth.uid in resource.data.memberIds) && // User is not already a member
         request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1 && // Only one member is being added
@@ -76,7 +76,7 @@ service cloud.firestore {
         request.resource.data.memberIds.size() <= resource.data.maxMembers // The group is not full
       );
     
-      allow delete: if isOwner();
+      allow delete: if isGroupOwner();
 
       match /photos/{photoId} {
         allow read, write: if isMember();
@@ -85,37 +85,37 @@ service cloud.firestore {
       // Group Activities
       match /assignments/{assignmentId} {
         allow read: if isMember();
-        allow write: if isOwner();
+        allow write: if isGroupOwner();
 
         match /submissions/{submissionId} {
           allow read: if isMember();
           allow create: if isMember() && request.resource.data.userId == request.auth.uid;
-          allow update: if isOwner();
-          allow delete: if isOwner() || (isMember() && resource.data.userId == request.auth.uid);
+          allow update: if isGroupOwner();
+          allow delete: if isGroupOwner() || (isMember() && resource.data.userId == request.auth.uid);
         }
       }
 
       match /competitions/{competitionId} {
         allow read: if isMember();
-        allow write: if isOwner();
+        allow write: if isGroupOwner();
 
         match /entries/{entryId} {
           allow read: if isMember();
           allow create: if isMember() && request.resource.data.userId == request.auth.uid;
           allow update: if isMember() && request.resource.data.votes == resource.data.votes.concat([request.auth.uid]);
-          allow delete: if isOwner() || (isMember() && resource.data.userId == request.auth.uid);
+          allow delete: if isGroupOwner() || (isMember() && resource.data.userId == request.auth.uid);
         }
       }
 
       match /events/{eventId} {
         allow read: if isMember();
-        allow create, delete: if isOwner();
-        allow update: if isOwner() || (isMember() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rsvps', 'rsvps.' + request.auth.uid]));
+        allow create, delete: if isGroupOwner();
+        allow update: if isGroupOwner() || (isMember() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rsvps', 'rsvps.' + request.auth.uid]));
       }
 
       match /trainings/{trainingId} {
         allow read: if isMember();
-        allow write: if isOwner();
+        allow write: if isGroupOwner();
       }
     }
     
