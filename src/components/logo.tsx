@@ -18,7 +18,7 @@ export default function Logo({ className }: { className?: string }) {
         />
       </div>
       <span className="font-sans text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
-        Viewora
+        Viewora<sup>®</sup>
       </span>
     </div>
   );

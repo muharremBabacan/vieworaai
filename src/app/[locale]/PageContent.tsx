@@ -96,7 +96,11 @@ export default function PageContent() {
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col items-center space-y-2 text-center">
             <Logo />
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <p className="!mt-3 text-center text-xs text-muted-foreground">
+              "Türkiye'de geliştirilen global fotoğrafçılık eğitimi ve koçluğu
+              platformu"
+            </p>
+            <h1 className="!mt-6 text-2xl font-semibold tracking-tight">
               {t('title')}
             </h1>
             <p className="text-sm text-muted-foreground">
