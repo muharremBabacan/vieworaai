@@ -1,22 +1,19 @@
 'use client';
 import React, { useMemo, useState } from 'react';
-import { Link, useRouter } from '@/navigation';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useRouter } from '@/navigation';
+import { useUser } from '@/firebase';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Gem, Award, Users, Trophy, ChevronRight, CheckCircle, BrainCircuit, BarChart3, Bot } from 'lucide-react';
+import { Gem, Award, CheckCircle, Copy, Check } from 'lucide-react';
 import { getLevelFromXp, levels as allLevels } from '@/lib/gamification';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Loader2 } from 'lucide-react';
+
 
 function ProfileSkeleton() {
   return (
@@ -29,17 +26,17 @@ function ProfileSkeleton() {
             <Skeleton className="h-4 w-60" />
           </div>
         </CardHeader>
+        <CardContent className="p-6 pt-0">
+            <Skeleton className="h-10 w-full" />
+        </CardContent>
       </Card>
       <Card>
         <CardContent className="p-6 space-y-4">
-          <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-6 space-y-2">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
         </CardContent>
       </Card>
@@ -47,143 +44,25 @@ function ProfileSkeleton() {
   );
 }
 
-const curriculumMap = {
-    'Temel': ["Fotoğrafçılığa Giriş", "Pozlama Temelleri", "Netlik ve Odaklama", "Temel Kompozisyon", "Işık Bilgisi"],
-    'Orta': ["Tür Bazlı Çekim Teknikleri", "İleri Pozlama Teknikleri", "Işık Yönetimi", "Görsel Hikâye Anlatımı", "Post-Prodüksiyon Temelleri"],
-    'İleri': ["Uzmanlık Alanı Derinleşme", "Profesyonel Işık Kurulumu", "Gelişmiş Teknikler", "Sanatsal Kimlik ve Stil", "Ticari ve Marka Konumlandırma"]
-};
-
-function AdminTools({ userProfile }: { userProfile: UserProfile }) {
-    const t = useTranslations('ProfilePage');
-    const tCurriculum = useTranslations('Curriculum');
-    const { toast } = useToast();
-    const firestore = useFirestore();
-    const locale = useLocale();
-    const [selectedLevel, setSelectedLevel] = useState<'Temel' | 'Orta' | 'İleri' | ''>('');
-    const [selectedCategory, setSelectedCategory] = useState('');
-    const [isGenerating, setIsGenerating] = useState(false);
-
-    const categories = useMemo(() => {
-        if (!selectedLevel) return [];
-        return curriculumMap[selectedLevel];
-    }, [selectedLevel]);
-
-    const handleGenerate = async () => {
-        if (!selectedLevel || !selectedCategory) {
-             toast({
-                variant: "destructive",
-                title: t('admin_toast_missing_selection_title'),
-                description: t('admin_toast_missing_selection_description'),
-            });
-            return;
-        }
-
-        setIsGenerating(true);
-        toast({
-            title: t('admin_toast_generating_title'),
-            description: t('admin_toast_generating_description', { level: tCurriculum(`level_${selectedLevel.toLowerCase()}`), category: tCurriculum(`cat_${selectedCategory.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`) }),
-            duration: 10000,
-        });
-
-        try {
-            const generatedLessons = await generateDailyLessons({
-                level: selectedLevel,
-                category: tCurriculum(`cat_${selectedCategory.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`),
-                language: locale,
-            });
-
-            if (!generatedLessons || generatedLessons.length === 0) {
-                throw new Error("No lessons were generated.");
-            }
-
-            const lessonsCollectionRef = collection(firestore, "academyLessons");
-            let savedCount = 0;
-            for (const lesson of generatedLessons) {
-                // Find a random placeholder image
-                const randomImage = PlaceHolderImages[Math.floor(Math.random() * PlaceHolderImages.length)];
-                
-                const newLesson = {
-                    ...lesson,
-                    imageUrl: randomImage.imageUrl, // Use placeholder
-                    imageHint: randomImage.imageHint, // Use hint from placeholder
-                    createdAt: new Date().toISOString(),
-                };
-                await addDocumentNonBlocking(lessonsCollectionRef, newLesson);
-                savedCount++;
-            }
-            
-            toast({
-                title: t('admin_toast_generate_success_title'),
-                description: t('admin_toast_generate_success_description', { count: savedCount, category: tCurriculum(`cat_${selectedCategory.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`) }),
-            });
-
-        } catch (error) {
-            console.error("Failed to generate or save lessons:", error);
-            toast({
-                variant: "destructive",
-                title: t('admin_toast_generate_error_title'),
-                description: t('admin_toast_generate_error_description'),
-            });
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-    
-    if (userProfile.email !== 'admin@viewora.ai') return null;
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('admin_tools_title')}</CardTitle>
-                <CardDescription>{t('admin_tools_description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="p-4 border rounded-lg space-y-4">
-                     <h4 className="font-semibold">{t('admin_generate_lessons_title')}</h4>
-                     <p className="text-sm text-muted-foreground">{t('admin_generate_lessons_description')}</p>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Select onValueChange={(value) => setSelectedLevel(value as any)} value={selectedLevel}>
-                            <SelectTrigger><SelectValue placeholder={t('admin_select_level')} /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Temel">{tCurriculum('level_basic')}</SelectItem>
-                                <SelectItem value="Orta">{tCurriculum('level_intermediate')}</SelectItem>
-                                <SelectItem value="İleri">{tCurriculum('level_advanced')}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select onValueChange={setSelectedCategory} value={selectedCategory} disabled={!selectedLevel}>
-                            <SelectTrigger><SelectValue placeholder={t('admin_select_category')} /></SelectTrigger>
-                            <SelectContent>
-                                {categories.map(cat => (
-                                    <SelectItem key={cat} value={cat}>
-                                        {tCurriculum(`cat_${cat.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')}`)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                     </div>
-                     <Button onClick={handleGenerate} disabled={isGenerating || !selectedLevel || !selectedCategory}>
-                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {t('admin_button_generate')}
-                     </Button>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
 
 export default function ProfilePage() {
   const { user: authUser, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const t = useTranslations('ProfilePage');
+  const tNav = useTranslations('AppLayout');
+  const [isCopied, setIsCopied] = useState(false);
+  const { toast } = useToast();
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!authUser || !firestore) return null;
-    return doc(firestore, 'users', authUser.uid);
-  }, [authUser, firestore]);
+  const userProfile = authUser as unknown as UserProfile | null; // Placeholder, as full profile is part of authUser for now
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
-
-  if (isUserLoading || isProfileLoading || !userProfile || !authUser) {
+  const handleCopy = () => {
+    if (!authUser?.uid) return;
+    navigator.clipboard.writeText(authUser.uid);
+    setIsCopied(true);
+    toast({ title: "Kopyalandı!", description: "Kullanıcı ID panoya kopyalandı." });
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+  
+  if (isUserLoading || !userProfile || !authUser) {
     return (
       <div className="container mx-auto max-w-2xl">
         <ProfileSkeleton />
@@ -194,9 +73,9 @@ export default function ProfilePage() {
   const {
     name,
     email,
-    auro_balance,
-    current_xp,
-    level_name,
+    auro_balance = 0,
+    current_xp = 0,
+    level_name = 'Neuner',
   } = userProfile;
   
   const fallbackChar = name?.charAt(0) || email?.charAt(0) || 'P';
@@ -212,6 +91,9 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-2xl">
+        <h1 className="text-3xl font-bold tracking-tight mb-8 text-primary">
+            {tNav('title_profile')}
+        </h1>
       <div className="space-y-6">
         <Card>
           <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-6">
@@ -220,16 +102,24 @@ export default function ProfilePage() {
               <AvatarFallback className="text-xl">{fallbackChar.toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <CardTitle className="font-sans text-2xl">{name}</CardTitle>
-              <CardDescription>{email}</CardDescription>
+              <h2 className="text-xl font-semibold">{name}</h2>
+              <p className="text-sm text-muted-foreground">{email}</p>
             </div>
           </CardHeader>
+           <CardContent className="p-6 pt-0">
+              <div className="flex items-center space-x-2">
+                  <Input value={authUser.uid} readOnly className="font-mono text-xs bg-background/50" />
+                  <Button variant="outline" size="icon" onClick={handleCopy}>
+                      {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+              </div>
+          </CardContent>
         </Card>
 
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                   <Award className="h-6 w-6 text-primary" />
+                <CardTitle className="flex items-center gap-3 text-lg">
+                   <Award className="h-5 w-5 text-primary" />
                    {t('level_title')}
                 </CardTitle>
             </CardHeader>
@@ -251,8 +141,8 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <Gem className="h-6 w-6 text-cyan-400" />
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <Gem className="h-5 w-5 text-cyan-400" />
               {t('auro_balance_title')}
             </CardTitle>
           </CardHeader>
@@ -266,9 +156,6 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
-        
-        <AdminTools userProfile={userProfile} />
-
       </div>
     </div>
   );
