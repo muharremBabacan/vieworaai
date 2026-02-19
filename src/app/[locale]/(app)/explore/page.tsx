@@ -72,18 +72,16 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
                 </div>
               </div>
             ) : authorProfile ? (
-              <Link href={`/u/${authorProfile.id}`} className="group block" onClick={() => onOpenChange(false)}>
-                <div className="flex items-center gap-3 rounded-lg p-2 -ml-2 transition-colors group-hover:bg-secondary">
-                  <Avatar className="h-10 w-10">
-                    {authorProfile.photoURL && <AvatarImage src={authorProfile.photoURL} alt={authorProfile.name || ''} />}
-                    <AvatarFallback>{authorProfile.name?.charAt(0) || '?'}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold text-sm">{authorProfile.name}</p>
-                    <p className="text-xs text-muted-foreground">{authorProfile.level_name}</p>
-                  </div>
+              <div className="flex items-center gap-3 rounded-lg p-2 -ml-2">
+                <Avatar className="h-10 w-10">
+                  {authorProfile.photoURL && <AvatarImage src={authorProfile.photoURL} alt={authorProfile.name || ''} />}
+                  <AvatarFallback>{authorProfile.name?.charAt(0) || '?'}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-sm">{authorProfile.name}</p>
+                  <p className="text-xs text-muted-foreground">{authorProfile.level_name}</p>
                 </div>
-              </Link>
+              </div>
             ) : null}
              {photo.adaptiveFeedback && (
                 <p className="text-sm text-muted-foreground italic">"{photo.aiFeedback?.short_neutral_analysis}"</p>

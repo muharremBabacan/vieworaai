@@ -589,27 +589,6 @@
           ]
         }
       },
-       {
-        "path": "weekly_profile_snapshots/{snapshotId}",
-        "definition": {
-          "entityName": "WeeklyProfileSnapshot",
-          "schema": {
-            "type": "object",
-            "properties": {
-                "user_id": {"type": "string"},
-                "profile_score": {"type": "number"},
-                "week_number": {"type": "number"}
-            }
-          },
-          "description": "Stores weekly snapshots of user profile scores for tracking progress.",
-          "params": [
-            {
-              "name": "snapshotId",
-              "description": "The unique identifier for a weekly snapshot."
-            }
-          ]
-        }
-      },
       {
         "path": "groups/{groupId}/assignments/{assignmentId}",
         "definition": {

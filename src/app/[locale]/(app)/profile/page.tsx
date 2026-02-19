@@ -45,34 +45,6 @@ function ProfileSkeleton() {
   );
 }
 
-function PublicProfilePreviewCard({ userProfile, userId }: { userProfile: UserProfile; userId: string }) {
-    const t = useTranslations('ProfilePage');
-  
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('public_profile_preview_title')}</CardTitle>
-          <CardDescription>{t('public_profile_preview_description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 rounded-lg border p-4">
-             <Avatar className="h-12 w-12">
-                {userProfile.photoURL && <AvatarImage src={userProfile.photoURL} alt={userProfile.name || ''} />}
-                <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="font-bold">{userProfile.name}</p>
-              <p className="text-sm text-muted-foreground">{userProfile.level_name}</p>
-            </div>
-            <Button asChild variant="outline">
-              <Link href={`/u/${userId}`}>{t('public_profile_preview_button')}</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-}
-
 const InfoListItem = ({ icon, title, href }: { icon: React.ElementType, title: string, href: string }) => (
     <Link href={href} className="block w-full p-3 rounded-lg hover:bg-secondary/50 transition-colors">
         <div className="flex items-center gap-4 w-full">
@@ -235,8 +207,6 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
-        
-        <PublicProfilePreviewCard userProfile={{...userProfile, photoURL: authUser.photoURL}} userId={authUser.uid} />
 
         <Card>
             <CardHeader>

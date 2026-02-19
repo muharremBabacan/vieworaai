@@ -432,11 +432,5 @@
     "mark_all_as_read": "Mark all as read",
     "notification_group_invite_title": "Group Invitation",
     "notification_group_invite_body": "{inviterName} has invited you to join the group \"{groupName}\"."
-  },
-  "PublicProfilePage": {
-    "user_not_found": "User not found.",
-    "button_go_back": "Go Back",
-    "groups_title": "Member of Groups",
-    "view_public_photos": "View Public Photos"
   }
 }

@@ -20,6 +20,10 @@ export type User = {
   groups?: string[];
   createdAt?: string; // For admin stats
   lastLoginAt?: string; // For admin stats
+  profileIndex?: {
+    dominant_style: string;
+    strengths: string[];
+  }
 };
 
 export type Photo = {

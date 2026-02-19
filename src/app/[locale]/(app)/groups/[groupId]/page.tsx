@@ -70,13 +70,13 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
   return (
     <>
       <div className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50">
-        <Link href={`/u/${userId}`} className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-3 flex-1">
             <Avatar>
               <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium">{userProfile.name}</span>
             {isCurrentUserOwner && <Crown className="h-4 w-4 text-amber-400" />}
-        </Link>
+        </div>
         {isOwner && !isSelf && (
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setIsAlertOpen(true)}>
             <X className="h-4 w-4" />

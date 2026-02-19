@@ -389,10 +389,7 @@
     "privacy_label": "Gizlilik Politikası",
     "button_sign_out": "Çıkış Yap",
     "toast_signout_success": "Başarıyla çıkış yaptınız.",
-    "toast_signout_fail": "Çıkış yapılamadı.",
-    "public_profile_preview_title": "Misafir Profili Önizlemesi",
-    "public_profile_preview_description": "Diğer kullanıcılar profilinizi bu şekilde görür.",
-    "public_profile_preview_button": "Tam Profili Gör"
+    "toast_signout_fail": "Çıkış yapılamadı."
   },
   "UserNavFallback": {
     "login": "Giriş Yap",
@@ -439,16 +436,5 @@
     "mark_all_as_read": "Tümünü okundu işaretle",
     "notification_group_invite_title": "Grup Daveti",
     "notification_group_invite_body": "{inviterName} sizi \"{groupName}\" grubuna davet etti."
-  },
-  "PublicProfilePage": {
-    "user_not_found": "Kullanıcı bulunamadı.",
-    "button_go_back": "Geri Dön",
-    "groups_title": "Üyesi Olduğu Gruplar",
-    "view_public_photos": "Herkese Açık Fotoğrafları Görüntüle",
-    "foyer_button": "Tam Profili Gör",
-    "foyer_title": "Sanatçı Fuayesi",
-    "foyer_description": "En iyi 10 seçkin eserim.",
-    "tooltip_user_not_found": "Profil bilgileri alınamadı."
-    
   }
 }
