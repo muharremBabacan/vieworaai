@@ -28,14 +28,6 @@ function LanguageSwitcher() {
   const localesInfo = [
     { code: 'tr', name: 'Türkçe' },
     { code: 'en', name: 'English' },
-    { code: 'de', name: 'Deutsch' },
-    { code: 'fr', name: 'Français' },
-    { code: 'es', name: 'Español' },
-    { code: 'ar', name: 'العربية' },
-    { code: 'ru', name: 'Русский' },
-    { code: 'el', name: 'Ελληνικά' },
-    { code: 'zh', name: '中文' },
-    { code: 'ja', name: '日本語' },
   ];
 
   function onSelectChange(nextLocale: string) {

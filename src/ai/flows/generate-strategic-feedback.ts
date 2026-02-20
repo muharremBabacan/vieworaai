@@ -7,7 +7,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 // We are importing the test data directly for this admin-only tool.
 // In a real scenario, this data would be fetched from Firestore based on a userId.
-import userProfileIndex from '@/docs/test_user_1.json';
+import userProfileIndex from '@/lib/test_user_1.json';
 
 /* -------------------------------------------------------------------------- */
 /*                               INPUT & OUTPUT SCHEMA                        */

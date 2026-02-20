@@ -11,10 +11,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from '@/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
-import { tr, enUS, de, fr, es, ar, ru, el, zhCN, ja } from 'date-fns/locale';
+import { tr, enUS } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 
-const localeMap: Record<string, Locale> = { tr, en: enUS, de, fr, es, ar, ru, el, zh: zhCN, ja };
+const localeMap: Record<string, Locale> = { tr, en: enUS };
 
 export function GroupInvitesPopover() {
   const t = useTranslations('Notifications');

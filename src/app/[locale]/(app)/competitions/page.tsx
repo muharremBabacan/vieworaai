@@ -9,9 +9,9 @@ import { Calendar, Trophy, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useLocale, useTranslations } from 'next-intl';
-import { tr, enUS, de, fr, es, ar, ru, el, zhCN, ja } from 'date-fns/locale';
+import { tr, enUS } from 'date-fns/locale';
 
-const localeMap: Record<string, Locale> = { tr, en: enUS, de, fr, es, ar, ru, el, zh: zhCN, ja };
+const localeMap: Record<string, Locale> = { tr, en: enUS };
 
 function CompetitionCard({ competition }: { competition: Competition }) {
   const [isActive, setIsActive] = useState(false);
