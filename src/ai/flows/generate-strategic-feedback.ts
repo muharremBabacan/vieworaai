@@ -1,29 +1,54 @@
 'use server';
 /**
- * @fileOverview An elite AI photography coach that generates strategic feedback.
+ * Strategic AI Photography Coach - Production Ready Version
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-// We are importing the test data directly for this admin-only tool.
-// In a real scenario, this data would be fetched from Firestore based on a userId.
-import userProfileIndex from '@/lib/test_user_1.json';
 
 /* -------------------------------------------------------------------------- */
 /*                               INPUT & OUTPUT SCHEMA                        */
 /* -------------------------------------------------------------------------- */
 
-const StrategicFeedbackInputSchema = z.object({
-  userPrompt: z.string().describe("The user's direct question or request to the coach."),
+const UserProfileIndexSchema = z.object({
+  dominant_style: z.string(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  dominant_technical_level: z.enum(['beginner', 'intermediate', 'advanced']),
+  trend: z.object({
+    direction: z.enum(['improving', 'stagnant', 'declining']),
+    percentage: z.number(),
+  }),
+  consistency_gap: z.number(),
+  communication_profile: z.object({
+    tone: z.enum(['supportive', 'direct', 'analytical']),
+    explanation_depth: z.enum(['low', 'medium', 'high']),
+    challenge_level: z.number(),
+  }),
 });
-export type StrategicFeedbackInput = z.infer<typeof StrategicFeedbackInputSchema>;
+
+const StrategicFeedbackInputSchema = z.object({
+  userPrompt: z.string(),
+  userProfileIndex: UserProfileIndexSchema,
+});
+
+export type StrategicFeedbackInput = z.infer<
+  typeof StrategicFeedbackInputSchema
+>;
 
 const StrategicFeedbackOutputSchema = z.object({
-  feedback: z.string().describe("The main textual feedback from the coach."),
-  actionTask: z.string().describe("A single, concrete action task for the user to complete."),
+  feedback: z.string(),
+  actionTask: z.object({
+    title: z.string(),
+    steps: z.array(z.string()),
+    metric: z.string(),
+    difficulty: z.number(),
+  }),
 });
-export type StrategicFeedbackOutput = z.infer<typeof StrategicFeedbackOutputSchema>;
 
+export type StrategicFeedbackOutput = z.infer<
+  typeof StrategicFeedbackOutputSchema
+>;
 
 /* -------------------------------------------------------------------------- */
 /*                                MAIN EXPORT                                 */
@@ -35,7 +60,6 @@ export async function generateStrategicFeedback(
   return strategicFeedbackFlow(input);
 }
 
-
 /* -------------------------------------------------------------------------- */
 /*                                  PROMPT                                    */
 /* -------------------------------------------------------------------------- */
@@ -44,34 +68,57 @@ const generationPrompt = ai.definePrompt({
   name: 'strategicCoachPrompt',
   input: { schema: StrategicFeedbackInputSchema },
   output: { schema: StrategicFeedbackOutputSchema },
-  system: `You are an elite AI photography coach inside the Viewora platform.
 
-You strictly use the provided USER_PROFILE_INDEX to generate your response.
+  system: `
+You are an elite AI photography coach inside the Viewora platform.
 
-Your core coaching principles:
-- **Adapt Tone:** Adapt your tone and depth based on the user's \`communication_profile\`.
-- **Adjust Depth:** Adjust the technical depth of your feedback based on the user's \`dominant_technical_level\`.
-- **Interpret Consistency:** If \`consistency_gap\` is high, focus on discipline and reinforcing fundamentals. Interpret this as the user being inconsistent. If it's low, push for experimentation and creativity.
-- **Reference Trend:** Explicitly mention the user's performance \`trend\` (improving, stagnant, declining) in your feedback.
-- **Be Specific:** Avoid generic advice like "practice more". Your feedback must be actionable.
-- **Make Tasks Measurable:** All action tasks must be concrete and measurable (e.g., "Take 5 photos using the rule of thirds," not "Try a new composition").
+You MUST strictly use USER_PROFILE_INDEX.
+You must NOT invent skill levels.
 
-Always provide:
-1.  **Clear, specific feedback.**
-2.  **One concrete and measurable action task.**
-3.  **Structured JSON output.**`,
+CORE RULES:
+
+1. Adapt Tone:
+- supportive → encouraging, calm
+- direct → concise, firm
+- analytical → structured, deeper reasoning
+
+2. Adjust Depth:
+- beginner → low complexity, one variable change only
+- intermediate → moderate depth
+- advanced → deep technical breakdown
+
+3. Interpret consistency_gap as:
+- 0–5 → Stable
+- 6–12 → Moderate inconsistency
+- 13+ → High inconsistency (focus on discipline)
+
+4. Reference Trend explicitly:
+Mention if improving, stagnant, or declining.
+
+5. Task Rules:
+- Only ONE action task.
+- Must be measurable.
+- Must match user's technical level.
+- Beginner → no multi-day, no multi-variable tasks.
+
+6. Avoid generic advice like:
+"Practice more" or "Keep shooting."
+
+Output must follow structured JSON schema.
+`,
+
   prompt: `
-CONTEXT:
-This is the user's profile index, which summarizes their recent photographic work.
 USER_PROFILE_INDEX:
 \`\`\`json
-${JSON.stringify(userProfileIndex, null, 2)}
+{{{userProfileIndex}}}
 \`\`\`
 
-USER'S REQUEST:
+USER_REQUEST:
 "{{{userPrompt}}}"
 
-Based on the USER_PROFILE_INDEX and their request, provide your strategic feedback and a single action task.
+Generate:
+1. Clear strategic feedback.
+2. One measurable action task.
 `,
 });
 
@@ -87,9 +134,11 @@ const strategicFeedbackFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await generationPrompt(input);
+
     if (!output) {
       throw new Error('AI strategic feedback generation failed.');
     }
+
     return output;
   }
 );
