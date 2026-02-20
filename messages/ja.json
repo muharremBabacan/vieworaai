@@ -357,6 +357,12 @@
     "admin_tools_description": "Perform administrative tasks for the application here.",
     "admin_generate_lessons_title": "Generate Daily Lessons",
     "admin_generate_lessons_description": "Have the AI create 5 new lessons for your chosen category.",
+    "admin_strategic_feedback_title": "Generate Strategic Feedback (Test)",
+    "admin_strategic_feedback_description": "Test the new coaching prompt using test_user_1.json data.",
+    "admin_prompt_label": "Prompt",
+    "admin_button_get_feedback": "Get Feedback",
+    "admin_button_generating": "Generating...",
+    "admin_response_label": "AI Response",
     "admin_toast_missing_selection_title": "Missing Selection",
     "admin_toast_missing_selection_description": "Please select a level and a category to generate lessons.",
     "admin_toast_generating_title": "Generating Lessons...",
@@ -426,7 +432,7 @@
     "cat_a_style": "Artistic Identity and Style",
     "cat_a_business": "Commercial and Brand Positioning"
   },
-   "Notifications": {
+  "Notifications": {
     "title": "Notifications",
     "no_notifications": "No notifications yet.",
     "mark_all_as_read": "Mark all as read",

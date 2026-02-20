@@ -1,8 +1,10 @@
 'use client';
 
 import type { PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
+import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 
 export type PhotoAnalysis = PhotoAnalysisOutput;
+export type StrategicFeedback = StrategicFeedbackOutput;
 
 export type User = {
   id: string;
@@ -22,6 +24,7 @@ export type User = {
   lastLoginAt?: string; // For admin stats
   communication_style?: 'soft' | 'balanced' | 'technical';
   score_history?: { score: number; date: string }[];
+  profileIndex?: UserProfileIndex; // For recommendations
 };
 
 export type Photo = {

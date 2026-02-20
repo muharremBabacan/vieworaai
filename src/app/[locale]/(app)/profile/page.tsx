@@ -1,7 +1,8 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import { useRouter } from '@/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +14,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-
+import { AdminTools } from './admin-tools'; // Admin Tools import edildi
 
 function ProfileSkeleton() {
   return (
@@ -47,12 +48,19 @@ function ProfileSkeleton() {
 
 export default function ProfilePage() {
   const { user: authUser, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const t = useTranslations('ProfilePage');
   const tNav = useTranslations('AppLayout');
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!authUser || !firestore) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [authUser, firestore]);
+  
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  const userProfile = authUser as unknown as UserProfile | null; // Placeholder, as full profile is part of authUser for now
 
   const handleCopy = () => {
     if (!authUser?.uid) return;
@@ -62,7 +70,9 @@ export default function ProfilePage() {
     setTimeout(() => setIsCopied(false), 2000);
   };
   
-  if (isUserLoading || !userProfile || !authUser) {
+  const isLoading = isUserLoading || isProfileLoading;
+  
+  if (isLoading || !userProfile || !authUser) {
     return (
       <div className="container mx-auto max-w-2xl">
         <ProfileSkeleton />
@@ -88,6 +98,7 @@ export default function ProfilePage() {
   const progress = nextLevel ? Math.max(0, Math.min(100, ((current_xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100)) : 100;
   
   const auroBalance = Number.isFinite(auro_balance) ? auro_balance : 0;
+  const isAdmin = userProfile.email === 'admin@viewora.ai';
 
   return (
     <div className="container mx-auto max-w-2xl">
@@ -142,7 +153,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-lg">
-              <Gem className="h-5 w-5 text-cyan-400" />
+              <Gem className="h-6 w-6 text-cyan-400" />
               {t('auro_balance_title')}
             </CardTitle>
           </CardHeader>
@@ -156,6 +167,8 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {isAdmin && <AdminTools />}
       </div>
     </div>
   );
