@@ -1,0 +1,17 @@
+{
+  "dominant_style": "portrait",
+  "strengths": ["composition"],
+  "weaknesses": ["light_control"],
+  "dominant_technical_level": "intermediate",
+  "trend": {
+    "direction": "improving",
+    "percentage": 12
+  },
+  "consistency_gap": 18,
+  "communication_profile": {
+    "tone": "direct",
+    "explanation_depth": "medium",
+    "challenge_level": 3
+  },
+  "profile_index_score": 76
+}
