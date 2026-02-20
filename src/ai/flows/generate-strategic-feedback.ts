@@ -13,12 +13,12 @@ import userProfileIndex from '@/lib/test_user_1.json';
 /*                               INPUT & OUTPUT SCHEMA                        */
 /* -------------------------------------------------------------------------- */
 
-export const StrategicFeedbackInputSchema = z.object({
+const StrategicFeedbackInputSchema = z.object({
   userPrompt: z.string().describe("The user's direct question or request to the coach."),
 });
 export type StrategicFeedbackInput = z.infer<typeof StrategicFeedbackInputSchema>;
 
-export const StrategicFeedbackOutputSchema = z.object({
+const StrategicFeedbackOutputSchema = z.object({
   feedback: z.string().describe("The main textual feedback from the coach."),
   actionTask: z.string().describe("A single, concrete action task for the user to complete."),
 });
