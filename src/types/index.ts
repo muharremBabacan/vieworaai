@@ -116,3 +116,13 @@ export type GroupInvite = {
   status: 'pending' | 'accepted' | 'declined';
   createdAt: string; // ISO string
 };
+
+export type UserProfileIndex = {
+  id: string;
+  userId: string;
+  dominant_style: string;
+  strengths: string[];
+  areas_for_improvement: string[];
+  trend: 'improving' | 'stagnant' | 'declining';
+  last_updated: string;
+};

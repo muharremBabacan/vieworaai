@@ -50,6 +50,10 @@ service cloud.firestore {
        }
     }
     
+    match /user_profile_index/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
     match /groups/{groupId} {
       function isMember() {
         return isSignedIn() && request.auth.uid in resource.data.memberIds;
