@@ -9,6 +9,14 @@ export const metadata: Metadata = {
   title: 'Viewora YZ Koçu',
   description: 'Fotoğrafçılık becerilerinizi geliştirmek için yapay zeka destekli koçluk.',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Viewora',
+  },
+  icons: {
+    apple: 'https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc',
+  },
 };
 
 export default async function LocaleLayout(props: {
