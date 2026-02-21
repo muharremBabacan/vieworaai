@@ -152,6 +152,19 @@
           "type": "string",
           "description": "Timestamp when the photo was submitted and analyzed.",
           "format": "date-time"
+        },
+        "userName": {
+          "type": "string",
+          "description": "Denormalized user name for public display."
+        },
+        "userPhotoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "Denormalized user profile picture URL."
+        },
+        "userLevelName": {
+          "type": "string",
+          "description": "Denormalized user level name."
         }
       },
       "required": [

@@ -31,12 +31,23 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
   const firestore = useFirestore();
 
   const authorDocRef = useMemoFirebase(() => {
-    if (!firestore || !photo?.userId) return null;
+    // Only fetch if denormalized data is missing
+    if (!firestore || !photo?.userId || photo.userName) return null;
     return doc(firestore, 'public_profiles', photo.userId);
-  }, [firestore, photo?.userId]);
+  }, [firestore, photo?.userId, photo?.userName]);
+
   const { data: authorProfile, isLoading: isAuthorLoading } = useDoc<PublicUserProfile>(authorDocRef);
 
   if (!photo) return null;
+
+  // Use denormalized data if available, otherwise use fetched data
+  const profileToShow = photo.userName ? {
+      name: photo.userName,
+      photoURL: photo.userPhotoURL,
+      level_name: photo.userLevelName
+  } : authorProfile;
+
+  const stillLoading = isAuthorLoading && !profileToShow;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -66,7 +77,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
              <DialogHeader>
               <DialogTitle>{t('dialog_title')}</DialogTitle>
             </DialogHeader>
-            {isAuthorLoading ? (
+            {stillLoading ? (
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="space-y-1">
@@ -74,15 +85,15 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
                   <Skeleton className="h-3 w-16" />
                 </div>
               </div>
-            ) : authorProfile ? (
+            ) : profileToShow ? (
               <div className="flex items-center gap-3 rounded-lg p-2 -ml-2">
                 <Avatar className="h-10 w-10">
-                  {authorProfile.photoURL && <AvatarImage src={authorProfile.photoURL} alt={authorProfile.name || ''} />}
-                  <AvatarFallback>{authorProfile.name?.charAt(0) || '?'}</AvatarFallback>
+                  {profileToShow.photoURL && <AvatarImage src={profileToShow.photoURL} alt={profileToShow.name || ''} />}
+                  <AvatarFallback>{profileToShow.name?.charAt(0) || '?'}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-sm">{authorProfile.name}</p>
-                  <p className="text-xs text-muted-foreground">{authorProfile.level_name}</p>
+                  <p className="font-semibold text-sm">{profileToShow.name}</p>
+                  <p className="text-xs text-muted-foreground">{profileToShow.level_name}</p>
                 </div>
               </div>
             ) : null}

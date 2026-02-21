@@ -45,6 +45,10 @@ export type Photo = {
   createdAt: string;
   isSubmittedToExhibition?: boolean;
   isInFoyer?: boolean;
+  // Denormalized user data for public photos
+  userName?: string;
+  userPhotoURL?: string | null;
+  userLevelName?: string;
 };
 
 export type Lesson = {
