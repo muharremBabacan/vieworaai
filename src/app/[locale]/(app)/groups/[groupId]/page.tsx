@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
@@ -55,7 +56,11 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
       <div className="flex items-center gap-3 p-2">
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger><Avatar><AvatarFallback>?</AvatarFallback></TooltipTrigger>
+            <TooltipTrigger>
+              <Avatar>
+                <AvatarFallback>?</AvatarFallback>
+              </Avatar>
+            </TooltipTrigger>
             <TooltipContent><p>{t('tooltip_user_not_found')}</p></TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -316,3 +321,5 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+
+    
