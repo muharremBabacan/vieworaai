@@ -136,5 +136,3 @@ export type UserProfileIndex = {
   trend: 'improving' | 'stagnant' | 'declining';
   last_updated: string;
 };
-
-    
