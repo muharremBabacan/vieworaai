@@ -15,7 +15,7 @@ import { useRouter, Link } from '@/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth, useFirestore } from '@/firebase';
-import type { User as UserProfile, PublicUserProfile } from '@/types';
+import type { User as UserProfile } from '@/types';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
@@ -55,7 +55,6 @@ export default function PageContent() {
 
       const firebaseUser = result.user;
       const userRef = doc(firestore, 'users', firebaseUser.uid);
-      const publicProfileRef = doc(firestore, 'public_profiles', firebaseUser.uid);
       const docSnap = await getDoc(userRef);
 
       if (!docSnap.exists()) {
@@ -74,22 +73,8 @@ export default function PageContent() {
           onboarded: false,
           groups: [],
         };
-        const publicProfile: PublicUserProfile = {
-            name: newUserProfile.name,
-            photoURL: newUserProfile.photoURL,
-            level_name: newUserProfile.level_name,
-        };
         
         await setDoc(userRef, newUserProfile);
-        await setDoc(publicProfileRef, publicProfile);
-      } else {
-         const existingProfile = docSnap.data() as UserProfile;
-         const publicProfileUpdate: PublicUserProfile = {
-            name: firebaseUser.displayName || existingProfile.name,
-            photoURL: firebaseUser.photoURL || existingProfile.photoURL,
-            level_name: existingProfile.level_name
-         };
-         await setDoc(publicProfileRef, publicProfileUpdate, { merge: true });
       }
 
       const onboarded = docSnap.exists() ? (docSnap.data() as any).onboarded : false;
@@ -156,5 +141,3 @@ export default function PageContent() {
     </div>
   );
 }
-
-    

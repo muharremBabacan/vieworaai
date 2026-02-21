@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Group, PublicUserProfile, User as UserProfile } from '@/types';
+import type { Group, User as UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,8 +42,8 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
 
-  const userDocRef = useMemoFirebase(() => doc(firestore, 'public_profiles', userId), [firestore, userId]);
-  const { data: userProfile, isLoading } = useDoc<PublicUserProfile>(userDocRef);
+  const userDocRef = useMemoFirebase(() => doc(firestore, 'users', userId), [firestore, userId]);
+  const { data: userProfile, isLoading } = useDoc<UserProfile>(userDocRef);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   if (isLoading) {
@@ -55,7 +55,7 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
       <div className="flex items-center gap-3 p-2">
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger><Avatar><AvatarFallback>?</AvatarFallback></Avatar></TooltipTrigger>
+            <TooltipTrigger><Avatar><AvatarFallback>?</AvatarFallback></TooltipTrigger>
             <TooltipContent><p>{t('tooltip_user_not_found')}</p></TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -316,5 +316,3 @@ export default function GroupDetailPage() {
     </div>
   );
 }
-
-    
