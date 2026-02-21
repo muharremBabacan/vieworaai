@@ -31,7 +31,7 @@ function HeaderLogo() {
 export function AppHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="container flex h-16 items-center">
+      <div className="container mx-auto flex h-16 items-center">
         <HeaderLogo />
         <div className="flex flex-1 items-center justify-end space-x-4">
           <UserNav />
