@@ -136,3 +136,26 @@ export type UserProfileIndex = {
   trend: 'improving' | 'stagnant' | 'declining';
   last_updated: string;
 };
+
+export type GroupCompetition = {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string;
+  theme: string;
+  prize: string;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  createdAt: string; // ISO string
+};
+
+export type CompetitionEntry = {
+  id: string;
+  competitionId: string;
+  userId: string;
+  userName: string;
+  photoUrl: string;
+  filePath: string;
+  submittedAt: string; // ISO string
+  votes: string[]; // Array of user UIDs
+};

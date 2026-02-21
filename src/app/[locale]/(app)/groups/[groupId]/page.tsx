@@ -2,18 +2,18 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { useRouter } from '@/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Group, PublicUserProfile } from '@/types';
+import { useRouter, Link } from '@/navigation';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
+import { doc, arrayRemove, deleteDoc, updateDoc, collection, query, orderBy } from 'firebase/firestore';
+import type { Group, PublicUserProfile, GroupCompetition } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Users, Crown, Loader2, AlertTriangle, X, Copy } from 'lucide-react';
+import { Users, Crown, Loader2, AlertTriangle, X, Copy, Trophy, CalendarIcon, PlusCircle, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
@@ -25,12 +25,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { tr, enUS } from 'date-fns/locale';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const localeMap: Record<string, Locale> = { tr, enUS };
 
 
 function MemberItem({ userId, isOwner, onRemove, group }: { 
@@ -166,6 +178,211 @@ function InviteOptionsDialog({ group }: { group: Group }) {
     )
 }
 
+const createCompetitionSchema = (t: Function) => z.object({
+  title: z.string().min(3).max(100),
+  description: z.string().max(500).optional(),
+  theme: z.string().min(2).max(50),
+  prize: z.string().min(3).max(100),
+  startDate: z.date(),
+  endDate: z.date(),
+}).refine(data => data.endDate > data.startDate, {
+  message: t('form_error_date'),
+  path: ['endDate'],
+});
+
+type CreateCompetitionValues = z.infer<ReturnType<typeof createCompetitionSchema>>;
+
+function CreateCompetitionDialog({ groupId }: { groupId: string }) {
+  const [open, setOpen] = useState(false);
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const t = useTranslations('GroupDetailPage');
+
+  const form = useForm<CreateCompetitionValues>({
+    resolver: zodResolver(createCompetitionSchema(t)),
+    defaultValues: { title: '', description: '', theme: '', prize: '' },
+  });
+
+  const onSubmit = async (values: CreateCompetitionValues) => {
+    if (!firestore) return;
+    try {
+      const competitionsCollectionRef = collection(firestore, 'groups', groupId, 'competitions');
+      await addDocumentNonBlocking(competitionsCollectionRef, {
+        ...values,
+        groupId,
+        startDate: values.startDate.toISOString(),
+        endDate: values.endDate.toISOString(),
+        createdAt: new Date().toISOString(),
+      });
+      toast({ title: "Başarılı", description: t('toast_comp_create_success', { title: values.title }) });
+      form.reset();
+      setOpen(false);
+    } catch (error) {
+      toast({ variant: 'destructive', title: "Hata", description: t('toast_comp_create_error') });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm"><PlusCircle className="mr-2 h-4 w-4" />{t('button_create_competition')}</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t('create_competition_dialog_title')}</DialogTitle>
+          <DialogDescription>{t('create_competition_dialog_description')}</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <FormField control={form.control} name="title" render={({ field }) => (
+                <FormItem><FormLabel>{t('form_label_comp_title')}</FormLabel><FormControl><Input placeholder={t('form_placeholder_comp_title')} {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <FormField control={form.control} name="description" render={({ field }) => (
+                <FormItem><FormLabel>{t('form_label_comp_description')}</FormLabel><FormControl><Textarea placeholder={t('form_placeholder_comp_description')} {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="theme" render={({ field }) => (
+                    <FormItem><FormLabel>{t('form_label_comp_theme')}</FormLabel><FormControl><Input placeholder={t('form_placeholder_comp_theme')} {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="prize" render={({ field }) => (
+                    <FormItem><FormLabel>{t('form_label_comp_prize')}</FormLabel><FormControl><Input placeholder={t('form_placeholder_comp_prize')} {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <FormField control={form.control} name="startDate" render={({ field }) => (
+                <FormItem className="flex flex-col"><FormLabel>{t('form_label_comp_start_date')}</FormLabel>
+                  <Popover><PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Bir tarih seçin</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
+                    </PopoverContent>
+                  </Popover><FormMessage />
+                </FormItem>
+                )}/>
+                <FormField control={form.control} name="endDate" render={({ field }) => (
+                <FormItem className="flex flex-col"><FormLabel>{t('form_label_comp_end_date')}</FormLabel>
+                  <Popover><PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Bir tarih seçin</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => field.formState.getValues().startDate && date < field.formState.getValues().startDate} initialFocus/>
+                    </PopoverContent>
+                  </Popover><FormMessage />
+                </FormItem>
+                )}/>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{t('button_create')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CompetitionCard({ competition }: { competition: GroupCompetition }) {
+    const t = useTranslations('GroupDetailPage');
+    const locale = useTranslations().locale();
+    const dtfLocale = localeMap[locale] || enUS;
+    
+    const now = new Date();
+    const startDate = new Date(competition.startDate);
+    const endDate = new Date(competition.endDate);
+    
+    const getStatus = (): { text: string; color: string; icon: React.ElementType } => {
+        if (now < startDate) return { text: t('comp_card_status_upcoming'), color: 'bg-blue-500', icon: CalendarIcon };
+        if (now > endDate) return { text: t('comp_card_status_ended'), color: 'bg-gray-500', icon: X };
+        return { text: t('comp_card_status_active'), color: 'bg-green-500', icon: Sparkles };
+    };
+
+    const status = getStatus();
+
+    return (
+        <Card className="overflow-hidden">
+            <CardContent className="p-4 flex flex-col md:flex-row gap-4">
+                <div className="flex-grow">
+                    <div className="flex items-start justify-between">
+                        <h4 className="font-semibold text-lg">{competition.title}</h4>
+                        <Badge className={`${status.color} text-white`}>
+                            <status.icon className="mr-1.5 h-3 w-3" />
+                            {status.text}
+                        </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{competition.description}</p>
+                    <div className="mt-3 space-y-2 text-sm">
+                        <div className="flex items-center gap-2"><Badge variant="secondary">{t('comp_card_theme_label')}: {competition.theme}</Badge></div>
+                        <div className="flex items-center gap-2"><Badge variant="secondary">{t('comp_card_prize_label')}: {competition.prize}</Badge></div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <CalendarIcon className="h-4 w-4" />
+                            <span>{format(startDate, 'd MMM', { locale: dtfLocale })} - {format(endDate, 'd MMM yyyy', { locale: dtfLocale })}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-shrink-0 flex items-center">
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href={`/groups/${competition.groupId}/competitions/${competition.id}`}>{t('button_view_competition')}</Link>
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function CompetitionsTab({ groupId, isOwner }: { groupId: string; isOwner: boolean }) {
+  const t = useTranslations('GroupDetailPage');
+  const firestore = useFirestore();
+
+  const competitionsQuery = useMemoFirebase(() => {
+    return query(collection(firestore, 'groups', groupId, 'competitions'), orderBy('createdAt', 'desc'));
+  }, [firestore, groupId]);
+
+  const { data: competitions, isLoading } = useCollection<GroupCompetition>(competitionsQuery);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2"><Trophy className="h-5 w-5" /> {t('tab_competitions')}</div>
+          {isOwner && <CreateCompetitionDialog groupId={groupId} />}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-28 w-full rounded-lg" />
+            <Skeleton className="h-28 w-full rounded-lg" />
+          </div>
+        ) : competitions && competitions.length > 0 ? (
+          <div className="space-y-4">
+            {competitions.map(comp => (
+              <CompetitionCard key={comp.id} competition={comp} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 rounded-lg border-2 border-dashed">
+            <Trophy className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">{t('competitions_no_competitions_title')}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{t('competitions_no_competitions_description')}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export default function GroupDetailPage() {
   const params = useParams();
   const rawGroupId = params?.groupId;
@@ -253,8 +470,8 @@ export default function GroupDetailPage() {
             <TabsList>
               <TabsTrigger value="members">{t('tab_members')}</TabsTrigger>
               <TabsTrigger value="gallery" disabled>{t('tab_gallery')}</TabsTrigger>
+              <TabsTrigger value="competitions">{t('tab_competitions')}</TabsTrigger>
               <TabsTrigger value="assignments" disabled>{t('tab_assignments')}</TabsTrigger>
-              <TabsTrigger value="competitions" disabled>{t('tab_competitions')}</TabsTrigger>
               <TabsTrigger value="events" disabled>{t('tab_events')}</TabsTrigger>
               <TabsTrigger value="trainings" disabled>{t('tab_trainings')}</TabsTrigger>
               {isOwner && <TabsTrigger value="settings">{t('tab_settings')}</TabsTrigger>}
@@ -285,6 +502,9 @@ export default function GroupDetailPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="competitions" className="mt-6">
+            <CompetitionsTab groupId={groupId} isOwner={isOwner} />
         </TabsContent>
         {isOwner && (
             <TabsContent value="settings" className="mt-6">
