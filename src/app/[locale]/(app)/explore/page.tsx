@@ -63,6 +63,9 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
           />
         </div>
         <div className="md:w-2/5 w-full overflow-y-auto p-6 space-y-6">
+            <DialogHeader>
+              <DialogTitle>{t('dialog_title')}</DialogTitle>
+            </DialogHeader>
             {isAuthorLoading ? (
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-full" />
