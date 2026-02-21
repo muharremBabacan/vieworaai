@@ -19,6 +19,11 @@
           "type": "string",
           "description": "The user's display name."
         },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
         "auro_balance": {
           "type": "number",
           "description": "The current number of tokens available to the user for AI analysis."
@@ -67,6 +72,28 @@
         "current_xp",
         "createdAt"
       ]
+    },
+    "PublicUserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Public User Profile",
+      "type": "object",
+      "description": "Stores a user's public-facing information like name, photo, and level.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "level_name": {
+          "type": "string",
+          "description": "The user's current gamification level."
+        }
+      },
+      "required": ["name", "level_name"]
     },
     "Photo": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -526,6 +553,20 @@
           ]
         }
       },
+       {
+        "path": "public_profiles/{userId}",
+        "definition": {
+          "entityName": "PublicUserProfile",
+          "schema": { "$ref": "#/backend/entities/PublicUserProfile" },
+          "description": "Stores a user's public-facing information (name, photoURL, level) for display in groups or leaderboards. Read by any authenticated user, written only by the owner.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
       {
         "path": "users/{userId}/photos/{photoId}",
         "definition": {
@@ -717,3 +758,5 @@
     "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\\n\\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\\n\\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute. New subcollections for assignments, competitions, events, and trainings under each group follow this pattern, with write access restricted to group owners and read access granted to members, ensuring a secure and organized environment for group activities.\\n\\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users. A new top-level `user_profile_index` collection is added to store AI-generated summaries of user performance, with access restricted to the document owner."
   }
 }
+
+    

@@ -53,6 +53,11 @@ service cloud.firestore {
     match /user_profile_index/{userId} {
       allow read, write: if isOwner(userId);
     }
+
+    match /public_profiles/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
     
     match /groups/{groupId} {
       function isMember() {
@@ -145,3 +150,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

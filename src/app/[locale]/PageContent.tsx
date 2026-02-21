@@ -15,6 +15,7 @@ import { useRouter, Link } from '@/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth, useFirestore } from '@/firebase';
+import type { User as UserProfile, PublicUserProfile } from '@/types';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
@@ -54,13 +55,15 @@ export default function PageContent() {
 
       const firebaseUser = result.user;
       const userRef = doc(firestore, 'users', firebaseUser.uid);
+      const publicProfileRef = doc(firestore, 'public_profiles', firebaseUser.uid);
       const docSnap = await getDoc(userRef);
 
       if (!docSnap.exists()) {
-        await setDoc(userRef, {
+        const newUserProfile: UserProfile = {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
           name: firebaseUser.displayName || t('anonymous_artist'),
+          photoURL: firebaseUser.photoURL,
           auro_balance: 20,
           current_xp: 0,
           level_name: 'Neuner',
@@ -70,12 +73,26 @@ export default function PageContent() {
           interests: [],
           onboarded: false,
           groups: [],
-        });
+        };
+        const publicProfile: PublicUserProfile = {
+            name: newUserProfile.name,
+            photoURL: newUserProfile.photoURL,
+            level_name: newUserProfile.level_name,
+        };
+        
+        await setDoc(userRef, newUserProfile);
+        await setDoc(publicProfileRef, publicProfile);
+      } else {
+         const existingProfile = docSnap.data() as UserProfile;
+         const publicProfileUpdate: PublicUserProfile = {
+            name: firebaseUser.displayName || existingProfile.name,
+            photoURL: firebaseUser.photoURL || existingProfile.photoURL,
+            level_name: existingProfile.level_name
+         };
+         await setDoc(publicProfileRef, publicProfileUpdate, { merge: true });
       }
 
-      const onboarded = docSnap.exists()
-        ? (docSnap.data() as any).onboarded
-        : false;
+      const onboarded = docSnap.exists() ? (docSnap.data() as any).onboarded : false;
 
       router.push(onboarded ? '/profile' : '/onboarding', { locale: auth.currentUser?.languageCode || undefined });
 
@@ -139,3 +156,5 @@ export default function PageContent() {
     </div>
   );
 }
+
+    

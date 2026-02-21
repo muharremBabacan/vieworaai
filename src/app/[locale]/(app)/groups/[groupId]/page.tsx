@@ -1,15 +1,15 @@
 'use client';
-import { useState, useMemo, use } from 'react'; // use eklendi
+import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { useRouter, Link } from '@/navigation';
+import { useRouter } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Group, User as UserProfile } from '@/types';
+import type { Group, PublicUserProfile, User as UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Users, Crown, Loader2, AlertTriangle, X, Copy } from 'lucide-react';
@@ -29,8 +29,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
-// group prop'u eklendi
+
 function MemberItem({ userId, isOwner, onRemove, group }: { 
   userId: string, 
   isOwner: boolean, 
@@ -41,8 +42,8 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
 
-  const userDocRef = useMemoFirebase(() => doc(firestore, 'users', userId), [firestore, userId]);
-  const { data: userProfile, isLoading } = useDoc<UserProfile>(userDocRef);
+  const userDocRef = useMemoFirebase(() => doc(firestore, 'public_profiles', userId), [firestore, userId]);
+  const { data: userProfile, isLoading } = useDoc<PublicUserProfile>(userDocRef);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   if (isLoading) {
@@ -63,8 +64,7 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
     );
   }
 
-  // Artık group tanımlı olduğu için hata vermez
-  const isCurrentUserOwner = userProfile.id === group?.ownerId;
+  const isCurrentUserOwner = userId === group?.ownerId;
   const isSelf = userId === currentUser?.uid;
 
   return (
@@ -72,9 +72,13 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
       <div className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50">
         <div className="flex items-center gap-3 flex-1">
             <Avatar>
+              {userProfile.photoURL && <AvatarImage src={userProfile.photoURL} alt={userProfile.name || ''} />}
               <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
             </Avatar>
-            <span className="text-sm font-medium">{userProfile.name}</span>
+            <div className='flex flex-col'>
+                <span className="text-sm font-medium">{userProfile.name}</span>
+                <Badge variant="secondary" className="w-fit capitalize text-xs mt-1">{userProfile.level_name}</Badge>
+            </div>
             {isCurrentUserOwner && <Crown className="h-4 w-4 text-amber-400" />}
         </div>
         {isOwner && !isSelf && (
@@ -159,7 +163,6 @@ function InviteOptionsDialog({ group }: { group: Group }) {
 
 export default function GroupDetailPage() {
   const params = useParams();
-  // Next.js 15 uyumluluğu için
   const rawGroupId = params?.groupId;
   const groupId = Array.isArray(rawGroupId) ? rawGroupId[0] : rawGroupId;
 
@@ -269,9 +272,9 @@ export default function GroupDetailPage() {
                   <MemberItem 
                     key={memberId} 
                     userId={memberId} 
-                    isOwner={isOwner} // GroupDetailPage'deki isOwner'ı kullanıyoruz
+                    isOwner={isOwner}
                     onRemove={handleRemoveMember}
-                    group={group} // group prop'u eklendi
+                    group={group}
                   />
                 ))}
               </div>
@@ -313,3 +316,5 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+
+    

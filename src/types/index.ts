@@ -10,7 +10,7 @@ export type User = {
   id: string;
   name: string | null;
   email: string | null;
-  photoURL?: string | null; // Added for public profile preview
+  photoURL?: string | null;
   auro_balance: number;
   current_xp: number;
   level_name: string;
@@ -25,6 +25,12 @@ export type User = {
   communication_style?: 'soft' | 'balanced' | 'technical';
   score_history?: { score: number; date: string }[];
   profileIndex?: UserProfileIndex; // For recommendations
+};
+
+export type PublicUserProfile = {
+  name: string | null;
+  photoURL?: string | null;
+  level_name: string;
 };
 
 export type Photo = {
@@ -129,3 +135,5 @@ export type UserProfileIndex = {
   trend: 'improving' | 'stagnant' | 'declining';
   last_updated: string;
 };
+
+    
