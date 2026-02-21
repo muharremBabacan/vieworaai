@@ -73,6 +73,8 @@ export default function PageContent() {
           interests: [],
           onboarded: false,
           groups: [],
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
         };
         const newPublicProfile: PublicUserProfile = {
           id: firebaseUser.uid,
@@ -85,6 +87,8 @@ export default function PageContent() {
         await setDoc(publicProfileRef, newPublicProfile);
       } else {
         const existingProfile = docSnap.data() as UserProfile;
+        // Update both private and public profiles on login
+        await setDoc(userRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
         await setDoc(publicProfileRef, {
             name: firebaseUser.displayName || existingProfile.name,
             photoURL: firebaseUser.photoURL,
@@ -94,7 +98,7 @@ export default function PageContent() {
 
       const onboarded = docSnap.exists() ? (docSnap.data() as any).onboarded : false;
 
-      router.push(onboarded ? '/profile' : '/onboarding', { locale: auth.currentUser?.languageCode || undefined });
+      router.push(onboarded ? '/profile' : '/onboarding');
 
     } catch (error: any) {
       console.error('Popup login error:', error);

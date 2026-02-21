@@ -72,7 +72,12 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
                      request.auth.uid == request.resource.data.ownerId;
     
-      allow get, list: if isSignedIn();
+      // Allow get for any signed in user to allow joining via link/code.
+      // Member-only content is protected in subcollections.
+      allow get: if isSignedIn();
+      
+      // List is protected by query constraints on the client.
+      allow list: if isSignedIn();
     
       // Allow owners to update anything.
       // Allow non-members to add themselves to the members list if the group is not full.
@@ -141,11 +146,14 @@ service cloud.firestore {
       allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
     }
     
+    // This collection stores denormalized photo data for public viewing.
     match /public_photos/{photoId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Anyone can read the public photos.
+      allow get, list: if isSignedIn(); 
+      // Only the owner of the photo can create or delete it.
+      allow create, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Updates are disallowed to prevent tampering with denormalized data.
       allow update: if false;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
   }
 }

@@ -30,24 +30,15 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
   const t = useTranslations('ExplorePage');
   const firestore = useFirestore();
 
-  const authorDocRef = useMemoFirebase(() => {
-    // Only fetch if denormalized data is missing
-    if (!firestore || !photo?.userId || photo.userName) return null;
-    return doc(firestore, 'public_profiles', photo.userId);
-  }, [firestore, photo?.userId, photo?.userName]);
-
-  const { data: authorProfile, isLoading: isAuthorLoading } = useDoc<PublicUserProfile>(authorDocRef);
-
-  if (!photo) return null;
-
-  // Use denormalized data if available, otherwise use fetched data
-  const profileToShow = photo.userName ? {
+  // Use denormalized data directly from the photo object.
+  // No extra Firestore read is needed here, making it faster and resolving permission issues.
+  const profileToShow = photo?.userName ? {
       name: photo.userName,
       photoURL: photo.userPhotoURL,
       level_name: photo.userLevelName
-  } : authorProfile;
+  } : null;
 
-  const stillLoading = isAuthorLoading && !profileToShow;
+  if (!photo) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -77,15 +68,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
              <DialogHeader>
               <DialogTitle>{t('dialog_title')}</DialogTitle>
             </DialogHeader>
-            {stillLoading ? (
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="space-y-1">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ) : profileToShow ? (
+            {profileToShow ? (
               <div className="flex items-center gap-3 rounded-lg p-2 -ml-2">
                 <Avatar className="h-10 w-10">
                   {profileToShow.photoURL && <AvatarImage src={profileToShow.photoURL} alt={profileToShow.name || ''} />}

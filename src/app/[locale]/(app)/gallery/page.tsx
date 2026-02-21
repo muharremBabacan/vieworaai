@@ -249,16 +249,23 @@ function PhotoDetailDialog({
 
     setIsSubmitting(true);
     const publicPhotosRef = collection(firestore, 'public_photos');
+    const newPublicPhotoDoc = doc(publicPhotosRef); // Create a new doc reference
     const { id, ...photoData } = photo;
     
-    const submissionData = {
+    // Denormalize user data for public display
+    const submissionData: Photo = {
       ...photoData,
+      id: newPublicPhotoDoc.id, // Assign the new ID
       userName: userProfile.name,
       userPhotoURL: userProfile.photoURL,
       userLevelName: userProfile.level_name,
+      isSubmittedToExhibition: true, // Mark as submitted
     };
+    
+    // Use the non-blocking function to set the new document
+    setDocumentNonBlocking(newPublicPhotoDoc, submissionData, {});
 
-    addDocumentNonBlocking(publicPhotosRef, submissionData);
+    // Update user's Auro balance and original photo status
     updateDocumentNonBlocking(userDocRef, { auro_balance: currentAuro - submissionCost });
     updateDocumentNonBlocking(doc(firestore, 'users', photo.userId, 'photos', photo.id), { isSubmittedToExhibition: true });
     

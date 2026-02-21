@@ -3,9 +3,9 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter, Link } from '@/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { doc, arrayRemove, deleteDoc, updateDoc, collection, query, orderBy } from 'firebase/firestore';
-import type { Group, PublicUserProfile, GroupCompetition } from '@/types';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { doc, arrayRemove, deleteDoc, updateDoc, collection, query, orderBy, where, writeBatch } from 'firebase/firestore';
+import type { Group, PublicUserProfile, GroupCompetition, User as UserProfileType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Users, Crown, Loader2, AlertTriangle, X, Copy, Trophy, CalendarIcon, PlusCircle, Sparkles } from 'lucide-react';
+import { Users, Crown, Loader2, AlertTriangle, X, Copy, Trophy, CalendarIcon, PlusCircle, Sparkles, Mail } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
@@ -44,7 +44,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const localeMap: Record<string, Locale> = { tr, enUS };
 
-
 function MemberItem({ userId, isOwner, onRemove, group }: { 
   userId: string, 
   isOwner: boolean, 
@@ -68,7 +67,7 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
       <div className="flex items-center gap-3 p-2">
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Avatar>
                 <AvatarFallback>?</AvatarFallback>
               </Avatar>
@@ -403,10 +402,11 @@ export default function GroupDetailPage() {
   const [isDeletingGroup, setIsDeletingGroup] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
-  const userDocRef = useMemoFirebase(() => (currentUser ? doc(firestore, 'public_profiles', currentUser.uid) : null), [currentUser, firestore]);
-  const { data: userProfile } = useDoc<PublicUserProfile>(userDocRef);
+  const userDocRef = useMemoFirebase(() => (currentUser ? doc(firestore, 'users', currentUser.uid) : null), [currentUser, firestore]);
+  const { data: userProfile } = useDoc<UserProfileType>(userDocRef);
 
   const isOwner = currentUser?.uid === group?.ownerId;
+  const isMember = group?.memberIds.includes(currentUser?.uid || '') || false;
   
   const handleRemoveMember = async (memberIdToRemove: string, memberName: string) => {
     if (!groupDocRef) return;
@@ -445,13 +445,13 @@ export default function GroupDetailPage() {
     );
   }
 
-  if (groupError || !group) {
+  if (groupError || !group || !isMember) {
     return (
       <div className="container mx-auto text-center py-20 px-4">
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
           <h3 className="mt-4 text-xl font-semibold">{t('group_not_found_title')}</h3>
           <p className="text-muted-foreground mt-2">{groupError ? t('group_not_found_error') : t('group_not_found_no_permission')}</p>
-          <Button onClick={() => router.back()} className="mt-6">{t('button_go_back')}</Button>
+          <Button onClick={() => router.push('/groups')} className="mt-6">{t('button_go_back')}</Button>
       </div>
     );
   }
