@@ -86,8 +86,14 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
                 </div>
               </div>
             ) : null}
-             {photo.adaptiveFeedback && (
-                <p className="text-sm text-muted-foreground italic">"{photo.aiFeedback?.short_neutral_analysis}"</p>
+            
+            {photo.aiFeedback?.short_neutral_analysis && (
+                <div>
+                    <h4 className="font-semibold text-base mb-2">{t('analysis_summary_title')}</h4>
+                    <p className="text-sm text-muted-foreground italic">
+                        "{photo.aiFeedback.short_neutral_analysis}"
+                    </p>
+                </div>
             )}
         </div>
       </DialogContent>
