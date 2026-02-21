@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Group, User as UserProfile } from '@/types';
+import type { Group, PublicUserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,8 +43,8 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
 
-  const userDocRef = useMemoFirebase(() => doc(firestore, 'users', userId), [firestore, userId]);
-  const { data: userProfile, isLoading } = useDoc<UserProfile>(userDocRef);
+  const userDocRef = useMemoFirebase(() => doc(firestore, 'public_profiles', userId), [firestore, userId]);
+  const { data: userProfile, isLoading } = useDoc<PublicUserProfile>(userDocRef);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   if (isLoading) {
@@ -186,8 +186,8 @@ export default function GroupDetailPage() {
   const [isDeletingGroup, setIsDeletingGroup] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
-  const userDocRef = useMemoFirebase(() => (currentUser ? doc(firestore, 'users', currentUser.uid) : null), [currentUser, firestore]);
-  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+  const userDocRef = useMemoFirebase(() => (currentUser ? doc(firestore, 'public_profiles', currentUser.uid) : null), [currentUser, firestore]);
+  const { data: userProfile } = useDoc<PublicUserProfile>(userDocRef);
 
   const isOwner = currentUser?.uid === group?.ownerId;
   

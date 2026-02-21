@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useRouter, Link } from '@/navigation';
-import type { Photo, User as UserProfile } from '@/types';
+import type { Photo, PublicUserProfile } from '@/types';
 import { Card } from '@/components/ui/card';
 import {
   Dialog,
@@ -32,9 +32,9 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
 
   const authorDocRef = useMemoFirebase(() => {
     if (!firestore || !photo?.userId) return null;
-    return doc(firestore, 'users', photo.userId);
+    return doc(firestore, 'public_profiles', photo.userId);
   }, [firestore, photo?.userId]);
-  const { data: authorProfile, isLoading: isAuthorLoading } = useDoc<UserProfile>(authorDocRef);
+  const { data: authorProfile, isLoading: isAuthorLoading } = useDoc<PublicUserProfile>(authorDocRef);
 
   if (!photo) return null;
 
@@ -63,7 +63,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
           />
         </div>
         <div className="md:w-2/5 w-full overflow-y-auto p-6 space-y-6">
-            <DialogHeader>
+             <DialogHeader>
               <DialogTitle>{t('dialog_title')}</DialogTitle>
             </DialogHeader>
             {isAuthorLoading ? (
@@ -117,7 +117,7 @@ export default function ExplorePage() {
   }, [firestore, user, filterUserId]);
   
   const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
-  const { data: filterUser, isLoading: isFilterUserLoading } = useDoc<UserProfile>(useMemoFirebase(() => filterUserId ? doc(firestore, 'users', filterUserId) : null, [firestore, filterUserId]));
+  const { data: filterUser, isLoading: isFilterUserLoading } = useDoc<PublicUserProfile>(useMemoFirebase(() => filterUserId ? doc(firestore, 'public_profiles', filterUserId) : null, [firestore, filterUserId]));
 
 
   return (

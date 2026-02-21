@@ -73,6 +73,28 @@
         "createdAt"
       ]
     },
+    "PublicUserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Public User Profile",
+      "type": "object",
+      "description": "Stores non-sensitive user information that can be displayed publicly, such as in photo galleries or leaderboards.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "level_name": {
+          "type": "string",
+          "description": "The user's current gamification level (e.g., Basic, Mid, Pro)."
+        }
+      },
+      "required": ["name", "level_name"]
+    },
     "Photo": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Photo",
@@ -527,6 +549,22 @@
             {
               "name": "userId",
               "description": "The unique identifier of the user, matching 'request.auth.uid'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "public_profiles/{userId}",
+        "definition": {
+          "entityName": "PublicUserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/PublicUserProfile"
+          },
+          "description": "Stores public-facing, non-sensitive user profile data. Readable by all authenticated users, writable only by the owner.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
             }
           ]
         }

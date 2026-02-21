@@ -4,8 +4,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import { getUserProfileIndex } from '@/lib/firestore/userProfile'; // ← Firestore helper
+import { z } from 'zod';
 
 /* -------------------------------------------------------------------------- */
 /*                               SCHEMAS                                      */
@@ -21,10 +20,13 @@ const PhotoTechnicalDataSchema = z.object({
 });
 
 const AdaptiveFeedbackInputSchema = z.object({
-  userId: z.string(),
+  userGamificationLevel: z.string(),
   language: z.string(),
   technicalAnalysis: PhotoTechnicalDataSchema,
-  currentPhotoAverageScore: z.number(),
+  communicationStyle: z.string().optional(),
+  scoreTrend: z.enum(['improving', 'stagnant', 'declining']),
+  averageScore: z.number(),
+  overallScore: z.number(), // Score of the current photo
 });
 
 export type AdaptiveFeedbackInput = z.infer<
@@ -60,44 +62,34 @@ const feedbackPrompt = ai.definePrompt({
 
   system: `
 You are Luma, Viewora’s intelligent visual mentor.
-
-You MUST use USER_PROFILE_INDEX to adapt tone, depth, and behavioral emphasis.
+You MUST adapt your tone, depth, and behavioral emphasis based on the user's profile data.
 
 CORE RULES:
 
-1. Tone comes from communication_profile.tone.
-2. Depth comes from dominant_technical_level.
-3. Interpret consistency_gap:
-   - 0–5 → Stable
-   - 6–12 → Moderate inconsistency
-   - 13+ → High inconsistency (reinforce fundamentals)
-
-4. Always reference trend.direction explicitly.
-5. Do NOT mention numeric scores.
-6. Keep feedback concise.
-7. Structure output with Markdown headers:
-   **Işık**
-   **Kompozisyon**
-   **Teknik**
-8. No emojis. No self-introduction.
+1.  **Tone:** Adapt your tone based on the 'communicationStyle' ('soft', 'balanced', 'technical').
+2.  **Depth:** Adjust explanation complexity based on 'userGamificationLevel'.
+3.  **Trend:** Explicitly reference the user's performance 'scoreTrend' in your feedback (e.g., "Your recent improving trend...", "To break out of this stagnant phase...").
+4.  **No Scores:** Do NOT mention numeric scores in your feedback.
+5.  **Concise:** Keep feedback concise and to the point.
+6.  **Structure:** Structure output with Markdown headers: **Işık**, **Kompozisyon**, **Teknik**.
+7.  **No Intro:** No emojis. No self-introduction.
 `,
 
   prompt: `
-USER_PROFILE_INDEX:
-\`\`\`json
-{{{userProfileIndex}}}
-\`\`\`
+USER_PROFILE_DATA:
+- Level: {{{userGamificationLevel}}}
+- Communication Style: {{{communicationStyle}}}
+- Recent Trend: {{{scoreTrend}}}
+- Historical Average Score: {{{averageScore}}}
 
-PHOTO_TECHNICAL_DATA:
+CURRENT_PHOTO_DATA:
+- Current Photo Score: {{{overallScore}}}
 - Light: {{{technicalAnalysis.light_score}}}
 - Composition: {{{technicalAnalysis.composition_score}}}
 - Focus: {{{technicalAnalysis.focus_score}}}
 - Color Control: {{{technicalAnalysis.color_control_score}}}
 - Background Control: {{{technicalAnalysis.background_control_score}}}
 - Creativity: {{{technicalAnalysis.creativity_risk_score}}}
-
-USER_RECENT_AVERAGE: {{{recentAverage}}}
-CURRENT_PHOTO_AVERAGE: {{{currentPhotoAverageScore}}}
 
 Respond in language: {{{language}}}
 
@@ -116,19 +108,8 @@ const feedbackFlow = ai.defineFlow(
     outputSchema: AdaptiveFeedbackOutputSchema,
   },
   async (input) => {
-    // 1️⃣ Firestore’dan profil çek
-    const userProfileIndex = await getUserProfileIndex(input.userId);
-
-    if (!userProfileIndex) {
-      throw new Error('User profile index not found.');
-    }
-
-    // 2️⃣ Prompt’a entegre et
-    const { output } = await feedbackPrompt({
-      ...input,
-      userProfileIndex,
-      recentAverage: userProfileIndex.profile_index_score,
-    });
+    // Data is now passed directly from the client. No more fetching.
+    const { output } = await feedbackPrompt(input);
 
     if (!output) {
       throw new Error('Adaptive feedback generation failed.');

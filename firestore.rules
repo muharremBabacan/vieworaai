@@ -44,10 +44,16 @@ service cloud.firestore {
        }
 
        match /photos/{photoId} {
-         // The owner can read and write their own photos. This rule is simple and secure.
-         // Public visibility (like Foyer or Exhibition) is handled by separate collections or more specific rules on `get`.
          allow read, write: if isOwner(userId);
        }
+    }
+    
+    match /public_profiles/{userId} {
+      // Any authenticated user can read public profiles for displaying names/avatars.
+      allow get, list: if isSignedIn();
+      // Only the owner of the profile can create or update it.
+      allow create, update: if isOwner(userId);
+      allow delete: if false; // Disallow deleting public profiles.
     }
     
     match /user_profile_index/{userId} {
@@ -66,9 +72,7 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
                      request.auth.uid == request.resource.data.ownerId;
     
-      allow get: if isMember();
-    
-      allow list: if isSignedIn();
+      allow get, list: if isSignedIn();
     
       // Allow owners to update anything.
       // Allow non-members to add themselves to the members list if the group is not full.

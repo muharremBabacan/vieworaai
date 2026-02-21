@@ -182,6 +182,7 @@ export default function PhotoAnalyzer() {
           communicationStyle: userProfile.communication_style,
           scoreTrend: scoreTrend,
           averageScore: averageScore,
+          overallScore: overallScore,
         });
       } catch (e) { toast({ variant: 'destructive', title: 'Geri bildirim üretilemedi.' }); return; }
 

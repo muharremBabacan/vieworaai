@@ -27,6 +27,13 @@ export type User = {
   profileIndex?: UserProfileIndex; // For recommendations
 };
 
+export type PublicUserProfile = {
+  id: string;
+  name: string | null;
+  photoURL?: string | null;
+  level_name: string;
+};
+
 export type Photo = {
   id: string;
   userId: string;

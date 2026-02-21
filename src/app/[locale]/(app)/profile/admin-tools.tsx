@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { generateStrategicFeedback, type StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import userProfileIndex from '@/lib/test_user_1.json';
 
 export function AdminTools() {
     const t = useTranslations('ProfilePage');
@@ -31,7 +32,10 @@ export function AdminTools() {
         setResult(null);
 
         try {
-            const feedbackResult = await generateStrategicFeedback({ userPrompt: prompt });
+            const feedbackResult = await generateStrategicFeedback({ 
+                userPrompt: prompt,
+                userProfileIndex: userProfileIndex as any // Cast since we're using a static JSON file
+            });
             setResult(feedbackResult);
         } catch (error) {
             console.error("Strategic feedback generation failed:", error);
@@ -93,14 +97,19 @@ export function AdminTools() {
                                 <Skeleton className="h-4 w-full mt-4" />
                             </div>
                         ) : result ? (
-                             <div className="text-sm text-muted-foreground space-y-4 pt-2 whitespace-pre-wrap font-mono">
+                             <div className="text-sm text-muted-foreground space-y-4 pt-2 whitespace-pre-wrap">
                                 <div>
                                     <p className="font-semibold text-foreground mb-1">Feedback:</p>
                                     <p>{result.feedback}</p>
                                 </div>
-                                <div>
+                                <div className="font-mono bg-muted p-2 rounded-md">
                                     <p className="font-semibold text-foreground mb-1">Action Task:</p>
-                                    <p>{result.actionTask}</p>
+                                    <p><strong>{result.actionTask.title}</strong></p>
+                                    <ul className="list-disc pl-5 mt-1">
+                                        {result.actionTask.steps.map((step, i) => <li key={i}>{step}</li>)}
+                                    </ul>
+                                    <p className="mt-2"><strong className="text-foreground">Metric:</strong> {result.actionTask.metric}</p>
+                                    <p><strong className="text-foreground">Difficulty:</strong> {result.actionTask.difficulty}/5</p>
                                 </div>
                             </div>
                         ) : null}
