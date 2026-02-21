@@ -68,7 +68,7 @@ function MemberItem({ userId, isOwner, onRemove, group }: {
       <div className="flex items-center gap-3 p-2">
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
+            <TooltipTrigger>
               <Avatar>
                 <AvatarFallback>?</AvatarFallback>
               </Avatar>

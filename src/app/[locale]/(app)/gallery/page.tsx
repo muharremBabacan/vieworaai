@@ -251,7 +251,6 @@ function PhotoDetailDialog({
     const publicPhotosRef = collection(firestore, 'public_photos');
     const { id, ...photoData } = photo;
     
-    // Denormalize user data into the public photo document
     const submissionData = {
       ...photoData,
       userName: userProfile.name,
