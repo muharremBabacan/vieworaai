@@ -180,6 +180,7 @@
     "toast_add_foyer_complete": "Fuayeye eklendi.",
     "toast_remove_foyer_complete": "Fuayeden kaldırıldı.",
     "toast_foyer_limit_reached": "Fuaye limiti (10 fotoğraf) doldu.",
+    "toast_error_foyer": "Fuaye işlemi sırasında bir hata oluştu.",
     "rating_card_title": "Puanlama",
     "overall_score": "Genel",
     "camera_info_ai": "Bu görsel Yapay Zeka ile üretilmiştir",

@@ -215,7 +215,13 @@
     "toast_submit_exhibition_complete": "Your photo has been submitted to the Exhibition.",
     "toast_withdraw_exhibition_complete": "Your photo was withdrawn from the Exhibition.",
     "toast_error_exhibition": "Could not update Exhibition status.",
-    "alert_dialog_withdraw_description": "This photo will be removed from the public Exhibition. It will remain in your gallery."
+    "alert_dialog_withdraw_description": "This photo will be removed from the public Exhibition. It will remain in your gallery.",
+    "button_add_to_foyer": "Add to Foyer",
+    "button_remove_from_foyer": "Remove from Foyer",
+    "toast_add_foyer_complete": "Added to Foyer.",
+    "toast_remove_foyer_complete": "Removed from Foyer.",
+    "toast_foyer_limit_reached": "Foyer limit (10 photos) has been reached.",
+    "toast_error_foyer": "An error occurred while updating the Foyer."
   },
   "GroupsPage": {
     "button_create_group": "Create New Group",
@@ -249,7 +255,7 @@
     "toast_join_success_title": "Successfully Joined!",
     "toast_join_success_description": "Welcome to the '{name}' group.",
     "toast_join_fail_title": "Join Failed",
-    "toast_join_fail_description": "You could not join the group. The group may be full or an error occurred.",
+    "toast_join_fail_description": "You could not join the group. The group may be full, private, or the link may be invalid.",
     "card_owner_tooltip": "You are the owner of this group.",
     "card_member_count": "{count} members",
     "button_view_group": "View Group",

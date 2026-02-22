@@ -216,7 +216,13 @@
     "button_start_analysis": "Start Analysis",
     "filter_best_overall": "My Bests",
     "filter_best_light": "Best Light",
-    "filter_best_composition": "Best Composition"
+    "filter_best_composition": "Best Composition",
+    "button_add_to_foyer": "Add to Foyer",
+    "button_remove_from_foyer": "Remove from Foyer",
+    "toast_add_foyer_complete": "Added to Foyer.",
+    "toast_remove_foyer_complete": "Removed from Foyer.",
+    "toast_foyer_limit_reached": "Foyer limit (10 photos) has been reached.",
+    "toast_error_foyer": "An error occurred while updating the Foyer."
   },
   "GroupsPage": {
     "button_create_group": "Create New Group",
