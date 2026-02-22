@@ -57,17 +57,17 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
 
   const toggleLike = async () => {
     if (!user || !photo || !firestore || isLiking) return;
-  
+
     const originalLikes = photo.likes || [];
+    const newLikes = hasLiked
+        ? originalLikes.filter(id => id !== user.uid)
+        : [...originalLikes, user.uid];
   
     // 1. Optimistic UI update
     setIsLiking(true);
     setPhoto(prev => {
-      if (!prev) return null;
-      const newLikes = hasLiked
-        ? originalLikes.filter(id => id !== user.uid)
-        : [...originalLikes, user.uid];
-      return { ...prev, likes: newLikes };
+        if (!prev) return null;
+        return { ...prev, likes: newLikes };
     });
   
     // 2. Update Firestore in the background
@@ -207,26 +207,36 @@ export default function ExplorePage() {
                     <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
                         <Image src={photo.imageUrl} alt="Sergi Fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-                         {photo.aiFeedback && (() => {
-                            const lightScore = normalizeScore(photo.aiFeedback.light_score);
-                            const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
-                            const technicalScore = normalizeScore(
-                              (
-                                normalizeScore(photo.aiFeedback.focus_score) +
-                                normalizeScore(photo.aiFeedback.color_control_score) +
-                                normalizeScore(photo.aiFeedback.background_control_score) +
-                                normalizeScore(photo.aiFeedback.creativity_risk_score)
-                              ) / 4
-                            );
-                            const overallScore = (lightScore + compositionScore + technicalScore) / 3;
+                        
+                        <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
+                            {photo.aiFeedback && (() => {
+                                const lightScore = normalizeScore(photo.aiFeedback.light_score);
+                                const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
+                                const technicalScore = normalizeScore(
+                                  (
+                                    normalizeScore(photo.aiFeedback.focus_score) +
+                                    normalizeScore(photo.aiFeedback.color_control_score) +
+                                    normalizeScore(photo.aiFeedback.background_control_score) +
+                                    normalizeScore(photo.aiFeedback.creativity_risk_score)
+                                  ) / 4
+                                );
+                                const overallScore = (lightScore + compositionScore + technicalScore) / 3;
 
-                            return (
-                                <Badge className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
-                                  <Star className="h-3 w-3 text-yellow-400" />
-                                  <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                return (
+                                    <Badge className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                                      <Star className="h-3 w-3 text-yellow-400" />
+                                      <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                    </Badge>
+                                )
+                             })()}
+                             {(photo.likes?.length ?? 0) > 0 && (
+                                <Badge variant="secondary" className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                                    <Heart className="h-3 w-3 text-red-400 fill-red-400" />
+                                    <span className="text-xs font-bold">{photo.likes!.length}</span>
                                 </Badge>
-                            )
-                         })()}
+                             )}
+                        </div>
+
                     </Card>
                 ))
             ) : (
