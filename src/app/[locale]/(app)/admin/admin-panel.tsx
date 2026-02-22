@@ -190,17 +190,23 @@ export default function AdminPanel() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
     const isLoading = isUserLoading || isProfileLoading;
-    const isAdmin = userProfile?.email === 'admin@viewora.ai';
     
     useEffect(() => {
-        // If loading is finished and user is not an admin, redirect.
-        if (!isLoading && !isAdmin) {
+        // Wait until all loading is complete.
+        if (isLoading) {
+            return;
+        }
+
+        // Once loading is done, check the user profile.
+        // If there's no profile or the email doesn't match, redirect.
+        if (!userProfile || userProfile.email !== 'admin@viewora.ai') {
             router.replace('/dashboard');
         }
-    }, [isLoading, isAdmin, router]);
-
-    // Show a loading state or nothing while checking permissions
-    if (isLoading || !isAdmin) {
+    }, [isLoading, userProfile, router]);
+    
+    // If we are still loading, or if userProfile is not yet available/confirmed as admin, show a loader.
+    // This prevents the admin content from flashing before a non-admin is redirected.
+    if (isLoading || !userProfile || userProfile.email !== 'admin@viewora.ai') {
         return (
             <div className="container mx-auto flex h-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
