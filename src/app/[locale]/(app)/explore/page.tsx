@@ -236,11 +236,9 @@ export default function ExplorePage() {
                 Array.from({ length: 18 }).map((_, i) => (
                     <div key={i}>
                         <Skeleton className="aspect-square rounded-lg" />
-                        <div className="mt-1.5 space-y-1">
-                            <div className="flex items-center gap-2">
-                                <Skeleton className="h-5 w-5 rounded-full" />
-                                <Skeleton className="h-4 w-20" />
-                            </div>
+                        <div className="mt-2 space-y-1">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-3 w-16" />
                         </div>
                     </div>
                 ))
@@ -279,23 +277,15 @@ export default function ExplorePage() {
                             </div>
                         </Card>
                         {photo.userName && (
-                           <div className="mt-1.5 px-0.5">
-                                <Link href={`/explore?user=${photo.userId}`} className="flex items-center gap-2 group/user" scroll={false} title={photo.userName}>
-                                    <Avatar className="h-6 w-6 border-2 border-background">
-                                        {photo.userPhotoURL && <AvatarImage src={photo.userPhotoURL} alt={photo.userName || ''} />}
-                                        <AvatarFallback className="text-[9px]">
-                                            {photo.userName?.charAt(0) || '?'}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 overflow-hidden">
-                                        <p className="text-xs font-medium text-foreground truncate group-hover/user:text-primary">
-                                            {photo.userName}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground">
-                                            {photo.userLevelName}
-                                        </p>
-                                    </div>
+                           <div className="mt-2 flex justify-between items-center px-1">
+                                <Link href={`/explore?user=${photo.userId}`} className="text-xs font-medium text-muted-foreground hover:text-primary truncate mr-2" scroll={false} title={photo.userName}>
+                                    @{photo.userName}
                                 </Link>
+                                {photo.userLevelName && (
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0 font-semibold shrink-0">
+                                        {photo.userLevelName}
+                                    </Badge>
+                                )}
                             </div>
                         )}
                     </div>
