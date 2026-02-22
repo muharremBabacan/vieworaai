@@ -173,7 +173,10 @@
     "strength_color": "Balanced color control",
     "strength_background": "Simple and effective background",
     "strength_creativity": "Creative and original perspective",
-    "no_strengths": "No specific strengths were identified in this photo, but it is a balanced shot overall."
+    "no_strengths": "No specific strengths were identified in this photo, but it is a balanced shot overall.",
+    "upload_prompt_main_new": "Drag and drop or upload your photo",
+    "upload_prompt_sub_new": "JPG, PNG, HEIC are supported",
+    "button_select_photo": "Select Photo"
   },
   "ExplorePage": {
     "title": "Exhibition Hall",

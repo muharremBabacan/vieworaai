@@ -173,7 +173,10 @@
     "strength_color": "Dengeli renk kontrolü",
     "strength_background": "Sade ve etkili arkaplan",
     "strength_creativity": "Yaratıcı ve orijinal bakış açısı",
-    "no_strengths": "Bu fotoğrafta özellikle öne çıkan bir güçlü yön bulunamadı, ancak genel olarak dengeli bir kare."
+    "no_strengths": "Bu fotoğrafta özellikle öne çıkan bir güçlü yön bulunamadı, ancak genel olarak dengeli bir kare.",
+    "upload_prompt_main_new": "Fotoğrafını sürükle veya yükle",
+    "upload_prompt_sub_new": "JPG, PNG, HEIC desteklenir",
+    "button_select_photo": "Fotoğraf Seç"
   },
   "ExplorePage": {
     "title": "Sergi Salonu",

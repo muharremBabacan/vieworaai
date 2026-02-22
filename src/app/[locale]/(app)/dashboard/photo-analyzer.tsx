@@ -221,15 +221,6 @@ export default function PhotoAnalyzer() {
 
   return (
     <div className="space-y-8">
-       {!analysisResult && !preview && (
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold tracking-tight">{t('greeting_title', { name: userProfile?.name?.split(' ')[0] })}</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {t('greeting_desc_1')} {t('greeting_desc_2')}
-          </p>
-          <p className="font-semibold text-foreground">{t('greeting_cta')}</p>
-        </div>
-      )}
       {analysisResult && feedbackResult && preview ? (
         <AnalysisResult
           analysis={analysisResult}
@@ -262,14 +253,35 @@ export default function PhotoAnalyzer() {
           </CardContent>
         </Card>
       ) : (
-        <div className={cn('relative w-full h-80 rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors duration-200 flex flex-col justify-center items-center text-center cursor-pointer hover:border-primary hover:bg-accent', isDragging && 'border-primary bg-accent')}
-          onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onClick={() => fileInputRef.current?.click()}>
-          <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
-          <div className="space-y-2">
-            <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
-            <p className="font-semibold text-muted-foreground">{t('upload_prompt_main')}</p>
-            <p className="text-sm text-muted-foreground/80">{t('upload_prompt_sub')}</p>
-          </div>
+        <div className="text-center">
+            <h1 className="text-4xl font-semibold text-white">✨ Luma</h1>
+            <p className="text-lg font-normal text-white/75 mt-3">{t('main_title')}</p>
+            <p className="text-xl font-medium text-white mt-7">{t('greeting_cta')}</p>
+          
+            <div
+              className="relative mt-12 mx-auto max-w-2xl h-[260px] rounded-2xl border-2 border-dashed border-white/20 bg-white/[.02] hover:border-primary transition-colors duration-200 flex flex-col items-center justify-center text-center cursor-pointer p-4 group"
+              onClick={() => fileInputRef.current?.click()}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
+              
+              <div className="space-y-4">
+                  <UploadCloud className="mx-auto h-12 w-12 text-white/50" />
+                  <p className="text-lg font-medium">{t('upload_prompt_main_new')}</p>
+                  <p className="text-sm text-white/50">{t('upload_prompt_sub_new')}</p>
+              </div>
+              
+              <div className="absolute bottom-6">
+                <Button
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  className="px-6 py-3 h-auto rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-semibold text-base"
+                >
+                  {t('button_select_photo')}
+                </Button>
+              </div>
+            </div>
         </div>
       )}
     </div>
