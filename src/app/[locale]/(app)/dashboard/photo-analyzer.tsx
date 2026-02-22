@@ -260,7 +260,7 @@ export default function PhotoAnalyzer() {
             {isProfileLoading ? (
               <Skeleton className="h-7 w-80 mx-auto mt-7" />
             ) : (
-              <p className="text-xl font-medium text-white mt-7">{t('greeting_cta', { name: userProfile?.name || '' })}</p>
+              <p className="text-xl font-medium text-white mt-7">{t('greeting_cta', { name: userProfile?.name?.split(' ')[0] || '' })}</p>
             )}
           
             <div
