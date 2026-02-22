@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useRouter, Link } from '@/navigation';
@@ -28,13 +28,20 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
-function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const t = useTranslations('ExplorePage');
   const tRatings = useTranslations('Ratings');
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+  const [photo, setPhoto] = useState(photoProp);
   const [isLiking, setIsLiking] = useState(false);
+
+  useEffect(() => {
+    setPhoto(photoProp);
+  }, [photoProp]);
+
 
   // Use denormalized data directly from the photo object.
   const profileToShow = photo?.userName ? {
@@ -50,23 +57,36 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
 
   const toggleLike = async () => {
     if (!user || !photo || !firestore || isLiking) return;
-    
+  
+    const originalLikes = photo.likes || [];
+  
+    // 1. Optimistic UI update
     setIsLiking(true);
+    setPhoto(prev => {
+      if (!prev) return null;
+      const newLikes = hasLiked
+        ? originalLikes.filter(id => id !== user.uid)
+        : [...originalLikes, user.uid];
+      return { ...prev, likes: newLikes };
+    });
+  
+    // 2. Update Firestore in the background
     const photoRef = doc(firestore, 'public_photos', photo.id);
-
     try {
-        await updateDoc(photoRef, {
-            likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
-        });
+      await updateDoc(photoRef, {
+        likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+      });
     } catch (error) {
-        console.error("Like/Unlike error", error);
-        toast({
-            variant: "destructive",
-            title: "Hata",
-            description: "Beğeni güncellenemedi. Lütfen daha sonra tekrar deneyin.",
-        });
+      console.error("Like/Unlike error", error);
+      // 3. Revert on error
+      setPhoto(prev => prev ? { ...prev, likes: originalLikes } : null);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Beğeni güncellenemedi. Lütfen daha sonra tekrar deneyin.",
+      });
     } finally {
-        setIsLiking(false);
+      setIsLiking(false);
     }
   };
 
