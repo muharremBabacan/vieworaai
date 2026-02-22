@@ -1,22 +1,21 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useTransition } from 'react';
 import { Link, useRouter, usePathname } from '@/navigation';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gem, Coins, History, ChevronRight, Info, FileText, LogOut, Settings as SettingsIcon, ShieldQuestion, Loader2, Languages } from 'lucide-react';
+import { Gem, Coins, History, ChevronRight, Info, FileText, LogOut, Settings as SettingsIcon, ShieldQuestion, Loader2, Languages, Code } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { getLevelFromXp, levels as allLevels } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
 
-/* ---------------- LANGUAGE SWITCHER ---------------- */
 
 function LanguageSwitcher() {
   const locale = useLocale();
@@ -37,7 +36,7 @@ function LanguageSwitcher() {
   }
 
   return (
-    <div className="flex items-center gap-4 w-full p-2">
+    <div className="flex items-center gap-4 w-full p-3">
       <div className="flex-shrink-0 bg-secondary p-3 rounded-lg">
         <Languages className="h-5 w-5 text-primary" />
       </div>
@@ -63,17 +62,59 @@ function LanguageSwitcher() {
   );
 }
 
-/* ---------------- SETTINGS PAGE ---------------- */
+function DeveloperTools({ userProfile, userDocRef }: { userProfile: UserProfile, userDocRef: any }) {
+    const t = useTranslations('ProfilePage');
+    const { toast } = useToast();
+
+    const handleLevelChange = (newLevelName: string) => {
+        if (!userDocRef) return;
+        const selectedLevel = allLevels.find(l => l.name === newLevelName);
+        if (!selectedLevel) return;
+
+        updateDocumentNonBlocking(userDocRef, {
+            level_name: selectedLevel.name,
+            current_xp: selectedLevel.minXp
+        });
+        toast({
+            title: t('developer_level_change_success_title'),
+            description: t('developer_level_change_success_description', { level: newLevelName }),
+        })
+    };
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                    <Code className="h-6 w-6 text-green-400" />
+                    {t('developer_tools_title')}
+                </CardTitle>
+                 <CardDescription>{t('developer_tools_description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Select onValueChange={handleLevelChange} defaultValue={userProfile.level_name}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Seviye Seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {allLevels.map(level => (
+                            <SelectItem key={level.name} value={level.name}>{level.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </CardContent>
+        </Card>
+    )
+}
 
 export default function SettingsPage() {
-
-  const locale = useLocale(); // 🔥 EN KRİTİK EKLEME
+  const locale = useLocale();
   const { user: authUser, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const t = useTranslations('ProfilePage');
+  const tNav = useTranslations('AppLayout');
   const [isRestoring, setIsRestoring] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
@@ -86,7 +127,7 @@ export default function SettingsPage() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      router.push('/', { locale }); // 🔥 FIX
+      router.push('/', { locale }); 
       toast({ title: t('toast_signout_success') });
     } catch (error) {
       console.error('Sign out failed', error);
@@ -110,6 +151,7 @@ export default function SettingsPage() {
   if (isUserLoading || isProfileLoading || !userProfile) {
     return (
       <div className="container mx-auto max-w-2xl space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight mb-8">{tNav('title_settings')}</h1>
         <Card><CardContent className="p-6"><Skeleton className="h-24" /></CardContent></Card>
         <Card><CardContent className="p-6"><Skeleton className="h-40" /></CardContent></Card>
         <Card><CardContent className="p-6"><Skeleton className="h-32" /></CardContent></Card>
@@ -118,10 +160,14 @@ export default function SettingsPage() {
   }
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
+  const isDeveloper = userProfile.email === 'babacan.muharrem@gmail.com';
 
   return (
     <div className="container mx-auto max-w-2xl">
+      <h1 className="text-3xl font-bold tracking-tight mb-8">{tNav('title_settings')}</h1>
       <div className="space-y-8">
+
+        {isDeveloper && <DeveloperTools userProfile={userProfile} userDocRef={userDocRef} />}
 
         <Card>
           <CardHeader>
@@ -136,7 +182,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
               <span className="font-medium text-muted-foreground">{t('current_balance')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">{auroBalance}</span>
+                <span className="text-2xl font-bold">{auroBalance.toLocaleString()}</span>
                 <span className="font-semibold text-cyan-400">{t('auro_unit')}</span>
               </div>
             </div>
@@ -168,19 +214,21 @@ export default function SettingsPage() {
           </CardHeader>
 
           <CardContent className="divide-y divide-border -mx-3">
-
             <LanguageSwitcher />
-
-            <Link href="/terms" locale={locale} className="block p-3 hover:bg-secondary/50">
-              <FileText className="inline mr-2" />
-              {t('terms_label')}
+            <Link href="/terms" locale={locale} className="flex items-center justify-between p-3 hover:bg-secondary/50 w-full">
+              <span className="flex items-center gap-4">
+                <FileText className="h-5 w-5" />
+                {t('terms_label')}
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
-
-            <Link href="/privacy" locale={locale} className="block p-3 hover:bg-secondary/50">
-              <ShieldQuestion className="inline mr-2" />
-              {t('privacy_label')}
+            <Link href="/privacy" locale={locale} className="flex items-center justify-between p-3 hover:bg-secondary/50 w-full">
+               <span className="flex items-center gap-4">
+                <ShieldQuestion className="h-5 w-5" />
+                {t('privacy_label')}
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </Link>
-
           </CardContent>
         </Card>
 

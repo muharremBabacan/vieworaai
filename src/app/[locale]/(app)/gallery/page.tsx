@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
@@ -550,6 +551,7 @@ function PhotoGrid({ photos, onPhotoClick }: { photos: Photo[], onPhotoClick: (p
 
 export default function GalleryPage() {
   const t = useTranslations('GalleryPage');
+  const tNav = useTranslations('AppLayout');
   const { user } = useUser();
   const firestore = useFirestore();
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -632,6 +634,7 @@ export default function GalleryPage() {
   if (!isLoading && (!userPhotos || userPhotos.length === 0)) {
     return (
       <div className="container mx-auto">
+         <h1 className="text-3xl font-bold tracking-tight mb-8">{tNav('title_gallery')}</h1>
         <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
           <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
           <h3 className="text-2xl font-semibold">{t('no_photos_title')}</h3>
@@ -646,6 +649,7 @@ export default function GalleryPage() {
 
   return (
     <div className="container mx-auto">
+       <h1 className="text-3xl font-bold tracking-tight mb-8">{tNav('title_gallery')}</h1>
       {tags && tags.length > 1 && (
         <div className="mb-8">
           <Carousel
@@ -684,3 +688,4 @@ export default function GalleryPage() {
     </div>
   );
 }
+

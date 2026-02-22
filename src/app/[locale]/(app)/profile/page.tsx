@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useMemo, useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -73,6 +74,7 @@ export default function ProfilePage() {
   if (isLoading || !userProfile || !authUser) {
     return (
       <div className="container mx-auto max-w-2xl">
+        <h1 className="text-3xl font-bold tracking-tight mb-8">{tNav('title_profile')}</h1>
         <ProfileSkeleton />
       </div>
     );
@@ -99,7 +101,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-2xl">
-        <h1 className="text-3xl font-bold tracking-tight mb-8 text-primary">
+        <h1 className="text-3xl font-bold tracking-tight mb-8">
             {tNav('title_profile')}
         </h1>
       <div className="space-y-6">
@@ -169,3 +171,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

@@ -110,6 +110,7 @@
     "toast_upload_image_error_description": "Görsel yüklenemedi."
   },
   "CompetitionsPage": {
+    "title": "Yarışmalar",
     "status_active": "Aktif",
     "prize_label": "Ödül:",
     "date_label": "Tarih:",
@@ -125,6 +126,7 @@
     "button_view_entries": "Katılımları Görüntüle"
   },
   "DashboardPage": {
+    "main_title": "Ben Luma AI",
     "greeting_title": "Merhaba, {name}.",
     "greeting_subtitle": "Ben senin Görsel Koçunum.",
     "greeting_desc_1": "Fotoğraflarını birlikte geliştireceğiz.",
@@ -438,7 +440,11 @@
     "admin_total_users_title": "Toplam Kullanıcı",
     "admin_total_users_description": "Sisteme kayıtlı toplam kullanıcı sayısı.",
     "admin_edit_exhibition_title": "Sergi Düzenle",
-    "admin_edit_exhibition_description": "Herkese açık sergi alanındaki fotoğrafları yönetin."
+    "admin_edit_exhibition_description": "Herkese açık sergi alanındaki fotoğrafları yönetin.",
+    "developer_tools_title": "Geliştirici Araçları",
+    "developer_tools_description": "Test amacıyla kullanıcı seviyenizi değiştirin.",
+    "developer_level_change_success_title": "Seviye Değiştirildi",
+    "developer_level_change_success_description": "Yeni seviyeniz artık: {level}"
   },
   "UserNavFallback": {
     "login": "Giriş Yap",
@@ -488,5 +494,3 @@
     "notification_group_invite_body": "{inviterName} sizi \"{groupName}\" grubuna davet etti."
   }
 }
-
-    

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
@@ -13,8 +14,8 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Star, Camera, X, Heart, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc, where, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
@@ -78,22 +79,19 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
         ? originalLikes.filter(id => id !== user.uid)
         : [...originalLikes, user.uid];
   
-    // 1. Optimistic UI update
     setIsLiking(true);
     setPhoto(prev => {
         if (!prev) return null;
         return { ...prev, likes: newLikes };
     });
   
-    // 2. Update Firestore in the background
     const photoRef = doc(firestore, 'public_photos', photo.id);
     try {
-      await updateDoc(photoRef, {
+      updateDocumentNonBlocking(photoRef, {
         likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
       });
     } catch (error) {
       console.error("Like/Unlike error", error);
-      // 3. Revert on error
       setPhoto(prev => prev ? { ...prev, likes: originalLikes } : null);
       toast({
         variant: "destructive",
@@ -214,6 +212,7 @@ export default function ExplorePage() {
 
   return (
     <div className="container mx-auto">
+        <h1 className="text-3xl font-bold tracking-tight mb-8">{t('title')}</h1>
         {filterUserId && (
             <div className="mb-6 flex items-center justify-between rounded-lg border p-3 bg-secondary/50">
                 {isFilterUserLoading ? <Skeleton className="h-6 w-48" /> : 

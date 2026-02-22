@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { packages } from '@/lib/data';
@@ -13,6 +14,7 @@ import { useTranslations } from 'next-intl';
 
 export default function PricingPage() {
   const t = useTranslations('PricingPage');
+  const tNav = useTranslations('AppLayout');
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -80,6 +82,7 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto">
       <div className="text-center mb-12">
+        <h1 className="text-3xl font-bold tracking-tight">{tNav('title_pricing')}</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
           {t('page_description')}
         </p>

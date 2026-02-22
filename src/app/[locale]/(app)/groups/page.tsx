@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -314,6 +315,7 @@ export default function GroupsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const t = useTranslations('GroupsPage');
+  const tNav = useTranslations('AppLayout');
   
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -340,9 +342,7 @@ export default function GroupsPage() {
   return (
     <div className="container mx-auto">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          {/* Page title is already in layout */}
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight">{tNav('title_groups')}</h1>
         <div className="flex items-center gap-2">
             <JoinByCodeDialog />
             <CreateGroupDialog 

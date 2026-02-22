@@ -1,3 +1,4 @@
+
 {
   "UserNav": {
     "settings": "Settings",
@@ -109,6 +110,7 @@
     "toast_upload_image_error_description": "The image could not be uploaded."
   },
   "CompetitionsPage": {
+    "title": "Competitions",
     "status_active": "Active",
     "prize_label": "Prize:",
     "date_label": "Date:",
@@ -124,6 +126,7 @@
     "button_view_entries": "View Entries"
   },
   "DashboardPage": {
+    "main_title": "I am Luma AI",
     "greeting_title": "Hello, {name}.",
     "greeting_subtitle": "I am your Visual Coach.",
     "greeting_desc_1": "We will improve your photos together.",
@@ -438,7 +441,11 @@
     "admin_total_users_title": "Total Users",
     "admin_total_users_description": "Total number of users registered in the system.",
     "admin_edit_exhibition_title": "Edit Exhibition",
-    "admin_edit_exhibition_description": "Manage photos in the public exhibition hall."
+    "admin_edit_exhibition_description": "Manage photos in the public exhibition hall.",
+    "developer_tools_title": "Developer Tools",
+    "developer_tools_description": "Change your user level for testing purposes.",
+    "developer_level_change_success_title": "Level Changed",
+    "developer_level_change_success_description": "Your new level is now: {level}"
   },
   "UserNavFallback": {
     "login": "Sign In",
