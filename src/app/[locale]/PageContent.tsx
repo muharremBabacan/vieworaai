@@ -67,7 +67,7 @@ export default function PageContent() {
         const newUserProfile: UserProfile = {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
-          name: firebaseUser.displayName || t('anonymous_artist'),
+          name: firebaseUser.displayName?.split(' ')[0] || t('anonymous_artist'),
           photoURL: firebaseUser.photoURL,
           auro_balance: 20,
           current_xp: 0,
@@ -100,11 +100,13 @@ export default function PageContent() {
         // Var olan kullanıcı
         const existing = userSnap.data() as UserProfile;
         onboarded = existing.onboarded ?? false;
+        
+        const updatedName = firebaseUser.displayName?.split(' ')[0] || existing.name;
   
         await Promise.all([
-          setDoc(userRef, { lastLoginAt: now }, { merge: true }),
+          setDoc(userRef, { lastLoginAt: now, name: updatedName }, { merge: true }),
           setDoc(publicProfileRef, {
-            name: firebaseUser.displayName || existing.name,
+            name: updatedName,
             photoURL: firebaseUser.photoURL,
             level_name: existing.level_name,
           }, { merge: true }),
