@@ -206,7 +206,7 @@ export default function AcademyHubPage() {
               <TooltipProvider key={level.title}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="cursor-not-allowed">
+                    <div>
                       {cardContent}
                     </div>
                   </TooltipTrigger>
