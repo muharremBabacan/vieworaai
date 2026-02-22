@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useRouter, Link } from '@/navigation';
@@ -12,14 +12,16 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Star, Camera, X } from 'lucide-react';
+import { Star, Camera, X, Heart, Loader2 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, orderBy, doc, where } from 'firebase/firestore';
+import { collection, query, orderBy, doc, where, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -28,15 +30,46 @@ const normalizeScore = (score: number | undefined | null): number => {
 
 function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const t = useTranslations('ExplorePage');
+  const tRatings = useTranslations('Ratings');
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [isLiking, setIsLiking] = useState(false);
 
   // Use denormalized data directly from the photo object.
-  // No extra Firestore read is needed here, making it faster and resolving permission issues.
   const profileToShow = photo?.userName ? {
       name: photo.userName,
       photoURL: photo.userPhotoURL,
       level_name: photo.userLevelName
   } : null;
+
+  const hasLiked = useMemo(() => {
+    if (!user || !photo?.likes) return false;
+    return photo.likes.includes(user.uid);
+  }, [photo?.likes, user]);
+
+  const handleLike = async () => {
+    if (!user || !photo || !firestore || isLiking) return;
+    
+    setIsLiking(true);
+    const photoRef = doc(firestore, 'public_photos', photo.id);
+
+    try {
+        await updateDoc(photoRef, {
+            likes: hasLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+        });
+    } catch (error) {
+        console.error("Like/Unlike error", error);
+        toast({
+            variant: "destructive",
+            title: "Hata",
+            description: "Beğeni güncellenemedi. Lütfen daha sonra tekrar deneyin.",
+        });
+    } finally {
+        setIsLiking(false);
+    }
+  };
+
 
   if (!photo) return null;
 
@@ -80,6 +113,16 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
                 </div>
               </div>
             ) : null}
+
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={handleLike} disabled={!user || isLiking}>
+                  {isLiking ? <Loader2 className="h-4 w-4 animate-spin"/> : <Heart className={cn("h-5 w-5", hasLiked && "fill-red-500 text-red-500")} />}
+              </Button>
+              <div className="text-sm">
+                  <p className="font-semibold text-lg">{photo.likes?.length || 0}</p>
+                  <p className="text-muted-foreground -mt-1">{tRatings('likes')}</p>
+              </div>
+            </div>
             
             {photo.aiFeedback?.short_neutral_analysis && (
                 <div>

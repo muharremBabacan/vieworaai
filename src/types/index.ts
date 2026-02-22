@@ -45,6 +45,7 @@ export type Photo = {
   createdAt: string;
   isSubmittedToExhibition?: boolean;
   isInFoyer?: boolean;
+  likes?: string[];
   // Denormalized user data for public photos
   userName?: string;
   userPhotoURL?: string | null;

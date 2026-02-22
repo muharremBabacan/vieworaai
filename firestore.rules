@@ -168,8 +168,18 @@ service cloud.firestore {
       allow get, list: if isSignedIn(); 
       // Only the owner of the photo can create or delete it.
       allow create, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // Updates are disallowed to prevent tampering with denormalized data.
-      allow update: if false;
+      // Allow any signed-in user to like or unlike a photo, but only modify the 'likes' array.
+      allow update: if isSignedIn()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+                    && (
+                      // Liking: adding their own UID to the array.
+                      request.resource.data.likes.size() == resource.data.likes.size() + 1
+                      && request.auth.uid in request.resource.data.likes
+                    ) || (
+                      // Unliking: removing their own UID from the array.
+                      request.resource.data.likes.size() == resource.data.likes.size() - 1
+                      && !(request.auth.uid in request.resource.data.likes)
+                    );
     }
   }
 }

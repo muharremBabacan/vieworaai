@@ -165,6 +165,11 @@
         "userLevelName": {
           "type": "string",
           "description": "Denormalized user level name."
+        },
+        "likes": {
+          "type": "array",
+          "description": "A list of user UIDs who have liked this photo.",
+          "items": { "type": "string" }
         }
       },
       "required": [
