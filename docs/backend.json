@@ -450,6 +450,23 @@
       },
       "required": ["groupId", "title", "eventDate", "createdAt"]
     },
+    "Competition": {
+      "title": "Competition",
+      "type": "object",
+      "description": "A global competition organized by Viewora admins.",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "theme": { "type": "string" },
+        "prize": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "imageHint": { "type": "string" }
+      },
+      "required": ["title", "description", "theme", "prize", "startDate", "endDate", "createdAt", "imageUrl"]
+    },
     "GroupCompetition": {
       "title": "Group Competition",
       "type": "object",
@@ -727,6 +744,42 @@
           "entityName": "GroupEvent",
           "schema": { "$ref": "#/backend/entities/GroupEvent" },
           "description": "Stores events (trips, meetings) for a specific group. Writable by owner, but members can update their own RSVP status."
+        }
+      },
+      {
+        "path": "competitions/{competitionId}",
+        "definition": {
+          "entityName": "Competition",
+          "schema": {
+            "$ref": "#/backend/entities/Competition"
+          },
+          "description": "Stores global competitions created by admins. Readable by all authenticated users, writable only by admins.",
+          "params": [
+            {
+              "name": "competitionId",
+              "description": "The unique identifier for a global competition."
+            }
+          ]
+        }
+      },
+      {
+        "path": "competitions/{competitionId}/entries/{entryId}",
+        "definition": {
+          "entityName": "CompetitionEntry",
+          "schema": {
+            "$ref": "#/backend/entities/CompetitionEntry"
+          },
+          "description": "Stores user submissions for a specific global competition.",
+          "params": [
+            {
+              "name": "competitionId",
+              "description": "The unique identifier of the global competition."
+            },
+            {
+              "name": "entryId",
+              "description": "The unique identifier for a specific entry."
+            }
+          ]
         }
       },
       {

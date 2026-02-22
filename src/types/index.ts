@@ -89,13 +89,14 @@ export type Transaction = {
 };
 
 export type Competition = {
-  id:string;
+  id: string;
   title: string;
   description: string;
   theme: string;
   prize: string;
-  startDate: string;
-  endDate: string;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  createdAt: string; // ISO string
   imageUrl: string;
   imageHint: string;
 };

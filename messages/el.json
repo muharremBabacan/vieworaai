@@ -109,7 +109,9 @@
     "prize_label": "Prize:",
     "date_label": "Date:",
     "button_join": "Upload Photo and Join",
-    "button_ended": "Competition Ended"
+    "button_ended": "Competition Ended",
+    "coming_soon_title": "New Competitions Coming Soon!",
+    "coming_soon_description": "Global competitions organized by Viewora will be displayed in this area."
   },
   "DashboardPage": {
     "greeting_title": "Hello, {name}.",

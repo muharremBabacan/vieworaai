@@ -38,27 +38,32 @@ export default function PageContent() {
   const handleSignIn = async () => {
     if (!auth || !firestore) return;
     if (isLoading) return;
-
+  
     setIsLoading(true);
-
+  
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({
         prompt: 'select_account',
       });
-
+  
       const result: UserCredential = await signInWithPopup(auth, provider);
-
+  
       toast({
         title: t('toast_success'),
       });
-
+  
       const firebaseUser = result.user;
       const userRef = doc(firestore, 'users', firebaseUser.uid);
       const publicProfileRef = doc(firestore, 'public_profiles', firebaseUser.uid);
-      const docSnap = await getDoc(userRef);
-
-      if (!docSnap.exists()) {
+  
+      const userSnap = await getDoc(userRef);
+  
+      let onboarded = false;
+      const now = new Date().toISOString();
+  
+      if (!userSnap.exists()) {
+        // Yeni kullanıcı oluştur
         const newUserProfile: UserProfile = {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
@@ -68,45 +73,55 @@ export default function PageContent() {
           current_xp: 0,
           level_name: 'Neuner',
           is_mentor: false,
-          weekly_free_refill_date: new Date().toISOString(),
+          weekly_free_refill_date: now,
           completed_modules: [],
           interests: [],
           onboarded: false,
           groups: [],
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
+          createdAt: now,
+          lastLoginAt: now,
         };
+  
         const newPublicProfile: PublicUserProfile = {
           id: firebaseUser.uid,
-          name: firebaseUser.displayName || t('anonymous_artist'),
+          name: newUserProfile.name,
           photoURL: firebaseUser.photoURL,
           level_name: 'Neuner',
         };
-        
-        await setDoc(userRef, newUserProfile);
-        await setDoc(publicProfileRef, newPublicProfile);
+  
+        await Promise.all([
+          setDoc(userRef, newUserProfile),
+          setDoc(publicProfileRef, newPublicProfile),
+        ]);
+  
+        onboarded = false;
+  
       } else {
-        const existingProfile = docSnap.data() as UserProfile;
-        // Update both private and public profiles on login
-        await setDoc(userRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
-        await setDoc(publicProfileRef, {
-            name: firebaseUser.displayName || existingProfile.name,
+        // Var olan kullanıcı
+        const existing = userSnap.data() as UserProfile;
+        onboarded = existing.onboarded ?? false;
+  
+        await Promise.all([
+          setDoc(userRef, { lastLoginAt: now }, { merge: true }),
+          setDoc(publicProfileRef, {
+            name: firebaseUser.displayName || existing.name,
             photoURL: firebaseUser.photoURL,
-            level_name: existingProfile.level_name,
-        }, { merge: true });
+            level_name: existing.level_name,
+          }, { merge: true }),
+        ]);
       }
-
-      const onboarded = docSnap.exists() ? (docSnap.data() as any).onboarded : false;
-
+  
       router.push(onboarded ? '/profile' : '/onboarding');
-
+  
     } catch (error: any) {
       console.error('Popup login error:', error);
+  
       toast({
         variant: 'destructive',
         title: t('toast_error_title', { code: error.code || 'Hata' }),
         description: t('toast_error_description'),
       });
+  
       setIsLoading(false);
     }
   };

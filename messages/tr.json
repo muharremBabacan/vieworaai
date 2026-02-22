@@ -109,7 +109,9 @@
     "prize_label": "Ödül:",
     "date_label": "Tarih:",
     "button_join": "Fotoğraf Yükle ve Katıl",
-    "button_ended": "Yarışma Sona Erdi"
+    "button_ended": "Yarışma Sona Erdi",
+    "coming_soon_title": "Yeni Yarışmalar Yakında!",
+    "coming_soon_description": "Bu alanda Viewora tarafından düzenlenen genel yarışmalar sergilenecektir."
   },
   "DashboardPage": {
     "greeting_title": "Merhaba, {name}.",

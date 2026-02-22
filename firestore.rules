@@ -146,6 +146,22 @@ service cloud.firestore {
       allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
     }
     
+    // Global Competitions (Admin-managed)
+    match /competitions/{competitionId} {
+      allow read: if isSignedIn();
+      allow write: if request.auth.token.admin == true;
+
+      match /entries/{entryId} {
+        allow read: if isSignedIn();
+        // A user can create their own entry
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        // A user can vote on an entry by adding their UID to the votes array.
+        allow update: if isSignedIn() && request.resource.data.votes == resource.data.votes.concat([request.auth.uid]);
+        // A user can delete their own entry, or an admin can delete it.
+        allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || request.auth.token.admin == true;
+      }
+    }
+    
     // This collection stores denormalized photo data for public viewing.
     match /public_photos/{photoId} {
       // Anyone can read the public photos.
