@@ -17,6 +17,7 @@
     "title_settings": "Ayarlar",
     "title_pricing": "Auro Paketleri",
     "title_default": "Viewora",
+    "title_admin_panel": "Yönetici Paneli",
     "nav_academy": "Akademi",
     "nav_explore": "Keşfet",
     "nav_groups": "Gruplar",
@@ -24,6 +25,7 @@
     "nav_gallery": "Galerim",
     "nav_profile": "Profilim",
     "nav_settings": "Ayarlar",
+    "nav_admin_panel": "Yönetici Paneli",
     "loading": "Yükleniyor..."
   },
   "LoginPage": {

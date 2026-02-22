@@ -1,6 +1,5 @@
 'use client';
 import React, { useMemo, useState } from 'react';
-import { useRouter } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
@@ -14,8 +13,6 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { AdminTools } from './admin-tools';
-import { AdminStats } from './admin-stats';
 
 function ProfileSkeleton() {
   return (
@@ -99,7 +96,6 @@ export default function ProfilePage() {
   const progress = nextLevel ? Math.max(0, Math.min(100, ((current_xp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100)) : 100;
   
   const auroBalance = Number.isFinite(auro_balance) ? auro_balance : 0;
-  const isAdmin = userProfile.email === 'admin@viewora.ai';
 
   return (
     <div className="container mx-auto max-w-2xl">
@@ -107,12 +103,6 @@ export default function ProfilePage() {
             {tNav('title_profile')}
         </h1>
       <div className="space-y-6">
-        {isAdmin && (
-            <>
-                <AdminStats />
-                <AdminTools />
-            </>
-        )}
         <Card>
           <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-6">
             <Avatar className="h-16 w-16">

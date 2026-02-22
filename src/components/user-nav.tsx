@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from './ui/badge';
-import { Gem, LogOut, Award, ShieldCheck, Coins, Settings } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
@@ -61,6 +61,7 @@ export function UserNav() {
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
+  const isAdmin = userProfile.email === 'admin@viewora.ai';
   const levelName = userProfile.level_name ?? 'Neuner';
   const displayName = userProfile.name || tFallback('username_fallback');
   const displayEmail = userProfile.email || tFallback('email_fallback');
@@ -90,6 +91,14 @@ export function UserNav() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>{tNav('nav_admin_panel')}</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
               <Link href="/settings">
                   <Settings className="mr-2 h-4 w-4" />

@@ -1,17 +1,68 @@
 'use client';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, collection, getDocs } from 'firebase/firestore';
+import { useRouter } from '@/navigation';
+import type { User as UserProfile } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Bot, Loader2, Sparkles, Edit } from "lucide-react";
+import { Bot, Loader2, Sparkles, Edit, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { generateStrategicFeedback, type StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import userProfileIndex from '@/lib/test_user_1.json';
 
-export function AdminTools() {
+// Merged AdminStats logic
+function AdminStats() {
+    const t = useTranslations('ProfilePage');
+    const firestore = useFirestore();
+    const [userCount, setUserCount] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUserCount = async () => {
+            if (!firestore) return;
+            try {
+                const usersCollectionRef = collection(firestore, 'public_profiles');
+                const snapshot = await getDocs(usersCollectionRef);
+                setUserCount(snapshot.size);
+            } catch (error) {
+                console.error("Error fetching user count:", error);
+                setUserCount(0);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchUserCount();
+    }, [firestore]);
+
+    return (
+        <Card className="border-blue-500/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-lg">
+                    <Users className="h-5 w-5 text-blue-400" />
+                    {t('admin_total_users_title')}
+                </CardTitle>
+                <CardDescription>{t('admin_total_users_description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <Skeleton className="h-10 w-24" />
+                ) : (
+                    <div className="text-3xl font-bold">
+                        {userCount?.toLocaleString() ?? 'N/A'}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+// Merged AdminTools logic
+function AdminTools() {
     const t = useTranslations('ProfilePage');
     const { toast } = useToast();
     const [prompt, setPrompt] = useState('');
@@ -27,14 +78,12 @@ export function AdminTools() {
             });
             return;
         }
-
         setIsLoading(true);
         setResult(null);
-
         try {
             const feedbackResult = await generateStrategicFeedback({ 
                 userPrompt: prompt,
-                userProfileIndex: userProfileIndex as any // Cast since we're using a static JSON file
+                userProfileIndex: userProfileIndex as any
             });
             setResult(feedbackResult);
         } catch (error) {
@@ -59,13 +108,12 @@ export function AdminTools() {
                 <CardDescription>{t('admin_tools_description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="space-y-2 p-4 border rounded-lg">
+                 <div className="space-y-2 p-4 border rounded-lg">
                     <h4 className="font-semibold flex items-center gap-2"><Edit className="h-5 w-5" />{t('admin_edit_exhibition_title')}</h4>
                     <p className="text-sm text-muted-foreground">
                         {t('admin_edit_exhibition_description')}
                     </p>
                 </div>
-
                 <div className="space-y-2 p-4 border rounded-lg">
                     <h4 className="font-semibold">{t('admin_strategic_feedback_title')}</h4>
                     <p className="text-sm text-muted-foreground">
@@ -89,7 +137,6 @@ export function AdminTools() {
                         )}
                     </Button>
                 </div>
-
                 {(isLoading || result) && (
                      <div className="space-y-2 p-4 border rounded-lg bg-background/50">
                         <h4 className="font-semibold flex items-center gap-2">
@@ -124,5 +171,53 @@ export function AdminTools() {
                 )}
             </CardContent>
         </Card>
+    );
+}
+
+
+// Main AdminPanel Component
+export default function AdminPanel() {
+    const { user: authUser, isUserLoading } = useUser();
+    const firestore = useFirestore();
+    const router = useRouter();
+    const tNav = useTranslations('AppLayout');
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!authUser) return null;
+        return doc(firestore, 'users', authUser.uid);
+    }, [authUser, firestore]);
+
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+    const isLoading = isUserLoading || isProfileLoading;
+    const isAdmin = userProfile?.email === 'admin@viewora.ai';
+    
+    useEffect(() => {
+        // If loading is finished and user is not an admin, redirect.
+        if (!isLoading && !isAdmin) {
+            router.replace('/dashboard');
+        }
+    }, [isLoading, isAdmin, router]);
+
+    // Show a loading state or nothing while checking permissions
+    if (isLoading || !isAdmin) {
+        return (
+            <div className="container mx-auto flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+    
+    // Render the admin panel content if user is an admin
+    return (
+        <div className="container mx-auto max-w-2xl">
+            <h1 className="text-3xl font-bold tracking-tight mb-8 text-primary">
+                {tNav('title_admin_panel')}
+            </h1>
+            <div className="space-y-6">
+                <AdminStats />
+                <AdminTools />
+            </div>
+        </div>
     );
 }
