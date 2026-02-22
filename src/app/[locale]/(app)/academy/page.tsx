@@ -10,6 +10,7 @@ import { levels as gamificationLevels } from '@/lib/gamification';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Helper function to determine if a user has access to a certain academy level
 const hasLevelAccess = (targetLevel: 'Temel' | 'Orta' | 'İleri', userLevelName: string | undefined): boolean => {
@@ -195,10 +196,27 @@ export default function AcademyHubPage() {
                 )
             }
             
+            const tooltipContent = level.levelName === 'Orta'
+                ? t('tooltip_intermediate')
+                : level.levelName === 'İleri'
+                ? t('tooltip_advanced')
+                : null;
+
             return (
-                <div key={level.title} className="cursor-not-allowed">
-                    {cardContent}
-                </div>
+              <TooltipProvider key={level.title}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-not-allowed">
+                      {cardContent}
+                    </div>
+                  </TooltipTrigger>
+                  {tooltipContent && (
+                    <TooltipContent>
+                      <p>{tooltipContent}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )
         })}
       </div>

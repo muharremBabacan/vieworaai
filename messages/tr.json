@@ -59,7 +59,9 @@
     "level_intermediate_description": "Farklı türlerde çekim yapın, gelişmiş teknikleri uygulayın ve ışığı bilinçli bir şekilde yönetin.",
     "level_advanced_title": "İleri Seviye",
     "level_advanced_description": "Kendi sanatsal tarzınızı yaratın, profesyonel ışık kurulumlarını öğrenin ve fotoğrafçılıkta uzmanlaşın.",
-    "button_view_lessons": "Dersleri Gör"
+    "button_view_lessons": "Dersleri Gör",
+    "tooltip_intermediate": "Orta Seviye — İlerlemeye devam et, kilit açılıyor.",
+    "tooltip_advanced": "İleri Seviye için Uzman içerik. Kilidi açmak için gelişimine devam et."
   },
   "AcademyLevelPage": {
     "practice_submission_title": "Pratiğini Göster",

@@ -59,7 +59,9 @@
     "level_intermediate_description": "Shoot in different genres, apply advanced techniques, and consciously manage light.",
     "level_advanced_title": "Advanced Level",
     "level_advanced_description": "Create your own artistic style, learn professional lighting setups, and specialize in photography.",
-    "button_view_lessons": "View Lessons"
+    "button_view_lessons": "View Lessons",
+    "tooltip_intermediate": "Средний уровень — продолжайте развиваться, и он откроется.",
+    "tooltip_advanced": "Экспертный контент для продвинутого уровня. Продолжайте свое развитие, чтобы разблокировать."
   },
   "AcademyLevelPage": {
     "practice_submission_title": "Show Your Practice",
