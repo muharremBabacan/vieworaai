@@ -28,9 +28,11 @@ export const getGroupLimits = (levelName?: string) => {
     case 'Vexer': // Mentor
       return { maxGroups: 10, maxMembers: 40 };
     case 'Omner':
+      return { maxGroups: 5, maxMembers: 20 };
     case 'Sytner':
-    case 'Viewner': // Mid-tiers
       return { maxGroups: 5, maxMembers: 15 };
+    case 'Viewner':
+      return { maxGroups: 5, maxMembers: 10 };
     case 'Neuner': // New users
     default:
       return { maxGroups: 1, maxMembers: 7 };
