@@ -17,6 +17,7 @@ const PhotoAnalysisInputSchema = z.object({
     .describe(
       "A publicly accessible HTTPS URL of the photo to analyze."
     ),
+  language: z.string().describe('The language for the response (e.g., "tr", "en").'),
 });
 export type PhotoAnalysisInput = z.infer<typeof PhotoAnalysisInputSchema>;
 
@@ -60,6 +61,8 @@ const analysisPrompt = ai.definePrompt({
 Analyze the uploaded image strictly and objectively.
 
 Return ONLY valid JSON. Do not write explanations outside JSON.
+
+Respond in language: {{{language}}}
 
 Analyze the photo provided: {{media url=photoUrl}}`,
 });

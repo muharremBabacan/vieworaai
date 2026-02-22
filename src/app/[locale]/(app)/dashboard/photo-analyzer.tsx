@@ -152,7 +152,7 @@ export default function PhotoAnalyzer() {
 
       let analysisData;
       try {
-        analysisData = await generatePhotoAnalysis({ photoUrl: downloadURL });
+        analysisData = await generatePhotoAnalysis({ photoUrl: downloadURL, language: locale });
       } catch (e) { toast({ variant: 'destructive', title: t('toast_analysis_fail_title') }); return; }
       
       const scores = [

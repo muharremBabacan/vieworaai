@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { Star, Loader2, Eye, Clock, Zap, Trash2, Camera, Smartphone, HelpCircle, Bot, LibrarySquare } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, DocumentReference, where, getDocs, limit, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -123,6 +123,7 @@ function PhotoDetailDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const [dialogAction, setDialogAction] = useState<'withdrawExhibition' | 'delete' | null>(null);
   const [foyerPhotosCount, setFoyerPhotosCount] = useState(0);
+  const locale = useLocale();
 
   useEffect(() => {
     if (!isOpen || !firestore || !photo?.userId) return;
@@ -203,7 +204,7 @@ function PhotoDetailDialog({
     toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
 
     try {
-      const analysisResult = await generatePhotoAnalysis({ photoUrl: photo.imageUrl });
+      const analysisResult = await generatePhotoAnalysis({ photoUrl: photo.imageUrl, language: locale });
       
       const originalPhotoRef = doc(firestore, 'users', photo.userId, 'photos', photo.id);
       
