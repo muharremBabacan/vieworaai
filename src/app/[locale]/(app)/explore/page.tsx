@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -49,7 +48,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
     return photo.likes.includes(user.uid);
   }, [photo?.likes, user]);
 
-  const handleLike = async () => {
+  const toggleLike = async () => {
     if (!user || !photo || !firestore || isLiking) return;
     
     setIsLiking(true);
@@ -116,7 +115,7 @@ function PublicPhotoDialog({ photo, isOpen, onOpenChange }: { photo: Photo | nul
             ) : null}
 
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={handleLike} disabled={!user || isLiking}>
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={toggleLike} disabled={!user || isLiking}>
                   {isLiking ? <Loader2 className="h-4 w-4 animate-spin"/> : <Heart className={cn("h-5 w-5", hasLiked && "fill-red-500 text-red-500")} />}
               </Button>
               <div className="text-sm">
@@ -227,5 +226,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-
-    
