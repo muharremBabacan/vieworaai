@@ -42,6 +42,21 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
     setPhoto(photoProp);
   }, [photoProp]);
 
+  const overallScore = useMemo(() => {
+    if (!photo?.aiFeedback) return 0;
+    const lightScore = normalizeScore(photo.aiFeedback.light_score);
+    const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
+    const technicalScores = [
+      normalizeScore(photo.aiFeedback.focus_score),
+      normalizeScore(photo.aiFeedback.color_control_score),
+      normalizeScore(photo.aiFeedback.background_control_score),
+      normalizeScore(photo.aiFeedback.creativity_risk_score),
+    ];
+    const technicalScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
+    const mainScores = [lightScore, compositionScore, technicalScore];
+    return mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
+  }, [photo]);
+
 
   // Use denormalized data directly from the photo object.
   const profileToShow = photo?.userName ? {
@@ -134,14 +149,28 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
               </div>
             ) : null}
 
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={toggleLike} disabled={!user || isLiking}>
-                  {isLiking ? <Loader2 className="h-4 w-4 animate-spin"/> : <Heart className={cn("h-5 w-5", hasLiked && "fill-red-500 text-red-500")} />}
-              </Button>
-              <div className="text-sm">
-                  <p className="font-semibold text-lg">{photo.likes?.length || 0}</p>
-                  <p className="text-muted-foreground -mt-1">{tRatings('likes')}</p>
-              </div>
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={toggleLike} disabled={!user || isLiking}>
+                        {isLiking ? <Loader2 className="h-4 w-4 animate-spin"/> : <Heart className={cn("h-5 w-5", hasLiked && "fill-red-500 text-red-500")} />}
+                    </Button>
+                    <div>
+                        <p className="font-semibold text-lg">{photo.likes?.length || 0}</p>
+                        <p className="text-xs text-muted-foreground -mt-1">{tRatings('likes')}</p>
+                    </div>
+                </div>
+
+                {overallScore > 0 && (
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                              <Star className="h-5 w-5 text-amber-400" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-lg">{overallScore.toFixed(1)}</p>
+                            <p className="text-xs text-muted-foreground -mt-1">{tRatings('overall')}</p>
+                        </div>
+                    </div>
+                )}
             </div>
             
             {photo.aiFeedback?.short_neutral_analysis && (
@@ -189,7 +218,10 @@ export default function ExplorePage() {
             <div className="mb-6 flex items-center justify-between rounded-lg border p-3 bg-secondary/50">
                 {isFilterUserLoading ? <Skeleton className="h-6 w-48" /> : 
                 <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8"><AvatarFallback>{filterUser?.name?.charAt(0)}</AvatarFallback></Avatar>
+                    <Avatar className="h-8 w-8">
+                        {filterUser?.photoURL && <AvatarImage src={filterUser.photoURL} alt={filterUser.name || ''} />}
+                        <AvatarFallback>{filterUser?.name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
                     <span className="font-semibold">{t('showing_photos_by', {name: filterUser?.name})}</span>
                 </div>
                 }
@@ -199,45 +231,74 @@ export default function ExplorePage() {
                 </Button>
             </div>
         )}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8">
             {isLoading ? (
-                Array.from({ length: 18 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)
+                Array.from({ length: 18 }).map((_, i) => (
+                    <div key={i}>
+                        <Skeleton className="aspect-square rounded-lg" />
+                        <div className="mt-1.5 space-y-1">
+                            <div className="flex items-center gap-2">
+                                <Skeleton className="h-5 w-5 rounded-full" />
+                                <Skeleton className="h-4 w-20" />
+                            </div>
+                        </div>
+                    </div>
+                ))
             ) : photos && photos.length > 0 ? (
                  photos.map((photo) => (
-                    <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => setSelectedPhoto(photo)}>
-                        <Image src={photo.imageUrl} alt="Sergi Fotoğrafı" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={true} />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        
-                        <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
-                            {photo.aiFeedback && (() => {
-                                const lightScore = normalizeScore(photo.aiFeedback.light_score);
-                                const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
-                                const technicalScore = normalizeScore(
-                                  (
-                                    normalizeScore(photo.aiFeedback.focus_score) +
-                                    normalizeScore(photo.aiFeedback.color_control_score) +
-                                    normalizeScore(photo.aiFeedback.background_control_score) +
-                                    normalizeScore(photo.aiFeedback.creativity_risk_score)
-                                  ) / 4
-                                );
-                                const overallScore = (lightScore + compositionScore + technicalScore) / 3;
+                    <div key={photo.id}>
+                        <Card className="group relative aspect-square overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
+                            <Image src={photo.imageUrl} alt="Sergi Fotoğrafı" fill className="object-cover transition-transform duration-300 group-hover:scale-105" unoptimized={true} />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                            
+                            <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
+                                {photo.aiFeedback && (() => {
+                                    const allScores = [
+                                        photo.aiFeedback.light_score,
+                                        photo.aiFeedback.composition_score,
+                                        photo.aiFeedback.focus_score,
+                                        photo.aiFeedback.color_control_score,
+                                        photo.aiFeedback.background_control_score,
+                                        photo.aiFeedback.creativity_risk_score
+                                    ].map(normalizeScore);
+                                    const overallScore = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
 
-                                return (
-                                    <Badge className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
-                                      <Star className="h-3 w-3 text-yellow-400" />
-                                      <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                    return (
+                                        <Badge className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                                          <Star className="h-3 w-3 text-yellow-400" />
+                                          <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                        </Badge>
+                                    )
+                                 })()}
+                                 {(photo.likes?.length ?? 0) > 0 && (
+                                    <Badge variant="secondary" className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                                        <Heart className="h-3 w-3 text-red-400 fill-red-400" />
+                                        <span className="text-xs font-bold">{photo.likes!.length}</span>
                                     </Badge>
-                                )
-                             })()}
-                             {(photo.likes?.length ?? 0) > 0 && (
-                                <Badge variant="secondary" className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
-                                    <Heart className="h-3 w-3 text-red-400 fill-red-400" />
-                                    <span className="text-xs font-bold">{photo.likes!.length}</span>
-                                </Badge>
-                             )}
-                        </div>
-
-                    </Card>
+                                 )}
+                            </div>
+                        </Card>
+                        {photo.userName && (
+                           <div className="mt-1.5 px-0.5">
+                                <Link href={`/explore?user=${photo.userId}`} className="flex items-center gap-2 group/user" scroll={false} title={photo.userName}>
+                                    <Avatar className="h-6 w-6 border-2 border-background">
+                                        {photo.userPhotoURL && <AvatarImage src={photo.userPhotoURL} alt={photo.userName || ''} />}
+                                        <AvatarFallback className="text-[9px]">
+                                            {photo.userName?.charAt(0) || '?'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 overflow-hidden">
+                                        <p className="text-xs font-medium text-foreground truncate group-hover/user:text-primary">
+                                            {photo.userName}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            {photo.userLevelName}
+                                        </p>
+                                    </div>
+                                </Link>
+                            </div>
+                        )}
+                    </div>
                 ))
             ) : (
                 <div className="col-span-full text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
