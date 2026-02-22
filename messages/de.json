@@ -430,7 +430,11 @@
     "privacy_label": "Privacy Policy",
     "button_sign_out": "Sign Out",
     "toast_signout_success": "Successfully signed out.",
-    "toast_signout_fail": "Could not sign out."
+    "toast_signout_fail": "Could not sign out.",
+    "admin_total_users_title": "Total Users",
+    "admin_total_users_description": "Total number of users registered in the system.",
+    "admin_edit_exhibition_title": "Edit Exhibition",
+    "admin_edit_exhibition_description": "Manage photos in the public exhibition hall."
   },
   "UserNavFallback": {
     "login": "Sign In",

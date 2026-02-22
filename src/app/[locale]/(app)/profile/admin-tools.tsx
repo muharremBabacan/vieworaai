@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Bot, Loader2, Sparkles } from "lucide-react";
+import { Bot, Loader2, Sparkles, Edit } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { generateStrategicFeedback, type StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +58,14 @@ export function AdminTools() {
                 </CardTitle>
                 <CardDescription>{t('admin_tools_description')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+                <div className="space-y-2 p-4 border rounded-lg">
+                    <h4 className="font-semibold flex items-center gap-2"><Edit className="h-5 w-5" />{t('admin_edit_exhibition_title')}</h4>
+                    <p className="text-sm text-muted-foreground">
+                        {t('admin_edit_exhibition_description')}
+                    </p>
+                </div>
+
                 <div className="space-y-2 p-4 border rounded-lg">
                     <h4 className="font-semibold">{t('admin_strategic_feedback_title')}</h4>
                     <p className="text-sm text-muted-foreground">

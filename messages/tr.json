@@ -429,7 +429,11 @@
     "privacy_label": "Gizlilik Politikası",
     "button_sign_out": "Çıkış Yap",
     "toast_signout_success": "Başarıyla çıkış yaptınız.",
-    "toast_signout_fail": "Çıkış yapılamadı."
+    "toast_signout_fail": "Çıkış yapılamadı.",
+    "admin_total_users_title": "Toplam Kullanıcı",
+    "admin_total_users_description": "Sisteme kayıtlı toplam kullanıcı sayısı.",
+    "admin_edit_exhibition_title": "Sergi Düzenle",
+    "admin_edit_exhibition_description": "Herkese açık sergi alanındaki fotoğrafları yönetin."
   },
   "UserNavFallback": {
     "login": "Giriş Yap",

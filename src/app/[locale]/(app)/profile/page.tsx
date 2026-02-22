@@ -4,7 +4,7 @@ import { useRouter } from '@/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +14,8 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { AdminTools } from './admin-tools'; // Admin Tools import edildi
+import { AdminTools } from './admin-tools';
+import { AdminStats } from './admin-stats';
 
 function ProfileSkeleton() {
   return (
@@ -106,6 +107,12 @@ export default function ProfilePage() {
             {tNav('title_profile')}
         </h1>
       <div className="space-y-6">
+        {isAdmin && (
+            <>
+                <AdminStats />
+                <AdminTools />
+            </>
+        )}
         <Card>
           <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-6">
             <Avatar className="h-16 w-16">
@@ -168,7 +175,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {isAdmin && <AdminTools />}
       </div>
     </div>
   );
