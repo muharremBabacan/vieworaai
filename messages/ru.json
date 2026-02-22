@@ -126,7 +126,7 @@
     "button_view_entries": "View Entries"
   },
   "DashboardPage": {
-    "main_title": "I am Luma AI",
+    "main_title": "Я Лума. Я сопровождаю вас в вашем фото-путешествии.",
     "greeting_title": "Hello, {name}.",
     "greeting_subtitle": "I am your Visual Coach.",
     "greeting_desc_1": "We will improve your photos together.",
