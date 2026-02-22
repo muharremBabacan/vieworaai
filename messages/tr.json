@@ -111,7 +111,13 @@
     "button_join": "Fotoğraf Yükle ve Katıl",
     "button_ended": "Yarışma Sona Erdi",
     "coming_soon_title": "Yeni Yarışmalar Yakında!",
-    "coming_soon_description": "Bu alanda Viewora tarafından düzenlenen genel yarışmalar sergilenecektir."
+    "coming_soon_description": "Bu alanda Viewora tarafından düzenlenen genel yarışmalar sergilenecektir.",
+    "theme_label": "Tema:",
+    "status_upcoming": "Yakında",
+    "status_ended": "Sona Erdi",
+    "no_competitions_title": "Aktif Yarışma Bulunmuyor",
+    "no_competitions_description": "Yeni yarışmalar yakında burada olacak. Takipte kalın!",
+    "button_view_entries": "Katılımları Görüntüle"
   },
   "DashboardPage": {
     "greeting_title": "Merhaba, {name}.",

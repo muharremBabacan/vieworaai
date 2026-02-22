@@ -111,7 +111,13 @@
     "button_join": "Upload Photo and Join",
     "button_ended": "Competition Ended",
     "coming_soon_title": "New Competitions Coming Soon!",
-    "coming_soon_description": "Global competitions organized by Viewora will be displayed in this area."
+    "coming_soon_description": "Global competitions organized by Viewora will be displayed in this area.",
+    "theme_label": "Theme:",
+    "status_upcoming": "Upcoming",
+    "status_ended": "Ended",
+    "no_competitions_title": "No Active Competitions",
+    "no_competitions_description": "New competitions will be here soon. Stay tuned!",
+    "button_view_entries": "View Entries"
   },
   "DashboardPage": {
     "greeting_title": "Hello, {name}.",
