@@ -16,6 +16,7 @@ import type { User as UserProfile } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnalysisResult } from './analysis-result';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -256,7 +257,11 @@ export default function PhotoAnalyzer() {
         <div className="text-center">
             <h1 className="text-4xl font-semibold text-white">✨ Luma</h1>
             <p className="text-lg font-normal text-white/75 mt-3">{t('main_title')}</p>
-            <p className="text-xl font-medium text-white mt-7">{t('greeting_cta')}</p>
+            {isProfileLoading ? (
+              <Skeleton className="h-7 w-80 mx-auto mt-7" />
+            ) : (
+              <p className="text-xl font-medium text-white mt-7">{t('greeting_cta', { name: userProfile?.name || '' })}</p>
+            )}
           
             <div
               className="relative mt-12 mx-auto max-w-2xl h-[260px] rounded-2xl border-2 border-dashed border-white/20 bg-white/[.02] hover:border-primary transition-colors duration-200 flex flex-col items-center justify-center text-center cursor-pointer p-4 group"

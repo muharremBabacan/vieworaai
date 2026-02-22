@@ -131,7 +131,7 @@
     "greeting_subtitle": "I am your Visual Coach.",
     "greeting_desc_1": "We will improve your photos together.",
     "greeting_desc_2": "I analyze light, composition, and technical details. I show your strengths and clearly state your weaknesses.",
-    "greeting_cta": "If you're ready, upload your first photo.",
+    "greeting_cta": "你好，{name}。如果你准备好了，就上传你的第一张照片吧。",
     "upload_prompt_main": "Click to upload or drag and drop",
     "upload_prompt_sub": "Let the analysis begin.",
     "rating_card_title": "Rating",
