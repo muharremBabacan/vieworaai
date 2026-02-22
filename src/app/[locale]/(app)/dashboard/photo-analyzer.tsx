@@ -264,7 +264,7 @@ export default function PhotoAnalyzer() {
             )}
           
             <div
-              className="relative mt-12 mx-auto max-w-2xl h-[260px] rounded-2xl border-2 border-dashed border-white/20 bg-white/[.02] hover:border-primary transition-colors duration-200 flex flex-col items-center justify-center text-center cursor-pointer p-4 group"
+              className="relative mt-12 mx-auto max-w-2xl h-[260px] rounded-2xl border-2 border-dashed border-white/20 bg-white/[.02] hover:border-primary transition-colors duration-200 flex flex-col items-center justify-between text-center cursor-pointer p-6 group"
               onClick={() => fileInputRef.current?.click()}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -272,19 +272,19 @@ export default function PhotoAnalyzer() {
             >
               <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
               
-              <div className="space-y-4">
+              <div className="flex flex-col items-center gap-4">
                   <UploadCloud className="mx-auto h-12 w-12 text-white/50" />
                   <p className="text-lg font-medium">{t('upload_prompt_main_new')}</p>
-                  <p className="text-sm text-white/50">{t('upload_prompt_sub_new')}</p>
               </div>
-              
-              <div className="absolute bottom-6">
-                <Button
-                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                  className="px-6 py-3 h-auto rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-semibold text-base"
-                >
-                  {t('button_select_photo')}
-                </Button>
+
+              <div className="flex flex-col items-center gap-3">
+                  <p className="text-sm text-white/50">{t('upload_prompt_sub_new')}</p>
+                  <Button
+                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                      className="px-6 py-3 h-auto rounded-xl bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-semibold text-base"
+                  >
+                      {t('button_select_photo')}
+                  </Button>
               </div>
             </div>
         </div>
