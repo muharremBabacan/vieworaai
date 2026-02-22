@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
@@ -165,3 +166,5 @@ export type CompetitionEntry = {
   submittedAt: string; // ISO string
   votes: string[]; // Array of user UIDs
 };
+
+    

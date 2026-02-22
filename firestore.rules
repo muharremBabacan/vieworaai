@@ -1,3 +1,4 @@
+
 /**
  * This ruleset enforces a strict user-ownership model for the Viewora AI Coach application.
  *
@@ -166,8 +167,11 @@ service cloud.firestore {
     match /public_photos/{photoId} {
       // Anyone can read the public photos.
       allow get, list: if isSignedIn(); 
-      // Only the owner of the photo can create or delete it.
-      allow create, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Only the owner of the photo can create or delete it. The creation happens when a user submits their photo.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // An admin or the photo owner can delete a public photo submission.
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || (request.auth != null && request.auth.token.admin == true);
+      
       // Allow any signed-in user to like or unlike a photo, but only modify the 'likes' array.
       allow update: if isSignedIn()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
@@ -183,3 +187,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
