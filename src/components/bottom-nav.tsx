@@ -3,10 +3,10 @@
 import { Link, usePathname } from '@/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { BookOpen, Compass, Users, Sparkles, LayoutGrid, User } from 'lucide-react';
+import { GraduationCap, Compass, Users, Sparkles, LayoutGrid, User } from 'lucide-react';
 
 const orderedNavItems = [
-    { href: '/academy', label: 'nav_academy', icon: BookOpen },
+    { href: '/academy', label: 'nav_academy', icon: GraduationCap },
     { href: '/explore', label: 'nav_explore', icon: Compass },
     { href: '/groups', label: 'nav_groups', icon: Users },
     { href: '/dashboard', label: 'nav_coach', icon: Sparkles },
