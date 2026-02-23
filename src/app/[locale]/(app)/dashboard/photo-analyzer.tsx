@@ -17,6 +17,7 @@ import { getLevelFromXp } from '@/lib/gamification';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnalysisResult } from './analysis-result';
 import { Skeleton } from '@/components/ui/skeleton';
+import AnalysisPreview from './AnalysisPreview';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -101,30 +102,30 @@ export default function PhotoAnalyzer() {
     e.preventDefault(); e.stopPropagation(); setIsDragging(false);
   };
   
-  const handleUploadOnly = () => {
+  const handleUploadOnly = async () => {
     if (!file || !userProfile || !userDocRef || !authUser) return;
     setIsUploading(true);
-    startTransition(async () => {
-      const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
-      const imageRef = ref(storage, filePath);
-      let downloadURL;
-      try {
-        await uploadBytes(imageRef, file);
-        downloadURL = await getDownloadURL(imageRef);
-      } catch (storageError) {
-          toast({ variant: 'destructive', title: t('toast_upload_fail_title'), description: t('toast_upload_fail_description') });
-          setIsUploading(false); return;
-      }
+    
+    const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
+    const imageRef = ref(storage, filePath);
+    let downloadURL;
+    try {
+      await uploadBytes(imageRef, file);
+      downloadURL = await getDownloadURL(imageRef);
+    } catch (storageError) {
+        toast({ variant: 'destructive', title: t('toast_upload_fail_title'), description: t('toast_upload_fail_description') });
+        setIsUploading(false); return;
+    }
 
-      const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
-      addDocumentNonBlocking(photosCollectionRef, {
-          userId: authUser.uid, imageUrl: downloadURL, filePath: filePath,
-          aiFeedback: null, adaptiveFeedback: null, createdAt: new Date().toISOString(), isSubmittedToPublic: false,
-      });
-      
-      toast({ title: t('toast_upload_only_title'), description: t('toast_upload_only_description') });
-      handleClear(); setIsUploading(false);
+    const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
+    addDocumentNonBlocking(photosCollectionRef, {
+        userId: authUser.uid, imageUrl: downloadURL, filePath: filePath,
+        aiFeedback: null, adaptiveFeedback: null, createdAt: new Date().toISOString(), isSubmittedToPublic: false,
     });
+    
+    toast({ title: t('toast_upload_only_title'), description: t('toast_upload_only_description') });
+    handleClear(); 
+    setIsUploading(false);
   }
 
   const handleAnalyze = () => {
@@ -136,83 +137,97 @@ export default function PhotoAnalyzer() {
     }
 
     startTransition(async () => {
-      const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
-      const imageRef = ref(storage, filePath);
-      let downloadURL;
-      try {
-        await uploadBytes(imageRef, file);
-        downloadURL = await getDownloadURL(imageRef);
-      } catch (e) { toast({ variant: 'destructive', title: t('toast_upload_fail_title') }); return; }
+      const performAnalysis = async () => {
+        const filePath = `users/${authUser.uid}/uploads/${Date.now()}-${file.name}`;
+        const imageRef = ref(storage, filePath);
+        let downloadURL;
+        try {
+          await uploadBytes(imageRef, file);
+          downloadURL = await getDownloadURL(imageRef);
+        } catch (e) { toast({ variant: 'destructive', title: t('toast_upload_fail_title') }); throw e; }
 
-      const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
-      const photoDocRef = await addDocumentNonBlocking(photosCollectionRef, {
-          userId: authUser.uid, imageUrl: downloadURL, filePath,
-          aiFeedback: null, adaptiveFeedback: null, createdAt: new Date().toISOString(), isSubmittedToPublic: false,
-      });
-      if (!photoDocRef) { toast({ variant: 'destructive', title: t('toast_db_fail_title') }); return; }
-
-      let analysisData;
-      try {
-        analysisData = await generatePhotoAnalysis({ photoUrl: downloadURL, language: locale });
-      } catch (e) { toast({ variant: 'destructive', title: t('toast_analysis_fail_title') }); return; }
-      
-      const scores = [
-        analysisData.light_score, analysisData.composition_score, analysisData.focus_score,
-        analysisData.color_control_score, analysisData.background_control_score, analysisData.creativity_risk_score,
-      ].map(normalizeScore);
-      const overallScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-      
-      const scoreHistory = userProfile.score_history || [];
-      const recentScores = scoreHistory.slice(-5).map(h => h.score);
-      const averageScore = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
-      let scoreTrend: 'improving' | 'stagnant' | 'declining' = 'stagnant';
-      if (recentScores.length > 1) {
-          if (overallScore > averageScore + 0.5) {
-              scoreTrend = 'improving';
-          } else if (overallScore < averageScore - 0.5) {
-              scoreTrend = 'declining';
-          }
-      }
-
-      let feedbackData;
-      try {
-        feedbackData = await generateAdaptiveFeedback({
-          userGamificationLevel: userProfile.level_name || 'Neuner',
-          language: locale,
-          technicalAnalysis: analysisData,
-          communicationStyle: userProfile.communication_style,
-          scoreTrend: scoreTrend,
-          averageScore: averageScore,
-          overallScore: overallScore,
+        const photosCollectionRef = collection(firestore, 'users', authUser.uid, 'photos');
+        const photoDocRef = await addDocumentNonBlocking(photosCollectionRef, {
+            userId: authUser.uid, imageUrl: downloadURL, filePath,
+            aiFeedback: null, adaptiveFeedback: null, createdAt: new Date().toISOString(), isSubmittedToPublic: false,
         });
-      } catch (e) { toast({ variant: 'destructive', title: 'Geri bildirim üretilemedi.' }); return; }
+        if (!photoDocRef) { toast({ variant: 'destructive', title: t('toast_db_fail_title') }); throw new Error("DB fail"); }
 
-      setAnalysisResult(analysisData);
-      setFeedbackResult(feedbackData.feedback);
+        let analysisData;
+        try {
+          analysisData = await generatePhotoAnalysis({ photoUrl: downloadURL, language: locale });
+        } catch (e) { toast({ variant: 'destructive', title: t('toast_analysis_fail_title') }); throw e; }
+        
+        const scores = [
+          analysisData.light_score, analysisData.composition_score, analysisData.focus_score,
+          analysisData.color_control_score, analysisData.background_control_score, analysisData.creativity_risk_score,
+        ].map(normalizeScore);
+        const overallScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+        
+        const scoreHistory = userProfile.score_history || [];
+        const recentScores = scoreHistory.slice(-5).map(h => h.score);
+        const averageScore = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
+        let scoreTrend: 'improving' | 'stagnant' | 'declining' = 'stagnant';
+        if (recentScores.length > 1) {
+            if (overallScore > averageScore + 0.5) {
+                scoreTrend = 'improving';
+            } else if (overallScore < averageScore - 0.5) {
+                scoreTrend = 'declining';
+            }
+        }
 
-      const xpFromAnalysis = 15;
-      const currentXp = userProfile.current_xp || 0;
-      const newXp = currentXp + xpFromAnalysis;
-      const currentLevel = getLevelFromXp(currentXp);
-      const newLevel = getLevelFromXp(newXp);
-      
-      const userUpdatePayload: Partial<UserProfile> = {
-        auro_balance: (userProfile.auro_balance || 0) - analysisCost,
-        current_xp: newXp,
-        score_history: [...scoreHistory, { score: overallScore, date: new Date().toISOString() }].slice(-10),
+        let feedbackData;
+        try {
+          feedbackData = await generateAdaptiveFeedback({
+            userGamificationLevel: userProfile.level_name || 'Neuner',
+            language: locale,
+            technicalAnalysis: analysisData,
+            communicationStyle: userProfile.communication_style,
+            scoreTrend: scoreTrend,
+            averageScore: averageScore,
+            overallScore: overallScore,
+          });
+        } catch (e) { toast({ variant: 'destructive', title: 'Geri bildirim üretilemedi.' }); throw e; }
+
+        const xpFromAnalysis = 15;
+        const currentXp = userProfile.current_xp || 0;
+        const newXp = currentXp + xpFromAnalysis;
+        const currentLevel = getLevelFromXp(currentXp);
+        const newLevel = getLevelFromXp(newXp);
+        
+        const userUpdatePayload: Partial<UserProfile> = {
+          auro_balance: (userProfile.auro_balance || 0) - analysisCost,
+          current_xp: newXp,
+          score_history: [...scoreHistory, { score: overallScore, date: new Date().toISOString() }].slice(-10),
+        };
+        if (newLevel.name !== currentLevel.name) {
+          userUpdatePayload.level_name = newLevel.name;
+          if (newLevel.isMentor) userUpdatePayload.is_mentor = true;
+        }
+
+        updateDocumentNonBlocking(userDocRef, userUpdatePayload);
+        updateDocumentNonBlocking(photoDocRef, { aiFeedback: analysisData, adaptiveFeedback: feedbackData.feedback, tags: [analysisData.genre] });
+        
+        toast({ title: t('toast_xp_gain_title'), description: t('toast_xp_gain_description', { xp: xpFromAnalysis }) });
+        if (userUpdatePayload.level_name) {
+            setTimeout(() => toast({ title: t('toast_level_up_title'), description: t('toast_level_up_description', { level: userUpdatePayload.level_name }) }), 100);
+            if (userUpdatePayload.is_mentor) setTimeout(() => toast({ title: t('toast_mentor_title'), description: t('toast_mentor_description') }), 200);
+        }
+
+        return { analysisData, feedbackData };
       };
-      if (newLevel.name !== currentLevel.name) {
-        userUpdatePayload.level_name = newLevel.name;
-        if (newLevel.isMentor) userUpdatePayload.is_mentor = true;
-      }
 
-      updateDocumentNonBlocking(userDocRef, userUpdatePayload);
-      updateDocumentNonBlocking(photoDocRef, { aiFeedback: analysisData, adaptiveFeedback: feedbackData.feedback, tags: [analysisData.genre] });
-      
-      toast({ title: t('toast_xp_gain_title'), description: t('toast_xp_gain_description', { xp: xpFromAnalysis }) });
-      if (userUpdatePayload.level_name) {
-          setTimeout(() => toast({ title: t('toast_level_up_title'), description: t('toast_level_up_description', { level: userUpdatePayload.level_name }) }), 100);
-          if (userUpdatePayload.is_mentor) setTimeout(() => toast({ title: t('toast_mentor_title'), description: t('toast_mentor_description') }), 200);
+      try {
+        const [results] = await Promise.all([
+          performAnalysis(),
+          new Promise(resolve => setTimeout(resolve, 3000))
+        ]);
+        
+        setAnalysisResult(results.analysisData);
+        setFeedbackResult(results.feedbackData.feedback);
+      } catch(e) {
+        // Errors are already handled inside performAnalysis
+        console.error("Analysis process failed:", e);
       }
     });
   };
@@ -229,16 +244,17 @@ export default function PhotoAnalyzer() {
           photoPreviewUrl={preview}
           onNewAnalysis={handleClear}
         />
+      ) : isPending && preview ? (
+        <AnalysisPreview imageUrl={preview} />
       ) : preview ? (
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="relative aspect-video bg-muted/20">
               <Image src={preview} alt="Preview" fill sizes="(max-width: 768px) 100vw, 50vw" className={cn("object-contain transition-all", (isPending || isUploading) && "opacity-50")} />
-              {(isPending || isUploading) && (
+              {(isUploading) && (
                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4 text-center backdrop-blur-sm">
                     <Loader2 className="h-8 w-8 animate-spin" />
-                    <p className="mt-3 font-semibold text-lg">{isPending ? t('state_analyzing') : t('state_uploading')}</p>
-                    {isPending && <p className="text-sm mt-1">{t('state_wait')}</p>}
+                    <p className="mt-3 font-semibold text-lg">{t('state_uploading')}</p>
                 </div>
               )}
               <Button variant="destructive" size="icon" className="absolute top-4 right-4 h-8 w-8 rounded-full" onClick={handleClear} disabled={isPending || isUploading}><X className="h-4 w-4" /></Button>

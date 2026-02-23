@@ -53,4 +53,50 @@ body {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+
+  /* Analysis Animation Styles */
+  .scan-line {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      #3B82F6,
+      transparent
+    );
+    filter: drop-shadow(0 0 8px #3B82F6);
+    animation: scan 2.5s ease-in-out infinite;
+  }
+  
+  @keyframes scan {
+    from {
+      transform: translateY(-10%);
+    }
+    to {
+      transform: translateY(calc(100% + 10px));
+    }
+  }
+
+  .analysis-text {
+    animation: text-fade 2s ease-in-out;
+    animation-iteration-count: infinite;
+  }
+
+  @keyframes text-fade {
+    0% {
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
 }
