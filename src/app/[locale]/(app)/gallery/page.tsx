@@ -259,7 +259,7 @@ function PhotoDetailDialog({
       ...photoData,
       id: newPublicPhotoDoc.id, // Assign the new ID
       userName: userProfile.name,
-      userPhotoURL: userProfile.photoURL,
+      userPhotoURL: userProfile.photoURL || null,
       userLevelName: userProfile.level_name,
       isSubmittedToExhibition: true, // Mark as submitted
     };
@@ -688,4 +688,5 @@ export default function GalleryPage() {
     </div>
   );
 }
+
 

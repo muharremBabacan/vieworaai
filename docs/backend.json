@@ -572,265 +572,113 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores individual user profiles including authentication details, token balance, and gamification level. This collection is private, with documents owned by the user matching the '{userId}' wildcard.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, matching 'request.auth.uid'."
-            }
-          ]
-        }
+    "users/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/User"
       },
-      {
-        "path": "public_profiles/{userId}",
-        "definition": {
-          "entityName": "PublicUserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/PublicUserProfile"
-          },
-          "description": "Stores public-facing, non-sensitive user profile data. Readable by all authenticated users, writable only by the owner.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
+      "description": "Stores individual user profiles including authentication details, token balance, and gamification level. This collection is private, with documents owned by the user matching the '{userId}' wildcard."
+    },
+    "public_profiles/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/PublicUserProfile"
       },
-      {
-        "path": "users/{userId}/photos/{photoId}",
-        "definition": {
-          "entityName": "Photo",
-          "schema": {
-            "$ref": "#/backend/entities/Photo"
-          },
-          "description": "A subcollection storing photos submitted by a specific user for AI analysis. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' for authorization independence and easier querying.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns these photos."
-            },
-            {
-              "name": "photoId",
-              "description": "The unique identifier for a specific photo."
-            }
-          ]
-        }
+      "description": "Stores public-facing, non-sensitive user profile data. Readable by all authenticated users, writable only by the owner."
+    },
+    "users/{userId}/photos/{photoId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Photo"
       },
-      {
-        "path": "users/{userId}/lessonProgress/{progressId}",
-        "definition": {
-          "entityName": "UserLessonProgress",
-          "schema": {
-            "$ref": "#/backend/entities/UserLessonProgress"
-          },
-          "description": "A subcollection tracking a specific user's progress through the academy lessons. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' and 'lessonId' for authorization independence and easier querying.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user whose lesson progress is being tracked."
-            },
-            {
-              "name": "progressId",
-              "description": "The unique identifier for a specific user's lesson progress entry."
-            }
-          ]
-        }
+      "description": "A subcollection storing photos submitted by a specific user for AI analysis. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' for authorization independence and easier querying."
+    },
+    "users/{userId}/lessonProgress/{progressId}": {
+      "schema": {
+        "$ref": "#/backend/entities/UserLessonProgress"
       },
-      {
-        "path": "users/{userId}/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "A subcollection recording all financial and token-related transactions for a specific user. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' for authorization independence and easier querying.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user involved in the transaction."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier for a specific transaction."
-            }
-          ]
-        }
+      "description": "A subcollection tracking a specific user's progress through the academy lessons. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' and 'lessonId' for authorization independence and easier querying."
+    },
+    "users/{userId}/transactions/{transactionId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Transaction"
       },
-      {
-        "path": "groups/{groupId}",
-        "definition": {
-          "entityName": "Group",
-          "schema": {
-            "$ref": "#/backend/entities/Group"
-          },
-          "description": "Stores group information, including owner and member lists. Access is restricted to members.",
-          "params": [
-            {
-              "name": "groupId",
-              "description": "The unique identifier for the group."
-            }
-          ]
-        }
+      "description": "A subcollection recording all financial and token-related transactions for a specific user. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' for authorization independence and easier querying."
+    },
+    "groups/{groupId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Group"
       },
-      {
-        "path": "groups/{groupId}/photos/{photoId}",
-        "definition": {
-          "entityName": "Photo",
-          "schema": {
-            "$ref": "#/backend/entities/Photo"
-          },
-          "description": "A subcollection for photos shared within a specific group. Access is limited to group members.",
-          "params": [
-            {
-              "name": "groupId",
-              "description": "The unique identifier of the group that owns these photos."
-            },
-            {
-              "name": "photoId",
-              "description": "The unique identifier for a specific photo within the group."
-            }
-          ]
-        }
+      "description": "Stores group information, including owner and member lists. Access is restricted to members."
+    },
+    "groups/{groupId}/photos/{photoId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Photo"
       },
-       {
-        "path": "group_invites/{inviteId}",
-        "definition": {
-          "entityName": "GroupInvite",
-          "schema": { "$ref": "#/backend/entities/GroupInvite" },
-          "description": "A global collection of all pending and processed group invitations.",
-          "params": [
-            { "name": "inviteId", "description": "The unique ID for the group invitation." }
-          ]
-        }
+      "description": "A subcollection for photos shared within a specific group. Access is limited to group members."
+    },
+    "group_invites/{inviteId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupInvite"
       },
-      {
-        "path": "academyLessons/{lessonId}",
-        "definition": {
-          "entityName": "AcademyLesson",
-          "schema": {
-            "$ref": "#/backend/entities/AcademyLesson"
-          },
-          "description": "A top-level collection containing all micro-learning lessons for the Viewora Academy. These documents are public and read-only for all authenticated users.",
-          "params": [
-            {
-              "name": "lessonId",
-              "description": "The unique identifier for an academy lesson."
-            }
-          ]
-        }
+      "description": "A global collection of all pending and processed group invitations."
+    },
+    "academyLessons/{lessonId}": {
+      "schema": {
+        "$ref": "#/backend/entities/AcademyLesson"
       },
-      {
-        "path": "groups/{groupId}/assignments/{assignmentId}",
-        "definition": {
-          "entityName": "GroupAssignment",
-          "schema": { "$ref": "#/backend/entities/GroupAssignment" },
-          "description": "Stores assignments for a specific group. Writable only by group owner."
-        }
+      "description": "A top-level collection containing all micro-learning lessons for the Viewora Academy. These documents are public and read-only for all authenticated users."
+    },
+    "groups/{groupId}/assignments/{assignmentId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupAssignment"
       },
-      {
-        "path": "groups/{groupId}/assignments/{assignmentId}/submissions/{submissionId}",
-        "definition": {
-          "entityName": "AssignmentSubmission",
-          "schema": { "$ref": "#/backend/entities/AssignmentSubmission" },
-          "description": "Stores member submissions for a specific assignment. Writable only by the submitting member."
-        }
+      "description": "Stores assignments for a specific group. Writable only by group owner."
+    },
+    "groups/{groupId}/assignments/{assignmentId}/submissions/{submissionId}": {
+      "schema": {
+        "$ref": "#/backend/entities/AssignmentSubmission"
       },
-      {
-        "path": "groups/{groupId}/events/{eventId}",
-        "definition": {
-          "entityName": "GroupEvent",
-          "schema": { "$ref": "#/backend/entities/GroupEvent" },
-          "description": "Stores events (trips, meetings) for a specific group. Writable by owner, but members can update their own RSVP status."
-        }
+      "description": "Stores member submissions for a specific assignment. Writable only by the submitting member."
+    },
+    "groups/{groupId}/events/{eventId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupEvent"
       },
-      {
-        "path": "competitions/{competitionId}",
-        "definition": {
-          "entityName": "Competition",
-          "schema": {
-            "$ref": "#/backend/entities/Competition"
-          },
-          "description": "Stores global competitions created by admins. Readable by all authenticated users, writable only by admins.",
-          "params": [
-            {
-              "name": "competitionId",
-              "description": "The unique identifier for a global competition."
-            }
-          ]
-        }
+      "description": "Stores events (trips, meetings) for a specific group. Writable by owner, but members can update their own RSVP status."
+    },
+    "competitions/{competitionId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Competition"
       },
-      {
-        "path": "competitions/{competitionId}/entries/{entryId}",
-        "definition": {
-          "entityName": "CompetitionEntry",
-          "schema": {
-            "$ref": "#/backend/entities/CompetitionEntry"
-          },
-          "description": "Stores user submissions for a specific global competition.",
-          "params": [
-            {
-              "name": "competitionId",
-              "description": "The unique identifier of the global competition."
-            },
-            {
-              "name": "entryId",
-              "description": "The unique identifier for a specific entry."
-            }
-          ]
-        }
+      "description": "Stores global competitions created by admins. Readable by all authenticated users, writable only by admins."
+    },
+    "competitions/{competitionId}/entries/{entryId}": {
+      "schema": {
+        "$ref": "#/backend/entities/CompetitionEntry"
       },
-      {
-        "path": "groups/{groupId}/competitions/{competitionId}",
-        "definition": {
-          "entityName": "GroupCompetition",
-          "schema": { "$ref": "#/backend/entities/GroupCompetition" },
-          "description": "Stores competitions for a specific group. Writable only by group owner."
-        }
+      "description": "Stores user submissions for a specific global competition."
+    },
+    "groups/{groupId}/competitions/{competitionId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupCompetition"
       },
-      {
-        "path": "groups/{groupId}/competitions/{competitionId}/entries/{entryId}",
-        "definition": {
-          "entityName": "CompetitionEntry",
-          "schema": { "$ref": "#/backend/entities/CompetitionEntry" },
-          "description": "Stores member entries for a specific competition. Writable only by the submitting member, members can vote."
-        }
+      "description": "Stores competitions for a specific group. Writable only by group owner."
+    },
+    "groups/{groupId}/competitions/{competitionId}/entries/{entryId}": {
+      "schema": {
+        "$ref": "#/backend/entities/CompetitionEntry"
       },
-      {
-        "path": "groups/{groupId}/trainings/{trainingId}",
-        "definition": {
-          "entityName": "GroupTraining",
-          "schema": { "$ref": "#/backend/entities/GroupTraining" },
-          "description": "Stores trainings for a specific group. Writable only by group owner."
-        }
+      "description": "Stores member entries for a specific competition. Writable only by the submitting member, members can vote."
+    },
+    "groups/{groupId}/trainings/{trainingId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupTraining"
       },
-      {
-        "path": "user_profile_index/{userId}",
-        "definition": {
-          "entityName": "UserProfileIndex",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfileIndex"
-          },
-          "description": "Stores the AI-generated photographic profile index for each user. Documents are private and owned by the user matching the '{userId}'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore data structure for Viewora AI Coach is designed with a strong emphasis on Authorization Independence, Structural Segregation, and predictable access patterns to ensure security, scalability, and debuggability. The core strategy revolves around path-based authorization and denormalization.\\n\\n**Authorization Independence:** This is achieved primarily by structuring all user-specific data as subcollections under a top-level `/users/{userId}` collection. For instance, user photos are stored at `/users/{userId}/photos/{photoId}`, user lesson progress at `/users/{userId}/lessonProgress/{progressId}`, and transactions at `/users/{userId}/transactions/{transactionId}`. This design ensures that security rules can directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and potentially insecure `get()` calls to determine ownership.\\n\\n**Group Structure:** The new `/groups/{groupId}` collection introduces a community dimension. Access to a group's data is primarily controlled by a `memberIds` array within each group document. This avoids complex joins and allows security rules to efficiently check for membership (`request.auth.uid in resource.data.memberIds`). Group-specific content, like the shared photo gallery at `/groups/{groupId}/photos/{photoId}`, inherits its permissions from the parent group, ensuring only members can view or contribute. New subcollections for assignments, competitions, events, and trainings under each group follow this pattern, with write access restricted to group owners and read access granted to members, ensuring a secure and organized environment for group activities.\\n\\n**QAPs (Queries as Authorization Primitives):** The structural segregation directly supports secure `list` operations. Because all documents in a path like `/users/{userId}/photos` inherently belong to the `userId` specified in the path, any `list` query on this path will only return documents that the authenticated user is authorized to access. This same principle applies to groups, where queries on a group's subcollections are protected by membership checks. Similarly, the `academyLessons` collection's top-level, public read-only nature simplifies security for `list` operations, making them accessible to all authenticated users. A new top-level `user_profile_index` collection is added to store AI-generated summaries of user performance, with access restricted to the document owner."
+      "description": "Stores trainings for a specific group. Writable only by group owner."
+    },
+    "user_profile_index/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/UserProfileIndex"
+      },
+      "description": "Stores the AI-generated photographic profile index for each user. Documents are private and owned by the user matching the '{userId}'."
+    }
   }
 }
-
-    
