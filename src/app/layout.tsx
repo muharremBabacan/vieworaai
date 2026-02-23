@@ -1,5 +1,5 @@
 import type {Metadata} from 'next';
-import '../globals.css';
+import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 import {NextIntlClientProvider} from 'next-intl';
@@ -21,10 +21,10 @@ export const metadata: Metadata = {
 
 export default async function LocaleLayout(props: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
+  params: { locale: string };
 }) {
-  const { children } = props;
-  const { locale } = await props.params;
+  const { children, params } = props;
+  const { locale } = params;
 
   const messages = await getMessages();
 
