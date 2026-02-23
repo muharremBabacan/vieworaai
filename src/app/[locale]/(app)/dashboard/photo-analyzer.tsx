@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { UploadCloud, X, Loader2, Zap, Upload, Bot } from 'lucide-react';
+import { UploadCloud, X, Loader2, Zap, Upload, Sparkles } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useStorage } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
@@ -271,7 +271,7 @@ export default function PhotoAnalyzer() {
       ) : (
         <div className="text-center">
             <h1 className="text-4xl font-semibold text-white flex items-center justify-center gap-3">
-              <Bot className="h-8 w-8 text-primary"/>
+              <Sparkles className="h-6 w-6 text-primary"/>
               <span>Luma</span>
             </h1>
             <p className="text-lg font-normal text-white/75 mt-3">{t('main_title')}</p>

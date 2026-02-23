@@ -4,7 +4,7 @@ import Image from 'next/image';
 import type { PhotoAnalysis } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
-import { Bot } from 'lucide-react';
+import { Sparkles, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -123,7 +123,7 @@ export function AnalysisResult({
         <div className="p-6 border-t border-white/5">
 
           <h3 className="font-sans text-lg font-semibold flex items-center gap-2 mb-4">
-            <Bot className="h-5 w-5 text-primary" />
+            <Sparkles className="h-5 w-5 text-primary" />
             {t('ai_analysis_title')}
           </h3>
 
