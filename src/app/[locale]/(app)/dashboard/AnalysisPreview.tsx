@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 type Props = {
   imageUrl: string;
@@ -30,17 +31,19 @@ export default function AnalysisPreview({ imageUrl }: Props) {
   return (
     <div className="flex flex-col items-center gap-6">
       {/* Image container as per design - size updated to be more minimal */}
-      <div className="relative w-full max-w-lg rounded-2xl overflow-hidden bg-black">
+      <div className="image-wrapper relative w-full max-w-xs rounded-2xl overflow-hidden bg-black">
         <Image 
           src={imageUrl} 
           alt="Analiz ediliyor" 
           width={720} 
           height={480} 
-          className="w-full h-auto block" 
+          className={cn("w-full h-auto block")}
           priority
         />
-        {/* The scanning line animated via CSS */}
+        {/* The scanning lines animated via CSS */}
         <div className="scan-line" />
+        <div className="scan-line-2" />
+        <div className="scan-line-3" />
       </div>
 
       {/* Dynamic text area */}
