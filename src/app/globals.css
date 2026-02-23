@@ -73,10 +73,10 @@ body {
   
   @keyframes scan {
     from {
-      transform: translateY(-10%);
+      top: -5%;
     }
     to {
-      transform: translateY(calc(100% + 10px));
+      top: 100%;
     }
   }
 

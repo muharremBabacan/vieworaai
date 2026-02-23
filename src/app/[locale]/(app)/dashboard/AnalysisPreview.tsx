@@ -29,8 +29,8 @@ export default function AnalysisPreview({ imageUrl }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* Image container as per design */}
-      <div className="relative w-full max-w-[720px] rounded-2xl overflow-hidden bg-black">
+      {/* Image container as per design - size updated to be more minimal */}
+      <div className="relative w-full max-w-lg rounded-2xl overflow-hidden bg-black">
         <Image 
           src={imageUrl} 
           alt="Analiz ediliyor" 
