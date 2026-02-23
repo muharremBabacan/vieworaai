@@ -31,7 +31,7 @@ export default async function LocaleLayout(props: {
   return (
     <html lang={locale} className="dark">
       <body>
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <FirebaseClientProvider>
             {children}
             <Toaster />
