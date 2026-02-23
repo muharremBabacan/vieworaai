@@ -74,7 +74,7 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Progress value={score * 10} className="h-2 [&>div]:bg-primary" />
+            <Progress value={score * 10} className="h-2 [&>div]:bg-primary transition-all duration-1000 ease-out" />
           </TooltipTrigger>
           <TooltipContent>
             <p>{score.toFixed(2)}</p>
@@ -87,16 +87,16 @@ function RatingDisplay({ analysis }: { analysis: PhotoAnalysis }) {
   return (
       <div>
         <h4 className="font-semibold text-lg mb-4">{t('rating_card_title')}</h4>
-        <div className="space-y-6">
-            <div className="flex items-center justify-between mb-6">
-                <span className="text-lg font-semibold">{t('overall_score')}</span>
-                <span className="text-3xl font-bold text-primary">{overallScore.toFixed(1)}</span>
-            </div>
-            <div className="space-y-4 flex-grow">
-                <ScoreBar label={tRatings('lighting')} score={lightScore} />
-                <ScoreBar label={tRatings('composition')} score={compositionScore} />
-                <ScoreBar label={tRatings('technical')} score={technicalScore} />
-            </div>
+        <div className="flex items-center justify-between mb-6">
+            <span className="text-lg font-semibold">{t('overall_score')}</span>
+            <span className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
+              {overallScore.toFixed(1)}
+            </span>
+        </div>
+        <div className="space-y-5 flex-grow">
+            <ScoreBar label={tRatings('lighting')} score={lightScore} />
+            <ScoreBar label={tRatings('composition')} score={compositionScore} />
+            <ScoreBar label={tRatings('technical')} score={technicalScore} />
         </div>
       </div>
   )
@@ -688,5 +688,6 @@ export default function GalleryPage() {
     </div>
   );
 }
+
 
 
