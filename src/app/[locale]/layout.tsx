@@ -1,43 +1,27 @@
-import type {Metadata} from 'next';
-import '../globals.css';
 import { Toaster } from "@/shared/ui/toaster";
 import { FirebaseClientProvider } from '@/lib/firebase';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages} from 'next-intl/server';
 
-export const metadata: Metadata = {
-  title: 'Viewora YZ Koçu',
-  description: 'Fotoğrafçılık becerilerinizi geliştirmek için yapay zeka destekli koçluk.',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'Viewora',
-  },
-  icons: {
-    apple: 'https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc',
-  },
-};
+// This layout is dynamic and wraps the pages within a specific locale.
+// It handles fetching localization messages and setting up client-side providers.
+// It does NOT contain <html> or <body> tags, as those are in the static root layout.
 
-export default async function LocaleLayout(props: {
+export default async function LocaleLayout({
+  children,
+  params: { locale }
+}: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  const { children, params } = props;
-  const { locale } = params;
-
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="dark">
-      <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <FirebaseClientProvider>
-            {children}
-            <Toaster />
-          </FirebaseClientProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <FirebaseClientProvider>
+        {children}
+        <Toaster />
+      </FirebaseClientProvider>
+    </NextIntlClientProvider>
   );
 }
