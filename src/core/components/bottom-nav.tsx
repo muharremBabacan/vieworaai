@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background/95 backdrop-blur-sm">
-      <nav className="mx-auto grid h-full max-w-lg grid-cols-6 items-center">
+      <nav className="mx-auto flex h-full max-w-lg items-center justify-around">
         {orderedNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
