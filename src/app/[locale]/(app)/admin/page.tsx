@@ -1,6 +1,5 @@
-
 'use client';
-import AdminPanel from './admin-panel';
+import AdminPanel from '@/modules/admin/components/admin-panel';
 import { useTranslations } from 'next-intl';
 
 

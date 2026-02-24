@@ -1,6 +1,6 @@
 'use client';
 
-import { UserNav } from '@/components/user-nav';
+import { UserNav } from '@/core/components/user-nav';
 import { Link } from '@/navigation';
 import Image from 'next/image';
 

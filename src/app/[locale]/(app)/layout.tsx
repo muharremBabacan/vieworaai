@@ -1,5 +1,5 @@
-import { AppHeader } from '@/components/app-header';
-import { BottomNav } from '@/components/bottom-nav';
+import { AppHeader } from '@/core/components/app-header';
+import { BottomNav } from '@/core/components/bottom-nav';
 
 export default function AppLayout({
   children,

@@ -1,7 +1,7 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,17 +10,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from './ui/badge';
+} from '@/shared/ui/dropdown-menu';
+import { Badge } from '@/shared/ui/badge';
 import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield } from 'lucide-react';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
-import { Skeleton } from './ui/skeleton';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/navigation';
-import { GroupInvitesPopover } from './group-invites-popover';
+import { GroupInvitesPopover } from '@/core/components/group-invites-popover';
 
 export function UserNav() {
   const t = useTranslations('UserNav');

@@ -6,7 +6,7 @@ import {
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
-import Logo from '@/components/logo';
+import Logo from '@/core/components/logo';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { useRouter, Link } from '@/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore } from '@/lib/firebase';
 import type { User as UserProfile, PublicUserProfile } from '@/types';
 
 const GoogleIcon = () => (
