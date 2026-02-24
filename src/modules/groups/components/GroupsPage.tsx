@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, addDoc, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs } from 'firebase/firestore';
 import type { Group, User } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -91,7 +91,7 @@ export default function GroupsPage() {
   const onJoinGroup = async (values: z.infer<typeof joinFormSchema>>) => {
       if (!user) return;
       const q = query(collection(firestore, "groups"), where("joinCode", "==", values.code));
-      const querySnapshot = await getDoc(doc(q.firestore, q.path));
+      const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
           toast({ variant: "destructive", title: t('toast_join_not_found_title'), description: t('toast_join_not_found_description') });
@@ -243,3 +243,5 @@ export default function GroupsPage() {
     </div>
   );
 }
+
+    

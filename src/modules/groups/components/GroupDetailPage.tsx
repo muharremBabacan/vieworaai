@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, deleteDoc, collection, query, where, addDoc, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, deleteDoc, collection, query, where, addDoc, writeBatch, getDocs } from 'firebase/firestore';
 import type { Group, PublicUserProfile, GroupInvite } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -78,7 +78,7 @@ export default function GroupDetailPage() {
   };
 
   const handleInviteMember = async (values: { email: string }) => {
-    if (!group || !isOwner) {
+    if (!group || !isOwner || !user) {
         toast({ variant: 'destructive', title: t('toast_add_member_error_title'), description: t('toast_add_member_no_permission') });
         return;
     }
@@ -89,7 +89,7 @@ export default function GroupDetailPage() {
 
     try {
         const userQuery = query(collection(firestore, 'users'), where('email', '==', values.email));
-        const userSnapshot = await getDoc(userQuery.firestore, userQuery.path);
+        const userSnapshot = await getDocs(userQuery);
         if (userSnapshot.empty) {
             toast({ variant: 'destructive', title: t('toast_user_not_found_title'), description: t('toast_user_not_found_description') });
             return;
