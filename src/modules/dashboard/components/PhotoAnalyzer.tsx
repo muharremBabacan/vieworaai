@@ -7,7 +7,7 @@ import { doc, setDoc, updateDoc, increment, collection, serverTimestamp, writeBa
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { useLocale, useTranslations } from 'next-intl';
 
 import type { User, Photo, PhotoAnalysis } from '@/types';

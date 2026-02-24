@@ -24,7 +24,6 @@
       "@/lib/*": ["./src/lib/*"],
       "@/types/*": ["./src/types/*"],
       "@/ai/*": ["./src/ai/*"],
-      "@/hooks/*": ["./src/hooks/*"],
       "@/core/*": ["./src/core/*"],
       "@/modules/*": ["./src/modules/*"],
       "@/shared/*": ["./src/shared/*"]

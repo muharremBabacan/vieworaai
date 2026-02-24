@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/core/components/logo';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { useState } from 'react';
 import { useRouter, Link } from '@/navigation';
 import { Loader2 } from 'lucide-react';

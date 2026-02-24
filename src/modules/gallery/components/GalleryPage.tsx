@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, doc, updateDoc, writeBatch, increment, deleteDoc, arrayUnion, arrayRemove, setDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { useLocale, useTranslations } from 'next-intl';
 
 import type { Photo, PhotoAnalysis, User } from '@/types';

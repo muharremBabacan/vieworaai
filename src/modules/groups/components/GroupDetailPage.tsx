@@ -7,7 +7,7 @@ import type { Group, PublicUserProfile, GroupInvite } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 import QRCode from 'qrcode';
 
@@ -31,6 +31,17 @@ export default function GroupDetailPage() {
   const { toast } = useToast();
   
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+
+  const groupRef = useMemoFirebase(() => doc(firestore, 'groups', groupId as string), [firestore, groupId]);
+  const { data: group, isLoading: isGroupLoading, error } = useDoc<Group>(groupRef);
+
+  const isOwner = group?.ownerId === user?.uid;
+  
+  const membersQuery = useMemoFirebase(() => group ? query(collection(firestore, 'public_profiles'), where('id', 'in', group.memberIds)) : null, [group, firestore]);
+  const { data: members, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
+  
+  const inviteFormSchema = z.object({ email: z.string().email(t('form_error_email')) });
+  const inviteForm = useForm({ resolver: zodResolver(inviteFormSchema) });
 
   const MemberItem = ({ member, isOwner, onRemove }: { member: PublicUserProfile, isOwner: boolean, onRemove: (memberId: string, memberName: string) => void }) => {
     const { user } = useUser();
@@ -65,17 +76,6 @@ export default function GroupDetailPage() {
         </div>
     );
   };
-
-  const groupRef = useMemoFirebase(() => doc(firestore, 'groups', groupId as string), [firestore, groupId]);
-  const { data: group, isLoading: isGroupLoading, error } = useDoc<Group>(groupRef);
-
-  const isOwner = group?.ownerId === user?.uid;
-  
-  const membersQuery = useMemoFirebase(() => group ? query(collection(firestore, 'public_profiles'), where('id', 'in', group.memberIds)) : null, [group, firestore]);
-  const { data: members, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
-  
-  const inviteFormSchema = z.object({ email: z.string().email(t('form_error_email')) });
-  const inviteForm = useForm({ resolver: zodResolver(inviteFormSchema) });
 
   const handleInviteMember = async (values: { email: string }) => {
     if (!group || !isOwner) {
@@ -271,3 +271,5 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+
+    

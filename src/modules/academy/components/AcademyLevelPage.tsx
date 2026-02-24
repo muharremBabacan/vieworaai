@@ -11,7 +11,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getLevelFromXp, levels } from '@/lib/gamification';
 
 import { useDropzone } from 'react-dropzone';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';

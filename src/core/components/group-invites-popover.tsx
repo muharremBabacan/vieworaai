@@ -7,12 +7,12 @@ import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Button } from '@/shared/ui/button';
 import { Bell, Users, Check, X } from 'lucide-react';
-import { ScrollArea } from '@/shared/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from '@/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 
 const localeMap: Record<string, Locale> = { tr, en: enUS };
 

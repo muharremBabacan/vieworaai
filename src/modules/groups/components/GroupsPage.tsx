@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
 import { useRouter, Link } from '@/navigation';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,7 +66,7 @@ export default function GroupsPage() {
   const groupLimits = getGroupLimits(userProfile?.[0]?.level_name);
   const canCreateGroup = (ownedGroups?.length || 0) < groupLimits.maxGroups;
 
-  const onCreateGroup = async (values: z.infer<typeof createFormSchema>) => {
+  const onCreateGroup = async (values: z.infer<typeof createFormSchema>>) => {
     if (!user || !firestore) return;
     try {
       const newGroup: Omit<Group, 'id'> = {
@@ -88,7 +88,7 @@ export default function GroupsPage() {
     }
   };
 
-  const onJoinGroup = async (values: z.infer<typeof joinFormSchema>) => {
+  const onJoinGroup = async (values: z.infer<typeof joinFormSchema>>) => {
       if (!user) return;
       const q = query(collection(firestore, "groups"), where("joinCode", "==", values.code));
       const querySnapshot = await getDoc(doc(q.firestore, q.path));
