@@ -57,7 +57,7 @@ export default function GroupsPage() {
     defaultValues: { name: '', description: '' },
   });
 
-  const joinForm = useForm<z.infer<typeof joinFormSchema>>({
+  const joinForm = useForm<z.infer<typeof joinFormSchema>({
     resolver: zodResolver(joinFormSchema),
     defaultValues: { code: '' },
   });
@@ -66,7 +66,7 @@ export default function GroupsPage() {
   const groupLimits = getGroupLimits(userProfile?.[0]?.level_name);
   const canCreateGroup = (ownedGroups?.length || 0) < groupLimits.maxGroups;
 
-  const onCreateGroup = async (values: z.infer<typeof createFormSchema>>) => {
+  const onCreateGroup = async (values: z.infer<typeof createFormSchema>) => {
     if (!user || !firestore) return;
     try {
       const newGroup: Omit<Group, 'id'> = {
@@ -88,7 +88,7 @@ export default function GroupsPage() {
     }
   };
 
-  const onJoinGroup = async (values: z.infer<typeof joinFormSchema>>) => {
+  const onJoinGroup = async (values: z.infer<typeof joinFormSchema>) => {
       if (!user) return;
       const q = query(collection(firestore, "groups"), where("joinCode", "==", values.code));
       const querySnapshot = await getDocs(q);
