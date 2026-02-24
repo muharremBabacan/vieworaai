@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -93,16 +93,22 @@ export default function AdminPanel() {
         }
     };
 
-    const fetchTotalUsers = async () => {
-        if (!firestore) return;
-        const coll = collection(firestore, "users");
-        const snapshot = await getCountFromServer(coll);
-        setTotalUsers(snapshot.data().count);
-    };
+    useEffect(() => {
+        const fetchTotalUsers = async () => {
+            if (!firestore) return;
+            try {
+                const coll = collection(firestore, "users");
+                const snapshot = await getCountFromServer(coll);
+                setTotalUsers(snapshot.data().count);
+            } catch (error) {
+                console.error("Error fetching total users:", error);
+            }
+        };
 
-    useState(() => {
-        if (user) fetchTotalUsers();
-    });
+        if (user && firestore) {
+            fetchTotalUsers();
+        }
+    }, [user, firestore]);
 
     return (
         <div className="grid gap-8 md:grid-cols-2">
