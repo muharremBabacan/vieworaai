@@ -119,11 +119,10 @@ export default function AdminPanel() {
             });
 
             await batch.commit().catch(async (error) => {
-                const permissionError = new FirestorePermissionError({
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: 'academyLessons/batch',
                     operation: 'create'
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                }));
                 throw error;
             });
 
@@ -142,7 +141,7 @@ export default function AdminPanel() {
         try {
             const userDocs = await getDocs(collection(firestore, 'users')).catch(err => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: 'users/list',
+                    path: 'users',
                     operation: 'list'
                 }));
                 throw err;
@@ -189,11 +188,10 @@ export default function AdminPanel() {
             });
 
             await batch.commit().catch(err => {
-                const permissionError = new FirestorePermissionError({
-                    path: 'batch/ai-weekly-competition',
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'batch/ai-weekly',
                     operation: 'write'
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                }));
                 throw err;
             });
 
@@ -249,7 +247,7 @@ export default function AdminPanel() {
 
                 await batch.commit().catch(async (error) => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: 'batch/manual-competition-creation',
+                        path: 'competitions',
                         operation: 'create'
                     }));
                     throw error;
@@ -283,7 +281,7 @@ export default function AdminPanel() {
         const compRef = doc(firestore, 'competitions', compId);
         await deleteDoc(compRef).catch(async (error) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: compRef.path,
+                path: `competitions/${compId}`,
                 operation: 'delete'
             }));
             throw error;
@@ -298,7 +296,7 @@ export default function AdminPanel() {
             endDate: new Date().toISOString()
         }).catch(async (error) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: compRef.path,
+                path: `competitions/${compId}`,
                 operation: 'update'
             }));
             throw error;
@@ -312,7 +310,7 @@ export default function AdminPanel() {
             try {
                 const snapshot = await getCountFromServer(collection(firestore, "users")).catch(err => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: 'users/count',
+                        path: 'users',
                         operation: 'list'
                     }));
                     throw err;
