@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,7 +40,7 @@ export function useCollection<T = any>(
   const auth = useAuth();
 
   useEffect(() => {
-    // 🔥 EN KRİTİK GUARD — AUTH GELMEDEN QUERY YOK
+    // EN KRİTİK GUARD — AUTH GELMEDEN QUERY YOK
     if (!auth.currentUser?.uid) {
       setIsLoading(false);
       return;
@@ -68,8 +69,13 @@ export function useCollection<T = any>(
       },
       (err: FirestoreError) => {
         let path = 'unknown';
-        if (memoizedTargetRefOrQuery && 'path' in memoizedTargetRefOrQuery) {
-          path = (memoizedTargetRefOrQuery as CollectionReference).path;
+        if (memoizedTargetRefOrQuery) {
+          if ('path' in memoizedTargetRefOrQuery) {
+            path = (memoizedTargetRefOrQuery as CollectionReference).path;
+          } else if ((memoizedTargetRefOrQuery as any)._query?.path) {
+            // Dev environment attempt to extract path from Query object
+            path = (memoizedTargetRefOrQuery as any)._query.path.toString();
+          }
         }
 
         const contextualError = new FirestorePermissionError({
