@@ -83,81 +83,79 @@ const PhotoDetailDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] grid grid-rows-[auto_1fr] p-0 gap-0">
-         <div className="grid md:grid-cols-2 h-full overflow-hidden">
-            <div className="relative bg-black/50 order-2 md:order-1">
-                <Image src={photo.imageUrl} alt="User photo" fill className="object-contain" />
-            </div>
-            <div className="flex flex-col h-full order-1 md:order-2">
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {photo.aiFeedback ? (
-                        <>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>{t('rating_card_title')}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="flex justify-between items-baseline">
-                                        <h3 className="font-semibold text-lg">{tRatings('overall')}</h3>
-                                        <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
-                                    </div>
-                                    <hr className="border-border" />
-                                    <div className="space-y-4">
-                                        <RatingBar label={tRatings('light')} score={lightScore} />
-                                        <RatingBar label={tRatings('composition')} score={compositionScore} />
-                                        <RatingBar label={tRatings('technical')} score={technicalScore} />
-                                    </div>
-                                </CardContent>
-                            </Card>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
+          <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/50 shrink-0">
+              <Image src={photo.imageUrl} alt="User photo" fill className="object-contain" />
+          </div>
+          <div className="md:w-2/5 w-full flex flex-col overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {photo.aiFeedback ? (
+                      <>
+                          <Card>
+                              <CardHeader>
+                                  <CardTitle>{t('rating_card_title')}</CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                  <div className="flex justify-between items-baseline">
+                                      <h3 className="font-semibold text-lg">{tRatings('overall')}</h3>
+                                      <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
+                                  </div>
+                                  <hr className="border-border" />
+                                  <div className="space-y-4">
+                                      <RatingBar label={tRatings('light')} score={lightScore} />
+                                      <RatingBar label={tRatings('composition')} score={compositionScore} />
+                                      <RatingBar label={tRatings('technical')} score={technicalScore} />
+                                  </div>
+                              </CardContent>
+                          </Card>
 
-                            <div>
-                                <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-                                    <Sparkles className="h-5 w-5 text-primary" />
-                                    {tDashboard('ai_analysis_title')}
-                                </h3>
-                                <div
-                                    className="prose prose-sm dark:prose-invert"
-                                    dangerouslySetInnerHTML={{ __html: (photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis).replace(/\n/g, '<br />') }}
-                                />
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center text-center p-8 border rounded-lg bg-muted/50 h-full">
-                            <p className="text-muted-foreground font-semibold">{t('status_awaiting_analysis')}</p>
-                            <Button onClick={() => onAnalyze(photo)} className="mt-4" disabled={isProcessing}>
-                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                {t('button_get_score', { cost: ANALYSIS_COST })}
-                            </Button>
-                        </div>
-                    )}
-                </div>
-                <div className="p-6 border-t mt-auto flex flex-col gap-2">
-                    <Button onClick={() => onToggleExhibition(photo)} variant="outline" disabled={isProcessing}>
-                        {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                        <ArrowLeftRight className="mr-2 h-4 w-4" />
-                        {photo.isSubmittedToExhibition ? t('button_withdraw_from_exhibition') : t('button_submit_to_exhibition', { cost: SUBMIT_TO_EXHIBITION_COST })}
-                    </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full" disabled={isProcessing}>
-                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                <Trash2 className="mr-2 h-4 w-4" /> {t('button_delete_permanently')}
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>{t('alert_dialog_title')}</AlertDialogTitle>
-                                <AlertDialogDescription>{t('alert_dialog_delete_description')}</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>İptal</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(photo)}>{t('alert_dialog_confirm')}</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            </div>
-        </div>
+                          <div>
+                              <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
+                                  <Sparkles className="h-5 w-5 text-primary" />
+                                  {tDashboard('ai_analysis_title')}
+                              </h3>
+                              <div
+                                  className="prose prose-sm dark:prose-invert"
+                                  dangerouslySetInnerHTML={{ __html: (photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis).replace(/\n/g, '<br />') }}
+                              />
+                          </div>
+                      </>
+                  ) : (
+                      <div className="flex flex-col items-center justify-center text-center p-8 border rounded-lg bg-muted/50 h-full">
+                          <p className="text-muted-foreground font-semibold">{t('status_awaiting_analysis')}</p>
+                          <Button onClick={() => onAnalyze(photo)} className="mt-4" disabled={isProcessing}>
+                              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                              {t('button_get_score', { cost: ANALYSIS_COST })}
+                          </Button>
+                      </div>
+                  )}
+              </div>
+              <div className="p-6 border-t flex flex-col gap-2 shrink-0">
+                  <Button onClick={() => onToggleExhibition(photo)} variant="outline" disabled={isProcessing}>
+                      {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      <ArrowLeftRight className="mr-2 h-4 w-4" />
+                      {photo.isSubmittedToExhibition ? t('button_withdraw_from_exhibition') : t('button_submit_to_exhibition', { cost: SUBMIT_TO_EXHIBITION_COST })}
+                  </Button>
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="destructive" className="w-full" disabled={isProcessing}>
+                              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                              <Trash2 className="mr-2 h-4 w-4" /> {t('button_delete_permanently')}
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>{t('alert_dialog_title')}</AlertDialogTitle>
+                              <AlertDialogDescription>{t('alert_dialog_delete_description')}</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>İptal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => onDelete(photo)}>{t('alert_dialog_confirm')}</AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+              </div>
+          </div>
       </DialogContent>
     </Dialog>
   );
