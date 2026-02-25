@@ -117,7 +117,7 @@ export default function AdminPanel() {
 
     useEffect(() => {
         const fetchTotalUsers = async () => {
-            if (!firestore || !user) return;
+            if (!firestore || !user || !isAdmin) return;
             
             setIsFetchingCount(true);
             setCountError(null);
@@ -129,17 +129,18 @@ export default function AdminPanel() {
             } catch (error: any) {
                 console.error("Error fetching total users:", error);
                 setCountError(error.message || "Veri çekilemedi.");
-                // Eğer izin hatasıysa 0 değil null bırakalım ki Skeleton veya hata görünsün
                 setTotalUsers(null); 
             } finally {
                 setIsFetchingCount(false);
             }
         };
 
-        if (user && firestore) {
+        if (user && firestore && isAdmin) {
             fetchTotalUsers();
+        } else if (user && !isAdmin) {
+            setIsFetchingCount(false);
         }
-    }, [user, firestore]);
+    }, [user, firestore, isAdmin]);
 
     if (!isAdmin && user) {
         return (
