@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -9,14 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
-import { collection, doc, writeBatch, getCountFromServer, addDoc, updateDoc } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/lib/firebase';
-import { Loader2, Zap, BrainCircuit, Users, BookOpen, MessageSquareText, AlertCircle, Trophy, Calendar } from 'lucide-react';
-import testUser1Data from '@/lib/test_user_1.json';
+import { collection, doc, writeBatch, getCountFromServer, addDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
+import { Loader2, Users, BookOpen, Trophy, Calendar, Trash2, Edit, StopCircle, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import type { Competition } from '@/types';
 
 const curriculum = {
   Temel: [ 
@@ -44,6 +46,7 @@ const curriculum = {
 type Level = keyof typeof curriculum;
 
 interface CompetitionFormValues {
+    id?: string;
     title: string;
     description: string;
     theme: string;
@@ -60,23 +63,24 @@ export default function AdminPanel() {
     
     const [isGenerating, setIsGenerating] = useState(false);
     const [isCreatingComp, setIsCreatingComp] = useState(false);
-    const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
-    const [aiResponse, setAiResponse] = useState('');
+    const [editingCompId, setEditingCompId] = useState<string | null>(null);
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
-    const [countError, setCountError] = useState<string | null>(null);
 
     const isAdmin = user?.email === 'admin@viewora.ai';
+
+    // Competitions Data
+    const competitionsQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null,
+        [firestore]
+    );
+    const { data: competitions, isLoading: compsLoading } = useCollection<Competition>(competitionsQuery);
 
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
         defaultValues: { level: 'Temel', category: '' }
     });
 
-    const { control: feedbackControl, handleSubmit: handleFeedbackSubmit } = useForm<{ prompt: string; }>({
-        defaultValues: { prompt: "Fotoğraflarımda sürekli aynı hataları yapıyorum. Işık kontrolünde nasıl daha iyi olabilirim?" }
-    });
-
-    const { control: compControl, handleSubmit: handleCompSubmit, reset: resetComp } = useForm<CompetitionFormValues>({
+    const { control: compControl, handleSubmit: handleCompSubmit, reset: resetComp, setValue: setCompValue } = useForm<CompetitionFormValues>({
         defaultValues: {
             title: '',
             description: '',
@@ -117,32 +121,74 @@ export default function AdminPanel() {
         } finally { setIsGenerating(false); }
     };
 
-    const onCreateCompetition = async (data: CompetitionFormValues) => {
-        if (!firestore || !isAdmin) return;
+    const onSubmitCompetition = async (data: CompetitionFormValues) => {
+        if (!firestore || !isAdmin || isCreatingComp) return;
         setIsCreatingComp(true);
         try {
-            const docRef = await addDoc(collection(firestore, 'competitions'), {
-                ...data,
-                createdAt: new Date().toISOString(),
-                imageUrl: `https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1000&auto=format&fit=crop`, // Default photography image
-                imageHint: data.theme,
-            });
-            await updateDoc(doc(firestore, 'competitions', docRef.id), { id: docRef.id });
+            if (editingCompId) {
+                // Update
+                const compRef = doc(firestore, 'competitions', editingCompId);
+                await updateDoc(compRef, { ...data });
+                toast({ title: "Yarışma Güncellendi" });
+                setEditingCompId(null);
+            } else {
+                // Create
+                const docRef = await addDoc(collection(firestore, 'competitions'), {
+                    ...data,
+                    createdAt: new Date().toISOString(),
+                    imageUrl: `https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1000&auto=format&fit=crop`,
+                    imageHint: data.theme,
+                });
+                await updateDoc(doc(firestore, 'competitions', docRef.id), { id: docRef.id });
 
-            // Add notification for level users
-            await addDoc(collection(firestore, 'global_notifications'), {
-                title: "Yeni Yarışma!",
-                message: `${data.title} yarışması başladı! Hedef seviye: ${data.targetLevel}`,
-                targetLevel: data.targetLevel,
-                competitionId: docRef.id,
-                createdAt: new Date().toISOString(),
-            });
-
-            toast({ title: "Yarışma Oluşturuldu", description: "Tüm ilgili kullanıcılara bildirim gönderildi." });
+                await addDoc(collection(firestore, 'global_notifications'), {
+                    title: "Yeni Yarışma!",
+                    message: `${data.title} yarışması başladı! Hedef seviye: ${data.targetLevel}`,
+                    targetLevel: data.targetLevel,
+                    competitionId: docRef.id,
+                    createdAt: new Date().toISOString(),
+                });
+                toast({ title: "Yarışma Oluşturuldu" });
+            }
             resetComp();
         } catch (error) {
-            toast({ variant: 'destructive', title: "Hata", description: "Yarışma oluşturulamadı." });
+            toast({ variant: 'destructive', title: "Hata", description: "İşlem başarısız." });
         } finally { setIsCreatingComp(false); }
+    };
+
+    const handleEditComp = (comp: Competition) => {
+        setEditingCompId(comp.id);
+        setCompValue('title', comp.title);
+        setCompValue('description', comp.description);
+        setCompValue('theme', comp.theme);
+        setCompValue('prize', comp.prize);
+        setCompValue('targetLevel', comp.targetLevel);
+        setCompValue('startDate', comp.startDate.split('T')[0]);
+        setCompValue('endDate', comp.endDate.split('T')[0]);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDeleteComp = async (compId: string) => {
+        if (!firestore || !isAdmin) return;
+        if (!confirm('Bu yarışmayı tamamen silmek istediğinize emin misiniz?')) return;
+        try {
+            await deleteDoc(doc(firestore, 'competitions', compId));
+            toast({ title: "Yarışma Silindi" });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Hata", description: "Silme işlemi başarısız." });
+        }
+    };
+
+    const handleEndComp = async (compId: string) => {
+        if (!firestore || !isAdmin) return;
+        try {
+            await updateDoc(doc(firestore, 'competitions', compId), {
+                endDate: new Date().toISOString()
+            });
+            toast({ title: "Yarışma Bitirildi" });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Hata", description: "İşlem başarısız." });
+        }
     };
 
     useEffect(() => {
@@ -151,7 +197,7 @@ export default function AdminPanel() {
             try {
                 const snapshot = await getCountFromServer(collection(firestore, "users"));
                 setTotalUsers(snapshot.data().count);
-            } catch (e) { setCountError("Veri çekilemedi."); } finally { setIsFetchingCount(false); }
+            } catch (e) { /* error silent */ } finally { setIsFetchingCount(false); }
         };
         fetchTotalUsers();
     }, [firestore, isAdmin]);
@@ -188,7 +234,7 @@ export default function AdminPanel() {
                                 <Controller name="category" control={lessonControl} render={({ field }) => (
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <SelectTrigger><SelectValue placeholder="Kategori" /></SelectTrigger>
-                                        <SelectContent>{selectedLevel && curriculum[selectedLevel].map(cat => <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{selectedLevel && curriculum[selectedLevel as Level]?.map(cat => <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>)}</SelectContent>
                                     </Select>
                                 )} />
                             </div>
@@ -198,20 +244,25 @@ export default function AdminPanel() {
                 </Card>
             </div>
 
-            <Card>
+            <Card className={cn(editingCompId && "border-primary ring-1 ring-primary")}>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Yarışma Oluştur</CardTitle>
-                    <CardDescription>Belirli bir seviye ve tarih aralığı için yeni bir yarışma düzenleyin.</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-amber-400" /> 
+                        {editingCompId ? "Yarışmayı Düzenle" : "Yarışma Başlat"}
+                    </CardTitle>
+                    <CardDescription>
+                        {editingCompId ? "Yarışma bilgilerini güncelliyorsunuz." : "Yeni bir global yarışma düzenleyin."}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleCompSubmit(onCreateCompetition)} className="grid gap-6 md:grid-cols-2">
+                    <form onSubmit={handleCompSubmit(onSubmitCompetition)} className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Yarışma Başlığı (Konu)</Label>
+                                <Label>Yarışma Başlığı</Label>
                                 <Controller name="title" control={compControl} render={({ field }) => <Input placeholder="Örn: Sokak ve İnsan" {...field} />} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Açıklama & Şartlar</Label>
+                                <Label>Açıklama</Label>
                                 <Controller name="description" control={compControl} render={({ field }) => <Textarea placeholder="Kurallar ve katılım şartları..." {...field} />} />
                             </div>
                             <div className="grid gap-4 grid-cols-2">
@@ -229,7 +280,7 @@ export default function AdminPanel() {
                             <div className="space-y-2">
                                 <Label>Hedef Kullanıcı Seviyesi</Label>
                                 <Controller name="targetLevel" control={compControl} render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
                                     </Select>
@@ -245,14 +296,81 @@ export default function AdminPanel() {
                                     <Controller name="endDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} />
                                 </div>
                             </div>
-                            <div className="pt-4">
-                                <Button type="submit" disabled={isCreatingComp} className="w-full h-12 text-lg">
-                                    {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : <Trophy className="mr-2" />}
-                                    Yarışmayı Başlat ve Bildir
+                            <div className="pt-4 flex gap-2">
+                                {editingCompId && (
+                                    <Button type="button" variant="outline" onClick={() => { setEditingCompId(null); resetComp(); }}>İptal</Button>
+                                )}
+                                <Button type="submit" disabled={isCreatingComp} className="flex-1 h-12 text-lg">
+                                    {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : editingCompId ? <Check className="mr-2" /> : <Trophy className="mr-2" />}
+                                    {editingCompId ? "Değişiklikleri Kaydet" : "Yarışmayı Başlat ve Bildir"}
                                 </Button>
                             </div>
                         </div>
                     </form>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Mevcut Yarışmalar</CardTitle>
+                    <CardDescription>Sistemdeki tüm yarışmaları buradan yönetebilirsiniz.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {compsLoading ? (
+                        <div className="space-y-2">
+                            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Başlık</TableHead>
+                                    <TableHead>Seviye</TableHead>
+                                    <TableHead>Durum</TableHead>
+                                    <TableHead>Bitiş</TableHead>
+                                    <TableHead className="text-right">İşlemler</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {competitions?.map((comp) => {
+                                    const now = new Date();
+                                    const isEnded = now > new Date(comp.endDate);
+                                    return (
+                                        <TableRow key={comp.id}>
+                                            <TableCell className="font-medium">{comp.title}</TableCell>
+                                            <TableCell><Badge variant="outline">{comp.targetLevel}</Badge></TableCell>
+                                            <TableCell>
+                                                {isEnded ? (
+                                                    <Badge variant="secondary">Bitti</Badge>
+                                                ) : (
+                                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Aktif</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{new Date(comp.endDate).toLocaleDateString('tr-TR')}</TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditComp(comp)} title="Düzenle">
+                                                        <Edit className="h-4 w-4 text-blue-400" />
+                                                    </Button>
+                                                    {!isEnded && (
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEndComp(comp.id)} title="Yarışmayı Bitir">
+                                                            <StopCircle className="h-4 w-4 text-orange-400" />
+                                                        </Button>
+                                                    )}
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteComp(comp.id)} title="Yarışmayı Sil">
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                                {competitions?.length === 0 && (
+                                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Henüz yarışma bulunmuyor.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    )}
                 </CardContent>
             </Card>
         </div>
