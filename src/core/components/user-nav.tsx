@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -70,13 +69,19 @@ export function UserNav() {
   const displayPhotoURL = userProfile.photoURL || authUser.photoURL || '';
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <GroupInvitesPopover />
+      
+      <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary/50 rounded-full border border-border/50">
+        <Gem className="h-4 w-4 text-cyan-400" />
+        <span className="text-sm font-bold">{auroBalance}</span>
+      </div>
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={displayPhotoURL} alt={displayName} />
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+            <Avatar className="h-10 w-10 border border-border/50">
+              <AvatarImage src={displayPhotoURL} alt={displayName} className="object-cover" />
               <AvatarFallback>{fallbackChar}</AvatarFallback>
             </Avatar>
           </Button>
