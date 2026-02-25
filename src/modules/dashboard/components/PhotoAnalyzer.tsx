@@ -2,8 +2,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { doc, setDoc, updateDoc, increment, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
+import { doc, setDoc, updateDoc, increment, collection, serverTimestamp, writeBatch, query, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
@@ -138,7 +138,7 @@ const AnalysisResult = ({
 };
 
 // Component for the photo uploader
-const Uploader = ({ onFileSelect, userProfile, t }: { onFileSelect: (file: File) => void, userProfile: User, t: (key: keyof AbstractIntlMessages['DashboardPage']) => string; }) => {
+const Uploader = ({ onFileSelect, userProfile, t, hasPhotos }: { onFileSelect: (file: File) => void, userProfile: User, t: (key: keyof AbstractIntlMessages['DashboardPage']) => string, hasPhotos: boolean }) => {
     const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
         onDrop: (acceptedFiles) => acceptedFiles.length > 0 && onFileSelect(acceptedFiles[0]),
         noClick: true, // We trigger it manually with the button
@@ -156,7 +156,9 @@ const Uploader = ({ onFileSelect, userProfile, t }: { onFileSelect: (file: File)
             
             <p className="text-lg text-muted-foreground">{t('main_title')}</p>
             
-            <p className="text-xl font-medium mt-6">{t('greeting_cta', { name: userProfile.name })}</p>
+             <p className="text-xl font-medium mt-6">
+                {hasPhotos ? t('greeting_cta_return') : t('greeting_cta', { name: userProfile.name })}
+            </p>
 
             <div {...getRootProps()} className={cn("relative mt-6 p-10 border-2 border-dashed rounded-xl transition-colors", isDragActive ? "border-primary bg-primary/10" : "border-border")}>
                 <input {...getInputProps()} />
@@ -184,7 +186,15 @@ export default function PhotoAnalyzer() {
     const firestore = useFirestore();
     
     const userDocRef = useMemoFirebase(() => (user && firestore ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
-    const { data: userProfile } = useDoc<User>(userDocRef);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
+
+    const photosQuery = useMemoFirebase(
+        () => (user ? query(collection(firestore, 'users', user.uid, 'photos'), limit(1)) : null),
+        [user, firestore]
+    );
+    const { data: photos, isLoading: arePhotosLoading } = useCollection<Photo>(photosQuery);
+    
+    const hasPhotos = useMemo(() => (photos ? photos.length > 0 : false), [photos]);
 
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
@@ -306,7 +316,7 @@ export default function PhotoAnalyzer() {
         }
     };
 
-    if (!userProfile) {
+    if (!userProfile || arePhotosLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -318,7 +328,7 @@ export default function PhotoAnalyzer() {
         <div className="container mx-auto">
             <div className="mx-auto max-w-4xl">
                  {!file ? (
-                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} t={t} />
+                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} t={t} hasPhotos={hasPhotos} />
                  ) : isLoading ? (
                     <div className="analysis-wrapper">
                         <div className="image-wrapper">

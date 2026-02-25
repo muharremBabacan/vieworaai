@@ -132,6 +132,7 @@
     "greeting_desc_1": "Fotoğraflarını birlikte geliştireceğiz.",
     "greeting_desc_2": "Işık, kompozisyon ve teknik detayları analiz ederim. Güçlü yanlarını gösterir, zayıf noktalarını net biçimde söylerim.",
     "greeting_cta": "Merhaba {name}. Hazırsan ilk fotoğrafını yükle.",
+    "greeting_cta_return": "Analizini merak ettiğin fotoğrafı yükle.",
     "upload_prompt_main": "Yüklemek için tıkla veya sürükle bırak",
     "upload_prompt_sub": "Analiz başlasın.",
     "rating_card_title": "Derecelendirme",
