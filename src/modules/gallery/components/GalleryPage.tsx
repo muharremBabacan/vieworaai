@@ -11,18 +11,27 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { Photo, PhotoAnalysis, User } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
+import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Globe, Eye, Loader2, ArrowLeftRight, Star } from 'lucide-react';
+import { Sparkles, Trash2, Globe, Loader2, ArrowLeftRight, Star } from 'lucide-react';
 import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
-const ANALYSIS_COST = 1;
-const SUBMIT_TO_EXHIBITION_COST = 0; // Or some other value
+const RatingBar = ({ label, score }: { label: string; score: number }) => (
+    <div>
+        <div className="flex justify-between items-center mb-1 text-sm">
+            <span className="font-medium text-muted-foreground">{label}</span>
+            <span className="font-semibold">{score.toFixed(1)}</span>
+        </div>
+        <Progress value={score * 10} className="h-2" />
+    </div>
+);
 
 const PhotoDetailDialog = ({
   photo,
@@ -43,76 +52,101 @@ const PhotoDetailDialog = ({
 }) => {
   const t = useTranslations('GalleryPage');
   const tRatings = useTranslations('Ratings');
+  const tDashboard = useTranslations('DashboardPage');
 
-  const overallScore = useMemo(() => {
-    if (!photo?.aiFeedback) return 0;
-    const scores = [
-      photo.aiFeedback.light_score,
-      photo.aiFeedback.composition_score,
-      photo.aiFeedback.focus_score,
-      photo.aiFeedback.color_control_score,
-      photo.aiFeedback.background_control_score,
-      photo.aiFeedback.creativity_risk_score,
-    ];
-    return scores.reduce((a, b) => a + b, 0) / scores.length;
+  const { overallScore, lightScore, compositionScore, technicalScore } = useMemo(() => {
+    if (!photo?.aiFeedback) return { overallScore: 0, lightScore: 0, compositionScore: 0, technicalScore: 0 };
+    
+    const techScore = (photo.aiFeedback.focus_score + photo.aiFeedback.color_control_score + photo.aiFeedback.background_control_score) / 3;
+    const ovScore = (photo.aiFeedback.light_score + photo.aiFeedback.composition_score + techScore) / 3;
+
+    return {
+      overallScore: ovScore,
+      lightScore: photo.aiFeedback.light_score,
+      compositionScore: photo.aiFeedback.composition_score,
+      technicalScore: techScore
+    };
   }, [photo?.aiFeedback]);
+  
 
   if (!photo) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] grid grid-rows-[auto_1fr] p-0">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle>{t('dialog_title')}</DialogTitle>
-        </DialogHeader>
-        <div className="grid md:grid-cols-2 gap-6 overflow-hidden p-6 pt-2">
-          <div className="relative rounded-lg overflow-hidden aspect-square -mx-6 -mt-4 md:m-0">
-            <Image src={photo.imageUrl} alt="User photo" fill className="object-cover" />
-          </div>
-          <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-            {photo.aiFeedback ? (
-                <div>
-                  <h3 className="font-semibold mb-2">Genel Puan: {overallScore.toFixed(1)}</h3>
-                  <p className="text-sm text-muted-foreground italic">"{photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis}"</p>
-                </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center p-8 border rounded-lg bg-muted/50 h-full">
-                <p className="text-muted-foreground font-semibold">{t('status_awaiting_analysis')}</p>
-                <Button onClick={() => onAnalyze(photo)} className="mt-4" disabled={isProcessing}>
-                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                    {t('button_get_score', { cost: ANALYSIS_COST })}
-                </Button>
-              </div>
-            )}
-
-            <div className="flex-grow" />
-
-            <div className="flex flex-col gap-2 pt-4 border-t">
-               <Button onClick={() => onToggleExhibition(photo)} variant="outline" disabled={isProcessing}>
-                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                    <ArrowLeftRight className="mr-2 h-4 w-4" />
-                    {photo.isSubmittedToExhibition ? t('button_withdraw_from_exhibition') : t('button_submit_to_exhibition', { cost: SUBMIT_TO_EXHIBITION_COST })}
-                </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full" disabled={isProcessing}>
-                     {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                    <Trash2 className="mr-2 h-4 w-4" /> {t('button_delete_permanently')}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('alert_dialog_title')}</AlertDialogTitle>
-                    <AlertDialogDescription>{t('alert_dialog_delete_description')}</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>İptal</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDelete(photo)}>{t('alert_dialog_confirm')}</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+      <DialogContent className="max-w-4xl max-h-[90vh] grid grid-rows-[auto_1fr] p-0 gap-0">
+         <div className="grid md:grid-cols-2 h-full overflow-hidden">
+            <div className="relative bg-black/50 order-2 md:order-1">
+                <Image src={photo.imageUrl} alt="User photo" fill className="object-contain" />
             </div>
-          </div>
+            <div className="flex flex-col h-full order-1 md:order-2">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {photo.aiFeedback ? (
+                        <>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{t('rating_card_title')}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex justify-between items-baseline">
+                                        <h3 className="font-semibold text-lg">{tRatings('overall')}</h3>
+                                        <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
+                                    </div>
+                                    <hr className="border-border" />
+                                    <div className="space-y-4">
+                                        <RatingBar label={tRatings('light')} score={lightScore} />
+                                        <RatingBar label={tRatings('composition')} score={compositionScore} />
+                                        <RatingBar label={tRatings('technical')} score={technicalScore} />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <div>
+                                <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
+                                    <Sparkles className="h-5 w-5 text-primary" />
+                                    {tDashboard('ai_analysis_title')}
+                                </h3>
+                                <div
+                                    className="prose prose-sm dark:prose-invert"
+                                    dangerouslySetInnerHTML={{ __html: (photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis).replace(/\n/g, '<br />') }}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-8 border rounded-lg bg-muted/50 h-full">
+                            <p className="text-muted-foreground font-semibold">{t('status_awaiting_analysis')}</p>
+                            <Button onClick={() => onAnalyze(photo)} className="mt-4" disabled={isProcessing}>
+                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                {t('button_get_score', { cost: ANALYSIS_COST })}
+                            </Button>
+                        </div>
+                    )}
+                </div>
+                <div className="p-6 border-t mt-auto flex flex-col gap-2">
+                    <Button onClick={() => onToggleExhibition(photo)} variant="outline" disabled={isProcessing}>
+                        {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        <ArrowLeftRight className="mr-2 h-4 w-4" />
+                        {photo.isSubmittedToExhibition ? t('button_withdraw_from_exhibition') : t('button_submit_to_exhibition', { cost: SUBMIT_TO_EXHIBITION_COST })}
+                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full" disabled={isProcessing}>
+                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                <Trash2 className="mr-2 h-4 w-4" /> {t('button_delete_permanently')}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>{t('alert_dialog_title')}</AlertDialogTitle>
+                                <AlertDialogDescription>{t('alert_dialog_delete_description')}</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(photo)}>{t('alert_dialog_confirm')}</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -159,7 +193,9 @@ export default function GalleryPage() {
         ];
         const validScores = scores.filter(s => typeof s === 'number' && isFinite(s));
         if (validScores.length === 0) return 0;
-        return validScores.reduce((sum, score) => sum + score, 0) / validScores.length;
+        const techScore = (photo.aiFeedback.focus_score + photo.aiFeedback.color_control_score + photo.aiFeedback.background_control_score) / 3;
+        const ovScore = (photo.aiFeedback.light_score + photo.aiFeedback.composition_score + techScore) / 3;
+        return ovScore;
     };
 
     const filteredPhotos = useMemo(() => {
