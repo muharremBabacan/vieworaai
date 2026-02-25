@@ -1,13 +1,6 @@
 
 /**
  * This ruleset enforces a strict user-ownership model for the Viewora AI Coach application.
- *
- * Core Philosophy:
- * The security model is built on the principle of "Authorization Independence". All data
- * private to a user is stored in subcollections under their unique user document.
- * This allows rules to authorize access based on the document path, which is highly
- * secure and performant. Publicly readable data is segregated into its own top-level
- * collection to prevent data leakage and simplify list queries. The default posture is deny-all.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -38,8 +31,10 @@ service cloud.firestore {
     //-------------------------------------------------------------------------
 
     match /users/{userId} {
+      // Adminlerin tüm kullanıcıları görebilmesi ve sayabilmesi için list ve get yetkisi
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
+      
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if false;
@@ -168,14 +163,19 @@ service cloud.firestore {
                     && (
                       (
                         request.auth.uid in request.resource.data.likes &&
-                        (!('likes' in resource.data) || !(request.auth.uid in resource.data.likes))
+                        (!('likes' in resource.data) || !(request.auth.uid in request.resource.data.likes))
                       )
                       ||
                       (
                         !('likes' in request.resource.data && request.auth.uid in request.resource.data.likes) &&
-                        'likes' in resource.data && request.auth.uid in resource.data.likes
+                        'likes' in resource.data && request.auth.uid in request.resource.data.likes
                       )
                     );
+    }
+
+    match /public_profiles/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
     }
   }
 }

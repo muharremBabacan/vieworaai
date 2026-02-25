@@ -12,9 +12,10 @@ import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { collection, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/lib/firebase';
-import { Loader2, Zap, BrainCircuit, Users, BookOpen, MessageSquareText } from 'lucide-react';
+import { Loader2, Zap, BrainCircuit, Users, BookOpen, MessageSquareText, AlertCircle } from 'lucide-react';
 import testUser1Data from '@/lib/test_user_1.json';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const curriculum = {
   Temel: [ 
@@ -51,6 +52,9 @@ export default function AdminPanel() {
     const [aiResponse, setAiResponse] = useState('');
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
+    const [countError, setCountError] = useState<string | null>(null);
+
+    const isAdmin = user?.email === 'admin@viewora.ai' || user?.email === 'babacan.muharrem@gmail.com';
 
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
         defaultValues: { level: 'Temel', category: '' }
@@ -114,21 +118,42 @@ export default function AdminPanel() {
     useEffect(() => {
         const fetchTotalUsers = async () => {
             if (!firestore || !user) return;
+            
             setIsFetchingCount(true);
+            setCountError(null);
+            
             try {
                 const coll = collection(firestore, "users");
                 const snapshot = await getCountFromServer(coll);
                 setTotalUsers(snapshot.data().count);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error fetching total users:", error);
-                setTotalUsers(0); // Hata durumunda 0 göster ki Skeleton takılı kalmasın
+                setCountError(error.message || "Veri çekilemedi.");
+                // Eğer izin hatasıysa 0 değil null bırakalım ki Skeleton veya hata görünsün
+                setTotalUsers(null); 
             } finally {
                 setIsFetchingCount(false);
             }
         };
 
-        fetchTotalUsers();
+        if (user && firestore) {
+            fetchTotalUsers();
+        }
     }, [user, firestore]);
+
+    if (!isAdmin && user) {
+        return (
+            <div className="container mx-auto p-8">
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Erişim Engellendi</AlertTitle>
+                    <AlertDescription>
+                        Bu sayfayı görüntülemek için yönetici yetkiniz bulunmamaktadır.
+                    </AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
 
     return (
         <div className="grid gap-6 md:grid-cols-2">
@@ -144,6 +169,12 @@ export default function AdminPanel() {
                 <CardContent className="flex flex-1 items-center justify-center py-6">
                     {isFetchingCount ? (
                         <Skeleton className="h-12 w-24" />
+                    ) : countError ? (
+                        <div className="text-center text-destructive">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-xs">{countError}</p>
+                            <Button variant="link" size="sm" onClick={() => window.location.reload()}>Tekrar Dene</Button>
+                        </div>
                     ) : (
                         <div className="text-center">
                             <p className="text-5xl font-bold tracking-tighter text-primary">
