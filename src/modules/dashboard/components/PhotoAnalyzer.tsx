@@ -8,7 +8,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale, useTranslations, type AbstractIntlMessages } from 'next-intl';
 
 import type { User, Photo, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -36,10 +36,19 @@ const RatingBar = ({ label, score }: { label: string, score: number | undefined 
 );
 
 // Component to show the analysis result
-const AnalysisResult = ({ analysis, adaptiveFeedback, onNewAnalysis }: { analysis: PhotoAnalysis | null, adaptiveFeedback?: string | null, onNewAnalysis: () => void }) => {
-    const t = useTranslations('DashboardPage');
-    const tRatings = useTranslations('Ratings');
-
+const AnalysisResult = ({
+  analysis,
+  adaptiveFeedback,
+  onNewAnalysis,
+  t,
+  tRatings,
+}: {
+  analysis: PhotoAnalysis | null;
+  adaptiveFeedback?: string | null;
+  onNewAnalysis: () => void;
+  t: (key: keyof AbstractIntlMessages['DashboardPage']) => string;
+  tRatings: (key: keyof AbstractIntlMessages['Ratings']) => string;
+}) => {
     const overallScore = useMemo(() => {
         if (!analysis) return 0;
         const scores = [
@@ -99,7 +108,7 @@ const AnalysisResult = ({ analysis, adaptiveFeedback, onNewAnalysis }: { analysi
                                     <div className="p-2 bg-green-500/20 rounded-full">
                                         <Award className="h-5 w-5 text-green-400" />
                                     </div>
-                                    <span className="text-sm font-medium">{t(strength.key)}</span>
+                                    <span className="text-sm font-medium">{t(strength.key as any)}</span>
                                 </div>
                             ))}
                         </div>
@@ -113,8 +122,7 @@ const AnalysisResult = ({ analysis, adaptiveFeedback, onNewAnalysis }: { analysi
 };
 
 // Component for the photo uploader
-const Uploader = ({ onFileSelect, userProfile, onAnalyze, onUploadOnly, isUploading }: { onFileSelect: (file: File) => void, userProfile: User, onAnalyze: () => void, onUploadOnly: () => void, isUploading: boolean }) => {
-    const t = useTranslations('DashboardPage');
+const Uploader = ({ onFileSelect, userProfile, onAnalyze, onUploadOnly, isUploading, t }: { onFileSelect: (file: File) => void, userProfile: User, onAnalyze: () => void, onUploadOnly: () => void, isUploading: boolean, t: (key: keyof AbstractIntlMessages['DashboardPage']) => string; }) => {
     const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
         onDrop: (acceptedFiles) => acceptedFiles.length > 0 && onFileSelect(acceptedFiles[0]),
         noClick: true,
@@ -151,6 +159,7 @@ const Uploader = ({ onFileSelect, userProfile, onAnalyze, onUploadOnly, isUpload
 // Main component
 export default function PhotoAnalyzer() {
     const t = useTranslations('DashboardPage');
+    const tRatings = useTranslations('Ratings');
     const locale = useLocale();
     const { toast } = useToast();
     const { user } = useUser();
@@ -291,7 +300,7 @@ export default function PhotoAnalyzer() {
         <div className="container mx-auto">
             <div className="mx-auto max-w-4xl">
                  {!file ? (
-                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} onAnalyze={() => { if(file) handleUploadAndOptionalAnalysis(true) }} onUploadOnly={() => { if(file) handleUploadAndOptionalAnalysis(false) }} isUploading={isLoading} />
+                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} onAnalyze={() => { if(file) handleUploadAndOptionalAnalysis(true) }} onUploadOnly={() => { if(file) handleUploadAndOptionalAnalysis(false) }} isUploading={isLoading} t={t} />
                  ) : isLoading ? (
                     <Alert>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -299,7 +308,13 @@ export default function PhotoAnalyzer() {
                         <AlertDescription>{t('state_wait')}</AlertDescription>
                     </Alert>
                 ) : analysisResult ? (
-                    <AnalysisResult analysis={analysisResult} adaptiveFeedback={adaptiveFeedback} onNewAnalysis={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} />
+                    <AnalysisResult 
+                        analysis={analysisResult} 
+                        adaptiveFeedback={adaptiveFeedback} 
+                        onNewAnalysis={() => { setFile(null); setPreview(null); setAnalysisResult(null); }}
+                        t={t}
+                        tRatings={tRatings}
+                    />
                 ) : (
                     <Card className="text-center p-8">
                         <div className="max-w-lg mx-auto">
