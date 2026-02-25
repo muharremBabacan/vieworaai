@@ -6,24 +6,15 @@ import { getLevelFromXp, levels } from '@/lib/gamification';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Gem, Copy } from 'lucide-react';
+import { Award, Gem } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/shared/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
 
 const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) => {
-  const { toast } = useToast();
   const displayName = userProfile.name || 'Kullanıcı';
   const displayEmail = userProfile.email || 'email@example.com';
   const fallbackChar = displayName?.charAt(0).toUpperCase() || 'U';
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({ title: 'Kopyalandı', description: "Kullanıcı ID'si panoya kopyalandı." });
-    });
-  };
 
   return (
     <Card>
@@ -35,16 +26,6 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
         <div className="flex-1 w-full text-center sm:text-left">
           <h2 className="text-2xl font-bold">{displayName}</h2>
           <p className="text-sm text-muted-foreground">{displayEmail}</p>
-          <div className="mt-4 flex items-center">
-            <Input
-              readOnly
-              value={user.uid}
-              className="bg-secondary border-secondary text-muted-foreground font-mono text-xs flex-1"
-            />
-            <Button variant="ghost" size="icon" onClick={() => copyToClipboard(user.uid)}>
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>
