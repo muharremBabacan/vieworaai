@@ -43,10 +43,8 @@ const PhotoDetailDialog = ({
   const t = useTranslations('GalleryPage');
   const tRatings = useTranslations('Ratings');
 
-  if (!photo) return null;
-
   const overallScore = useMemo(() => {
-    if (!photo.aiFeedback) return 0;
+    if (!photo?.aiFeedback) return 0;
     const scores = [
       photo.aiFeedback.light_score,
       photo.aiFeedback.composition_score,
@@ -56,7 +54,9 @@ const PhotoDetailDialog = ({
       photo.aiFeedback.creativity_risk_score,
     ];
     return scores.reduce((a, b) => a + b, 0) / scores.length;
-  }, [photo.aiFeedback]);
+  }, [photo?.aiFeedback]);
+
+  if (!photo) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
