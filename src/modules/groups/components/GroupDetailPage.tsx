@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, deleteDoc, collection, query, where, addDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, deleteDoc, collection, query, where, addDoc, writeBatch, getDocs, documentId } from 'firebase/firestore';
 import type { Group, PublicUserProfile, GroupInvite } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,7 +38,7 @@ export default function GroupDetailPage() {
 
   const isOwner = group?.ownerId === user?.uid;
   
-  const membersQuery = useMemoFirebase(() => (group && group.memberIds && group.memberIds.length > 0) ? query(collection(firestore, 'public_profiles'), where('id', 'in', group.memberIds)) : null, [group, firestore]);
+  const membersQuery = useMemoFirebase(() => (group && group.memberIds && group.memberIds.length > 0) ? query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds)) : null, [group, firestore]);
   const { data: members, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
   
   const inviteFormSchema = z.object({ email: z.string().email(t('form_error_email')) });
@@ -95,7 +95,8 @@ export default function GroupDetailPage() {
             toast({ variant: 'destructive', title: t('toast_user_not_found_title'), description: t('toast_user_not_found_description') });
             return;
         }
-        const invitedUser = userSnapshot.docs[0].data() as PublicUserProfile;
+        const invitedUserDoc = userSnapshot.docs[0];
+        const invitedUser = { ...invitedUserDoc.data(), id: invitedUserDoc.id } as PublicUserProfile;
 
         if (group.memberIds.includes(invitedUser.id)) {
             toast({ variant: 'destructive', title: t('toast_already_member_title'), description: t('toast_already_member_description') });

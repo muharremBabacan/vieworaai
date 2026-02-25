@@ -1,6 +1,7 @@
+
 'use client';
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs } from 'firebase/firestore';
 import type { Group, User } from '@/types';
 import { useForm } from 'react-hook-form';
@@ -57,13 +58,15 @@ export default function GroupsPage() {
     defaultValues: { name: '', description: '' },
   });
 
-  const joinForm = useForm<z.infer<typeof joinFormSchema>({
+  const joinForm = useForm<z.infer<typeof joinFormSchema>>({
     resolver: zodResolver(joinFormSchema),
     defaultValues: { code: '' },
   });
   
-  const { data: userProfile } = useCollection<User>(useMemoFirebase(() => user ? query(collection(firestore, 'users'), where('id', '==', user.uid)) : null, [user, firestore]));
-  const groupLimits = getGroupLimits(userProfile?.[0]?.level_name);
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<User>(userDocRef);
+
+  const groupLimits = getGroupLimits(userProfile?.level_name);
   const canCreateGroup = (ownedGroups?.length || 0) < groupLimits.maxGroups;
 
   const onCreateGroup = async (values: z.infer<typeof createFormSchema>) => {
@@ -76,7 +79,7 @@ export default function GroupsPage() {
         memberIds: [user.uid],
         createdAt: new Date().toISOString(),
         joinCode: String(Math.floor(100000 + Math.random() * 900000)),
-        maxMembers: getGroupLimits(userProfile?.[0]?.level_name).maxMembers,
+        maxMembers: getGroupLimits(userProfile?.level_name).maxMembers,
       };
       const docRef = await addDoc(collection(firestore, 'groups'), newGroup);
       await updateDoc(docRef, { id: docRef.id });
