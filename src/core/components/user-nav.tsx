@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -58,7 +59,8 @@ export function UserNav() {
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
-  const isAdmin = userProfile.email === 'admin@viewora.ai' || userProfile.email === 'babacan.muharrem@gmail.com';
+  // Sadece admin@viewora.ai admin panelini görebilir
+  const isAdmin = userProfile.email === 'admin@viewora.ai';
   const levelName = userProfile.level_name ?? 'Neuner';
   const displayName = userProfile.name || "Kullanıcı";
   const displayEmail = userProfile.email || "E-posta yok";

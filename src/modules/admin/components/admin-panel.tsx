@@ -54,7 +54,8 @@ export default function AdminPanel() {
     const [isFetchingCount, setIsFetchingCount] = useState(true);
     const [countError, setCountError] = useState<string | null>(null);
 
-    const isAdmin = user?.email === 'admin@viewora.ai' || user?.email === 'babacan.muharrem@gmail.com';
+    // Sadece admin@viewora.ai bu paneli yönetebilir
+    const isAdmin = user?.email === 'admin@viewora.ai';
 
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
         defaultValues: { level: 'Temel', category: '' }
