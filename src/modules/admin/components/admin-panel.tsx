@@ -140,13 +140,12 @@ export default function AdminPanel() {
         toast({ title: "Luma Analiz Ediyor...", description: "Kullanıcı istatistiklerine göre haftalık yarışma tasarlanıyor." });
 
         try {
-            // 1. Fetch user distribution with rich error handling
+            // 1. Fetch user distribution
             const userDocs = await getDocs(collection(firestore, 'users')).catch(err => {
-                const permissionError = new FirestorePermissionError({
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: 'users',
                     operation: 'list'
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                }));
                 throw err;
             });
 
@@ -193,11 +192,10 @@ export default function AdminPanel() {
             });
 
             await batch.commit().catch(err => {
-                const permissionError = new FirestorePermissionError({
-                    path: 'competitions/notifications/batch',
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'batch/ai-weekly',
                     operation: 'write'
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                }));
                 throw err;
             });
 
@@ -253,7 +251,7 @@ export default function AdminPanel() {
 
                 await batch.commit().catch(async (error) => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: 'competitions/notification/batch',
+                        path: 'batch/new-competition',
                         operation: 'create'
                     }));
                     throw error;
@@ -315,11 +313,10 @@ export default function AdminPanel() {
             if (!firestore || !isAdmin) return;
             try {
                 const snapshot = await getCountFromServer(collection(firestore, "users")).catch(err => {
-                    const permissionError = new FirestorePermissionError({
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
                         path: 'users',
                         operation: 'list'
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
+                    }));
                     throw err;
                 });
                 setTotalUsers(snapshot.data().count);

@@ -19,9 +19,9 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return request.auth != null && (
-        request.auth.token.admin == true || 
-        request.auth.token.email == 'admin@viewora.ai'
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@viewora.ai' ||
+        request.auth.token.admin == true
       );
     }
     
@@ -139,8 +139,8 @@ service cloud.firestore {
     }
     
     match /competitions/{competitionId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
 
       match /entries/{entryId} {
         allow read: if isSignedIn();
@@ -151,8 +151,8 @@ service cloud.firestore {
     }
     
     match /global_notifications/{notifId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
     
     match /public_photos/{photoId} {
