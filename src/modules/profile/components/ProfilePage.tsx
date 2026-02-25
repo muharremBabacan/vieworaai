@@ -6,10 +6,16 @@ import { getLevelFromXp, levels } from '@/lib/gamification';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Gem } from 'lucide-react';
+import { Award, Gem, UserCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) => {
   const displayName = userProfile.name || 'Kullanıcı';
@@ -24,7 +30,31 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
           <AvatarFallback className="text-3xl">{fallbackChar}</AvatarFallback>
         </Avatar>
         <div className="flex-1 w-full text-center sm:text-left">
-          <h2 className="text-2xl font-bold">{displayName}</h2>
+          <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+            <h2 className="text-2xl font-bold">{displayName}</h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <UserCircle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0 overflow-hidden border-none shadow-2xl">
+                <div className="bg-gradient-to-br from-primary/30 to-accent/30 p-6 flex flex-col items-center">
+                  <Avatar className="h-20 w-20 border-4 border-background shadow-xl mb-3">
+                    <AvatarImage src={user.photoURL} alt={displayName} />
+                    <AvatarFallback className="text-2xl">{fallbackChar}</AvatarFallback>
+                  </Avatar>
+                  <h3 className="font-bold text-lg text-foreground">{displayName}</h3>
+                  <Badge variant="secondary" className="mt-2 bg-background/50 backdrop-blur-sm px-4">
+                    {userProfile.level_name}
+                  </Badge>
+                </div>
+                <div className="bg-card p-3 border-t text-center">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Viewora Üyesi</p>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
           <p className="text-sm text-muted-foreground">{displayEmail}</p>
         </div>
       </CardContent>
