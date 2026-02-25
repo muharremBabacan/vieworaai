@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
@@ -24,6 +25,11 @@ import { cn } from '@/lib/utils';
 const ANALYSIS_COST = 1;
 const UPLOAD_XP_GAIN = 5;
 
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
+
 // Component to render individual rating bar
 const RatingBar = ({ label, score }: { label: string, score: number | undefined }) => (
     <div>
@@ -49,35 +55,39 @@ const AnalysisResult = ({
   t: (key: keyof AbstractIntlMessages['DashboardPage']) => string;
   tRatings: (key: keyof AbstractIntlMessages['Ratings']) => string;
 }) => {
-    const { overallScore, technicalScore } = useMemo(() => {
-        if (!analysis) return { overallScore: 0, technicalScore: 0 };
+    const { overallScore, technicalScore, lightScore, compositionScore } = useMemo(() => {
+        if (!analysis) return { overallScore: 0, technicalScore: 0, lightScore: 0, compositionScore: 0 };
+        
+        const lScore = normalizeScore(analysis.light_score);
+        const cScore = normalizeScore(analysis.composition_score);
         
         const technicalSubScores = [
-            analysis.focus_score,
-            analysis.color_control_score,
-            analysis.background_control_score,
+            normalizeScore(analysis.focus_score),
+            normalizeScore(analysis.color_control_score),
+            normalizeScore(analysis.background_control_score),
         ];
-        const technicalScore = technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
+        const tScore = technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
 
-        const mainScores = [
-            analysis.light_score,
-            analysis.composition_score,
-            technicalScore
-        ];
-        const overallScore = mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
+        const mainScores = [ lScore, cScore, tScore ];
+        const ovScore = mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
 
-        return { overallScore, technicalScore };
+        return { 
+            overallScore: ovScore, 
+            technicalScore: tScore,
+            lightScore: lScore,
+            compositionScore: cScore
+        };
     }, [analysis]);
 
     const strengths = useMemo(() => {
         if (!analysis) return [];
         const result = [];
-        if (analysis.composition_score > 7) result.push({ key: 'strength_composition', score: analysis.composition_score });
-        if (analysis.light_score > 7) result.push({ key: 'strength_lighting', score: analysis.light_score });
-        if (analysis.focus_score > 7) result.push({ key: 'strength_focus', score: analysis.focus_score });
-        if (analysis.color_control_score > 7) result.push({ key: 'strength_color', score: analysis.color_control_score });
-        if (analysis.background_control_score > 7) result.push({ key: 'strength_background', score: analysis.background_control_score });
-        if (analysis.creativity_risk_score > 7) result.push({ key: 'strength_creativity', score: analysis.creativity_risk_score });
+        if (normalizeScore(analysis.composition_score) > 7) result.push({ key: 'strength_composition', score: normalizeScore(analysis.composition_score) });
+        if (normalizeScore(analysis.light_score) > 7) result.push({ key: 'strength_lighting', score: normalizeScore(analysis.light_score) });
+        if (normalizeScore(analysis.focus_score) > 7) result.push({ key: 'strength_focus', score: normalizeScore(analysis.focus_score) });
+        if (normalizeScore(analysis.color_control_score) > 7) result.push({ key: 'strength_color', score: normalizeScore(analysis.color_control_score) });
+        if (normalizeScore(analysis.background_control_score) > 7) result.push({ key: 'strength_background', score: normalizeScore(analysis.background_control_score) });
+        if (normalizeScore(analysis.creativity_risk_score) > 7) result.push({ key: 'strength_creativity', score: normalizeScore(analysis.creativity_risk_score) });
         return result.sort((a, b) => b.score - a.score).slice(0, 3);
     }, [analysis]);
     
@@ -92,8 +102,8 @@ const AnalysisResult = ({
                 </div>
                 <hr className="border-border mb-6" />
                 <div className="space-y-5">
-                    <RatingBar label={tRatings('light')} score={analysis.light_score} />
-                    <RatingBar label={tRatings('composition')} score={analysis.composition_score} />
+                    <RatingBar label={tRatings('light')} score={lightScore} />
+                    <RatingBar label={tRatings('composition')} score={compositionScore} />
                     <RatingBar label={tRatings('technical')} score={technicalScore} />
                 </div>
             </Card>
@@ -239,7 +249,7 @@ export default function PhotoAnalyzer() {
                 setAnalysisResult(analysis);
 
                 // Generate adaptive feedback
-                const overallScore = Object.values(analysis).reduce((sum, value) => typeof value === 'number' ? sum + value : sum, 0) / 6;
+                const overallScore = Object.values(analysis).reduce((sum, value) => typeof value === 'number' ? sum + normalizeScore(value) : sum, 0) / 6;
                 const adaptive = await generateAdaptiveFeedback({
                     userGamificationLevel: userProfile.level_name,
                     language: locale,

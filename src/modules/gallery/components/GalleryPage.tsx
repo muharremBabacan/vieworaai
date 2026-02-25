@@ -26,6 +26,11 @@ import { Progress } from '@/components/ui/progress';
 const ANALYSIS_COST = 1;
 const SUBMIT_TO_EXHIBITION_COST = 1;
 
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
+
 const RatingBar = ({ label, score }: { label: string; score: number }) => (
     <div>
         <div className="flex justify-between items-center mb-1 text-sm">
@@ -60,13 +65,15 @@ const PhotoDetailDialog = ({
   const { overallScore, lightScore, compositionScore, technicalScore } = useMemo(() => {
     if (!photo?.aiFeedback) return { overallScore: 0, lightScore: 0, compositionScore: 0, technicalScore: 0 };
     
-    const techScore = (photo.aiFeedback.focus_score + photo.aiFeedback.color_control_score + photo.aiFeedback.background_control_score) / 3;
-    const ovScore = (photo.aiFeedback.light_score + photo.aiFeedback.composition_score + techScore) / 3;
+    const lScore = normalizeScore(photo.aiFeedback.light_score);
+    const cScore = normalizeScore(photo.aiFeedback.composition_score);
+    const techScore = (normalizeScore(photo.aiFeedback.focus_score) + normalizeScore(photo.aiFeedback.color_control_score) + normalizeScore(photo.aiFeedback.background_control_score)) / 3;
+    const ovScore = (lScore + cScore + techScore) / 3;
 
     return {
       overallScore: ovScore,
-      lightScore: photo.aiFeedback.light_score,
-      compositionScore: photo.aiFeedback.composition_score,
+      lightScore: lScore,
+      compositionScore: cScore,
       technicalScore: techScore
     };
   }, [photo?.aiFeedback]);
@@ -186,19 +193,10 @@ export default function GalleryPage() {
     
     const getOverallScore = (photo: Photo): number => {
         if (!photo.aiFeedback) return 0;
-        const scores = [
-            photo.aiFeedback.light_score,
-            photo.aiFeedback.composition_score,
-            photo.aiFeedback.focus_score,
-            photo.aiFeedback.color_control_score,
-            photo.aiFeedback.background_control_score,
-            photo.aiFeedback.creativity_risk_score,
-        ];
-        const validScores = scores.filter(s => typeof s === 'number' && isFinite(s));
-        if (validScores.length === 0) return 0;
-        const techScore = (photo.aiFeedback.focus_score + photo.aiFeedback.color_control_score + photo.aiFeedback.background_control_score) / 3;
-        const ovScore = (photo.aiFeedback.light_score + photo.aiFeedback.composition_score + techScore) / 3;
-        return ovScore;
+        const lScore = normalizeScore(photo.aiFeedback.light_score);
+        const cScore = normalizeScore(photo.aiFeedback.composition_score);
+        const techScore = (normalizeScore(photo.aiFeedback.focus_score) + normalizeScore(photo.aiFeedback.color_control_score) + normalizeScore(photo.aiFeedback.background_control_score)) / 3;
+        return (lScore + cScore + techScore) / 3;
     };
 
     const filteredPhotos = useMemo(() => {
@@ -219,12 +217,12 @@ export default function GalleryPage() {
             case 'best_light':
                 return photos
                     .filter(p => p.aiFeedback)
-                    .sort((a, b) => (b.aiFeedback?.light_score || 0) - (a.aiFeedback?.light_score || 0));
+                    .sort((a, b) => normalizeScore(b.aiFeedback?.light_score) - normalizeScore(a.aiFeedback?.light_score));
     
             case 'best_composition':
                 return photos
                     .filter(p => p.aiFeedback)
-                    .sort((a, b) => (b.aiFeedback?.composition_score || 0) - (a.aiFeedback?.composition_score || 0));
+                    .sort((a, b) => normalizeScore(b.aiFeedback?.composition_score) - normalizeScore(a.aiFeedback?.composition_score));
             
             default:
                 return [...photos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -408,5 +406,3 @@ export default function GalleryPage() {
       </div>
     );
 }
-
-    

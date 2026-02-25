@@ -51,7 +51,6 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
       normalizeScore(photo.aiFeedback.focus_score),
       normalizeScore(photo.aiFeedback.color_control_score),
       normalizeScore(photo.aiFeedback.background_control_score),
-      normalizeScore(photo.aiFeedback.creativity_risk_score),
     ];
     const technicalScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
     const mainScores = [lightScore, compositionScore, technicalScore];
@@ -250,15 +249,10 @@ export default function ExplorePage() {
                             
                             <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
                                 {photo.aiFeedback && (() => {
-                                    const allScores = [
-                                        photo.aiFeedback.light_score,
-                                        photo.aiFeedback.composition_score,
-                                        photo.aiFeedback.focus_score,
-                                        photo.aiFeedback.color_control_score,
-                                        photo.aiFeedback.background_control_score,
-                                        photo.aiFeedback.creativity_risk_score
-                                    ].map(normalizeScore);
-                                    const overallScore = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
+                                    const lScore = normalizeScore(photo.aiFeedback.light_score);
+                                    const cScore = normalizeScore(photo.aiFeedback.composition_score);
+                                    const techScore = (normalizeScore(photo.aiFeedback.focus_score) + normalizeScore(photo.aiFeedback.color_control_score) + normalizeScore(photo.aiFeedback.background_control_score)) / 3;
+                                    const overallScore = (lScore + cScore + techScore) / 3;
 
                                     return (
                                         <Badge className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
