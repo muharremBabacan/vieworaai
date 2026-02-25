@@ -23,6 +23,9 @@ import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
+const ANALYSIS_COST = 1;
+const SUBMIT_TO_EXHIBITION_COST = 1;
+
 const RatingBar = ({ label, score }: { label: string; score: number }) => (
     <div>
         <div className="flex justify-between items-center mb-1 text-sm">
@@ -405,3 +408,5 @@ export default function GalleryPage() {
       </div>
     );
 }
+
+    
