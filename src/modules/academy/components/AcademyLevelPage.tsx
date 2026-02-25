@@ -241,7 +241,6 @@ export default function AcademyLevelPage() {
     const { user } = useUser();
     const { toast } = useToast();
     const t = useTranslations('AcademyLevelPage');
-    const tCurriculum = useTranslations('Curriculum');
 
     const level = params.level as string;
     const levelFormatted = level.charAt(0).toUpperCase() + level.slice(1);
@@ -286,14 +285,14 @@ export default function AcademyLevelPage() {
     const groupedLessons = useMemo(() => {
         if (!lessons) return {};
         return lessons.reduce((acc, lesson) => {
-            const category = tCurriculum(lesson.category as any) || t('category_other');
+            const category = lesson.category || t('category_other');
             if (!acc[category]) {
                 acc[category] = [];
             }
             acc[category].push(lesson);
             return acc;
         }, {} as Record<string, Lesson[]>);
-    }, [lessons, tCurriculum, t]);
+    }, [lessons, t]);
 
     const handleCompleteLesson = async (lessonId: string) => {
         if (!user || !firestore || !userProfile) return;
