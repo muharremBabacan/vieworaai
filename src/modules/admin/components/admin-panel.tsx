@@ -140,10 +140,9 @@ export default function AdminPanel() {
         toast({ title: "Luma Analiz Ediyor...", description: "Kullanıcı istatistiklerine göre haftalık yarışma tasarlanıyor." });
 
         try {
-            // 1. Fetch user distribution
             const userDocs = await getDocs(collection(firestore, 'users')).catch(err => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: 'users',
+                    path: 'users/list',
                     operation: 'list'
                 }));
                 throw err;
@@ -155,10 +154,8 @@ export default function AdminPanel() {
                 stats[lvl] = (stats[lvl] || 0) + 1;
             });
 
-            // 2. Call AI
             const aiComp = await generateWeeklyCompetition({ levelStats: stats, language: 'tr' });
 
-            // 3. Create Competition
             const batch = writeBatch(firestore);
             const compRef = doc(collection(firestore, 'competitions'));
             const notifRef = doc(collection(firestore, 'global_notifications'));
@@ -192,10 +189,11 @@ export default function AdminPanel() {
             });
 
             await batch.commit().catch(err => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: 'batch/ai-weekly',
+                const permissionError = new FirestorePermissionError({
+                    path: 'batch/ai-weekly-competition',
                     operation: 'write'
-                }));
+                });
+                errorEmitter.emit('permission-error', permissionError);
                 throw err;
             });
 
@@ -217,7 +215,7 @@ export default function AdminPanel() {
                 const compRef = doc(firestore, 'competitions', editingCompId);
                 await updateDoc(compRef, { ...data }).catch(async (error) => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: compRef.path,
+                        path: `competitions/${editingCompId}`,
                         operation: 'update',
                         requestResourceData: data
                     }));
@@ -251,7 +249,7 @@ export default function AdminPanel() {
 
                 await batch.commit().catch(async (error) => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: 'batch/new-competition',
+                        path: 'batch/manual-competition-creation',
                         operation: 'create'
                     }));
                     throw error;
@@ -314,7 +312,7 @@ export default function AdminPanel() {
             try {
                 const snapshot = await getCountFromServer(collection(firestore, "users")).catch(err => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: 'users',
+                        path: 'users/count',
                         operation: 'list'
                     }));
                     throw err;
@@ -382,7 +380,7 @@ export default function AdminPanel() {
                 </Card>
             </div>
 
-            <Card className={cn(editingCompId && "border-primary ring-1 ring-primary")}>
+            <Card className={cn(editingCompId && "border-primary ring-1 ring-primary shadow-primary/20")}>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Trophy className="h-5 w-5 text-amber-400" /> 
@@ -438,7 +436,7 @@ export default function AdminPanel() {
                                 {editingCompId && (
                                     <Button type="button" variant="outline" onClick={() => { setEditingCompId(null); resetComp(); }}>İptal</Button>
                                 )}
-                                <Button type="submit" disabled={isCreatingComp} className="flex-1 h-12 text-lg">
+                                <Button type="submit" disabled={isCreatingComp} className="flex-1 h-12 text-lg font-bold">
                                     {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : editingCompId ? <Check className="mr-2" /> : <Trophy className="mr-2" />}
                                     {editingCompId ? "Değişiklikleri Kaydet" : "Yarışmayı Başlat ve Bildir"}
                                 </Button>

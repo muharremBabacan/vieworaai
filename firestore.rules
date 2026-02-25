@@ -21,6 +21,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'admin@viewora.ai' ||
+        request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
         request.auth.token.admin == true
       );
     }
