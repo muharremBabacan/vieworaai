@@ -12,7 +12,7 @@
     "title_explore": "Sergi Salonu",
     "title_dashboard": "Yapay Zeka Koçu",
     "title_competitions": "Yarışmalar",
-    "title_gallery": "Fotoğraflarım",
+    "title_gallery": "Galerim",
     "title_groups": "Gruplarım",
     "title_profile": "Profilim",
     "title_settings": "Ayarlar",
@@ -193,6 +193,7 @@
     "clear_filter": "Filtreyi Temizle"
   },
   "GalleryPage": {
+    "title": "Galerim",
     "button_add_to_foyer": "Fuayeye Ekle",
     "button_remove_from_foyer": "Fuayeden Kaldır",
     "toast_add_foyer_complete": "Fuayeye eklendi.",
