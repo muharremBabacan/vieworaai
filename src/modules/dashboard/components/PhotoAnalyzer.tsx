@@ -49,13 +49,24 @@ const AnalysisResult = ({
   t: (key: keyof AbstractIntlMessages['DashboardPage']) => string;
   tRatings: (key: keyof AbstractIntlMessages['Ratings']) => string;
 }) => {
-    const overallScore = useMemo(() => {
-        if (!analysis) return 0;
-        const scores = [
-            analysis.light_score, analysis.composition_score, analysis.focus_score,
-            analysis.color_control_score, analysis.background_control_score, analysis.creativity_risk_score
+    const { overallScore, technicalScore } = useMemo(() => {
+        if (!analysis) return { overallScore: 0, technicalScore: 0 };
+        
+        const technicalSubScores = [
+            analysis.focus_score,
+            analysis.color_control_score,
+            analysis.background_control_score,
         ];
-        return scores.reduce((sum, s) => sum + s, 0) / scores.length;
+        const technicalScore = technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
+
+        const mainScores = [
+            analysis.light_score,
+            analysis.composition_score,
+            technicalScore
+        ];
+        const overallScore = mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
+
+        return { overallScore, technicalScore };
     }, [analysis]);
 
     const strengths = useMemo(() => {
@@ -75,18 +86,15 @@ const AnalysisResult = ({
     return (
         <div className="grid md:grid-cols-2 gap-8">
             <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">{t('rating_card_title')}</h3>
-                <div className="space-y-4">
-                    <div className="text-center py-4 rounded-lg bg-secondary">
-                        <p className="text-sm text-muted-foreground">{t('overall_score')}</p>
-                        <p className="text-5xl font-bold tracking-tighter">{overallScore.toFixed(1)}</p>
-                    </div>
+                <div className="flex justify-between items-baseline mb-2">
+                    <h3 className="text-2xl font-bold">{tRatings('overall')}</h3>
+                    <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
+                </div>
+                <hr className="border-border mb-6" />
+                <div className="space-y-5">
                     <RatingBar label={tRatings('light')} score={analysis.light_score} />
                     <RatingBar label={tRatings('composition')} score={analysis.composition_score} />
-                    <RatingBar label={tRatings('focus')} score={analysis.focus_score} />
-                    <RatingBar label={tRatings('color')} score={analysis.color_control_score} />
-                    <RatingBar label={tRatings('background')} score={analysis.background_control_score} />
-                    <RatingBar label={tRatings('creativity')} score={analysis.creativity_risk_score} />
+                    <RatingBar label={tRatings('technical')} score={technicalScore} />
                 </div>
             </Card>
             <div className="space-y-6">
@@ -302,11 +310,17 @@ export default function PhotoAnalyzer() {
                  {!file ? (
                     <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} onAnalyze={() => { if(file) handleUploadAndOptionalAnalysis(true) }} onUploadOnly={() => { if(file) handleUploadAndOptionalAnalysis(false) }} isUploading={isLoading} t={t} />
                  ) : isLoading ? (
-                    <Alert>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <AlertTitle>{loadingState === 'uploading' ? t('state_uploading') : t('state_analyzing')}</AlertTitle>
-                        <AlertDescription>{t('state_wait')}</AlertDescription>
-                    </Alert>
+                    <div className="analysis-wrapper">
+                        <div className="image-wrapper">
+                            <Image src={preview!} alt="Analiz ediliyor" width={512} height={512} className="rounded-lg object-contain aspect-video" />
+                        </div>
+                        <div className="analysis-text-container">
+                            <p className="analysis-text">{loadingState === 'uploading' ? t('state_uploading') : t('state_analyzing')}</p>
+                            <div className="analysis-progress-bar">
+                                <div className="analysis-progress-bar-fill"></div>
+                            </div>
+                        </div>
+                    </div>
                 ) : analysisResult ? (
                     <AnalysisResult 
                         analysis={analysisResult} 
