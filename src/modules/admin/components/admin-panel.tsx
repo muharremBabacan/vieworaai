@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -117,15 +118,18 @@ export default function AdminPanel() {
                 });
             });
 
-            batch.commit().catch(async (error) => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
+            await batch.commit().catch(async (error) => {
+                const permissionError = new FirestorePermissionError({
                     path: 'academyLessons/batch',
                     operation: 'create'
-                }));
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                throw error;
             });
 
             toast({ title: "Başarılı!", description: `${lessons.length} yeni ders eklendi.` });
         } catch (error) {
+            console.error(error);
             toast({ variant: 'destructive', title: "Hata!", description: "Dersler üretilemedi." });
         } finally { setIsGenerating(false); }
     };
@@ -136,8 +140,16 @@ export default function AdminPanel() {
         toast({ title: "Luma Analiz Ediyor...", description: "Kullanıcı istatistiklerine göre haftalık yarışma tasarlanıyor." });
 
         try {
-            // 1. Fetch user distribution
-            const userDocs = await getDocs(collection(firestore, 'users'));
+            // 1. Fetch user distribution with rich error handling
+            const userDocs = await getDocs(collection(firestore, 'users')).catch(err => {
+                const permissionError = new FirestorePermissionError({
+                    path: 'users',
+                    operation: 'list'
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                throw err;
+            });
+
             const stats: Record<string, number> = {};
             userDocs.forEach(d => {
                 const lvl = d.data().level_name || 'Neuner';
@@ -180,7 +192,15 @@ export default function AdminPanel() {
                 createdAt: new Date().toISOString(),
             });
 
-            await batch.commit();
+            await batch.commit().catch(err => {
+                const permissionError = new FirestorePermissionError({
+                    path: 'competitions/notifications/batch',
+                    operation: 'write'
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                throw err;
+            });
+
             toast({ title: "AI Yarışması Başlatıldı!", description: aiComp.title });
         } catch (error) {
             console.error(error);
@@ -197,12 +217,13 @@ export default function AdminPanel() {
         try {
             if (editingCompId) {
                 const compRef = doc(firestore, 'competitions', editingCompId);
-                updateDoc(compRef, { ...data }).catch(async (error) => {
+                await updateDoc(compRef, { ...data }).catch(async (error) => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
                         path: compRef.path,
                         operation: 'update',
                         requestResourceData: data
                     }));
+                    throw error;
                 });
                 toast({ title: "Yarışma Güncellendi" });
                 setEditingCompId(null);
@@ -230,17 +251,19 @@ export default function AdminPanel() {
                     createdAt: new Date().toISOString(),
                 });
 
-                batch.commit().catch(async (error) => {
+                await batch.commit().catch(async (error) => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
                         path: 'competitions/notification/batch',
                         operation: 'create'
                     }));
+                    throw error;
                 });
 
                 toast({ title: "Yarışma Oluşturuldu" });
             }
             resetComp();
         } catch (error) {
+            console.error(error);
             toast({ variant: 'destructive', title: "Hata", description: "İşlem başarısız." });
         } finally { setIsCreatingComp(false); }
     };
@@ -262,11 +285,12 @@ export default function AdminPanel() {
         if (!confirm('Bu yarışmayı tamamen silmek istediğinize emin misiniz?')) return;
         
         const compRef = doc(firestore, 'competitions', compId);
-        deleteDoc(compRef).catch(async (error) => {
+        await deleteDoc(compRef).catch(async (error) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: compRef.path,
                 operation: 'delete'
             }));
+            throw error;
         });
         toast({ title: "Yarışma Silindi" });
     };
@@ -274,13 +298,14 @@ export default function AdminPanel() {
     const handleEndComp = async (compId: string) => {
         if (!firestore || !isAdmin) return;
         const compRef = doc(firestore, 'competitions', compId);
-        updateDoc(compRef, {
+        await updateDoc(compRef, {
             endDate: new Date().toISOString()
         }).catch(async (error) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: compRef.path,
                 operation: 'update'
             }));
+            throw error;
         });
         toast({ title: "Yarışma Bitirildi" });
     };
@@ -289,9 +314,18 @@ export default function AdminPanel() {
         const fetchTotalUsers = async () => {
             if (!firestore || !isAdmin) return;
             try {
-                const snapshot = await getCountFromServer(collection(firestore, "users"));
+                const snapshot = await getCountFromServer(collection(firestore, "users")).catch(err => {
+                    const permissionError = new FirestorePermissionError({
+                        path: 'users',
+                        operation: 'list'
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    throw err;
+                });
                 setTotalUsers(snapshot.data().count);
-            } catch (e) { /* error silent */ } finally { setIsFetchingCount(false); }
+            } catch (e) { 
+                console.error(e);
+            } finally { setIsFetchingCount(false); }
         };
         fetchTotalUsers();
     }, [firestore, isAdmin]);
@@ -335,7 +369,7 @@ export default function AdminPanel() {
                                 <Controller name="level" control={lessonControl} render={({ field }) => (
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <SelectTrigger><SelectValue placeholder="Seviye" /></SelectTrigger>
-                                        <SelectContent>{Object.keys(curriculum).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{Object.keys(curriculum).map(lvl => <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>)}</SelectContent>
                                     </Select>
                                 )} />
                                 <Controller name="category" control={lessonControl} render={({ field }) => (
