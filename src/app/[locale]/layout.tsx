@@ -1,20 +1,18 @@
 import { Toaster } from "@/shared/ui/toaster";
 import { FirebaseClientProvider } from '@/lib/firebase';
-import {NextIntlClientProvider} from 'next-intl';
-import {getMessages} from 'next-intl/server';
-
-// This layout is dynamic and wraps the pages within a specific locale.
-// It handles fetching localization messages and setting up client-side providers.
-// It does NOT contain <html> or <body> tags, as those are in the static root layout.
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 
 export default async function LocaleLayout({
   children,
-  params: { locale }
+  params
 }: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  const messages = await getMessages();
+  const { locale } = params;
+
+  const messages = await getMessages({ locale });
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>

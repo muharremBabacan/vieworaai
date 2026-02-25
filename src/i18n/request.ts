@@ -1,15 +1,13 @@
-import { getRequestConfig } from 'next-intl/server';
-import { headers } from 'next/headers';
-
-export default getRequestConfig(async () => {
-  const headersList = await headers();
-  const locale =
-    headersList.get('X-NEXT-INTL-LOCALE') ??
-    headersList.get('x-next-intl-locale') ??
-    'tr';
-
+import {notFound} from 'next/navigation';
+import {getRequestConfig} from 'next-intl/server';
+ 
+const locales = ['ar', 'de', 'el', 'en', 'es', 'fr', 'ja', 'ru', 'tr', 'zh'];
+ 
+export default getRequestConfig(async ({locale}) => {
+  // Validate that the incoming `locale` parameter is valid
+  if (!locales.includes(locale as any)) notFound();
+ 
   return {
-    locale,
-    messages: (await import(`../../messages/${locale}.json`)).default
+    messages: (await import(`../messages/${locale}.json`)).default
   };
 });

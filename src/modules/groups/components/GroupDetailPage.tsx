@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -37,7 +38,7 @@ export default function GroupDetailPage() {
 
   const isOwner = group?.ownerId === user?.uid;
   
-  const membersQuery = useMemoFirebase(() => group ? query(collection(firestore, 'public_profiles'), where('id', 'in', group.memberIds)) : null, [group, firestore]);
+  const membersQuery = useMemoFirebase(() => (group && group.memberIds && group.memberIds.length > 0) ? query(collection(firestore, 'public_profiles'), where('id', 'in', group.memberIds)) : null, [group, firestore]);
   const { data: members, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
   
   const inviteFormSchema = z.object({ email: z.string().email(t('form_error_email')) });
