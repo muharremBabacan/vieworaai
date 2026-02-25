@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { signOut } from 'firebase/auth';
+import { cn } from '@/lib/utils';
 
 const PRESET_AVATARS = [
   { id: 'camera', label: 'Fotoğraf Makinesi', url: 'https://api.dicebear.com/7.x/icons/svg?seed=camera&backgroundColor=b6e3f4' },
