@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, Code, Settings as SettingsIcon, User as UserIcon, Upload, Loader2, Camera } from 'lucide-react';
+import { LogOut, Settings as SettingsIcon, User as UserIcon, Upload, Loader2, Camera, Check, ShieldAlert } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -20,12 +20,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 
-// 12 adet avatar için yapılandırma. Görseller public/nick_photo/ içinde avatar-1.png... şeklinde olmalı.
-const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => ({
-  id: `avatar-${i + 1}`,
-  label: `Avatar ${i + 1}`,
-  url: `/nick_photo/avatar-${i + 1}.png`
-}));
+// Kullanıcının yüklediği nicphoto klasöründeki 12 adet jpg görseli
+const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
+  const num = i + 1;
+  // Görsel isimleri: nick01.jpg, nick02.jpg ... nick010.jpg, nick011.jpg, nick012.jpg
+  const filename = `nick0${num}.jpg`;
+  return {
+    id: `avatar-${num}`,
+    label: `Avatar ${num}`,
+    url: `/nicphoto/${filename}`
+  };
+});
 
 const resizeAndCropImage = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -93,7 +98,6 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
 
     setIsUploading(true);
     try {
-      // Görüntüyü küçült ve kırp
       const resizedBlob = await resizeAndCropImage(file);
       
       const photoRef = ref(storage, `users/${user.uid}/profile_photo_v2`);
@@ -211,14 +215,13 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
                   alt={avatar.label} 
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    // Eğer dosya henüz yüklenmemişse boş bir görsel veya renk göster
                     (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/222/white?text=Avatar';
                   }}
                 />
                 {userProfile.photoURL === avatar.url && (
                   <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                    <div className="bg-primary text-white p-0.5 rounded-full">
-                      <Code className="h-3 w-3" />
+                    <div className="bg-primary text-white p-1 rounded-full shadow-lg">
+                      <Check className="h-4 w-4" />
                     </div>
                   </div>
                 )}
@@ -254,10 +257,10 @@ const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: 
   };
 
   return (
-    <Card>
+    <Card className="border-dashed border-orange-500/50 bg-orange-500/5">
       <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <Code className="h-6 w-6" />
+        <CardTitle className="flex items-center gap-3 text-orange-500">
+          <ShieldAlert className="h-6 w-6" />
           Geliştirici Araçları
         </CardTitle>
         <CardDescription>Test amacıyla kullanıcı seviyenizi değiştirin.</CardDescription>
@@ -291,7 +294,7 @@ export default function SettingsPage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  const isSuperAdmin = userProfile?.email === 'babacan.muharrem@gmail.com';
+  const isDevUser = userProfile?.email === 'babacan.muharrem@gmail.com';
 
   const handleSignOut = async () => {
     try {
@@ -324,7 +327,7 @@ export default function SettingsPage() {
       
       <ProfileSettings userProfile={userProfile} user={user} firestore={firestore} toast={toast} />
 
-      {isSuperAdmin && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
+      {isDevUser && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
 
       <Card>
         <CardHeader>
