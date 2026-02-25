@@ -16,7 +16,7 @@ import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertDialogTitleComponent } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertDialogTitleComponent, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Trash2, Globe, Loader2, ArrowLeftRight, Star } from 'lucide-react';
 import { useRouter } from '@/navigation';
@@ -88,7 +88,7 @@ const PhotoDetailDialog = ({
               <Image src={photo.imageUrl} alt="User photo" fill className="object-contain" />
           </div>
           <div className="md:w-2/5 w-full flex flex-col overflow-hidden min-h-0">
-               <DialogHeader className="p-6 pb-4 shrink-0 border-b">
+              <DialogHeader className="p-6 pb-4 shrink-0 border-b">
                   <DialogTitle>{t('dialog_title')}</DialogTitle>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
