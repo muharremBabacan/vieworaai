@@ -13,7 +13,7 @@ import {
   DialogClose,
   DialogDescription,
 } from '@/shared/ui/dialog';
-import { Star, Heart, Loader2, X, Trophy } from 'lucide-react';
+import { Star, Heart, Loader2, X, Trophy, Sparkles } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDocumentNonBlocking } from '@/lib/firebase';
 import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { Skeleton } from '@/shared/ui/skeleton';
