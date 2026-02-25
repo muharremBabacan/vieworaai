@@ -10,11 +10,11 @@ import Logo from '@/core/components/logo';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useFirestore } from '@/lib/firebase';
+import { useAuth, useFirestore, useUser } from '@/lib/firebase';
 import type { User as UserProfile, PublicUserProfile } from '@/types';
 
 const GoogleIcon = () => (
@@ -29,10 +29,18 @@ const GoogleIcon = () => (
 export default function PageContent() {
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
+
+  // Zaten giriş yapmış olan kullanıcıyı Dashboard'a yönlendir
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleSignIn = async () => {
     if (!auth || !firestore) return;
@@ -104,7 +112,7 @@ export default function PageContent() {
           setDoc(userRef, { lastLoginAt: now, name: updatedName }, { merge: true }),
           setDoc(publicProfileRef, {
             name: updatedName,
-            photoURL: firebaseUser.photoURL,
+            photoURL: firebaseUser.photoURL || null,
             level_name: existing.level_name,
           }, { merge: true }),
         ]);
@@ -124,6 +132,11 @@ export default function PageContent() {
       setIsLoading(false);
     }
   };
+
+  // Auth durumu kontrol edilirken boş bir ekran göstererek yönlendirmeyi bekle
+  if (isUserLoading || user) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background p-4">
