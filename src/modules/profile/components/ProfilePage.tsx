@@ -10,7 +10,6 @@ import { Award, Gem, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/shared/hooks/use-toast';
-import AdminPanel from '@/modules/admin/components/admin-panel';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 
@@ -117,8 +116,6 @@ export default function ProfilePage() {
 
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-  
-  const isAdmin = userProfile?.email === 'admin@viewora.ai' || userProfile?.email === 'babacan.muharrem@gmail.com';
 
   if (isUserLoading || isProfileLoading) {
     return (
@@ -142,8 +139,6 @@ export default function ProfilePage() {
       <UserInfoCard user={user} userProfile={userProfile} />
       <LevelProgress userProfile={userProfile} />
       <AuroBalance userProfile={userProfile} router={router}/>
-
-      {isAdmin && <AdminPanel />}
     </div>
   );
 }

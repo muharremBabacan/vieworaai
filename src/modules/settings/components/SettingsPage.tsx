@@ -2,11 +2,10 @@
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { User } from '@/types';
-import { getLevelFromXp, levels } from '@/lib/gamification';
-import { Progress } from '@/components/ui/progress';
+import { levels } from '@/lib/gamification';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, LogOut, Code, Settings as SettingsIcon } from 'lucide-react';
+import { LogOut, Code, Settings as SettingsIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -14,45 +13,6 @@ import Link from 'next/link';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { signOut } from 'firebase/auth';
-
-const LevelProgress = ({ userProfile }: { userProfile: User }) => {
-    const currentLevel = getLevelFromXp(userProfile.current_xp);
-    const nextLevelIndex = levels.findIndex(l => l.name === currentLevel.name) + 1;
-    const nextLevel = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
-
-    const progress = nextLevel
-      ? ((userProfile.current_xp - currentLevel.minXp) / (nextLevel.minXp - currentLevel.minXp)) * 100
-      : 100;
-
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-              <Award className="h-6 w-6 text-amber-400" />
-              Seviye & İlerleme
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-2">
-            <div className="font-semibold">
-              <span>{currentLevel.name}</span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {nextLevel ? (
-                <span>Sonraki: {nextLevel.name}</span>
-              ) : (
-                <span className="font-semibold">Maksimum Seviye</span>
-              )}
-            </div>
-          </div>
-          <Progress value={progress} className="w-full h-2" />
-          <p className="text-right text-xs text-muted-foreground mt-1">
-            {userProfile.current_xp} XP {nextLevel ? `/ ${nextLevel.minXp} XP` : ''}
-          </p>
-        </CardContent>
-      </Card>
-    );
-}
 
 const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
   const handleLevelChange = async (newLevelName: string) => {
@@ -114,7 +74,8 @@ export default function SettingsPage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  const isAdmin = userProfile?.email === 'babacan.muharrem@gmail.com' || userProfile?.email === 'admin@viewora.ai';
+  // Sadece babacan.muharrem@gmail.com seviyesini ayarlayabilir
+  const isSuperAdmin = userProfile?.email === 'babacan.muharrem@gmail.com';
 
   const handleSignOut = async () => {
     try {
@@ -145,9 +106,7 @@ export default function SettingsPage() {
     <div className="container mx-auto max-w-2xl space-y-8 px-4">
       <h1 className="text-3xl font-bold tracking-tight">Ayarlar</h1>
       
-      <LevelProgress userProfile={userProfile} />
-
-      {isAdmin && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
+      {isSuperAdmin && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
 
       <Card>
         <CardHeader>
