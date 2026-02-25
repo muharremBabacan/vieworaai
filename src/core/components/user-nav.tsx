@@ -66,6 +66,8 @@ export function UserNav() {
   const displayEmail = userProfile.email || "E-posta yok";
   const fallbackChar = displayName?.charAt(0) || displayEmail?.charAt(0) || 'U';
 
+  // Seçilen nick fotoğrafını (Firestore) öncelikli kullan, yoksa auth fotoğrafını kullan
+  const displayPhotoURL = userProfile.photoURL || authUser.photoURL || '';
 
   return (
     <div className="flex items-center gap-2">
@@ -74,7 +76,7 @@ export function UserNav() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
-              {authUser.photoURL && <AvatarImage src={authUser.photoURL} alt={displayName} />}
+              <AvatarImage src={displayPhotoURL} alt={displayName} />
               <AvatarFallback>{fallbackChar}</AvatarFallback>
             </Avatar>
           </Button>

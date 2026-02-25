@@ -1,3 +1,4 @@
+
 'use client';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
@@ -21,12 +22,15 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
   const displayName = userProfile.name || 'Kullanıcı';
   const displayEmail = userProfile.email || 'email@example.com';
   const fallbackChar = displayName?.charAt(0).toUpperCase() || 'U';
+  
+  // Seçilen nick fotoğrafını (userProfile) öncelikli kullan
+  const displayPhotoURL = userProfile.photoURL || user.photoURL || '';
 
   return (
     <Card>
       <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6">
         <Avatar className="h-20 w-20">
-          <AvatarImage src={user.photoURL} alt={displayName} />
+          <AvatarImage src={displayPhotoURL} alt={displayName} />
           <AvatarFallback className="text-3xl">{fallbackChar}</AvatarFallback>
         </Avatar>
         <div className="flex-1 w-full text-center sm:text-left">
@@ -41,7 +45,7 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
               <PopoverContent className="w-64 p-0 overflow-hidden border-none shadow-2xl">
                 <div className="bg-gradient-to-br from-primary/30 to-accent/30 p-6 flex flex-col items-center">
                   <Avatar className="h-20 w-20 border-4 border-background shadow-xl mb-3">
-                    <AvatarImage src={user.photoURL} alt={displayName} />
+                    <AvatarImage src={displayPhotoURL} alt={displayName} />
                     <AvatarFallback className="text-2xl">{fallbackChar}</AvatarFallback>
                   </Avatar>
                   <h3 className="font-bold text-lg text-foreground">{displayName}</h3>
