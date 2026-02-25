@@ -94,6 +94,7 @@ export type Competition = {
   description: string;
   theme: string;
   prize: string;
+  targetLevel: string; // Added: Eligibility level
   startDate: string; // ISO string
   endDate: string; // ISO string
   createdAt: string; // ISO string

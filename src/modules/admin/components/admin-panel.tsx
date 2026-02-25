@@ -6,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
-import { collection, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, addDoc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/lib/firebase';
-import { Loader2, Zap, BrainCircuit, Users, BookOpen, MessageSquareText, AlertCircle } from 'lucide-react';
+import { Loader2, Zap, BrainCircuit, Users, BookOpen, MessageSquareText, AlertCircle, Trophy, Calendar } from 'lucide-react';
 import testUser1Data from '@/lib/test_user_1.json';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { levels as gamificationLevels } from '@/lib/gamification';
 
 const curriculum = {
   Temel: [ 
@@ -42,19 +44,29 @@ const curriculum = {
 };
 type Level = keyof typeof curriculum;
 
+interface CompetitionFormValues {
+    title: string;
+    description: string;
+    theme: string;
+    prize: string;
+    targetLevel: string;
+    startDate: string;
+    endDate: string;
+}
+
 export default function AdminPanel() {
     const { toast } = useToast();
     const firestore = useFirestore();
     const { user } = useUser();
     
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isCreatingComp, setIsCreatingComp] = useState(false);
     const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
     const [aiResponse, setAiResponse] = useState('');
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
     const [countError, setCountError] = useState<string | null>(null);
 
-    // Sadece admin@viewora.ai bu paneli yönetebilir
     const isAdmin = user?.email === 'admin@viewora.ai';
 
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
@@ -63,6 +75,18 @@ export default function AdminPanel() {
 
     const { control: feedbackControl, handleSubmit: handleFeedbackSubmit } = useForm<{ prompt: string; }>({
         defaultValues: { prompt: "Fotoğraflarımda sürekli aynı hataları yapıyorum. Işık kontrolünde nasıl daha iyi olabilirim?" }
+    });
+
+    const { control: compControl, handleSubmit: handleCompSubmit, reset: resetComp } = useForm<CompetitionFormValues>({
+        defaultValues: {
+            title: '',
+            description: '',
+            theme: '',
+            prize: '',
+            targetLevel: 'Neuner',
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        }
     });
     
     const selectedLevel = lessonWatch('level');
@@ -73,225 +97,163 @@ export default function AdminPanel() {
             return;
         }
         setIsGenerating(true);
-        toast({ title: "Dersler Üretiliyor...", description: `YZ, '${data.level}' seviyesi, '${data.category}' kategorisi için 5 yeni ders hazırlıyor.` });
         try {
             const lessons = await generateDailyLessons({ level: data.level, category: data.category, language: 'tr' });
             if (firestore) {
                 const batch = writeBatch(firestore);
                 lessons.forEach(lessonData => {
                     const docRef = doc(collection(firestore, 'academyLessons'));
-                    const completeLessonData = {
+                    batch.set(docRef, {
                         ...lessonData,
                         id: docRef.id,
                         imageUrl: `https://picsum.photos/seed/${docRef.id}/600/400`,
                         createdAt: new Date().toISOString()
-                    };
-                    batch.set(docRef, completeLessonData);
+                    });
                 });
                 await batch.commit();
             }
-            toast({ title: "Başarılı!", description: `${lessons.length} yeni ders '${data.category}' kategorisine eklendi.` });
+            toast({ title: "Başarılı!", description: `${lessons.length} yeni ders eklendi.` });
         } catch (error) {
-            console.error("Lesson generation error:", error);
-            toast({ variant: 'destructive', title: "Hata!", description: "Dersler üretilirken veya kaydedilirken bir sorun oluştu." });
-        } finally {
-            setIsGenerating(false);
-        }
+            toast({ variant: 'destructive', title: "Hata!", description: "Dersler üretilemedi." });
+        } finally { setIsGenerating(false); }
     };
 
-    const onGetStrategicFeedback = async (data: { prompt: string; }) => {
-        setIsGeneratingFeedback(true);
-        setAiResponse('');
+    const onCreateCompetition = async (data: CompetitionFormValues) => {
+        if (!firestore || !isAdmin) return;
+        setIsCreatingComp(true);
         try {
-            const result = await generateStrategicFeedback({
-                userPrompt: data.prompt,
-                userProfileIndex: testUser1Data
+            const docRef = await addDoc(collection(firestore, 'competitions'), {
+                ...data,
+                createdAt: new Date().toISOString(),
+                imageUrl: `https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1000&auto=format&fit=crop`, // Default photography image
+                imageHint: data.theme,
             });
-            setAiResponse(JSON.stringify(result, null, 2));
+            await updateDoc(doc(firestore, 'competitions', docRef.id), { id: docRef.id });
+
+            // Add notification for level users
+            await addDoc(collection(firestore, 'global_notifications'), {
+                title: "Yeni Yarışma!",
+                message: `${data.title} yarışması başladı! Hedef seviye: ${data.targetLevel}`,
+                targetLevel: data.targetLevel,
+                competitionId: docRef.id,
+                createdAt: new Date().toISOString(),
+            });
+
+            toast({ title: "Yarışma Oluşturuldu", description: "Tüm ilgili kullanıcılara bildirim gönderildi." });
+            resetComp();
         } catch (error) {
-            console.error("Strategic feedback error:", error);
-            setAiResponse('Hata oluştu: ' + (error as Error).message);
-        } finally {
-            setIsGeneratingFeedback(false);
-        }
+            toast({ variant: 'destructive', title: "Hata", description: "Yarışma oluşturulamadı." });
+        } finally { setIsCreatingComp(false); }
     };
 
     useEffect(() => {
         const fetchTotalUsers = async () => {
-            if (!firestore || !user || !isAdmin) return;
-            
-            setIsFetchingCount(true);
-            setCountError(null);
-            
+            if (!firestore || !isAdmin) return;
             try {
-                const coll = collection(firestore, "users");
-                const snapshot = await getCountFromServer(coll);
+                const snapshot = await getCountFromServer(collection(firestore, "users"));
                 setTotalUsers(snapshot.data().count);
-            } catch (error: any) {
-                console.error("Error fetching total users:", error);
-                setCountError(error.message || "Veri çekilemedi.");
-                setTotalUsers(null); 
-            } finally {
-                setIsFetchingCount(false);
-            }
+            } catch (e) { setCountError("Veri çekilemedi."); } finally { setIsFetchingCount(false); }
         };
-
-        if (user && firestore && isAdmin) {
-            fetchTotalUsers();
-        } else if (user && !isAdmin) {
-            setIsFetchingCount(false);
-        }
-    }, [user, firestore, isAdmin]);
+        fetchTotalUsers();
+    }, [firestore, isAdmin]);
 
     if (!isAdmin && user) {
-        return (
-            <div className="container mx-auto p-8">
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Erişim Engellendi</AlertTitle>
-                    <AlertDescription>
-                        Bu sayfayı görüntülemek için yönetici yetkiniz bulunmamaktadır.
-                    </AlertDescription>
-                </Alert>
-            </div>
-        );
+        return <div className="container mx-auto p-8"><Alert variant="destructive"><AlertTitle>Erişim Engellendi</AlertTitle></Alert></div>;
     }
 
     return (
-        <div className="grid gap-6 md:grid-cols-2">
-            {/* Kart 1: Toplam Kullanıcı */}
-            <Card className="flex flex-col">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary" /> 
-                        Toplam Kullanıcı
-                    </CardTitle>
-                    <CardDescription>Sisteme kayıtlı toplam kullanıcı sayısı.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 items-center justify-center py-6">
-                    {isFetchingCount ? (
-                        <Skeleton className="h-12 w-24" />
-                    ) : countError ? (
-                        <div className="text-center text-destructive">
-                            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                            <p className="text-xs">{countError}</p>
-                            <Button variant="link" size="sm" onClick={() => window.location.reload()}>Tekrar Dene</Button>
-                        </div>
-                    ) : (
-                        <div className="text-center">
-                            <p className="text-5xl font-bold tracking-tighter text-primary">
-                                {totalUsers !== null ? totalUsers : '0'}
-                            </p>
-                            <p className="text-sm text-muted-foreground mt-2">Aktif Üye</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+        <div className="space-y-8">
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Toplam Kullanıcı</CardTitle>
+                    </CardHeader>
+                    <CardContent className="py-6">
+                        {isFetchingCount ? <Skeleton className="h-12 w-24" /> : <p className="text-5xl font-bold tracking-tighter text-primary">{totalUsers || '0'}</p>}
+                    </CardContent>
+                </Card>
 
-            {/* Kart 2: Sergi Düzenleme */}
-            <Card className="flex flex-col">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <BrainCircuit className="h-5 w-5 text-cyan-400" />
-                        Sergi Düzenle
-                    </CardTitle>
-                    <CardDescription>Herkese açık sergi alanındaki fotoğrafları yönetin.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 items-center justify-center py-6">
-                    <div className="text-center text-muted-foreground">
-                        <Zap className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p className="text-sm">Bu özellik üzerinde çalışılıyor.</p>
-                    </div>
-                </CardContent>
-            </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-purple-400" /> Günlük Ders Üret</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleLessonSubmit(onGenerateLessons)} className="space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Controller name="level" control={lessonControl} render={({ field }) => (
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <SelectTrigger><SelectValue placeholder="Seviye" /></SelectTrigger>
+                                        <SelectContent>{Object.keys(curriculum).map(l => <SelectItem key={level} value={level}>{level}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                )} />
+                                <Controller name="category" control={lessonControl} render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger><SelectValue placeholder="Kategori" /></SelectTrigger>
+                                        <SelectContent>{selectedLevel && curriculum[selectedLevel].map(cat => <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                )} />
+                            </div>
+                            <Button type="submit" disabled={isGenerating} className="w-full">Üret ve Kaydet</Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
 
-            {/* Kart 3: Günlük Ders Üret */}
-            <Card className="flex flex-col">
+            <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <BookOpen className="h-5 w-5 text-purple-400" />
-                        Günlük Ders Üret
-                    </CardTitle>
-                    <CardDescription>YZ'nin seçtiğiniz kategori için 5 yeni ders oluşturmasını sağlayın.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Yarışma Oluştur</CardTitle>
+                    <CardDescription>Belirli bir seviye ve tarih aralığı için yeni bir yarışma düzenleyin.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1">
-                    <form onSubmit={handleLessonSubmit(onGenerateLessons)} className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
+                <CardContent>
+                    <form onSubmit={handleCompSubmit(onCreateCompetition)} className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Seviye</Label>
-                                <Controller
-                                    name="level"
-                                    control={lessonControl}
-                                    render={({ field }) => (
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <SelectTrigger><SelectValue placeholder="Seviye Seçin" /></SelectTrigger>
-                                            <SelectContent>
-                                                {Object.keys(curriculum).map(level => (
-                                                    <SelectItem key={level} value={level}>{level}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
+                                <Label>Yarışma Başlığı (Konu)</Label>
+                                <Controller name="title" control={compControl} render={({ field }) => <Input placeholder="Örn: Sokak ve İnsan" {...field} />} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Kategori</Label>
-                                <Controller
-                                    name="category"
-                                    control={lessonControl}
-                                    render={({ field }) => (
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedLevel}>
-                                            <SelectTrigger><SelectValue placeholder="Kategori Seçin" /></SelectTrigger>
-                                            <SelectContent>
-                                                {selectedLevel && curriculum[selectedLevel].map(cat => (
-                                                    <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
+                                <Label>Açıklama & Şartlar</Label>
+                                <Controller name="description" control={compControl} render={({ field }) => <Textarea placeholder="Kurallar ve katılım şartları..." {...field} />} />
+                            </div>
+                            <div className="grid gap-4 grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label>Tema</Label>
+                                    <Controller name="theme" control={compControl} render={({ field }) => <Input placeholder="Örn: Siyah Beyaz" {...field} />} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Ödül</Label>
+                                    <Controller name="prize" control={compControl} render={({ field }) => <Input placeholder="Örn: 100 Auro" {...field} />} />
+                                </div>
                             </div>
                         </div>
-                        <Button type="submit" disabled={isGenerating} className="w-full">
-                            {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Üret ve Kaydet
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-
-            {/* Kart 4: Geri Bildirim Test */}
-            <Card className="flex flex-col">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <MessageSquareText className="h-5 w-5 text-yellow-400" />
-                        Stratejik Geri Bildirim
-                    </CardTitle>
-                    <CardDescription>Yeni koçluk prompt'unu test verileriyle kontrol edin.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 space-y-4">
-                    <form onSubmit={handleFeedbackSubmit(onGetStrategicFeedback)} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="prompt">Test Mesajı</Label>
-                            <Controller
-                                name="prompt"
-                                control={feedbackControl}
-                                render={({ field }) => <Textarea id="prompt" {...field} className="min-h-[100px]" />}
-                            />
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Hedef Kullanıcı Seviyesi</Label>
+                                <Controller name="targetLevel" control={compControl} render={({ field }) => (
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                )} />
+                            </div>
+                            <div className="grid gap-4 grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label>Başlangıç Tarihi</Label>
+                                    <Controller name="startDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Bitiş Tarihi</Label>
+                                    <Controller name="endDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} />
+                                </div>
+                            </div>
+                            <div className="pt-4">
+                                <Button type="submit" disabled={isCreatingComp} className="w-full h-12 text-lg">
+                                    {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : <Trophy className="mr-2" />}
+                                    Yarışmayı Başlat ve Bildir
+                                </Button>
+                            </div>
                         </div>
-                        <Button type="submit" disabled={isGeneratingFeedback} className="w-full" variant="secondary">
-                            {isGeneratingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Test Et
-                        </Button>
                     </form>
-                    {aiResponse && (
-                        <div className="mt-4">
-                            <Label className="text-xs text-muted-foreground uppercase">YZ Yanıtı</Label>
-                            <pre className="mt-1 p-2 bg-muted rounded-md text-[10px] font-mono whitespace-pre-wrap max-h-[200px] overflow-y-auto border">
-                                <code>{aiResponse}</code>
-                            </pre>
-                        </div>
-                    )}
                 </CardContent>
             </Card>
         </div>
