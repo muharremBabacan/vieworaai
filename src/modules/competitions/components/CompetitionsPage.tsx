@@ -1,6 +1,5 @@
-
 'use client';
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
@@ -9,9 +8,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Calendar, Sparkles, AlertCircle } from 'lucide-react';
+import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const getCompetitionStatus = (startDate: string, endDate: string) => {
     const now = new Date();
@@ -31,11 +33,219 @@ const StatusBadge = ({ status }: { status: 'active' | 'upcoming' | 'ended' }) =>
     return <Badge className={cn("border", config[status].class)}>{config[status].text}</Badge>;
 };
 
-import { cn } from '@/lib/utils';
+function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0">
+                <DialogHeader className="p-6 border-b">
+                    <DialogTitle className="flex items-center gap-2">
+                        <ScrollText className="h-5 w-5 text-primary" />
+                        VİEWORA YARIŞMALARI – GENEL KURALLAR
+                    </DialogTitle>
+                </DialogHeader>
+                <ScrollArea className="flex-1 p-6">
+                    <div className="space-y-6 text-sm leading-relaxed">
+                        <section>
+                            <h3 className="font-bold text-base mb-2">1. Katılım Koşulları</h3>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Yarışmalar platform üyelerine açıktır.</li>
+                                <li>Katılımcı, fotoğrafın kendisine ait olduğunu beyan eder.</li>
+                                <li>18 yaş altı katılımcılar yasal temsilci onayı ile katılır.</li>
+                                <li>Platform yönetimi gerekli gördüğü durumlarda katılımı reddetme hakkını saklı tutar.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h3 className="font-bold text-base mb-2">2. Telif ve Hak Sahipliği</h3>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Fotoğrafın tüm fikri ve sınai hakları katılımcıya aittir.</li>
+                                <li>Katılımcı, gönderdiği içeriğin üçüncü kişilerin telif, marka, kişilik veya mülkiyet haklarını ihlal etmediğini kabul eder.</li>
+                                <li>İhlal durumunda doğacak tüm hukuki ve cezai sorumluluk katılımcıya aittir.</li>
+                                <li>Platform, ihlal şüphesi olan içeriği önceden bildirim yapmaksızın kaldırma hakkına sahiptir.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h3 className="font-bold text-base mb-2">3. Kullanım Lisansı</h3>
+                            <p className="mb-2">Katılımcı, gönderdiği fotoğrafın Viewora tarafından;</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Platform içinde sergilenmesine,</li>
+                                <li>Sosyal medya ve tanıtım içeriklerinde kullanılmasına,</li>
+                                <li>Dijital ve basılı materyallerde yer almasına</li>
+                            </ul>
+                            <p className="mt-2 font-medium">ücretsiz, süresiz ve dünya çapında lisans verir. Bu lisans, eser sahipliğini devretmez; yalnızca kullanım hakkı sağlar.</p>
+                        </section>
+
+                        <section>
+                            <h3 className="font-bold text-base mb-2">4. İçerik ve Etik Kurallar</h3>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Hakaret, nefret söylemi, ayrımcılık, şiddet, müstehcenlik veya yasa dışı içerik kabul edilmez.</li>
+                                <li>Kişilerin açık rızası olmadan çekilmiş ve özel hayatı ihlal eden fotoğraflar diskalifiye edilir.</li>
+                                <li>Kamu düzenini veya yürürlükteki mevzuatı ihlal eden içerikler değerlendirme dışı bırakılır.</li>
+                                <li>Aşırı manipülasyon veya yarışma temasına aykırı içerikler elenir.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h3 className="font-bold text-base mb-2">5. Teknik ve Başvuru Kuralları</h3>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Her yarışmada belirtilen format, çözünürlük ve süre şartlarına uyulmalıdır.</li>
+                                <li>Süre bitiminden sonra yapılan başvurular geçersizdir.</li>
+                                <li>Aynı fotoğraf birden fazla hesap üzerinden gönderilemez.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h3 className="font-bold text-base mb-2">6. Değerlendirme ve Sonuç</h3>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Değerlendirme jüri ve/veya AI analiz sistemi tarafından yapılır.</li>
+                                <li>Puanlama sistemi yarışma duyurusunda belirtilir.</li>
+                                <li>Jüri kararları kesindir ve itiraza açık değildir.</li>
+                                <li>Platform, gerekli gördüğü durumlarda yarışmayı iptal etme veya sonuçları değiştirme hakkını saklı tutar.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h3 className="font-bold text-base mb-2">7. Sorumluluk Reddi</h3>
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Platform, teknik aksaklıklar, internet kesintileri veya üçüncü taraf hizmet kaynaklı sorunlardan sorumlu değildir.</li>
+                                <li>Katılımcı, yarışmaya katılarak bu genel kuralları kabul etmiş sayılır.</li>
+                                <li>Doğabilecek hukuki uyuşmazlıklarda Türkiye Cumhuriyeti mevzuatı uygulanır ve İstanbul Mahkemeleri yetkilidir.</li>
+                            </ul>
+                        </section>
+                    </div>
+                </ScrollArea>
+                <div className="p-4 border-t flex justify-end">
+                    <DialogClose asChild>
+                        <Button variant="outline">Kapat</Button>
+                    </DialogClose>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfile }: { competition: Competition | null, isOpen: boolean, onOpenChange: (open: boolean) => void, userProfile: User | null }) {
+    const [isRulesOpen, setIsRulesOpen] = useState(false);
+    
+    if (!competition) return null;
+
+    const status = getCompetitionStatus(competition.startDate, competition.endDate);
+    const isEligible = userProfile?.level_name === competition.targetLevel || competition.targetLevel === 'Neuner';
+
+    return (
+        <>
+            <Dialog open={isOpen} onOpenChange={onOpenChange}>
+                <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                    <div className="relative h-64 w-full">
+                        <Image src={competition.imageUrl} alt={competition.title} fill className="object-cover" unoptimized />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        <div className="absolute bottom-6 left-6 right-6">
+                            <div className="flex items-center gap-2 mb-2">
+                                <StatusBadge status={status} />
+                                <Badge variant="outline" className="bg-primary/20 text-white border-primary/30 backdrop-blur-md">
+                                    {competition.targetLevel} Seviyesi
+                                </Badge>
+                            </div>
+                            <h2 className="text-3xl font-bold text-white tracking-tight">{competition.title}</h2>
+                        </div>
+                        <div className="absolute top-4 right-4">
+                            <DialogClose asChild>
+                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60">
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </DialogClose>
+                        </div>
+                    </div>
+
+                    <ScrollArea className="flex-1 p-8">
+                        <div className="grid md:grid-cols-3 gap-8">
+                            <div className="md:col-span-2 space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                                        <Info className="h-5 w-5 text-primary" /> Yarışma Hakkında
+                                    </h3>
+                                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
+                                </div>
+
+                                <div className="p-4 rounded-xl bg-secondary/30 border border-border/50">
+                                    <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Katılım Bilgileri</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                                                <Sparkles className="h-5 w-5 text-purple-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Tema</p>
+                                                <p className="text-sm font-semibold">{competition.theme}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                                                <Trophy className="h-5 w-5 text-amber-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Büyük Ödül</p>
+                                                <p className="text-sm font-semibold">{competition.prize}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                                <Calendar className="h-5 w-5 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Başlangıç</p>
+                                                <p className="text-sm font-semibold">{format(new Date(competition.startDate), 'd MMMM yyyy', { locale: tr })}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                                                <Calendar className="h-5 w-5 text-red-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Bitiş</p>
+                                                <p className="text-sm font-semibold">{format(new Date(competition.endDate), 'd MMMM yyyy', { locale: tr })}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Button variant="outline" className="w-full h-12 flex items-center gap-2" onClick={() => setIsRulesOpen(true)}>
+                                    <ScrollText className="h-4 w-4" />
+                                    Yarışma Genel Kuralları
+                                </Button>
+
+                                <div className="p-4 rounded-xl border border-dashed border-border text-center space-y-4">
+                                    <p className="text-xs text-muted-foreground">Yarışmaya katılmak için galerinizden uygun bir fotoğraf seçmelisiniz.</p>
+                                    {!isEligible && status === 'active' && (
+                                        <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-semibold uppercase text-left">
+                                            <AlertCircle className="h-3 w-3 shrink-0" /> Mevcut seviyeniz bu yarışma için uygun değildir.
+                                        </div>
+                                    )}
+                                    <Button 
+                                        className="w-full h-12 text-lg font-bold shadow-lg shadow-primary/20" 
+                                        disabled={status !== 'active' || !isEligible}
+                                    >
+                                        {status === 'active' ? (isEligible ? 'Fotoğraf Yükle ve Katıl' : 'Uygun Değil') : 'Yarışma Kapalı'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+            <GeneralRulesDialog isOpen={isRulesOpen} onOpenChange={setIsRulesOpen} />
+        </>
+    );
+}
 
 export default function CompetitionsPage() {
     const firestore = useFirestore();
     const { user } = useUser();
+    const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
     
     const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile } = useDoc<User>(userDocRef);
@@ -58,6 +268,11 @@ export default function CompetitionsPage() {
         });
     }, [competitions]);
 
+    const handleViewDetail = (comp: Competition) => {
+        setSelectedCompetition(comp);
+        setIsDetailOpen(true);
+    };
+
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
@@ -73,54 +288,39 @@ export default function CompetitionsPage() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {sortedCompetitions.map(comp => {
                         const status = getCompetitionStatus(comp.startDate, comp.endDate);
-                        const isEligible = userProfile?.level_name === comp.targetLevel || comp.targetLevel === 'Neuner';
-
                         return (
-                            <Card key={comp.id} className={cn("overflow-hidden flex flex-col transition-all", status === 'active' ? "border-primary/50 shadow-lg shadow-primary/5" : "opacity-80")}>
-                                <div className="relative h-48 w-full">
-                                    <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover" unoptimized />
-                                    <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                            <Card key={comp.id} className={cn("overflow-hidden flex flex-col transition-all group hover:border-primary/40", status === 'active' ? "border-primary/20 shadow-lg shadow-primary/5" : "opacity-80")}>
+                                <div className="relative h-48 w-full overflow-hidden">
+                                    <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
+                                    <div className="absolute top-4 left-4">
                                         <StatusBadge status={status} />
-                                        <Badge variant="outline" className="bg-black/60 backdrop-blur-sm text-xs border-primary/20">
-                                            {comp.targetLevel} Seviyesi
-                                        </Badge>
+                                    </div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                    <div className="absolute bottom-4 left-4 right-4">
+                                        <h2 className="text-xl font-bold text-white truncate">{comp.title}</h2>
                                     </div>
                                 </div>
                                 <CardContent className="p-6 flex flex-col flex-grow">
-                                    <h2 className="text-xl font-semibold mb-2">{comp.title}</h2>
-                                    <p className="text-sm text-muted-foreground flex-grow line-clamp-3 mb-4">{comp.description}</p>
+                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-6 h-10">{comp.description}</p>
                                     
-                                    <div className="space-y-2.5 text-sm">
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Sparkles className="h-4 w-4 text-purple-400" />
-                                            <span className="font-medium mr-1 text-foreground">Tema:</span> {comp.theme}
+                                    <div className="space-y-3 mb-6 flex-grow">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><Sparkles className="h-3 w-3 text-purple-400" /> Tema:</span>
+                                            <span className="font-semibold">{comp.theme}</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Trophy className="h-4 w-4 text-amber-400" />
-                                            <span className="font-medium mr-1 text-foreground">Ödül:</span> {comp.prize}
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><Trophy className="h-3 w-3 text-amber-400" /> Ödül:</span>
+                                            <span className="font-semibold">{comp.prize}</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Calendar className="h-4 w-4 text-blue-400" />
-                                            <span className="font-medium mr-1 text-foreground text-xs">
-                                                {format(new Date(comp.startDate), 'd MMM', { locale: tr })} - {format(new Date(comp.endDate), 'd MMM yyyy', { locale: tr })}
-                                            </span>
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3 text-blue-400" /> Seviye:</span>
+                                            <Badge variant="outline" className="h-5 text-[10px] px-1.5">{comp.targetLevel}</Badge>
                                         </div>
                                     </div>
 
-                                    <div className="mt-6 space-y-3">
-                                        {!isEligible && status === 'active' && (
-                                            <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-semibold uppercase">
-                                                <AlertCircle className="h-3 w-3" /> Bu seviyeye uygun değilsiniz
-                                            </div>
-                                        )}
-                                        <Button 
-                                            className="w-full h-11" 
-                                            disabled={status !== 'active' || !isEligible}
-                                            variant={status === 'active' && isEligible ? 'default' : 'secondary'}
-                                        >
-                                            {status === 'active' ? (isEligible ? 'Katıl ve Fotoğraf Yükle' : 'Uygun Değil') : 'Yarışma Kapalı'}
-                                        </Button>
-                                    </div>
+                                    <Button className="w-full" variant="secondary" onClick={() => handleViewDetail(comp)}>
+                                        Yarışmayı Görüntüle
+                                    </Button>
                                 </CardContent>
                             </Card>
                         );
@@ -133,6 +333,13 @@ export default function CompetitionsPage() {
                     <p className="text-muted-foreground mt-2">Yönetici tarafından yeni bir yarışma düzenlenmesini bekleyin.</p>
                 </div>
             )}
+
+            <CompetitionDetailDialog 
+                competition={selectedCompetition} 
+                isOpen={isDetailOpen} 
+                onOpenChange={setIsDetailOpen} 
+                userProfile={userProfile || null}
+            />
         </div>
     );
 }
