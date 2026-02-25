@@ -1,9 +1,10 @@
 import {getRequestConfig} from 'next-intl/server';
  
 export default getRequestConfig(async ({locale}) => {
-  // Validate that the incoming `locale` parameter is valid
-  // For now, we'll always serve Turkish to stabilize the app.
+  // Per our strategy, we are forcing the 'tr' locale to stabilize the app.
+  // We must return the locale property here to satisfy next-intl's requirements.
   return {
-    messages: (await import(`../../messages/tr.json`)).default
+    messages: (await import(`../../messages/tr.json`)).default,
+    locale: 'tr',
   };
 });
