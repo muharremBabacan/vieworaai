@@ -39,6 +39,13 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
     setPhoto(photoProp);
   }, [photoProp]);
 
+  // Fotoğraf sahibinin CANLI public profilini çekiyoruz
+  const ownerProfileRef = useMemoFirebase(() => 
+    (photo && firestore) ? doc(firestore, 'public_profiles', photo.userId) : null, 
+    [photo, firestore]
+  );
+  const { data: ownerProfile } = useDoc<PublicUserProfile>(ownerProfileRef);
+
   const overallScore = useMemo(() => {
     if (!photo?.aiFeedback) return 0;
     const lScore = normalizeScore(photo.aiFeedback.light_score);
@@ -52,11 +59,11 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
     return (lScore + cScore + technicalScore) / 3;
   }, [photo]);
 
-  // Fallback profile if data is missing
+  // Canlı profil verisi varsa onu, yoksa denormalize edilmiş eski veriyi kullanıyoruz
   const profileInfo = {
-      name: photo?.userName || "İsimsiz Sanatçı",
-      photoURL: photo?.userPhotoURL || null,
-      level_name: photo?.userLevelName || "Neuner"
+      name: ownerProfile?.name || photo?.userName || "İsimsiz Sanatçı",
+      photoURL: ownerProfile?.photoURL || photo?.userPhotoURL || null,
+      level_name: ownerProfile?.level_name || photo?.userLevelName || "Neuner"
   };
 
   const hasLiked = useMemo(() => {
@@ -127,7 +134,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
               <DialogTitle>Fotoğraf Detayı</DialogTitle>
             </DialogHeader>
             
-            {/* Mini Profil Bilgisi - En Üstte */}
+            {/* Canlı Mini Profil Bilgisi */}
             <div className="flex items-center gap-3 rounded-xl p-4 bg-gradient-to-br from-secondary/50 to-background border border-border/50 shadow-sm">
               <Avatar className="h-14 w-14 border-2 border-primary/20 shadow-md">
                 {profileInfo.photoURL && <AvatarImage src={profileInfo.photoURL} alt={profileInfo.name} />}

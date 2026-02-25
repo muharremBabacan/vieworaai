@@ -17,13 +17,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { signOut } from 'firebase/auth';
+import { signOut, updateProfile } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 
-// Kullanıcının yüklediği nicphoto klasöründeki 12 adet jpg görseli
 const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
-  // Görsel isimleri: nick01.jpg, nick02.jpg ... nick010.jpg, nick011.jpg, nick012.jpg
   const filename = `nick0${num}.jpg`;
   return {
     id: `avatar-${num}`,
@@ -39,13 +37,12 @@ const resizeAndCropImage = (file: File): Promise<Blob> => {
       const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const size = 400; // Standart avatar boyutu
+        const size = 400;
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject('Canvas context error');
 
-        // Orantılı kırpma (Center Crop)
         const minDim = Math.min(img.width, img.height);
         const sx = (img.width - minDim) / 2;
         const sy = (img.height - minDim) / 2;
@@ -77,8 +74,11 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
       const userRef = doc(firestore, 'users', user.uid);
       const publicRef = doc(firestore, 'public_profiles', user.uid);
 
-      await updateDoc(userRef, { name: nickname });
-      await updateDoc(publicRef, { name: nickname });
+      await Promise.all([
+        updateDoc(userRef, { name: nickname }),
+        updateDoc(publicRef, { name: nickname }),
+        updateProfile(user, { displayName: nickname })
+      ]);
 
       toast({
         title: "Profil Güncellendi",
@@ -107,8 +107,11 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
       const userRef = doc(firestore, 'users', user.uid);
       const publicRef = doc(firestore, 'public_profiles', user.uid);
 
-      await updateDoc(userRef, { photoURL });
-      await updateDoc(publicRef, { photoURL });
+      await Promise.all([
+        updateDoc(userRef, { photoURL }),
+        updateDoc(publicRef, { photoURL }),
+        updateProfile(user, { photoURL })
+      ]);
 
       toast({ title: "Fotoğraf Güncellendi", description: "Profil fotoğrafınız başarıyla yüklendi ve optimize edildi." });
     } catch (error) {
@@ -126,8 +129,11 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
       const userRef = doc(firestore, 'users', user.uid);
       const publicRef = doc(firestore, 'public_profiles', user.uid);
 
-      await updateDoc(userRef, { photoURL: url });
-      await updateDoc(publicRef, { photoURL: url });
+      await Promise.all([
+        updateDoc(userRef, { photoURL: url }),
+        updateDoc(publicRef, { photoURL: url }),
+        updateProfile(user, { photoURL: url })
+      ]);
 
       toast({ title: "Avatar Güncellendi", description: "Yeni simgeniz başarıyla ayarlandı." });
     } catch (error) {
