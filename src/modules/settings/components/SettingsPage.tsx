@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 
 const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
-  const filename = `nick0${num}.jpg`;
+  const filename = `nick${num < 10 ? '0' + num : num}.jpg`;
   return {
     id: `avatar-${num}`,
     label: `Avatar ${num}`,
