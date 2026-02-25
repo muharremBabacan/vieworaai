@@ -73,8 +73,8 @@ export default function AdminPanel() {
     const isAdmin = user?.email === 'admin@viewora.ai';
 
     const competitionsQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null,
-        [firestore]
+        (firestore && isAdmin) ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null,
+        [firestore, isAdmin]
     );
     const { data: competitions, isLoading: compsLoading } = useCollection<Competition>(competitionsQuery);
 
@@ -97,7 +97,7 @@ export default function AdminPanel() {
     const selectedLevel = lessonWatch('level');
 
     const onGenerateLessons = async (data: { level: Level; category: string; }) => {
-        if (!data.level || !data.category || !firestore) {
+        if (!data.level || !data.category || !firestore || !isAdmin) {
             toast({ variant: 'destructive', title: "Eksik Seçim", description: "Lütfen ders üretmek için bir seviye ve bir kategori seçin." });
             return;
         }

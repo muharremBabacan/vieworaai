@@ -2,81 +2,58 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Query,
-  onSnapshot,
-  DocumentData,
-  FirestoreError,
-  QuerySnapshot,
-  CollectionReference,
-} from 'firebase/firestore';
+import { onSnapshot, DocumentData, FirestoreError, QuerySnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
-import { FirestorePermissionError } from '@/lib/firebase/errors';
 import { useAuth } from '@/lib/firebase/provider';
+import { FirestorePermissionError } from '@/lib/firebase/errors';
 
 export type WithId<T> = T & { id: string };
 
-export interface UseCollectionResult<T> {
-  data: WithId<T>[] | null;
-  isLoading: boolean;
-  error: FirestoreError | Error | null;
-}
-
-export function useCollection<T = any>(
-  memoizedTargetRefOrQuery:
-    | ((CollectionReference<DocumentData> | Query<DocumentData>) & {
-        __memo?: boolean;
-      })
-    | null
-    | undefined,
-): UseCollectionResult<T> {
-  type ResultItemType = WithId<T>;
-  type StateDataType = ResultItemType[] | null;
-
-  const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<FirestoreError | Error | null>(null);
-
-  const auth = useAuth();
+export function useCollection<T = any>(query: any): { 
+  data: WithId<T>[] | null; 
+  isLoading: boolean; 
+  error: any 
+} {
+  const [data, setData] = useState<WithId<T>[] | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    // EN KRİTİK GUARD — AUTH GELMEDEN QUERY YOK
-    if (!auth.currentUser?.uid) {
+    // 1. Guard: Auth veya Query yoksa dur
+    if (!currentUser?.uid || !query) {
       setIsLoading(false);
       return;
     }
 
-    if (!memoizedTargetRefOrQuery) {
-      setIsLoading(false);
-      return;
+    // 2. Dev-only Memoization Check
+    if (process.env.NODE_ENV === 'development' && !query.__memo) {
+      console.warn("Firebase query is not memoized! Use useMemoFirebase.");
     }
 
     setIsLoading(true);
-    setError(null);
 
+    // 3. Gerçek Zamanlı Dinleyici
     const unsubscribe = onSnapshot(
-      memoizedTargetRefOrQuery,
+      query,
       (snapshot: QuerySnapshot<DocumentData>) => {
-        const results: ResultItemType[] = [];
-
-        snapshot.docs.forEach((doc) => {
-          results.push({ ...(doc.data() as T), id: doc.id });
-        });
-
+        const results = snapshot.docs.map((doc) => ({
+          ...(doc.data() as T),
+          id: doc.id,
+        }));
+        
         setData(results);
-        setError(null);
         setIsLoading(false);
+        setError(null);
       },
       (err: FirestoreError) => {
+        // Zengin içerikli izin hatası oluşturulur ve yayılır
         let path = 'unknown';
-        if (memoizedTargetRefOrQuery) {
-          if ('path' in memoizedTargetRefOrQuery) {
-            path = (memoizedTargetRefOrQuery as CollectionReference).path;
-          } else if ((memoizedTargetRefOrQuery as any)._query?.path) {
-            // Dev environment attempt to extract path from Query object
-            path = (memoizedTargetRefOrQuery as any)._query.path.toString();
-          }
-        }
+        try {
+            // Firestore Query nesnesinden path bilgisini güvenli bir şekilde almaya çalış
+            if (query.path) path = query.path;
+            else if (query._query && query._query.path) path = query._query.path.toString();
+        } catch (e) {}
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
@@ -84,21 +61,16 @@ export function useCollection<T = any>(
         });
 
         setError(contextualError);
-        setData(null);
         setIsLoading(false);
 
+        // Global dinleyiciye gönderilir
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
+    // Cleanup: Bileşen kapandığında veya query değiştiğinde dinlemeyi kes
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery, auth.currentUser?.uid]);
-
-  if (memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(
-      memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase'
-    );
-  }
+  }, [query, currentUser?.uid]);
 
   return { data, isLoading, error };
 }
