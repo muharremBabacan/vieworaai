@@ -11,7 +11,7 @@ import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { collection, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/lib/firebase';
-import { Loader2, Zap, BrainCircuit, Users } from 'lucide-react';
+import { Loader2, Zap, BrainCircuit, Users, BookOpen, MessageSquareText } from 'lucide-react';
 import testUser1Data from '@/lib/test_user_1.json';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -127,97 +127,134 @@ export default function AdminPanel() {
     }, [user, firestore]);
 
     return (
-        <div className="grid gap-8 md:grid-cols-2">
-            <Card>
+        <div className="grid gap-6 md:grid-cols-2">
+            {/* Kart 1: Toplam Kullanıcı */}
+            <Card className="flex flex-col">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Zap className="text-yellow-400" /> Yönetici Araçları</CardTitle>
-                    <CardDescription>Uygulama için yönetimsel görevleri buradan yapın.</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" /> 
+                        Toplam Kullanıcı
+                    </CardTitle>
+                    <CardDescription>Sisteme kayıtlı toplam kullanıcı sayısı.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <form onSubmit={handleLessonSubmit(onGenerateLessons)} className="space-y-4 p-4 border rounded-lg">
-                        <h4 className="font-semibold">Günlük Dersleri Üret</h4>
-                        <p className="text-sm text-muted-foreground">YZ'nin seçtiğiniz kategori için 5 yeni ders oluşturmasını sağlayın.</p>
+                <CardContent className="flex flex-1 items-center justify-center py-6">
+                    {totalUsers === null ? (
+                        <Skeleton className="h-12 w-24" />
+                    ) : (
+                        <div className="text-center">
+                            <p className="text-5xl font-bold tracking-tighter text-primary">{totalUsers}</p>
+                            <p className="text-sm text-muted-foreground mt-2">Aktif Üye</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Kart 2: Sergi Düzenleme */}
+            <Card className="flex flex-col">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <BrainCircuit className="h-5 w-5 text-cyan-400" />
+                        Sergi Düzenle
+                    </CardTitle>
+                    <CardDescription>Herkese açık sergi alanındaki fotoğrafları yönetin.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-1 items-center justify-center py-6">
+                    <div className="text-center text-muted-foreground">
+                        <Zap className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p className="text-sm">Bu özellik üzerinde çalışılıyor.</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Kart 3: Günlük Ders Üret */}
+            <Card className="flex flex-col">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-purple-400" />
+                        Günlük Ders Üret
+                    </CardTitle>
+                    <CardDescription>YZ'nin seçtiğiniz kategori için 5 yeni ders oluşturmasını sağlayın.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1">
+                    <form onSubmit={handleLessonSubmit(onGenerateLessons)} className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <Controller
-                                name="level"
-                                control={lessonControl}
-                                render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <SelectTrigger><SelectValue placeholder="Seviye Seçin" /></SelectTrigger>
-                                        <SelectContent>
-                                            {Object.keys(curriculum).map(level => (
-                                                <SelectItem key={level} value={level}>{level}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
-                            <Controller
-                                name="category"
-                                control={lessonControl}
-                                render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedLevel}>
-                                        <SelectTrigger><SelectValue placeholder="Kategori Seçin" /></SelectTrigger>
-                                        <SelectContent>
-                                            {selectedLevel && curriculum[selectedLevel].map(cat => (
-                                                <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
+                            <div className="space-y-2">
+                                <Label>Seviye</Label>
+                                <Controller
+                                    name="level"
+                                    control={lessonControl}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <SelectTrigger><SelectValue placeholder="Seviye Seçin" /></SelectTrigger>
+                                            <SelectContent>
+                                                {Object.keys(curriculum).map(level => (
+                                                    <SelectItem key={level} value={level}>{level}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Kategori</Label>
+                                <Controller
+                                    name="category"
+                                    control={lessonControl}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedLevel}>
+                                            <SelectTrigger><SelectValue placeholder="Kategori Seçin" /></SelectTrigger>
+                                            <SelectContent>
+                                                {selectedLevel && curriculum[selectedLevel].map(cat => (
+                                                    <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
                         </div>
                         <Button type="submit" disabled={isGenerating} className="w-full">
                             {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Üret ve Kaydet
                         </Button>
                     </form>
-
-                    <form onSubmit={handleFeedbackSubmit(onGetStrategicFeedback)} className="space-y-4 p-4 border rounded-lg">
-                        <h4 className="font-semibold">Stratejik Geri Bildirim Üret (Test)</h4>
-                        <p className="text-sm text-muted-foreground">test_user_1.json verisini kullanarak yeni koçluk prompt'unu test edin.</p>
-                        <div>
-                            <Label htmlFor="prompt">Prompt</Label>
-                            <Controller
-                                name="prompt"
-                                control={feedbackControl}
-                                render={({ field }) => <Textarea id="prompt" {...field} className="mt-1" />}
-                            />
-                        </div>
-                        <Button type="submit" disabled={isGeneratingFeedback} className="w-full">
-                            {isGeneratingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Geri Bildirim Al
-                        </Button>
-                        {aiResponse && (
-                            <div>
-                                <Label>Yapay Zeka Cevabı</Label>
-                                <pre className="mt-1 p-2 bg-muted rounded-md text-xs whitespace-pre-wrap"><code>{aiResponse}</code></pre>
-                            </div>
-                        )}
-                    </form>
                 </CardContent>
             </Card>
 
-             <div className="space-y-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Users /> Toplam Kullanıcı</CardTitle>
-                        <CardDescription>Sisteme kayıtlı toplam kullanıcı sayısı.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {totalUsers === null ? <Skeleton className="h-10 w-24" /> : <p className="text-4xl font-bold">{totalUsers}</p>}
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><BrainCircuit /> Sergi Düzenle</CardTitle>
-                        <CardDescription>Herkese açık sergi alanındaki fotoğrafları yönetin.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">Bu özellik yakında eklenecektir.</p>
-                    </CardContent>
-                </Card>
-            </div>
+            {/* Kart 4: Geri Bildirim Test */}
+            <Card className="flex flex-col">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <MessageSquareText className="h-5 w-5 text-yellow-400" />
+                        Stratejik Geri Bildirim
+                    </CardTitle>
+                    <CardDescription>Yeni koçluk prompt'unu test verileriyle kontrol edin.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-4">
+                    <form onSubmit={handleFeedbackSubmit(onGetStrategicFeedback)} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="prompt">Test Mesajı</Label>
+                            <Controller
+                                name="prompt"
+                                control={feedbackControl}
+                                render={({ field }) => <Textarea id="prompt" {...field} className="min-h-[100px]" />}
+                            />
+                        </div>
+                        <Button type="submit" disabled={isGeneratingFeedback} className="w-full" variant="secondary">
+                            {isGeneratingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Test Et
+                        </Button>
+                    </form>
+                    {aiResponse && (
+                        <div className="mt-4">
+                            <Label className="text-xs text-muted-foreground uppercase">YZ Yanıtı</Label>
+                            <pre className="mt-1 p-2 bg-muted rounded-md text-[10px] font-mono whitespace-pre-wrap max-h-[200px] overflow-y-auto border">
+                                <code>{aiResponse}</code>
+                            </pre>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
