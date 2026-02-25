@@ -1,15 +1,13 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, deleteDoc, collection, query, where, addDoc, writeBatch, getDocs, documentId } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, deleteDoc, collection, query, where, writeBatch, getDocs, documentId } from 'firebase/firestore';
 import type { Group, PublicUserProfile, GroupInvite } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useTranslations } from 'next-intl';
 import QRCode from 'qrcode';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +22,6 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 
 export default function GroupDetailPage() {
-  const t = useTranslations('GroupDetailPage');
   const { groupId } = useParams();
   const router = useRouter();
   const { user } = useUser();
@@ -41,11 +38,10 @@ export default function GroupDetailPage() {
   const membersQuery = useMemoFirebase(() => (group && group.memberIds && group.memberIds.length > 0) ? query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds)) : null, [group, firestore]);
   const { data: members, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
   
-  const inviteFormSchema = z.object({ email: z.string().email(t('form_error_email')) });
+  const inviteFormSchema = z.object({ email: z.string().email("Geçerli bir e-posta adresi girin.") });
   const inviteForm = useForm({ resolver: zodResolver(inviteFormSchema) });
 
   const MemberItem = ({ member, isOwner, onRemove }: { member: PublicUserProfile, isOwner: boolean, onRemove: (memberId: string, memberName: string) => void }) => {
-    const { user } = useUser();
     return (
         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted">
             <div className="flex items-center gap-3">
@@ -64,12 +60,12 @@ export default function GroupDetailPage() {
                     </AlertDialogTrigger>
                      <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>{t('remove_dialog_title')}</AlertDialogTitle>
-                            <AlertDialogDescription>{t('remove_dialog_description', { memberName: member.name || 'member' })}</AlertDialogDescription>
+                            <AlertDialogTitle>Üyeyi çıkartmak istediğinizden emin misiniz?</AlertDialogTitle>
+                            <AlertDialogDescription>{member.name} gruptan kalıcı olarak çıkartılacaktır.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>İptal</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onRemove(member.id, member.name || 'User')}>{t('button_remove')}</AlertDialogAction>
+                            <AlertDialogAction onClick={() => onRemove(member.id, member.name || 'Üye')}>Çıkart</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -80,11 +76,11 @@ export default function GroupDetailPage() {
 
   const handleInviteMember = async (values: { email: string }) => {
     if (!group || !isOwner || !user) {
-        toast({ variant: 'destructive', title: t('toast_add_member_error_title'), description: t('toast_add_member_no_permission') });
+        toast({ variant: 'destructive', title: "Hata", description: "Üye eklemek için izniniz yok." });
         return;
     }
     if (group.memberIds.length >= group.maxMembers) {
-        toast({ variant: 'destructive', title: t('toast_group_full_title'), description: t('toast_group_full_description', { maxMembers: group.maxMembers }) });
+        toast({ variant: 'destructive', title: "Grup Dolu", description: `Bu grup en fazla ${group.maxMembers} üyeye sahip olabilir.` });
         return;
     }
 
@@ -92,14 +88,14 @@ export default function GroupDetailPage() {
         const userQuery = query(collection(firestore, 'users'), where('email', '==', values.email));
         const userSnapshot = await getDocs(userQuery);
         if (userSnapshot.empty) {
-            toast({ variant: 'destructive', title: t('toast_user_not_found_title'), description: t('toast_user_not_found_description') });
+            toast({ variant: 'destructive', title: "Kullanıcı Bulunamadı", description: "Bu e-postaya sahip bir kullanıcı yok." });
             return;
         }
         const invitedUserDoc = userSnapshot.docs[0];
         const invitedUser = { ...invitedUserDoc.data(), id: invitedUserDoc.id } as PublicUserProfile;
 
         if (group.memberIds.includes(invitedUser.id)) {
-            toast({ variant: 'destructive', title: t('toast_already_member_title'), description: t('toast_already_member_description') });
+            toast({ variant: 'destructive', title: "Zaten Üye", description: "Bu kullanıcı zaten grubun bir üyesi." });
             return;
         }
 
@@ -109,7 +105,7 @@ export default function GroupDetailPage() {
             groupId: group.id,
             groupName: group.name,
             fromUserId: user.uid,
-            fromUserName: user.displayName || 'Owner',
+            fromUserName: user.displayName || 'Sahip',
             toUserId: invitedUser.id,
             status: 'pending',
             createdAt: new Date().toISOString(),
@@ -117,11 +113,11 @@ export default function GroupDetailPage() {
         batch.set(inviteRef, { ...newInvite, id: inviteRef.id });
         await batch.commit();
 
-        toast({ title: t('toast_invite_sent_title'), description: t('toast_invite_sent_description', { email: values.email }) });
+        toast({ title: "Davetiye Gönderildi!", description: `${values.email} adresine bir grup davetiyesi gönderildi.` });
         inviteForm.reset();
 
     } catch (e) {
-        toast({ variant: 'destructive', title: t('toast_add_member_error_title'), description: t('toast_add_member_generic_error') });
+        toast({ variant: 'destructive', title: "Hata", description: "Üye davet edilirken bir sorun oluştu." });
     }
   };
 
@@ -129,9 +125,9 @@ export default function GroupDetailPage() {
       if (!group || !isOwner) return;
       try {
           await updateDoc(groupRef, { memberIds: arrayRemove(memberId) });
-          toast({ title: t('toast_remove_success', { memberName }) });
+          toast({ title: `${memberName} gruptan çıkartıldı.` });
       } catch (e) {
-          toast({ variant: 'destructive', title: t('toast_remove_error') });
+          toast({ variant: 'destructive', title: "Üye çıkartılırken bir hata oluştu." });
       }
   };
   
@@ -139,10 +135,10 @@ export default function GroupDetailPage() {
     if (!group || !isOwner) return;
     try {
         await deleteDoc(groupRef);
-        toast({ title: t('toast_delete_success') });
+        toast({ title: "Grup başarıyla silindi." });
         router.push('/groups');
     } catch (e) {
-        toast({ variant: 'destructive', title: t('toast_delete_error') });
+        toast({ variant: 'destructive', title: "Grup silinirken bir hata oluştu." });
     }
   };
 
@@ -158,8 +154,8 @@ export default function GroupDetailPage() {
   
   const copyToClipboard = (text: string, type: 'code' | 'link') => {
       navigator.clipboard.writeText(text).then(() => {
-          toast({ title: t('toast_copied_title'), description: type === 'code' ? t('toast_copied_code') : t('toast_copied_link') });
-      }).catch(() => toast({ variant: 'destructive', title: 'Hata', description: `${type} ${t('toast_copy_error')}` }));
+          toast({ title: "Kopyalandı!", description: type === 'code' ? "Kod panoya kopyalandı." : "Link panoya kopyalandı." });
+      }).catch(() => toast({ variant: 'destructive', title: 'Hata', description: `${type} kopyalanamadı.` }));
   };
 
   if (isGroupLoading) {
@@ -169,9 +165,9 @@ export default function GroupDetailPage() {
   if (!group || error) {
     return (
       <div className="container text-center p-8">
-        <h1 className="text-2xl font-bold">{t('group_not_found_title')}</h1>
-        <p className="text-muted-foreground">{error ? t('group_not_found_error') : t('group_not_found_no_permission')}</p>
-        <Button onClick={() => router.back()} className="mt-4"><ArrowLeft className="mr-2 h-4 w-4" /> {t('button_go_back')}</Button>
+        <h1 className="text-2xl font-bold">Grup Bulunamadı</h1>
+        <p className="text-muted-foreground">{error ? "Bu grubu yüklerken bir hata oluştu." : "Böyle bir grup mevcut değil veya görme izniniz yok."}</p>
+        <Button onClick={() => router.back()} className="mt-4"><ArrowLeft className="mr-2 h-4 w-4" /> Geri Dön</Button>
       </div>
     );
   }
@@ -185,9 +181,9 @@ export default function GroupDetailPage() {
             </div>
             {isOwner && (
                 <Dialog>
-                    <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" />{t('button_invite_member')}</Button></DialogTrigger>
+                    <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" /> Üye Davet Et</Button></DialogTrigger>
                     <DialogContent>
-                        <DialogHeader><DialogTitle>{t('button_invite_member')}</DialogTitle><DialogDescription>{t('invite_member_description')}</DialogDescription></DialogHeader>
+                        <DialogHeader><DialogTitle>Üye Davet Et</DialogTitle><DialogDescription>Gruba davet etmek istediğiniz kullanıcının e-posta adresini girin.</DialogDescription></DialogHeader>
                         <Form {...inviteForm}>
                             <form onSubmit={inviteForm.handleSubmit(handleInviteMember)} className="space-y-4">
                                 <FormField control={inviteForm.control} name="email" render={({ field }) => (
@@ -196,7 +192,7 @@ export default function GroupDetailPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <Button type="submit" className="w-full">{t('button_invite')}</Button>
+                                <Button type="submit" className="w-full">Davet Et</Button>
                             </form>
                         </Form>
                     </DialogContent>
@@ -206,22 +202,22 @@ export default function GroupDetailPage() {
 
         <Tabs defaultValue="members" className="w-full">
             <TabsList>
-                <TabsTrigger value="members">{t('tab_members')}</TabsTrigger>
-                <TabsTrigger value="gallery" disabled>{t('tab_gallery')}</TabsTrigger>
-                <TabsTrigger value="competitions">{t('tab_competitions')}</TabsTrigger>
-                {isOwner && <TabsTrigger value="settings">{t('tab_settings')}</TabsTrigger>}
+                <TabsTrigger value="members">Üyeler</TabsTrigger>
+                <TabsTrigger value="gallery" disabled>Galeri</TabsTrigger>
+                <TabsTrigger value="competitions">Yarışmalar</TabsTrigger>
+                {isOwner && <TabsTrigger value="settings">Ayarlar</TabsTrigger>}
             </TabsList>
             <TabsContent value="members" className="mt-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex justify-between items-center">{t('members_title')} ({members?.length || 0} / {group.maxMembers})
+                        <CardTitle className="flex justify-between items-center">Üyeler ({members?.length || 0} / {group.maxMembers})
                         {isOwner && (
                             <Dialog>
-                                <DialogTrigger asChild><Button variant="secondary">{t('button_show_invite')}</Button></DialogTrigger>
+                                <DialogTrigger asChild><Button variant="secondary">Davet Seçeneklerini Göster</Button></DialogTrigger>
                                 <DialogContent>
-                                    <DialogHeader><DialogTitle>{t('invite_dialog_title')}</DialogTitle><DialogDescription>{t('invite_dialog_description')}</DialogDescription></DialogHeader>
+                                    <DialogHeader><DialogTitle>Gruba Katılım Daveti</DialogTitle><DialogDescription>Bu QR kodu, linki veya 6 haneli kodu kullanarak yeni üyeleri grubunuza davet edebilirsiniz.</DialogDescription></DialogHeader>
                                     <div className="flex flex-col items-center gap-4">
-                                        {qrCodeDataUrl && <img src={qrCodeDataUrl} alt="Group QR Code" />}
+                                        {qrCodeDataUrl && <img src={qrCodeDataUrl} alt="Grup QR Kodu" />}
                                         <div className="flex items-center gap-2">
                                             <Input readOnly value={group.joinCode} className="text-center font-mono text-lg tracking-widest" />
                                             <Button size="icon" variant="outline" onClick={() => copyToClipboard(group.joinCode || '', 'code')}><Copy /></Button>
@@ -248,21 +244,21 @@ export default function GroupDetailPage() {
                 </Card>
             </TabsContent>
             <TabsContent value="competitions" className="mt-6">
-                <p className="text-muted-foreground text-center p-8">{t('wip_placeholder')}</p>
+                <p className="text-muted-foreground text-center p-8">Gruba özel sergi ve ödev alanı yakında burada olacak.</p>
             </TabsContent>
             {isOwner && (
                 <TabsContent value="settings" className="mt-6">
                      <Card>
                         <CardHeader>
-                            <CardTitle>{t('delete_group_title')}</CardTitle>
-                            <CardDescription>{t('delete_group_description')}</CardDescription>
+                            <CardTitle>Grubu Sil</CardTitle>
+                            <CardDescription>Bu işlem geri alınamaz. Grup ve tüm içeriği kalıcı olarak silinecektir.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="destructive">{t('button_delete_group')}</Button></AlertDialogTrigger>
+                                <AlertDialogTrigger asChild><Button variant="destructive">Grubu Kalıcı Olarak Sil</Button></AlertDialogTrigger>
                                 <AlertDialogContent>
-                                    <AlertDialogHeader><AlertDialogTitle>{t('delete_group_dialog_title')}</AlertDialogTitle><AlertDialogDescription>{t('delete_group_dialog_description')}</AlertDialogDescription></AlertDialogHeader>
-                                    <AlertDialogFooter><AlertDialogCancel>İptal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteGroup}>{t('button_delete_group')}</AlertDialogAction></AlertDialogFooter>
+                                    <AlertDialogHeader><AlertDialogTitle>Grubu silmek istediğinizden emin misiniz?</AlertDialogTitle><AlertDialogDescription>Bu işlem grubu ve ilişkili tüm verileri kalıcı olarak silecektir.</AlertDialogDescription></AlertDialogHeader>
+                                    <AlertDialogFooter><AlertDialogCancel>İptal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteGroup}>Grubu Kalıcı Olarak Sil</AlertDialogAction></AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
                         </CardContent>
@@ -273,5 +269,3 @@ export default function GroupDetailPage() {
     </div>
   );
 }
-
-    

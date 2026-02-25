@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,22 +9,38 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
-import { addDoc, collection, doc, getDocs, query, writeBatch, getCountFromServer } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/lib/firebase';
 import { Loader2, Zap, BrainCircuit, Users } from 'lucide-react';
 import testUser1Data from '@/lib/test_user_1.json';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const curriculum = {
-  Temel: [ "cat_b_intro", "cat_b_exposure", "cat_b_focus", "cat_b_composition", "cat_b_light" ],
-  Orta: [ "cat_i_genres", "cat_i_advanced_exposure", "cat_i_light_management", "cat_i_storytelling", "cat_i_post_production" ],
-  İleri: [ "cat_a_specialization", "cat_a_studio_light", "cat_a_advanced_techniques", "cat_a_style", "cat_a_business" ],
+  Temel: [ 
+    { id: "cat_b_intro", label: "Fotoğrafçılığa Giriş" }, 
+    { id: "cat_b_exposure", label: "Pozlama Temelleri" }, 
+    { id: "cat_b_focus", label: "Netlik ve Odaklama" }, 
+    { id: "cat_b_composition", label: "Temel Kompozisyon" }, 
+    { id: "cat_b_light", label: "Işık Bilgisi" } 
+  ],
+  Orta: [ 
+    { id: "cat_i_genres", label: "Tür Bazlı Çekim Teknikleri" }, 
+    { id: "cat_i_advanced_exposure", label: "İleri Pozlama Teknikleri" }, 
+    { id: "cat_i_light_management", label: "Işık Yönetimi" }, 
+    { id: "cat_i_storytelling", label: "Görsel Hikâye Anlatımı" }, 
+    { id: "cat_i_post_production", label: "Post-Prodüksiyon Temelleri" } 
+  ],
+  İleri: [ 
+    { id: "cat_a_specialization", label: "Uzmanlık Alanı Derinleşme" }, 
+    { id: "cat_a_studio_light", label: "Profesyonel Işık Kurulumu" }, 
+    { id: "cat_a_advanced_techniques", label: "Gelişmiş Teknikler" }, 
+    { id: "cat_a_style", label: "Sanatsal Kimlik ve Stil" }, 
+    { id: "cat_a_business", label: "Ticari ve Marka Konumlandırma" } 
+  ],
 };
 type Level = keyof typeof curriculum;
 
 export default function AdminPanel() {
-    const t = useTranslations('ProfilePage');
-    const tCurriculum = useTranslations('Curriculum');
     const { toast } = useToast();
     const firestore = useFirestore();
     const { user } = useUser();
@@ -47,11 +62,11 @@ export default function AdminPanel() {
 
     const onGenerateLessons = async (data: { level: Level; category: string; }) => {
         if (!data.level || !data.category) {
-            toast({ variant: 'destructive', title: t('admin_toast_missing_selection_title'), description: t('admin_toast_missing_selection_description') });
+            toast({ variant: 'destructive', title: "Eksik Seçim", description: "Lütfen ders üretmek için bir seviye ve bir kategori seçin." });
             return;
         }
         setIsGenerating(true);
-        toast({ title: t('admin_toast_generating_title'), description: t('admin_toast_generating_description', { level: data.level, category: data.category }) });
+        toast({ title: "Dersler Üretiliyor...", description: `YZ, '${data.level}' seviyesi, '${data.category}' kategorisi için 5 yeni ders hazırlıyor.` });
         try {
             const lessons = await generateDailyLessons({ level: data.level, category: data.category, language: 'tr' });
             if (firestore) {
@@ -68,10 +83,10 @@ export default function AdminPanel() {
                 });
                 await batch.commit();
             }
-            toast({ title: t('admin_toast_generate_success_title'), description: t('admin_toast_generate_success_description', { count: lessons.length, category: data.category }) });
+            toast({ title: "Başarılı!", description: `${lessons.length} yeni ders '${data.category}' kategorisine eklendi.` });
         } catch (error) {
             console.error("Lesson generation error:", error);
-            toast({ variant: 'destructive', title: t('admin_toast_generate_error_title'), description: t('admin_toast_generate_error_description') });
+            toast({ variant: 'destructive', title: "Hata!", description: "Dersler üretilirken veya kaydedilirken bir sorun oluştu." });
         } finally {
             setIsGenerating(false);
         }
@@ -115,20 +130,20 @@ export default function AdminPanel() {
         <div className="grid gap-8 md:grid-cols-2">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Zap className="text-yellow-400" /> {t('admin_tools_title')}</CardTitle>
-                    <CardDescription>{t('admin_tools_description')}</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><Zap className="text-yellow-400" /> Yönetici Araçları</CardTitle>
+                    <CardDescription>Uygulama için yönetimsel görevleri buradan yapın.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <form onSubmit={handleLessonSubmit(onGenerateLessons)} className="space-y-4 p-4 border rounded-lg">
-                        <h4 className="font-semibold">{t('admin_generate_lessons_title')}</h4>
-                        <p className="text-sm text-muted-foreground">{t('admin_generate_lessons_description')}</p>
+                        <h4 className="font-semibold">Günlük Dersleri Üret</h4>
+                        <p className="text-sm text-muted-foreground">YZ'nin seçtiğiniz kategori için 5 yeni ders oluşturmasını sağlayın.</p>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <Controller
                                 name="level"
                                 control={lessonControl}
                                 render={({ field }) => (
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <SelectTrigger><SelectValue placeholder={t('admin_select_level')} /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Seviye Seçin" /></SelectTrigger>
                                         <SelectContent>
                                             {Object.keys(curriculum).map(level => (
                                                 <SelectItem key={level} value={level}>{level}</SelectItem>
@@ -142,10 +157,10 @@ export default function AdminPanel() {
                                 control={lessonControl}
                                 render={({ field }) => (
                                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedLevel}>
-                                        <SelectTrigger><SelectValue placeholder={t('admin_select_category')} /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Kategori Seçin" /></SelectTrigger>
                                         <SelectContent>
                                             {selectedLevel && curriculum[selectedLevel].map(cat => (
-                                                <SelectItem key={cat} value={tCurriculum(cat as any)}>{tCurriculum(cat as any)}</SelectItem>
+                                                <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -154,15 +169,15 @@ export default function AdminPanel() {
                         </div>
                         <Button type="submit" disabled={isGenerating} className="w-full">
                             {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t('admin_button_generate')}
+                            Üret ve Kaydet
                         </Button>
                     </form>
 
                     <form onSubmit={handleFeedbackSubmit(onGetStrategicFeedback)} className="space-y-4 p-4 border rounded-lg">
-                        <h4 className="font-semibold">{t('admin_strategic_feedback_title')}</h4>
-                        <p className="text-sm text-muted-foreground">{t('admin_strategic_feedback_description')}</p>
+                        <h4 className="font-semibold">Stratejik Geri Bildirim Üret (Test)</h4>
+                        <p className="text-sm text-muted-foreground">test_user_1.json verisini kullanarak yeni koçluk prompt'unu test edin.</p>
                         <div>
-                            <Label htmlFor="prompt">{t('admin_prompt_label')}</Label>
+                            <Label htmlFor="prompt">Prompt</Label>
                             <Controller
                                 name="prompt"
                                 control={feedbackControl}
@@ -171,11 +186,11 @@ export default function AdminPanel() {
                         </div>
                         <Button type="submit" disabled={isGeneratingFeedback} className="w-full">
                             {isGeneratingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t('admin_button_get_feedback')}
+                            Geri Bildirim Al
                         </Button>
                         {aiResponse && (
                             <div>
-                                <Label>{t('admin_response_label')}</Label>
+                                <Label>Yapay Zeka Cevabı</Label>
                                 <pre className="mt-1 p-2 bg-muted rounded-md text-xs whitespace-pre-wrap"><code>{aiResponse}</code></pre>
                             </div>
                         )}
@@ -186,8 +201,8 @@ export default function AdminPanel() {
              <div className="space-y-8">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Users />{t('admin_total_users_title')}</CardTitle>
-                        <CardDescription>{t('admin_total_users_description')}</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Users /> Toplam Kullanıcı</CardTitle>
+                        <CardDescription>Sisteme kayıtlı toplam kullanıcı sayısı.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {totalUsers === null ? <Skeleton className="h-10 w-24" /> : <p className="text-4xl font-bold">{totalUsers}</p>}
@@ -195,8 +210,8 @@ export default function AdminPanel() {
                 </Card>
                  <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><BrainCircuit /> {t('admin_edit_exhibition_title')}</CardTitle>
-                        <CardDescription>{t('admin_edit_exhibition_description')}</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><BrainCircuit /> Sergi Düzenle</CardTitle>
+                        <CardDescription>Herkese açık sergi alanındaki fotoğrafları yönetin.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground">Bu özellik yakında eklenecektir.</p>

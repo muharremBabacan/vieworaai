@@ -2,33 +2,24 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, doc, query, orderBy, where, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
+import { collection, doc, query, where, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import type { GroupInvite } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Button } from '@/shared/ui/button';
 import { Bell, Users, Check, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useRouter } from '@/navigation';
-import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { tr, enUS } from 'date-fns/locale';
+import { tr } from 'date-fns/locale';
 import { useToast } from '@/shared/hooks/use-toast';
 
-const localeMap: Record<string, Locale> = { tr, en: enUS };
-
 export function GroupInvitesPopover() {
-  const t = useTranslations('Notifications');
-  const tGroups = useTranslations('GroupsPage');
-  const locale = tr;
   const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const dateFnsLocale = localeMap[locale] || enUS;
-  
-  // This is the corrected, secure, and efficient query as per your instruction.
   const invitesQuery = useMemoFirebase(() => {
     if (!user || !firestore) {
       return null;
@@ -44,7 +35,6 @@ export function GroupInvitesPopover() {
 
   const invites = useMemo(() => {
     if (!invitesData) return [];
-    // Manually sort by date since orderBy may require an index
     return [...invitesData].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [invitesData]);
   
@@ -60,23 +50,28 @@ export function GroupInvitesPopover() {
        const groupRef = doc(firestore, 'groups', invite.groupId);
        
        try {
-         // Use a batch write for an atomic operation.
          batch.update(inviteRef, { status: 'accepted' });
          batch.update(groupRef, { memberIds: arrayUnion(user.uid) });
          
          await batch.commit();
 
-         toast({ title: tGroups('toast_join_success_title'), description: tGroups('toast_join_success_description', { name: invite.groupName }) });
+         toast({ 
+           title: "Başarıyla Katıldın!", 
+           description: `${invite.groupName} grubuna hoş geldin.` 
+         });
 
          setIsOpen(false);
          router.push(`/groups/${invite.groupId}`);
        } catch (error) {
          console.error("Failed to accept invite:", error);
-         toast({ variant: 'destructive', title: tGroups('toast_join_fail_title'), description: tGroups('toast_join_fail_description')});
-         // Clean up the failed invite
+         toast({ 
+           variant: 'destructive', 
+           title: "Katılım Başarısız", 
+           description: "Gruba katılamadınız. Grup dolu olabilir veya bir hata oluştu."
+         });
          await updateDoc(inviteRef, { status: 'declined' });
        }
-    } else { // declined
+    } else {
         await updateDoc(inviteRef, { status: 'declined' });
     }
   };
@@ -95,7 +90,7 @@ export function GroupInvitesPopover() {
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between border-b p-3">
-          <h4 className="font-medium text-sm">{t('title')}</h4>
+          <h4 className="font-medium text-sm">Bildirimler</h4>
         </div>
         <ScrollArea className="h-96">
           <div className="p-2">
@@ -107,10 +102,12 @@ export function GroupInvitesPopover() {
                       <Users className="h-4 w-4 text-secondary-foreground" />
                     </div>
                     <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">{t('notification_group_invite_title')}</p>
-                      <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('notification_group_invite_body', { inviterName: `<b>${invite.fromUserName}</b>`, groupName: `<b>${invite.groupName}</b>` }) }} />
+                      <p className="text-sm font-medium leading-none">Grup Daveti</p>
+                      <p className="text-sm text-muted-foreground">
+                        <b>{invite.fromUserName}</b> sizi "<b>{invite.groupName}</b>" grubuna davet etti.
+                      </p>
                       <p className="text-xs text-muted-foreground/70">
-                        {formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true, locale: dateFnsLocale })}
+                        {formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true, locale: tr })}
                       </p>
                     </div>
                   </div>
@@ -126,7 +123,7 @@ export function GroupInvitesPopover() {
               ))
             ) : (
               <div className="p-8 text-center text-sm text-muted-foreground">
-                <p>{t('no_notifications')}</p>
+                <p>Henüz bildirim yok.</p>
               </div>
             )}
           </div>

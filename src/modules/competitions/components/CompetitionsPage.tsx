@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Calendar, Sparkles } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 
 const getCompetitionStatus = (startDate: string, endDate: string) => {
@@ -22,22 +21,21 @@ const getCompetitionStatus = (startDate: string, endDate: string) => {
     return 'active';
 };
 
-const StatusBadge = ({ status, t }: { status: 'active' | 'upcoming' | 'ended', t: any }) => {
+const StatusBadge = ({ status }: { status: 'active' | 'upcoming' | 'ended' }) => {
     const variants = {
         active: 'bg-green-500/20 text-green-400 border-green-500/30',
         upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
         ended: 'bg-secondary text-muted-foreground border-border',
     };
     const text = {
-        active: t('status_active'),
-        upcoming: t('status_upcoming'),
-        ended: t('status_ended'),
+        active: 'Aktif',
+        upcoming: 'Yakında',
+        ended: 'Sona Erdi',
     };
     return <Badge className={variants[status]}>{text[status]}</Badge>;
 };
 
 export default function CompetitionsPage() {
-    const t = useTranslations('CompetitionsPage');
     const firestore = useFirestore();
     
     const competitionsQuery = useMemoFirebase(() => 
@@ -62,7 +60,7 @@ export default function CompetitionsPage() {
 
     return (
         <div className="container mx-auto">
-            <h1 className="text-3xl font-bold tracking-tight mb-8">{t('title')}</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-8">Yarışmalar</h1>
 
             {isLoading ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -91,7 +89,7 @@ export default function CompetitionsPage() {
                                 <div className="relative h-48 w-full">
                                     <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover" data-ai-hint={comp.imageHint} />
                                     <div className="absolute top-4 right-4">
-                                        <StatusBadge status={status} t={t} />
+                                        <StatusBadge status={status} />
                                     </div>
                                 </div>
                                 <CardContent className="p-6 flex flex-col flex-grow">
@@ -101,23 +99,23 @@ export default function CompetitionsPage() {
                                     <div className="mt-4 space-y-2 text-sm">
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <Sparkles className="h-4 w-4 text-primary" />
-                                            <span className="font-semibold mr-1">{t('theme_label')}</span>
+                                            <span className="font-semibold mr-1">Tema:</span>
                                             {comp.theme}
                                         </div>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <Trophy className="h-4 w-4 text-amber-400" />
-                                            <span className="font-semibold mr-1">{t('prize_label')}</span>
+                                            <span className="font-semibold mr-1">Ödül:</span>
                                             {comp.prize}
                                         </div>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <Calendar className="h-4 w-4" />
-                                            <span className="font-semibold mr-1">{t('date_label')}</span>
+                                            <span className="font-semibold mr-1">Tarih:</span>
                                             {format(new Date(comp.startDate), 'dd/MM/yy')} - {format(new Date(comp.endDate), 'dd/MM/yy')}
                                         </div>
                                     </div>
 
                                     <Button className="w-full mt-6" disabled={status !== 'active'}>
-                                        {status === 'active' ? t('button_join') : t('button_ended')}
+                                        {status === 'active' ? 'Fotoğraf Yükle ve Katıl' : 'Yarışma Sona Erdi'}
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -127,8 +125,8 @@ export default function CompetitionsPage() {
             ) : (
                 <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
                     <Trophy className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-                    <h3 className="text-2xl font-semibold">{t('no_competitions_title')}</h3>
-                    <p className="text-muted-foreground mt-2">{t('no_competitions_description')}</p>
+                    <h3 className="text-2xl font-semibold">Aktif Yarışma Bulunmuyor</h3>
+                    <p className="text-muted-foreground mt-2">Yeni yarışmalar yakında burada olacak. Takipte kalın!</p>
                 </div>
             )}
         </div>
