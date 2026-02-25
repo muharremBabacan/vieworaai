@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/shared/ui/dialog';
-import { Star, Heart, Loader2, Camera, X } from 'lucide-react';
+import { Star, Heart, Loader2, X } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDocumentNonBlocking } from '@/lib/firebase';
 import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -41,7 +41,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
 
   const overallScore = useMemo(() => {
     if (!photo?.aiFeedback) return 0;
-    const lScore = normalizeScore(photo.aiFeedback.light_score);
+    const lightScore = normalizeScore(photo.aiFeedback.light_score);
     const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
     const technicalScores = [
       normalizeScore(photo.aiFeedback.focus_score),
@@ -214,7 +214,7 @@ export default function ExplorePage() {
                         {filterUser?.photoURL && <AvatarImage src={filterUser.photoURL} alt={filterUser.name || ''} />}
                         <AvatarFallback>{filterUser?.name?.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="font-semibold">{filterUser?.name} kullanıcısının fotoğrafları</span>
+                    <span className="font-semibold">{filterUser?.name} kullanıcısının fotoğrafları gösteriliyor</span>
                 </div>
                 }
                 <Button variant="ghost" onClick={() => router.push('/explore')}>
@@ -243,10 +243,10 @@ export default function ExplorePage() {
                             
                             <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
                                 {photo.aiFeedback && (() => {
-                                    const lScore = normalizeScore(photo.aiFeedback.light_score);
-                                    const cScore = normalizeScore(photo.aiFeedback.composition_score);
+                                    const lightScore = normalizeScore(photo.aiFeedback.light_score);
+                                    const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
                                     const techScore = (normalizeScore(photo.aiFeedback.focus_score) + normalizeScore(photo.aiFeedback.color_control_score) + normalizeScore(photo.aiFeedback.background_control_score)) / 3;
-                                    const overallScore = (lScore + cScore + techScore) / 3;
+                                    const overallScore = (lightScore + compositionScore + techScore) / 3;
 
                                     return (
                                         <Badge className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
@@ -279,7 +279,7 @@ export default function ExplorePage() {
                 ))
             ) : (
                 <div className="col-span-full text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
-                    <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
+                    <Star className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
                     <h3 className="text-2xl font-semibold">Henüz kimse eserini paylaşmadı</h3>
                     <p className="text-muted-foreground mt-2">Kendi galerinizden bir fotoğrafı Sergi'ye göndererek burayı canlandırın!</p>
                 </div>
