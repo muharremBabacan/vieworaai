@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
@@ -15,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Trash2, Globe, Eye, Loader2, ArrowLeftRight } from 'lucide-react';
 import { useRouter } from '@/navigation';
@@ -70,18 +70,10 @@ const PhotoDetailDialog = ({
           </div>
           <div className="flex flex-col gap-4 overflow-y-auto pr-2">
             {photo.aiFeedback ? (
-              <Tabs defaultValue="overview">
-                <TabsList>
-                  <TabsTrigger value="overview">Özet</TabsTrigger>
-                  <TabsTrigger value="scores">Detaylı Puanlar</TabsTrigger>
-                </TabsList>
-                <TabsContent value="overview" className="prose prose-sm dark:prose-invert">
-                  <p>{photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis}</p>
-                </TabsContent>
-                <TabsContent value="scores">
-                  <p>Overall: {overallScore.toFixed(1)}</p>
-                </TabsContent>
-              </Tabs>
+                <div>
+                  <h3 className="font-semibold mb-2">Genel Puan: {overallScore.toFixed(1)}</h3>
+                  <p className="text-sm text-muted-foreground italic">"{photo.adaptiveFeedback || photo.aiFeedback.short_neutral_analysis}"</p>
+                </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-8 border rounded-lg bg-muted/50 h-full">
                 <p className="text-muted-foreground font-semibold">{t('status_awaiting_analysis')}</p>
@@ -146,13 +138,57 @@ export default function GalleryPage() {
     const photosQuery = useMemoFirebase(() => user ? query(collection(firestore, 'users', user.uid, 'photos'), where('userId', '==', user.uid)) : null, [user, firestore]);
     const { data: photos, isLoading } = useCollection<Photo>(photosQuery);
 
+    const filters = [
+      { id: 'all', label: t('filter_all') },
+      { id: 'unanalyzed', label: t('status_awaiting_analysis') },
+      { id: 'best_overall', label: t('filter_best_overall') },
+      { id: 'best_light', label: t('filter_best_light') },
+      { id: 'best_composition', label: t('filter_best_composition') },
+    ];
+    
+    const getOverallScore = (photo: Photo): number => {
+        if (!photo.aiFeedback) return 0;
+        const scores = [
+            photo.aiFeedback.light_score,
+            photo.aiFeedback.composition_score,
+            photo.aiFeedback.focus_score,
+            photo.aiFeedback.color_control_score,
+            photo.aiFeedback.background_control_score,
+            photo.aiFeedback.creativity_risk_score,
+        ];
+        const validScores = scores.filter(s => typeof s === 'number' && isFinite(s));
+        if (validScores.length === 0) return 0;
+        return validScores.reduce((sum, score) => sum + score, 0) / validScores.length;
+    };
+
     const filteredPhotos = useMemo(() => {
         if (!photos) return [];
-        let sorted = [...photos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (activeFilter === 'all') return sorted;
-        if (activeFilter === 'analyzed') return sorted.filter(p => p.aiFeedback);
-        if (activeFilter === 'unanalyzed') return sorted.filter(p => !p.aiFeedback);
-        return sorted;
+    
+        switch (activeFilter) {
+            case 'all':
+                return [...photos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            
+            case 'unanalyzed':
+                return photos.filter(p => !p.aiFeedback).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            
+            case 'best_overall':
+                return photos
+                    .filter(p => p.aiFeedback)
+                    .sort((a, b) => getOverallScore(b) - getOverallScore(a));
+    
+            case 'best_light':
+                return photos
+                    .filter(p => p.aiFeedback)
+                    .sort((a, b) => (b.aiFeedback?.light_score || 0) - (a.aiFeedback?.light_score || 0));
+    
+            case 'best_composition':
+                return photos
+                    .filter(p => p.aiFeedback)
+                    .sort((a, b) => (b.aiFeedback?.composition_score || 0) - (a.aiFeedback?.composition_score || 0));
+            
+            default:
+                return [...photos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
     }, [photos, activeFilter]);
 
     const handleAnalyze = async (photo: Photo) => {
@@ -269,13 +305,19 @@ export default function GalleryPage() {
         {photos && photos.length > 0 ? (
           <>
             <div className="mb-6">
-                 <Tabs value={activeFilter} onValueChange={setActiveFilter}>
-                    <TabsList>
-                        <TabsTrigger value="all">{t('filter_all')}</TabsTrigger>
-                        <TabsTrigger value="analyzed">Analiz Edilenler</TabsTrigger>
-                        <TabsTrigger value="unanalyzed">{t('status_awaiting_analysis')}</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                 <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar">
+                    {filters.map((filter) => (
+                        <Button
+                            key={filter.id}
+                            variant={activeFilter === filter.id ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setActiveFilter(filter.id)}
+                            className="shrink-0"
+                        >
+                            {filter.label}
+                        </Button>
+                    ))}
+                </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filteredPhotos.map((photo) => (
