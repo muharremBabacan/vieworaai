@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
@@ -17,8 +16,7 @@ import { getLevelFromXp } from '@/lib/gamification';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { UploadCloud, Sparkles, Loader2, Award } from 'lucide-react';
+import { UploadCloud, Sparkles, Loader2, Award, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Constants
@@ -140,39 +138,41 @@ const AnalysisResult = ({
 };
 
 // Component for the photo uploader
-const Uploader = ({ onFileSelect, userProfile, onAnalyze, onUploadOnly, isUploading, t }: { onFileSelect: (file: File) => void, userProfile: User, onAnalyze: () => void, onUploadOnly: () => void, isUploading: boolean, t: (key: keyof AbstractIntlMessages['DashboardPage']) => string; }) => {
+const Uploader = ({ onFileSelect, userProfile, t }: { onFileSelect: (file: File) => void, userProfile: User, t: (key: keyof AbstractIntlMessages['DashboardPage']) => string; }) => {
     const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
         onDrop: (acceptedFiles) => acceptedFiles.length > 0 && onFileSelect(acceptedFiles[0]),
-        noClick: true,
+        noClick: true, // We trigger it manually with the button
         noKeyboard: true,
         accept: { 'image/*': ['.jpeg', '.png', '.jpg', '.heic', '.webp'] }
     });
 
     return (
-        <div {...getRootProps()} className={cn("relative p-8 border-2 border-dashed rounded-xl text-center transition-colors", isDragActive ? "border-primary bg-primary/10" : "border-border")}>
-            <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <Sparkles className="h-12 w-12" />
-                <h2 className="text-xl font-semibold text-foreground">{t('greeting_title', { name: userProfile.name })}</h2>
-                <p className="text-foreground">{t('greeting_subtitle')}</p>
-                <p>{t('greeting_desc_1')}</p>
-                <p className="max-w-md">{t('greeting_desc_2')}</p>
+        <div className="text-center max-w-xl mx-auto">
+            <div className="inline-flex items-center gap-2.5 mb-4">
+                <Sparkles className="h-6 w-6 text-purple-400" />
+                <h1 className="text-5xl font-bold tracking-tighter">Luma</h1>
+                <Sparkles className="h-6 w-6 text-cyan-400" />
             </div>
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button onClick={open} size="lg" className="w-full sm:w-auto">
-                    <UploadCloud className="mr-2" /> {t('button_select_photo')}
-                </Button>
-                <Button onClick={onAnalyze} size="lg" variant="outline" className="w-full sm:w-auto" disabled={isUploading}>
-                    {isUploading ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />} {t('button_analyze', { cost: ANALYSIS_COST })}
-                </Button>
-                 <Button onClick={onUploadOnly} size="lg" variant="secondary" className="w-full sm:w-auto" disabled={isUploading}>
-                    {t('button_upload_only')}
-                </Button>
+            
+            <p className="text-lg text-muted-foreground">{t('main_title')}</p>
+            
+            <p className="text-xl font-medium mt-6">{t('greeting_cta', { name: userProfile.name })}</p>
+
+            <div {...getRootProps()} className={cn("relative mt-6 p-10 border-2 border-dashed rounded-xl transition-colors", isDragActive ? "border-primary bg-primary/10" : "border-border")}>
+                <input {...getInputProps()} />
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Camera className="h-12 w-12" />
+                    <p className="text-lg font-semibold text-foreground mt-4">{t('upload_prompt_main_new')}</p>
+                    <p className="text-sm">{t('upload_prompt_sub_new')}</p>
+                    <Button onClick={open} size="lg" className="mt-6">
+                        {t('button_select_photo')}
+                    </Button>
+                </div>
             </div>
-             <p className="text-xs text-muted-foreground mt-4">{t('upload_prompt_sub_new')}</p>
         </div>
     );
 };
+
 
 // Main component
 export default function PhotoAnalyzer() {
@@ -318,7 +318,7 @@ export default function PhotoAnalyzer() {
         <div className="container mx-auto">
             <div className="mx-auto max-w-4xl">
                  {!file ? (
-                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} onAnalyze={() => { if(file) handleUploadAndOptionalAnalysis(true) }} onUploadOnly={() => { if(file) handleUploadAndOptionalAnalysis(false) }} isUploading={isLoading} t={t} />
+                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} t={t} />
                  ) : isLoading ? (
                     <div className="analysis-wrapper">
                         <div className="image-wrapper">
