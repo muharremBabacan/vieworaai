@@ -14,6 +14,7 @@ import { addDoc, collection, doc, getDocs, query, writeBatch, getCountFromServer
 import { useFirestore, useUser } from '@/lib/firebase';
 import { Loader2, Zap, BrainCircuit, Users } from 'lucide-react';
 import testUser1Data from '@/lib/test_user_1.json';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const curriculum = {
   Temel: [ "cat_b_intro", "cat_b_exposure", "cat_b_focus", "cat_b_composition", "cat_b_light" ],
