@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -11,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
-import { collection, doc, writeBatch, getCountFromServer, addDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, addDoc, updateDoc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/lib/firebase';
 import { Loader2, Zap, BrainCircuit, Users, BookOpen, MessageSquareText, AlertCircle, Trophy, Calendar } from 'lucide-react';
 import testUser1Data from '@/lib/test_user_1.json';
@@ -183,7 +182,7 @@ export default function AdminPanel() {
                                 <Controller name="level" control={lessonControl} render={({ field }) => (
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <SelectTrigger><SelectValue placeholder="Seviye" /></SelectTrigger>
-                                        <SelectContent>{Object.keys(curriculum).map(l => <SelectItem key={level} value={level}>{level}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{Object.keys(curriculum).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                                     </Select>
                                 )} />
                                 <Controller name="category" control={lessonControl} render={({ field }) => (
