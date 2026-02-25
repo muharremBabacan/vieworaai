@@ -20,14 +20,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 
-const PRESET_AVATARS = [
-  { id: 'camera', label: 'Fotoğraf Makinesi', url: 'https://api.dicebear.com/7.x/icons/svg?seed=camera&backgroundColor=b6e3f4' },
-  { id: 'butterfly', label: 'Kelebek', url: 'https://api.dicebear.com/7.x/icons/svg?seed=butterfly&backgroundColor=ffdfbf' },
-  { id: 'horse', label: 'At', url: 'https://api.dicebear.com/7.x/icons/svg?seed=horse&backgroundColor=c0aede' },
-  { id: 'lion', label: 'Aslan', url: 'https://api.dicebear.com/7.x/icons/svg?seed=lion&backgroundColor=d1d4f9' },
-  { id: 'elephant', label: 'Fil', url: 'https://api.dicebear.com/7.x/icons/svg?seed=elephant&backgroundColor=ffd5dc' },
-  { id: 'bird', label: 'Kuş', url: 'https://api.dicebear.com/7.x/icons/svg?seed=bird&backgroundColor=ffebaf' },
-];
+// 12 adet avatar için yapılandırma. Görseller public/nick_photo/ içinde avatar-1.png... şeklinde olmalı.
+const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => ({
+  id: `avatar-${i + 1}`,
+  label: `Avatar ${i + 1}`,
+  url: `/nick_photo/avatar-${i + 1}.png`
+}));
 
 const resizeAndCropImage = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -208,7 +206,15 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
                 )}
                 title={avatar.label}
               >
-                <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover" />
+                <img 
+                  src={avatar.url} 
+                  alt={avatar.label} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Eğer dosya henüz yüklenmemişse boş bir görsel veya renk göster
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/222/white?text=Avatar';
+                  }}
+                />
                 {userProfile.photoURL === avatar.url && (
                   <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
                     <div className="bg-primary text-white p-0.5 rounded-full">
