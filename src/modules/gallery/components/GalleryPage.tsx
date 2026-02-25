@@ -164,6 +164,7 @@ const PhotoDetailDialog = ({
 
 export default function GalleryPage() {
     const t = useTranslations('GalleryPage');
+    const tLogin = useTranslations('LoginPage');
     const router = useRouter();
     const { user } = useUser();
     const firestore = useFirestore();
@@ -305,8 +306,8 @@ export default function GalleryPage() {
           const publicPhotoData = {
             ...photo,
             isSubmittedToExhibition: true,
-            userName: userProfile.name,
-            userPhotoURL: userProfile.photoURL,
+            userName: userProfile.name || tLogin('anonymous_artist'),
+            userPhotoURL: userProfile.photoURL || null,
             userLevelName: userProfile.level_name,
           };
           await setDoc(publicPhotoRef, publicPhotoData);
