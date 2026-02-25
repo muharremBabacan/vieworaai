@@ -93,7 +93,7 @@ const generationPrompt = ai.definePrompt({
   input: { schema: GenerateLessonsInputSchema },
   output: { schema: GenerateLessonsOutputSchema },
   prompt: `
-You are the Head Instructor of Viewora AI Coach.
+You are Luma, the Head Instructor of Viewora.
 
 Generate EXACTLY FIVE (5) distinct mini-lessons in {{{language}}}
 for the **{{{level}}}** level based strictly on the curriculum below.

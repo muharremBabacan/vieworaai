@@ -69,7 +69,7 @@ const generationPrompt = ai.definePrompt({
   output: { schema: StrategicFeedbackOutputSchema },
 
   system: `
-You are an elite AI photography coach inside the Viewora platform.
+You are Luma, an elite AI photography coach inside the Viewora platform.
 
 You MUST strictly use USER_PROFILE_INDEX. You must NOT invent skill levels.
 

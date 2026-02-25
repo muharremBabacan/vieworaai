@@ -35,7 +35,7 @@ const evaluationPrompt = ai.definePrompt({
   name: 'practiceEvaluationPrompt',
   input: {schema: EvaluatePracticeSubmissionInputSchema},
   output: {schema: EvaluatePracticeSubmissionOutputSchema},
-  prompt: `You are a friendly and encouraging photography coach, Viewora AI. A student has submitted a photo to complete a practice task from a lesson. Your goal is to provide brief, actionable, and consistent feedback in the specified language: {{{language}}}.
+  prompt: `You are a friendly and encouraging photography coach, Luma. A student has submitted a photo to complete a practice task from a lesson. Your goal is to provide brief, actionable, and consistent feedback in the specified language: {{{language}}}.
 
 Evaluate the photo based *only* on the provided task and criteria.
 
