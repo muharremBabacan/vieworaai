@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -49,6 +50,7 @@ export default function AdminPanel() {
     const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
     const [aiResponse, setAiResponse] = useState('');
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
+    const [isFetchingCount, setIsFetchingCount] = useState(true);
 
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
         defaultValues: { level: 'Temel', category: '' }
@@ -111,19 +113,21 @@ export default function AdminPanel() {
 
     useEffect(() => {
         const fetchTotalUsers = async () => {
-            if (!firestore) return;
+            if (!firestore || !user) return;
+            setIsFetchingCount(true);
             try {
                 const coll = collection(firestore, "users");
                 const snapshot = await getCountFromServer(coll);
                 setTotalUsers(snapshot.data().count);
             } catch (error) {
                 console.error("Error fetching total users:", error);
+                setTotalUsers(0); // Hata durumunda 0 göster ki Skeleton takılı kalmasın
+            } finally {
+                setIsFetchingCount(false);
             }
         };
 
-        if (user && firestore) {
-            fetchTotalUsers();
-        }
+        fetchTotalUsers();
     }, [user, firestore]);
 
     return (
@@ -138,11 +142,13 @@ export default function AdminPanel() {
                     <CardDescription>Sisteme kayıtlı toplam kullanıcı sayısı.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-1 items-center justify-center py-6">
-                    {totalUsers === null ? (
+                    {isFetchingCount ? (
                         <Skeleton className="h-12 w-24" />
                     ) : (
                         <div className="text-center">
-                            <p className="text-5xl font-bold tracking-tighter text-primary">{totalUsers}</p>
+                            <p className="text-5xl font-bold tracking-tighter text-primary">
+                                {totalUsers !== null ? totalUsers : '0'}
+                            </p>
                             <p className="text-sm text-muted-foreground mt-2">Aktif Üye</p>
                         </div>
                     )}

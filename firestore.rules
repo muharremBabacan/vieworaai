@@ -25,13 +25,21 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
     
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true || 
+        request.auth.token.email == 'babacan.muharrem@gmail.com' ||
+        request.auth.token.email == 'admin@viewora.ai'
+      );
+    }
+    
     //-------------------------------------------------------------------------
     // Collection Rules
     //-------------------------------------------------------------------------
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || (request.auth != null && request.auth.token.admin == true);
-      allow list: if request.auth != null && request.auth.token.admin == true;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if false;
@@ -50,11 +58,9 @@ service cloud.firestore {
     }
     
     match /public_profiles/{userId} {
-      // Any authenticated user can read public profiles for displaying names/avatars.
       allow get, list: if isSignedIn();
-      // Only the owner of the profile can create or update it.
       allow create, update: if isOwner(userId);
-      allow delete: if false; // Disallow deleting public profiles.
+      allow delete: if false;
     }
     
     match /user_profile_index/{userId} {
@@ -73,21 +79,15 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
                      request.auth.uid == request.resource.data.ownerId;
     
-      // Allow get for any signed in user to allow joining via link/code.
-      // Member-only content is protected in subcollections.
       allow get: if isSignedIn();
-      
-      // List is protected by query constraints on the client.
       allow list: if isSignedIn();
     
-      // Allow owners to update anything.
-      // Allow non-members to add themselves to the members list if the group is not full.
       allow update: if isGroupOwner() || (
         isSignedIn() &&
-        !(request.auth.uid in resource.data.memberIds) && // User is not already a member
-        request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1 && // Only one member is being added
-        request.auth.uid in request.resource.data.memberIds && // The user being added is the one making the request
-        request.resource.data.memberIds.size() <= resource.data.maxMembers // The group is not full
+        !(request.auth.uid in resource.data.memberIds) &&
+        request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1 &&
+        request.auth.uid in request.resource.data.memberIds &&
+        request.resource.data.memberIds.size() <= resource.data.maxMembers
       );
     
       allow delete: if isGroupOwner();
@@ -96,7 +96,6 @@ service cloud.firestore {
         allow read, write: if isMember();
       }
 
-      // Group Activities
       match /assignments/{assignmentId} {
         allow read: if isMember();
         allow write: if isGroupOwner();
@@ -144,52 +143,36 @@ service cloud.firestore {
 
     match /academyLessons/{lessonId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if request.auth != null && request.auth.token.admin == true;
+      allow create, update, delete: if isAdmin();
     }
     
-    // Global Competitions (Admin-managed)
     match /competitions/{competitionId} {
       allow read: if isSignedIn();
-      allow write: if request.auth.token.admin == true;
+      allow write: if isAdmin();
 
       match /entries/{entryId} {
         allow read: if isSignedIn();
-        // A user can create their own entry
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        // A user can vote on an entry by adding their UID to the votes array.
         allow update: if isSignedIn() && request.resource.data.votes == resource.data.votes.concat([request.auth.uid]);
-        // A user can delete their own entry, or an admin can delete it.
-        allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || request.auth.token.admin == true;
+        allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       }
     }
     
-    // This collection stores denormalized photo data for public viewing.
     match /public_photos/{photoId} {
-      // Anyone can read the public photos.
       allow get, list: if isSignedIn(); 
-      // Only the owner of the photo can create or delete it. The creation happens when a user submits their photo.
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // An admin or the photo owner can delete a public photo submission.
-      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || (request.auth != null && request.auth.token.admin == true);
+      allow delete: if (isSignedIn() && request.resource.data.userId == request.auth.uid) || isAdmin();
       
-      // Allow any signed-in user to like or unlike a photo, but only modify the 'likes' array.
       allow update: if isSignedIn()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
                     && (
-                      // Liking: User is adding their ID.
                       (
-                        // The new likes array must contain the user's ID.
                         request.auth.uid in request.resource.data.likes &&
-                        // The old likes array must NOT have contained the user's ID.
-                        // This also handles the case where the likes array didn't exist before.
                         (!('likes' in resource.data) || !(request.auth.uid in resource.data.likes))
                       )
                       ||
-                      // Unliking: User is removing their ID.
                       (
-                        // The new likes array must NOT contain the user's ID.
                         !('likes' in request.resource.data && request.auth.uid in request.resource.data.likes) &&
-                        // The old likes array MUST have contained the user's ID.
                         'likes' in resource.data && request.auth.uid in resource.data.likes
                       )
                     );
