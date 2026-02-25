@@ -102,7 +102,7 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
                                 <li>Fotoğrafın tüm fikri ve sınai hakları katılımcıya aittir.</li>
                                 <li>Katılımcı, gönderdiği içeriğin üçüncü kişilerin telif, marka, kişilik veya mülkiyet haklarını ihlal etmediğini kabul eder.</li>
                                 <li>İhlal durumunda doğacak tüm hukuki ve cezai sorumluluk katılımcıya aittir.</li>
-                                <li>Platform, ihlal şüphesi olan içeriği önceden bildirim yapmaksızın kaldırma hakkına sahiptir.</li>
+                                <li>Platform, ihlal şüphesi olan içeriği önceden bildirim yapmaksızın kaldırma hakkını sahipdir.</li>
                             </ul>
                         </section>
 
@@ -177,113 +177,119 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+                <DialogContent className="max-w-3xl max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl">
                     <DialogHeader className="sr-only">
                         <DialogTitle>{competition.title}</DialogTitle>
                         <DialogDescription>Yarışma detayları, kurallar ve katılım şartları.</DialogDescription>
                     </DialogHeader>
-                    <div className="relative h-64 w-full">
-                        <Image src={competition.imageUrl} alt={competition.title} fill className="object-cover" unoptimized />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                        <div className="absolute bottom-6 left-6 right-6">
-                            <div className="flex items-center gap-2 mb-3">
-                                <StatusBadge status={status} />
-                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 backdrop-blur-md">
-                                    {competition.targetLevel} Seviyesi
-                                </Badge>
-                            </div>
-                            <h2 className="text-3xl font-bold text-white tracking-tight">{competition.title}</h2>
-                        </div>
-                        <div className="absolute top-4 right-4">
-                            <DialogClose asChild>
-                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60">
-                                    <X className="h-5 w-5" />
-                                </Button>
-                            </DialogClose>
-                        </div>
+                    
+                    <div className="absolute top-4 right-4 z-20">
+                        <DialogClose asChild>
+                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 border border-white/10">
+                                <X className="h-6 w-6" />
+                            </Button>
+                        </DialogClose>
                     </div>
 
-                    <ScrollArea className="flex-1 p-8">
-                        <div className="grid md:grid-cols-3 gap-8">
-                            <div className="md:col-span-2 space-y-8">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                        <Info className="h-5 w-5 text-primary" /> Yarışma Hakkında
-                                    </h3>
-                                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
-                                </div>
-
-                                <div className="p-5 rounded-2xl bg-secondary/30 border border-border/50 backdrop-blur-sm">
-                                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
-                                        <Sparkles className="h-3 w-3" /> Katılım Bilgileri
-                                    </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                                                <Sparkles className="h-5 w-5 text-purple-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Tema</p>
-                                                <p className="text-sm font-semibold">{competition.theme}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                                                <Trophy className="h-5 w-5 text-amber-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Büyük Ödül</p>
-                                                <p className="text-sm font-semibold">{competition.prize}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                                                <Calendar className="h-5 w-5 text-blue-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Başlangıç</p>
-                                                <p className="text-sm font-semibold">{format(new Date(competition.startDate), 'd MMMM yyyy', { locale: tr })}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center">
-                                                <Calendar className="h-5 w-5 text-red-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Bitiş</p>
-                                                <p className="text-sm font-semibold">{format(new Date(competition.endDate), 'd MMMM yyyy', { locale: tr })}</p>
-                                            </div>
-                                        </div>
+                    <ScrollArea className="max-h-[95vh] w-full">
+                        <div className="flex flex-col">
+                            <div className="relative h-64 sm:h-80 w-full shrink-0">
+                                <Image src={competition.imageUrl} alt={competition.title} fill className="object-cover" unoptimized />
+                                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                                <div className="absolute bottom-6 left-6 right-6">
+                                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                        <StatusBadge status={status} />
+                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 backdrop-blur-md">
+                                            {competition.targetLevel} Seviyesi
+                                        </Badge>
                                     </div>
+                                    <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">{competition.title}</h2>
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                {status === 'active' && (
-                                    <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20 text-center">
-                                        <p className="text-[10px] uppercase font-bold text-orange-400 mb-1">Kalan Süre</p>
-                                        <div className="flex justify-center"><Countdown endDate={competition.endDate} /></div>
-                                    </div>
-                                )}
-
-                                <Button variant="outline" className="w-full h-12 flex items-center gap-2 rounded-xl" onClick={() => setIsRulesOpen(true)}>
-                                    <ScrollText className="h-4 w-4" />
-                                    Genel Kurallar
-                                </Button>
-
-                                <div className="p-5 rounded-2xl border border-dashed border-border bg-muted/5 text-center space-y-4">
-                                    <p className="text-xs text-muted-foreground">Yarışmaya katılmak için galerinizden uygun bir fotoğraf seçmelisiniz.</p>
-                                    {!isEligible && status === 'active' && (
-                                        <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 text-amber-500 text-[10px] font-semibold uppercase text-left border border-amber-500/20">
-                                            <AlertCircle className="h-4 w-4 shrink-0" /> Mevcut seviyeniz bu yarışma için uygun değildir.
+                            <div className="p-6 sm:p-8 space-y-8">
+                                <div className="grid md:grid-cols-3 gap-8">
+                                    <div className="md:col-span-2 space-y-8">
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                                                <Info className="h-5 w-5 text-primary" /> Yarışma Hakkında
+                                            </h3>
+                                            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
                                         </div>
-                                    )}
-                                    <Button 
-                                        className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20 rounded-xl" 
-                                        disabled={status !== 'active' || !isEligible}
-                                    >
-                                        {status === 'active' ? (isEligible ? 'Fotoğraf Yükle ve Katıl' : 'Uygun Değil') : 'Yarışma Kapalı'}
-                                    </Button>
+
+                                        <div className="p-5 rounded-2xl bg-secondary/30 border border-border/50 backdrop-blur-sm">
+                                            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
+                                                <Sparkles className="h-3 w-3" /> Katılım Bilgileri
+                                            </h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                                                        <Sparkles className="h-5 w-5 text-purple-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Tema</p>
+                                                        <p className="text-sm font-semibold">{competition.theme}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                                                        <Trophy className="h-5 w-5 text-amber-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Büyük Ödül</p>
+                                                        <p className="text-sm font-semibold">{competition.prize}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                                        <Calendar className="h-5 w-5 text-blue-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Başlangıç</p>
+                                                        <p className="text-sm font-semibold">{format(new Date(competition.startDate), 'd MMMM yyyy', { locale: tr })}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                                                        <Calendar className="h-5 w-5 text-red-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Bitiş</p>
+                                                        <p className="text-sm font-semibold">{format(new Date(competition.endDate), 'd MMMM yyyy', { locale: tr })}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {status === 'active' && (
+                                            <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20 text-center">
+                                                <p className="text-[10px] uppercase font-bold text-orange-400 mb-1">Kalan Süre</p>
+                                                <div className="flex justify-center"><Countdown endDate={competition.endDate} /></div>
+                                            </div>
+                                        )}
+
+                                        <Button variant="outline" className="w-full h-12 flex items-center gap-2 rounded-xl" onClick={() => setIsRulesOpen(true)}>
+                                            <ScrollText className="h-4 w-4" />
+                                            Genel Kurallar
+                                        </Button>
+
+                                        <div className="p-5 rounded-2xl border border-dashed border-border bg-muted/5 text-center space-y-4">
+                                            <p className="text-xs text-muted-foreground">Yarışmaya katılmak için galerinizden uygun bir fotoğraf seçmelisiniz.</p>
+                                            {!isEligible && status === 'active' && (
+                                                <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 text-amber-500 text-[10px] font-semibold uppercase text-left border border-amber-500/20">
+                                                    <AlertCircle className="h-4 w-4 shrink-0" /> Mevcut seviyeniz bu yarışma için uygun değildir.
+                                                </div>
+                                            )}
+                                            <Button 
+                                                className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20 rounded-xl" 
+                                                disabled={status !== 'active' || !isEligible}
+                                            >
+                                                {status === 'active' ? (isEligible ? 'Fotoğraf Yükle ve Katıl' : 'Uygun Değil') : 'Yarışma Kapalı'}
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

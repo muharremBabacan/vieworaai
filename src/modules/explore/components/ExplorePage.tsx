@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -84,53 +85,68 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="sr-only">
             <DialogTitle>Fotoğraf Detayı</DialogTitle>
             <DialogDescription>{profileInfo.name} kullanıcısının paylaştığı fotoğrafın teknik analizi ve beğenileri.</DialogDescription>
         </DialogHeader>
-        <div className="absolute right-4 top-4 z-10">
+        <div className="absolute right-4 top-4 z-20">
             <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-background/60 backdrop-blur-sm text-foreground/80">
-                    <X className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 border border-white/10">
+                    <X className="h-6 w-6" />
                 </Button>
             </DialogClose>
         </div>
-        <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black/5">
-          <Image src={photo.imageUrl} alt="Sergi" fill className="object-contain" unoptimized priority />
-        </div>
-        <div className="md:w-2/5 w-full overflow-y-auto p-6 space-y-6">
-            <div className="flex items-center gap-3 rounded-xl p-4 bg-gradient-to-br from-secondary/50 to-background border border-border/50 shadow-sm">
-              <Avatar className="h-14 w-14 border-2 border-primary/20 shadow-md">
-                {profileInfo.photoURL && <AvatarImage src={profileInfo.photoURL} alt={profileInfo.name} />}
-                <AvatarFallback className="text-xl font-bold">{profileInfo.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-base truncate text-foreground">{profileInfo.name}</p>
-                <Badge variant="outline" className="mt-1 bg-primary/5 text-primary border-primary/20 text-[11px] px-2 py-0.5">{profileInfo.level_name}</Badge>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3">
-                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" onClick={toggleLike} disabled={!user || isLiking}>
-                        {isLiking ? <Loader2 className="h-4 w-4 animate-spin"/> : <Heart className={cn("h-5 w-5", hasLiked && "fill-red-500 text-red-500")} />}
-                    </Button>
-                    <div><p className="font-semibold text-lg">{photo.likes?.length || 0}</p><p className="text-xs text-muted-foreground -mt-1">Beğeni</p></div>
+        
+        <ScrollArea className="max-h-[95vh] w-full">
+            <div className="flex flex-col md:flex-row">
+                <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black shrink-0">
+                  <Image src={photo.imageUrl} alt="Sergi" fill className="object-contain" unoptimized priority />
                 </div>
-                {overallScore > 0 && (
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary"><Star className="h-5 w-5 text-amber-400" /></div>
-                        <div><p className="font-semibold text-lg">{overallScore.toFixed(1)}</p><p className="text-xs text-muted-foreground -mt-1">Puan</p></div>
+                <div className="md:w-2/5 w-full p-6 sm:p-8 space-y-8 bg-background">
+                    <div className="flex items-center gap-4 rounded-2xl p-5 bg-secondary/30 border border-border/50 backdrop-blur-sm shadow-sm">
+                      <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-md">
+                        {profileInfo.photoURL && <AvatarImage src={profileInfo.photoURL} alt={profileInfo.name} className="object-cover" />}
+                        <AvatarFallback className="text-2xl font-bold">{profileInfo.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-lg truncate text-foreground">{profileInfo.name}</p>
+                        <Badge variant="outline" className="mt-1 bg-primary/5 text-primary border-primary/20 text-[11px] px-2 py-0.5">{profileInfo.level_name}</Badge>
+                      </div>
                     </div>
-                )}
-            </div>
-            {photo.aiFeedback?.short_neutral_analysis && (
-                <div className="space-y-2">
-                    <h4 className="font-semibold text-sm uppercase text-muted-foreground">Analiz Özeti</h4>
-                    <p className="text-sm text-foreground/90 italic leading-relaxed bg-muted/30 p-3 rounded-lg">"{photo.aiFeedback.short_neutral_analysis}"</p>
+
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-3">
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl" onClick={toggleLike} disabled={!user || isLiking}>
+                                {isLiking ? <Loader2 className="h-5 w-5 animate-spin"/> : <Heart className={cn("h-6 w-6", hasLiked && "fill-red-500 text-red-500")} />}
+                            </Button>
+                            <div><p className="font-bold text-xl leading-none">{photo.likes?.length || 0}</p><p className="text-xs text-muted-foreground mt-1">Beğeni</p></div>
+                        </div>
+                        {overallScore > 0 && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary border border-border/50"><Star className="h-6 w-6 text-amber-400" /></div>
+                                <div><p className="font-bold text-xl leading-none">{overallScore.toFixed(1)}</p><p className="text-xs text-muted-foreground mt-1">Puan</p></div>
+                            </div>
+                        )}
+                    </div>
+
+                    {photo.aiFeedback?.short_neutral_analysis && (
+                        <div className="space-y-3">
+                            <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Sparkles className="h-3 w-3" /> Analiz Özeti
+                            </h4>
+                            <p className="text-sm text-foreground/90 italic leading-relaxed bg-muted/20 p-4 rounded-2xl border border-border/50">"{photo.aiFeedback.short_neutral_analysis}"</p>
+                        </div>
+                    )}
+
+                    <div className="pt-4 border-t border-border/50">
+                        <Button asChild variant="secondary" className="w-full h-12 rounded-xl font-bold">
+                            <Link href={`/explore?user=${photo.userId}`}>Tüm Eserlerini Gör</Link>
+                        </Button>
+                    </div>
                 </div>
-            )}
-        </div>
+            </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
@@ -175,7 +191,7 @@ export default function ExplorePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {isLoading ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />) : 
              photos?.map((photo) => (
-                <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
+                <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer rounded-xl" onClick={() => setSelectedPhoto(photo)}>
                     <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent" />
                     <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
