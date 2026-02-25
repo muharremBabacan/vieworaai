@@ -110,6 +110,7 @@ export type Group = {
   createdAt: string;
   joinCode?: string;
   maxMembers: number;
+  photoURL?: string | null;
 };
 
 export type ChatMessage = {

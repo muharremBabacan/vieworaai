@@ -1,13 +1,15 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, deleteDoc, collection, query, where, writeBatch, getDocs, documentId } from 'firebase/firestore';
-import type { Group, PublicUserProfile, GroupInvite } from '@/types';
-import { useForm } from 'react-hook-form';
+import type { Group, PublicUserProfile, GroupInvite, User } from '@/types';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/shared/hooks/use-toast';
+import { getGroupLimits } from '@/lib/gamification';
 import QRCode from 'qrcode';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,11 +17,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, UserPlus, Trash2, Copy, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Copy, Link as LinkIcon, Settings as SettingsIcon, Camera, Check, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { cn } from '@/lib/utils';
+
+const GROUP_PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
+  const num = i + 1;
+  const filename = `nick${num < 10 ? '0' + num : num}.jpg`;
+  return {
+    id: `gavatar-${num}`,
+    url: `/nicphoto/${filename}`
+  };
+});
 
 export default function GroupDetailPage() {
   const { groupId } = useParams();
@@ -29,17 +42,67 @@ export default function GroupDetailPage() {
   const { toast } = useToast();
   
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const groupRef = useMemoFirebase(() => doc(firestore, 'groups', groupId as string), [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading, error } = useDoc<Group>(groupRef);
 
+  const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
+  const { data: userProfile } = useDoc<User>(userDocRef);
+
   const isOwner = group?.ownerId === user?.uid;
+  const groupLimits = getGroupLimits(userProfile?.level_name);
   
   const membersQuery = useMemoFirebase(() => (group && group.memberIds && group.memberIds.length > 0) ? query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds)) : null, [group, firestore]);
   const { data: members, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
   
   const inviteFormSchema = z.object({ email: z.string().email("Geçerli bir e-posta adresi girin.") });
   const inviteForm = useForm({ resolver: zodResolver(inviteFormSchema) });
+
+  const settingsFormSchema = z.object({
+    name: z.string().min(3, "En az 3 karakter olmalıdır.").max(50, "En fazla 50 karakter olabilir."),
+    description: z.string().max(200, "En fazla 200 karakter olabilir."),
+    maxMembers: z.number().min(1).max(groupLimits.maxMembers, `Seviyeniz için maksimum limit ${groupLimits.maxMembers}'dir.`),
+  });
+
+  const settingsForm = useForm({
+    resolver: zodResolver(settingsFormSchema),
+    values: group ? {
+      name: group.name,
+      description: group.description || '',
+      maxMembers: group.maxMembers
+    } : { name: '', description: '', maxMembers: 7 }
+  });
+
+  const handleUpdateSettings = async (values: z.infer<typeof settingsFormSchema>) => {
+    if (!group || !isOwner || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await updateDoc(groupRef, {
+        name: values.name,
+        description: values.description,
+        maxMembers: values.maxMembers
+      });
+      toast({ title: "Grup Güncellendi", description: "Değişiklikler başarıyla kaydedildi." });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Hata", description: "Ayarlar güncellenemedi." });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdatePhoto = async (url: string) => {
+    if (!group || !isOwner || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await updateDoc(groupRef, { photoURL: url });
+      toast({ title: "Grup Görseli Güncellendi" });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Hata", description: "Görsel güncellenemedi." });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const MemberItem = ({ member, isOwner, onRemove }: { member: PublicUserProfile, isOwner: boolean, onRemove: (memberId: string, memberName: string) => void }) => {
     return (
@@ -174,10 +237,16 @@ export default function GroupDetailPage() {
 
   return (
     <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
-                <p className="text-muted-foreground">{group.description}</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-sm">
+                    <AvatarImage src={group.photoURL || ''} className="object-cover" />
+                    <AvatarFallback className="text-2xl font-bold">{group.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
+                    <p className="text-muted-foreground">{group.description}</p>
+                </div>
             </div>
             {isOwner && (
                 <Dialog>
@@ -205,7 +274,7 @@ export default function GroupDetailPage() {
                 <TabsTrigger value="members">Üyeler</TabsTrigger>
                 <TabsTrigger value="gallery" disabled>Galeri</TabsTrigger>
                 <TabsTrigger value="competitions">Yarışmalar</TabsTrigger>
-                {isOwner && <TabsTrigger value="settings">Ayarlar</TabsTrigger>}
+                {isOwner && <TabsTrigger value="settings">Grup Ayarları</TabsTrigger>}
             </TabsList>
             <TabsContent value="members" className="mt-6">
                 <Card>
@@ -247,10 +316,90 @@ export default function GroupDetailPage() {
                 <p className="text-muted-foreground text-center p-8">Gruba özel sergi ve ödev alanı yakında burada olacak.</p>
             </TabsContent>
             {isOwner && (
-                <TabsContent value="settings" className="mt-6">
-                     <Card>
+                <TabsContent value="settings" className="mt-6 space-y-6">
+                    <Card>
                         <CardHeader>
-                            <CardTitle>Grubu Sil</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <SettingsIcon className="h-5 w-5" />
+                                Genel Bilgiler
+                            </CardTitle>
+                            <CardDescription>Grup adını, açıklamasını ve üye kapasitesini güncelleyin.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Form {...settingsForm}>
+                                <form onSubmit={settingsForm.handleSubmit(handleUpdateSettings)} className="space-y-4">
+                                    <FormField control={settingsForm.control} name="name" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Grup Adı</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={settingsForm.control} name="description" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Açıklama</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={settingsForm.control} name="maxMembers" render={({ field }) => (
+                                        <FormItem>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel>Maksimum Üye Sayısı</FormLabel>
+                                                <span className="text-[10px] font-bold text-primary uppercase">Maksimum: {groupLimits.maxMembers} üye</span>
+                                            </div>
+                                            <FormControl>
+                                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <Button type="submit" disabled={isUpdating} className="w-full">
+                                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Değişiklikleri Kaydet
+                                    </Button>
+                                </form>
+                            </Form>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Camera className="h-5 w-5" />
+                                Grup Görseli
+                            </CardTitle>
+                            <CardDescription>Grubunuzu temsil edecek bir simge seçin.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
+                                {GROUP_PRESET_AVATARS.map((avatar) => (
+                                    <button
+                                        key={avatar.id}
+                                        onClick={() => handleUpdatePhoto(avatar.url)}
+                                        disabled={isUpdating}
+                                        className={cn(
+                                            "relative aspect-square rounded-xl border-2 transition-all hover:scale-105 active:scale-95 overflow-hidden",
+                                            group.photoURL === avatar.url ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"
+                                        )}
+                                    >
+                                        <img src={avatar.url} alt="Grup Simge" className="w-full h-full object-cover" />
+                                        {group.photoURL === avatar.url && (
+                                            <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                                                <div className="bg-primary text-white p-1 rounded-full shadow-lg">
+                                                    <Check className="h-3 w-3" />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-destructive/50 bg-destructive/5">
+                        <CardHeader>
+                            <CardTitle className="text-destructive">Tehlikeli Bölge</CardTitle>
                             <CardDescription>Bu işlem geri alınamaz. Grup ve tüm içeriği kalıcı olarak silinecektir.</CardDescription>
                         </CardHeader>
                         <CardContent>
