@@ -3,14 +3,14 @@ import { useState, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { User, PublicUserProfile } from '@/types';
+import type { User } from '@/types';
 import { levels } from '@/lib/gamification';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, Code, Settings as SettingsIcon, User as UserIcon, Upload, Loader2 } from 'lucide-react';
+import { LogOut, Code, Settings as SettingsIcon, User as UserIcon, Upload, Loader2, Camera } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,45 @@ import Link from 'next/link';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { signOut } from 'firebase/auth';
+
+const PRESET_AVATARS = [
+  { id: 'camera', label: 'Fotoğraf Makinesi', url: 'https://api.dicebear.com/7.x/icons/svg?seed=camera&backgroundColor=b6e3f4' },
+  { id: 'butterfly', label: 'Kelebek', url: 'https://api.dicebear.com/7.x/icons/svg?seed=butterfly&backgroundColor=ffdfbf' },
+  { id: 'horse', label: 'At', url: 'https://api.dicebear.com/7.x/icons/svg?seed=horse&backgroundColor=c0aede' },
+  { id: 'lion', label: 'Aslan', url: 'https://api.dicebear.com/7.x/icons/svg?seed=lion&backgroundColor=d1d4f9' },
+  { id: 'elephant', label: 'Fil', url: 'https://api.dicebear.com/7.x/icons/svg?seed=elephant&backgroundColor=ffd5dc' },
+  { id: 'bird', label: 'Kuş', url: 'https://api.dicebear.com/7.x/icons/svg?seed=bird&backgroundColor=ffebaf' },
+];
+
+const resizeAndCropImage = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const size = 400; // Standart avatar boyutu
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject('Canvas context error');
+
+        // Orantılı kırpma (Center Crop)
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject('Blob conversion error');
+        }, 'image/jpeg', 0.85);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
 
 const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
   const [nickname, setNickname] = useState(userProfile.name || '');
@@ -53,15 +92,13 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
     const file = event.target.files?.[0];
     if (!file || !user || isUploading) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ variant: 'destructive', title: "Dosya Çok Büyük", description: "Lütfen 2MB'dan küçük bir resim seçin." });
-      return;
-    }
-
     setIsUploading(true);
     try {
-      const photoRef = ref(storage, `users/${user.uid}/profile_photo_${Date.now()}`);
-      const uploadResult = await uploadBytes(photoRef, file);
+      // Görüntüyü küçült ve kırp
+      const resizedBlob = await resizeAndCropImage(file);
+      
+      const photoRef = ref(storage, `users/${user.uid}/profile_photo_v2`);
+      const uploadResult = await uploadBytes(photoRef, resizedBlob);
       const photoURL = await getDownloadURL(uploadResult.ref);
 
       const userRef = doc(firestore, 'users', user.uid);
@@ -70,10 +107,28 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
       await updateDoc(userRef, { photoURL });
       await updateDoc(publicRef, { photoURL });
 
-      toast({ title: "Fotoğraf Güncellendi", description: "Profil fotoğrafınız başarıyla yüklendi." });
+      toast({ title: "Fotoğraf Güncellendi", description: "Profil fotoğrafınız başarıyla yüklendi ve optimize edildi." });
     } catch (error) {
       console.error("Upload error:", error);
       toast({ variant: 'destructive', title: "Hata", description: "Fotoğraf yüklenemedi." });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSelectPreset = async (url: string) => {
+    if (!user || !firestore || isUploading) return;
+    setIsUploading(true);
+    try {
+      const userRef = doc(firestore, 'users', user.uid);
+      const publicRef = doc(firestore, 'public_profiles', user.uid);
+
+      await updateDoc(userRef, { photoURL: url });
+      await updateDoc(publicRef, { photoURL: url });
+
+      toast({ title: "Avatar Güncellendi", description: "Yeni simgeniz başarıyla ayarlandı." });
+    } catch (error) {
+      toast({ variant: 'destructive', title: "Hata", description: "Avatar güncellenemedi." });
     } finally {
       setIsUploading(false);
     }
@@ -88,19 +143,26 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
         </CardTitle>
         <CardDescription>Diğer kullanıcıların sizi nasıl göreceğini belirleyin.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col items-center sm:flex-row gap-6">
+      <CardContent className="space-y-8">
+        <div className="flex flex-col items-center sm:flex-row gap-8">
           <div className="relative group">
-            <Avatar className="h-24 w-24 border-2 border-primary/20">
-              <AvatarImage src={userProfile.photoURL || ''} />
-              <AvatarFallback className="text-2xl">{userProfile.name?.charAt(0) || 'U'}</AvatarFallback>
+            <Avatar className="h-32 w-32 border-4 border-primary/10 shadow-xl">
+              <AvatarImage src={userProfile.photoURL || ''} className="object-cover" />
+              <AvatarFallback className="text-4xl font-bold bg-secondary text-secondary-foreground">
+                {userProfile.name?.charAt(0) || 'U'}
+              </AvatarFallback>
             </Avatar>
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="absolute inset-0 flex items-center justify-center bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+              className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:cursor-not-allowed"
             >
-              {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+              {isUploading ? <Loader2 className="h-8 w-8 animate-spin" /> : (
+                <>
+                  <Upload className="h-8 w-8 mb-1" />
+                  <span className="text-[10px] font-bold uppercase">Değiştir</span>
+                </>
+              )}
             </button>
             <input 
               type="file" 
@@ -112,18 +174,49 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
           </div>
           <div className="flex-1 w-full space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="nickname">Takma Ad (Nickname)</Label>
+              <Label htmlFor="nickname" className="text-sm font-semibold">Takma Ad (Nickname)</Label>
               <Input 
                 id="nickname" 
                 value={nickname} 
                 onChange={(e) => setNickname(e.target.value)} 
                 placeholder="Örn: IşıkAvcısı"
+                className="bg-muted/50"
               />
             </div>
-            <Button onClick={handleUpdateProfile} disabled={isUpdating || nickname === userProfile.name} className="w-full sm:w-auto">
+            <Button onClick={handleUpdateProfile} disabled={isUpdating || nickname === userProfile.name} className="w-full sm:w-auto shadow-md">
               {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Değişiklikleri Kaydet
             </Button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <Label className="text-sm font-semibold flex items-center gap-2">
+            <Camera className="h-4 w-4" />
+            Veya Bir Simge Seçin
+          </Label>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+            {PRESET_AVATARS.map((avatar) => (
+              <button
+                key={avatar.id}
+                onClick={() => handleSelectPreset(avatar.url)}
+                disabled={isUploading}
+                className={cn(
+                  "relative aspect-square rounded-xl border-2 transition-all hover:scale-105 active:scale-95 overflow-hidden",
+                  userProfile.photoURL === avatar.url ? "border-primary ring-2 ring-primary/20 shadow-lg" : "border-border hover:border-primary/50"
+                )}
+                title={avatar.label}
+              >
+                <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover" />
+                {userProfile.photoURL === avatar.url && (
+                  <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                    <div className="bg-primary text-white p-0.5 rounded-full">
+                      <Code className="h-3 w-3" />
+                    </div>
+                  </div>
+                )}
+              </button>
+            ))}
           </div>
         </div>
       </CardContent>
