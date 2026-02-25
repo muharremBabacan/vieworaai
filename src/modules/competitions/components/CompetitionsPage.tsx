@@ -42,6 +42,7 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
                         <ScrollText className="h-5 w-5 text-primary" />
                         VİEWORA YARIŞMALARI – GENEL KURALLAR
                     </DialogTitle>
+                    <DialogDescription>Viewora platformunda düzenlenen tüm yarışmalar için geçerli genel katılım ve kullanım şartları.</DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="flex-1 p-6">
                     <div className="space-y-6 text-sm leading-relaxed">
@@ -137,6 +138,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>{competition.title}</DialogTitle>
+                        <DialogDescription>Yarışma detayları, kurallar ve katılım şartları.</DialogDescription>
+                    </DialogHeader>
                     <div className="relative h-64 w-full">
                         <Image src={competition.imageUrl} alt={competition.title} fill className="object-cover" unoptimized />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />

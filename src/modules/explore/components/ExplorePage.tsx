@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
@@ -12,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogDescription,
 } from '@/shared/ui/dialog';
 import { Star, Heart, Loader2, X, Trophy } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDocumentNonBlocking } from '@/lib/firebase';
@@ -85,6 +85,10 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden">
+        <DialogHeader className="sr-only">
+            <DialogTitle>Fotoğraf Detayı</DialogTitle>
+            <DialogDescription>{profileInfo.name} kullanıcısının paylaştığı fotoğrafın teknik analizi ve beğenileri.</DialogDescription>
+        </DialogHeader>
         <div className="absolute right-4 top-4 z-10">
             <DialogClose asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-background/60 backdrop-blur-sm text-foreground/80">
