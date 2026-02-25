@@ -49,8 +49,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
       normalizeScore(photo.aiFeedback.background_control_score),
     ];
     const tScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
-    const mainScores = [lScore, cScore, tScore];
-    return mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
+    return (lScore + cScore + tScore) / 3;
   }, [photo]);
 
 
@@ -129,16 +128,16 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
               <DialogTitle>Fotoğraf Detayı</DialogTitle>
             </DialogHeader>
             
-            {/* Mini Profil Bilgisi */}
+            {/* Mini Profil Bilgisi - En Üstte */}
             {profileToShow ? (
-              <div className="flex items-center gap-3 rounded-lg p-3 bg-secondary/30 border border-border/50">
-                <Avatar className="h-12 w-12 border-2 border-background">
+              <div className="flex items-center gap-3 rounded-xl p-4 bg-gradient-to-br from-secondary/50 to-background border border-border/50 shadow-sm">
+                <Avatar className="h-14 w-14 border-2 border-primary/20 shadow-md">
                   {profileToShow.photoURL && <AvatarImage src={profileToShow.photoURL} alt={profileToShow.name || ''} />}
-                  <AvatarFallback>{profileToShow.name?.charAt(0) || '?'}</AvatarFallback>
+                  <AvatarFallback className="text-xl font-bold">{profileToShow.name?.charAt(0) || '?'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{profileToShow.name}</p>
-                  <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0">
+                  <p className="font-bold text-base truncate text-foreground">{profileToShow.name}</p>
+                  <Badge variant="outline" className="mt-1 bg-primary/5 text-primary border-primary/20 text-[11px] px-2 py-0.5">
                     {profileToShow.level_name}
                   </Badge>
                 </div>
@@ -170,9 +169,9 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
             </div>
             
             {photo.aiFeedback?.short_neutral_analysis && (
-                <div>
-                    <h4 className="font-semibold text-base mb-2">Analiz Özeti</h4>
-                    <p className="text-sm text-muted-foreground italic">
+                <div className="space-y-2">
+                    <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Analiz Özeti</h4>
+                    <p className="text-sm text-foreground/90 italic leading-relaxed bg-muted/30 p-3 rounded-lg border border-border/30">
                         "{photo.aiFeedback.short_neutral_analysis}"
                     </p>
                 </div>
