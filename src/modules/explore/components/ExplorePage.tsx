@@ -41,15 +41,15 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
 
   const overallScore = useMemo(() => {
     if (!photo?.aiFeedback) return 0;
-    const lightScore = normalizeScore(photo.aiFeedback.light_score);
-    const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
+    const lScore = normalizeScore(photo.aiFeedback.light_score);
+    const cScore = normalizeScore(photo.aiFeedback.composition_score);
     const technicalScores = [
       normalizeScore(photo.aiFeedback.focus_score),
       normalizeScore(photo.aiFeedback.color_control_score),
       normalizeScore(photo.aiFeedback.background_control_score),
     ];
-    const technicalScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
-    const mainScores = [lightScore, compositionScore, technicalScore];
+    const tScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
+    const mainScores = [lScore, cScore, tScore];
     return mainScores.reduce((sum, score) => sum + score, 0) / mainScores.length;
   }, [photo]);
 
@@ -128,15 +128,19 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
              <DialogHeader>
               <DialogTitle>Fotoğraf Detayı</DialogTitle>
             </DialogHeader>
+            
+            {/* Mini Profil Bilgisi */}
             {profileToShow ? (
-              <div className="flex items-center gap-3 rounded-lg p-2 -ml-2">
-                <Avatar className="h-10 w-10">
+              <div className="flex items-center gap-3 rounded-lg p-3 bg-secondary/30 border border-border/50">
+                <Avatar className="h-12 w-12 border-2 border-background">
                   {profileToShow.photoURL && <AvatarImage src={profileToShow.photoURL} alt={profileToShow.name || ''} />}
                   <AvatarFallback>{profileToShow.name?.charAt(0) || '?'}</AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-semibold text-sm">{profileToShow.name}</p>
-                  <p className="text-xs text-muted-foreground">{profileToShow.level_name}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm truncate">{profileToShow.name}</p>
+                  <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0">
+                    {profileToShow.level_name}
+                  </Badge>
                 </div>
               </div>
             ) : null}
@@ -243,15 +247,15 @@ export default function ExplorePage() {
                             
                             <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
                                 {photo.aiFeedback && (() => {
-                                    const lightScore = normalizeScore(photo.aiFeedback.light_score);
-                                    const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
+                                    const lScore = normalizeScore(photo.aiFeedback.light_score);
+                                    const cScore = normalizeScore(photo.aiFeedback.composition_score);
                                     const techScore = (normalizeScore(photo.aiFeedback.focus_score) + normalizeScore(photo.aiFeedback.color_control_score) + normalizeScore(photo.aiFeedback.background_control_score)) / 3;
-                                    const overallScore = (lightScore + compositionScore + techScore) / 3;
+                                    const ovScore = (lScore + cScore + techScore) / 3;
 
                                     return (
                                         <Badge className="flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
                                           <Star className="h-3 w-3 text-yellow-400" />
-                                          <span className="text-xs font-bold">{overallScore.toFixed(1)}</span>
+                                          <span className="text-xs font-bold">{ovScore.toFixed(1)}</span>
                                         </Badge>
                                     )
                                  })()}
