@@ -387,7 +387,7 @@
     "toast_redirecting_title": "Ödeme Sağlayıcıya Yönlendiriliyor...",
     "toast_redirecting_description": "Bu bir simülasyondur. Gerçek uygulamada iyzico'ya yönlendirileceksiniz.",
     "toast_purchase_success_title": "Satın Alma Başarılı!",
-    "toast_purchase_success_description": "{auro} Auro hesabınıza eklendi.",
+    "toast_purchase_success_description": "{auro} hesabınıza eklendi.",
     "button_processing": "İşleniyor...",
     "button_buy_now": "Hemen Satın Al"
   },
