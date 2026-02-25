@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -10,17 +9,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { generateWeeklyCompetition } from '@/ai/flows/generate-weekly-competition';
-import { collection, doc, writeBatch, getCountFromServer, setDoc, updateDoc, deleteDoc, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Sparkles, Zap } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Competition, User } from '@/types';
+import type { Competition } from '@/types';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 
@@ -66,7 +64,6 @@ export default function AdminPanel() {
     const { user } = useUser();
     
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isGeneratingWeekly, setIsGeneratingWeekly] = useState(false);
     const [isCreatingComp, setIsCreatingComp] = useState(false);
     const [editingCompId, setEditingCompId] = useState<string | null>(null);
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
@@ -120,7 +117,7 @@ export default function AdminPanel() {
 
             await batch.commit().catch(async (error) => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: 'academyLessons/batch',
+                    path: 'academyLessons',
                     operation: 'create'
                 }));
                 throw error;
@@ -133,77 +130,6 @@ export default function AdminPanel() {
         } finally { setIsGenerating(false); }
     };
 
-    const handleGenerateAIWeekly = async () => {
-        if (!firestore || !isAdmin) return;
-        setIsGeneratingWeekly(true);
-        toast({ title: "Luma Analiz Ediyor...", description: "Kullanıcı istatistiklerine göre haftalık yarışma tasarlanıyor." });
-
-        try {
-            const userDocs = await getDocs(collection(firestore, 'users')).catch(err => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: 'users',
-                    operation: 'list'
-                }));
-                throw err;
-            });
-
-            const stats: Record<string, number> = {};
-            userDocs.forEach(d => {
-                const lvl = d.data().level_name || 'Neuner';
-                stats[lvl] = (stats[lvl] || 0) + 1;
-            });
-
-            const aiComp = await generateWeeklyCompetition({ levelStats: stats, language: 'tr' });
-
-            const batch = writeBatch(firestore);
-            const compRef = doc(collection(firestore, 'competitions'));
-            const notifRef = doc(collection(firestore, 'global_notifications'));
-            
-            const startDate = new Date();
-            const endDate = new Date();
-            endDate.setDate(startDate.getDate() + 7);
-
-            const competitionData: Competition = {
-                id: compRef.id,
-                title: aiComp.title,
-                description: aiComp.description,
-                theme: aiComp.theme,
-                prize: aiComp.prize,
-                targetLevel: aiComp.targetLevel,
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
-                createdAt: new Date().toISOString(),
-                imageUrl: `https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1000&auto=format&fit=crop`,
-                imageHint: aiComp.imageHint,
-            };
-
-            batch.set(compRef, competitionData);
-            batch.set(notifRef, {
-                id: notifRef.id,
-                title: `Yeni Yarışma: ${aiComp.title}`,
-                message: `Luma bu haftanın yarışmasını başlattı! Tema: ${aiComp.theme}. Ödül: ${aiComp.prize}`,
-                targetLevel: aiComp.targetLevel,
-                competitionId: compRef.id,
-                createdAt: new Date().toISOString(),
-            });
-
-            await batch.commit().catch(err => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: 'batch/ai-weekly',
-                    operation: 'write'
-                }));
-                throw err;
-            });
-
-            toast({ title: "AI Yarışması Başlatıldı!", description: aiComp.title });
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: "Hata", description: "AI yarışması oluşturulamadı." });
-        } finally {
-            setIsGeneratingWeekly(false);
-        }
-    };
-
     const onSubmitCompetition = async (data: CompetitionFormValues) => {
         if (!firestore || !isAdmin || isCreatingComp) return;
         setIsCreatingComp(true);
@@ -211,13 +137,12 @@ export default function AdminPanel() {
         try {
             if (editingCompId) {
                 const compRef = doc(firestore, 'competitions', editingCompId);
-                await updateDoc(compRef, { ...data }).catch(async (error) => {
+                updateDoc(compRef, { ...data }).catch(async (error) => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
                         path: `competitions/${editingCompId}`,
                         operation: 'update',
                         requestResourceData: data
                     }));
-                    throw error;
                 });
                 toast({ title: "Yarışma Güncellendi" });
                 setEditingCompId(null);
@@ -279,12 +204,11 @@ export default function AdminPanel() {
         if (!confirm('Bu yarışmayı tamamen silmek istediğinize emin misiniz?')) return;
         
         const compRef = doc(firestore, 'competitions', compId);
-        await deleteDoc(compRef).catch(async (error) => {
+        deleteDoc(compRef).catch(async (error) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: `competitions/${compId}`,
                 operation: 'delete'
             }));
-            throw error;
         });
         toast({ title: "Yarışma Silindi" });
     };
@@ -292,14 +216,13 @@ export default function AdminPanel() {
     const handleEndComp = async (compId: string) => {
         if (!firestore || !isAdmin) return;
         const compRef = doc(firestore, 'competitions', compId);
-        await updateDoc(compRef, {
+        updateDoc(compRef, {
             endDate: new Date().toISOString()
         }).catch(async (error) => {
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: `competitions/${compId}`,
                 operation: 'update'
             }));
-            throw error;
         });
         toast({ title: "Yarışma Bitirildi" });
     };
@@ -308,13 +231,7 @@ export default function AdminPanel() {
         const fetchTotalUsers = async () => {
             if (!firestore || !isAdmin) return;
             try {
-                const snapshot = await getCountFromServer(collection(firestore, "users")).catch(err => {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: 'users',
-                        operation: 'list'
-                    }));
-                    throw err;
-                });
+                const snapshot = await getCountFromServer(collection(firestore, "users"));
                 setTotalUsers(snapshot.data().count);
             } catch (e) { 
                 console.error(e);
@@ -329,26 +246,13 @@ export default function AdminPanel() {
 
     return (
         <div className="space-y-8">
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Toplam Kullanıcı</CardTitle>
                     </CardHeader>
                     <CardContent className="py-6">
                         {isFetchingCount ? <Skeleton className="h-12 w-24" /> : <p className="text-5xl font-bold tracking-tighter text-primary">{totalUsers || '0'}</p>}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-yellow-400" /> AI Haftalık Rutin</CardTitle>
-                        <CardDescription>İstatistiklere göre otomatik yarışma üret.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="py-6">
-                        <Button onClick={handleGenerateAIWeekly} disabled={isGeneratingWeekly} className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold border-none shadow-lg">
-                            {isGeneratingWeekly ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
-                            AI Yarışması Başlat
-                        </Button>
                     </CardContent>
                 </Card>
 
