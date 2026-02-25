@@ -13,7 +13,7 @@ import { getLevelFromXp, levels } from '@/lib/gamification';
 
 import { useDropzone } from 'react-dropzone';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
     const [isUploading, setIsUploading] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<EvaluatePracticeSubmissionOutput | null>(null);
-    const locale = useLocale();
+    const locale = "tr";
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {

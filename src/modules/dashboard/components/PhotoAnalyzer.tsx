@@ -3,12 +3,11 @@ import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, setDoc, updateDoc, increment, collection, serverTimestamp, writeBatch, query, limit } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, writeBatch, query, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useLocale, useTranslations, type AbstractIntlMessages } from 'next-intl';
 
 import type { User, Photo, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -44,14 +43,10 @@ const AnalysisResult = ({
   analysis,
   adaptiveFeedback,
   onNewAnalysis,
-  t,
-  tRatings,
 }: {
   analysis: PhotoAnalysis | null;
   adaptiveFeedback?: string | null;
   onNewAnalysis: () => void;
-  t: (key: keyof AbstractIntlMessages['DashboardPage']) => string;
-  tRatings: (key: keyof AbstractIntlMessages['Ratings']) => string;
 }) => {
     const { overallScore, technicalScore, lightScore, compositionScore } = useMemo(() => {
         if (!analysis) return { overallScore: 0, technicalScore: 0, lightScore: 0, compositionScore: 0 };
@@ -80,12 +75,12 @@ const AnalysisResult = ({
     const strengths = useMemo(() => {
         if (!analysis) return [];
         const result = [];
-        if (normalizeScore(analysis.composition_score) > 7) result.push({ key: 'strength_composition', score: normalizeScore(analysis.composition_score) });
-        if (normalizeScore(analysis.light_score) > 7) result.push({ key: 'strength_lighting', score: normalizeScore(analysis.light_score) });
-        if (normalizeScore(analysis.focus_score) > 7) result.push({ key: 'strength_focus', score: normalizeScore(analysis.focus_score) });
-        if (normalizeScore(analysis.color_control_score) > 7) result.push({ key: 'strength_color', score: normalizeScore(analysis.color_control_score) });
-        if (normalizeScore(analysis.background_control_score) > 7) result.push({ key: 'strength_background', score: normalizeScore(analysis.background_control_score) });
-        if (normalizeScore(analysis.creativity_risk_score) > 7) result.push({ key: 'strength_creativity', score: normalizeScore(analysis.creativity_risk_score) });
+        if (normalizeScore(analysis.composition_score) > 7) result.push({ key: 'Başarılı kompozisyon', score: normalizeScore(analysis.composition_score) });
+        if (normalizeScore(analysis.light_score) > 7) result.push({ key: 'Etkili ışık kullanımı', score: normalizeScore(analysis.light_score) });
+        if (normalizeScore(analysis.focus_score) > 7) result.push({ key: 'İyi netlik ve odaklama', score: normalizeScore(analysis.focus_score) });
+        if (normalizeScore(analysis.color_control_score) > 7) result.push({ key: 'Dengeli renk kontrolü', score: normalizeScore(analysis.color_control_score) });
+        if (normalizeScore(analysis.background_control_score) > 7) result.push({ key: 'Sade ve etkili arkaplan', score: normalizeScore(analysis.background_control_score) });
+        if (normalizeScore(analysis.creativity_risk_score) > 7) result.push({ key: 'Yaratıcı ve orijinal bakış açısı', score: normalizeScore(analysis.creativity_risk_score) });
         return result.sort((a, b) => b.score - a.score).slice(0, 3);
     }, [analysis]);
     
@@ -95,19 +90,19 @@ const AnalysisResult = ({
         <div className="grid md:grid-cols-2 gap-8">
             <Card className="p-6">
                 <div className="flex justify-between items-baseline mb-2">
-                    <h3 className="text-2xl font-bold">{tRatings('overall')}</h3>
+                    <h3 className="text-2xl font-bold">Genel Puan</h3>
                     <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
                 </div>
                 <hr className="border-border mb-6" />
                 <div className="space-y-5">
-                    <RatingBar label={tRatings('light')} score={lightScore} />
-                    <RatingBar label={tRatings('composition')} score={compositionScore} />
-                    <RatingBar label={tRatings('technical')} score={technicalScore} />
+                    <RatingBar label="Işık" score={lightScore} />
+                    <RatingBar label="Kompozisyon" score={compositionScore} />
+                    <RatingBar label="Teknik" score={technicalScore} />
                 </div>
             </Card>
             <div className="space-y-6">
                 <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">{t('ai_analysis_title')}</h3>
+                    <h3 className="text-lg font-semibold mb-4">YZ Analizi</h3>
                      {adaptiveFeedback ? (
                         <div className="prose prose-sm dark:prose-invert" dangerouslySetInnerHTML={{ __html: adaptiveFeedback.replace(/\n/g, '<br />') }} />
                      ) : (
@@ -117,31 +112,31 @@ const AnalysisResult = ({
 
                 {strengths.length > 0 && (
                     <Card className="p-6">
-                        <h3 className="text-lg font-semibold mb-4">{t('strengths_title')}</h3>
+                        <h3 className="text-lg font-semibold mb-4">Güçlü Yönler</h3>
                         <div className="space-y-3">
                             {strengths.map(strength => (
                                 <div key={strength.key} className="flex items-center gap-3">
                                     <div className="p-2 bg-green-500/20 rounded-full">
                                         <Award className="h-5 w-5 text-green-400" />
                                     </div>
-                                    <span className="text-sm font-medium">{t(strength.key as any)}</span>
+                                    <span className="text-sm font-medium">{strength.key}</span>
                                 </div>
                             ))}
                         </div>
                     </Card>
                 )}
 
-                <Button onClick={onNewAnalysis} className="w-full">{t('button_new_analysis')}</Button>
+                <Button onClick={onNewAnalysis} className="w-full">Yeni Analiz Başlat</Button>
             </div>
         </div>
     );
 };
 
 // Component for the photo uploader
-const Uploader = ({ onFileSelect, userProfile, t, hasPhotos }: { onFileSelect: (file: File) => void, userProfile: User, t: (key: keyof AbstractIntlMessages['DashboardPage']) => string, hasPhotos: boolean }) => {
+const Uploader = ({ onFileSelect, userProfile, hasPhotos }: { onFileSelect: (file: File) => void, userProfile: User, hasPhotos: boolean }) => {
     const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
         onDrop: (acceptedFiles) => acceptedFiles.length > 0 && onFileSelect(acceptedFiles[0]),
-        noClick: true, // We trigger it manually with the button
+        noClick: true,
         noKeyboard: true,
         accept: { 'image/*': ['.jpeg', '.png', '.jpg', '.heic', '.webp'] }
     });
@@ -154,20 +149,20 @@ const Uploader = ({ onFileSelect, userProfile, t, hasPhotos }: { onFileSelect: (
                 <Sparkles className="h-6 w-6 text-cyan-400" />
             </div>
             
-            <p className="text-lg text-muted-foreground">{t('main_title')}</p>
+            <p className="text-lg text-muted-foreground">Ben Luma. Fotoğraf yolculuğunda sana eşlik ediyorum.</p>
             
              <p className="text-xl font-medium mt-6">
-                {hasPhotos ? t('greeting_cta_return') : t('greeting_cta', { name: userProfile.name })}
+                {hasPhotos ? "Analizini merak ettiğin fotoğrafı yükle." : `Merhaba ${userProfile.name}. Hazırsan ilk fotoğrafını yükle.`}
             </p>
 
             <div {...getRootProps()} className={cn("relative mt-6 p-10 border-2 border-dashed rounded-xl transition-colors", isDragActive ? "border-primary bg-primary/10" : "border-border")}>
                 <input {...getInputProps()} />
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Camera className="h-12 w-12" />
-                    <p className="text-lg font-semibold text-foreground mt-4">{t('upload_prompt_main_new')}</p>
-                    <p className="text-sm">{t('upload_prompt_sub_new')}</p>
+                    <p className="text-lg font-semibold text-foreground mt-4">Fotoğrafını sürükle veya yükle</p>
+                    <p className="text-sm">JPG, PNG, HEIC desteklenir</p>
                     <Button onClick={open} size="lg" className="mt-6">
-                        {t('button_select_photo')}
+                        Fotoğraf Seç
                     </Button>
                 </div>
             </div>
@@ -178,9 +173,6 @@ const Uploader = ({ onFileSelect, userProfile, t, hasPhotos }: { onFileSelect: (
 
 // Main component
 export default function PhotoAnalyzer() {
-    const t = useTranslations('DashboardPage');
-    const tRatings = useTranslations('Ratings');
-    const locale = useLocale();
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
@@ -206,24 +198,24 @@ export default function PhotoAnalyzer() {
 
     const handleFileSelect = useCallback((selectedFile: File) => {
         if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
-            toast({ variant: 'destructive', title: t('toast_file_size_title'), description: t('toast_file_size_description') });
+            toast({ variant: 'destructive', title: "Dosya Boyutu Çok Büyük", description: "Lütfen 10MB'dan küçük bir resim dosyası yükleyin." });
             return;
         }
         if (!selectedFile.type.startsWith('image/')) {
-            toast({ variant: 'destructive', title: t('toast_invalid_file_title'), description: t('toast_invalid_file_description') });
+            toast({ variant: 'destructive', title: "Geçersiz Dosya Türü", description: "Lütfen bir resim dosyası yükleyin (örn: JPG, PNG)." });
             return;
         }
         setFile(selectedFile);
         setPreview(URL.createObjectURL(selectedFile));
         setAnalysisResult(null);
         setAdaptiveFeedback(null);
-    }, [toast, t]);
+    }, [toast]);
 
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
 
         if (analyze && userProfile.auro_balance < ANALYSIS_COST) {
-            toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_description', { cost: ANALYSIS_COST }) });
+            toast({ variant: 'destructive', title: "Yetersiz Auro", description: `Bir fotoğrafı analiz etmek için en az ${ANALYSIS_COST} Auro'ya ihtiyacınız var.` });
             return;
         }
 
@@ -254,15 +246,14 @@ export default function PhotoAnalyzer() {
 
             if (analyze) {
                 setLoadingState('analyzing');
-                const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: locale });
+                const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr' });
                 photoData.aiFeedback = analysis;
                 setAnalysisResult(analysis);
 
-                // Generate adaptive feedback
                 const overallScore = Object.values(analysis).reduce((sum, value) => typeof value === 'number' ? sum + normalizeScore(value) : sum, 0) / 6;
                 const adaptive = await generateAdaptiveFeedback({
                     userGamificationLevel: userProfile.level_name,
-                    language: locale,
+                    language: 'tr',
                     technicalAnalysis: analysis,
                     communicationStyle: userProfile.communication_style || 'balanced',
                     scoreTrend: userProfile.score_history && userProfile.score_history.length > 1 ? 'improving' : 'stagnant',
@@ -274,38 +265,36 @@ export default function PhotoAnalyzer() {
 
                 batch.update(userRef, { auro_balance: increment(-ANALYSIS_COST) });
                 
-                xpGained += 15; // Extra XP for analysis
+                xpGained += 15;
                 if(overallScore > 8) {
-                    xpGained += 10; // Bonus for high score
-                    toast({ title: t('toast_bonus_title'), description: t('toast_bonus_description', { xp: 10 }) });
+                    xpGained += 10;
+                    toast({ title: "✨ Bonus!", description: "+10 bonus XP kazandın!" });
                 }
             } else {
-                 toast({ title: t('toast_upload_only_title'), description: t('toast_upload_only_description') });
+                 toast({ title: "Fotoğraf Yüklendi!", description: "Fotoğrafın galerine eklendi. Dilediğin zaman analiz edebilirsin." });
             }
 
             batch.set(photoDocRef, photoData);
             batch.update(userRef, { current_xp: increment(xpGained) });
             
             await batch.commit();
-            toast({ title: t('toast_xp_gain_title'), description: t('toast_xp_gain_description', { xp: xpGained }) });
+            toast({ title: "XP Kazandın!", description: `${xpGained} XP kazandın.` });
 
-            // Check for level up
             const oldLevel = getLevelFromXp(userProfile.current_xp);
             const newLevel = getLevelFromXp(userProfile.current_xp + xpGained);
             if (newLevel.name !== oldLevel.name) {
                 await updateDoc(userRef, { level_name: newLevel.name });
-                toast({ title: t('toast_level_up_title'), description: t('toast_level_up_description', { level: newLevel.name }) });
+                toast({ title: "🎉 Seviye Atladın!", description: `Tebrikler! Yeni seviyen: ${newLevel.name}` });
                 if (newLevel.isMentor && !oldLevel.isMentor) {
                     await updateDoc(userRef, { is_mentor: true });
-                    toast({ title: t('toast_mentor_title'), description: t('toast_mentor_description') });
+                    toast({ title: "👑 Mentor Oldun!", description: "Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin." });
                 }
             }
 
 
         } catch (error: any) {
             console.error('Upload/Analysis Error:', error);
-            const toastErrorKey = analyze ? 'toast_analysis_fail' : 'toast_upload_fail';
-            toast({ variant: 'destructive', title: t(`${toastErrorKey}_title`), description: t(`${toastErrorKey}_description`) });
+            toast({ variant: 'destructive', title: "İşlem Başarısız", description: "Bir hata oluştu." });
         } finally {
             setIsLoading(false);
             setLoadingState('');
@@ -325,17 +314,17 @@ export default function PhotoAnalyzer() {
     }
     
     return (
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4">
             <div className="mx-auto max-w-4xl">
                  {!file ? (
-                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} t={t} hasPhotos={hasPhotos} />
+                    <Uploader onFileSelect={handleFileSelect} userProfile={userProfile} hasPhotos={hasPhotos} />
                  ) : isLoading ? (
                     <div className="analysis-wrapper">
                         <div className="image-wrapper">
                             <Image src={preview!} alt="Analiz ediliyor" width={512} height={512} className="rounded-lg object-contain aspect-video" />
                         </div>
                         <div className="analysis-text-container">
-                            <p className="analysis-text">{loadingState === 'uploading' ? t('state_uploading') : t('state_analyzing')}</p>
+                            <p className="analysis-text">{loadingState === 'uploading' ? "Fotoğraf yükleniyor..." : "Analiz ediliyor..."}</p>
                             <div className="analysis-progress-bar">
                                 <div className="analysis-progress-bar-fill"></div>
                             </div>
@@ -346,8 +335,6 @@ export default function PhotoAnalyzer() {
                         analysis={analysisResult} 
                         adaptiveFeedback={adaptiveFeedback} 
                         onNewAnalysis={() => { setFile(null); setPreview(null); setAnalysisResult(null); }}
-                        t={t}
-                        tRatings={tRatings}
                     />
                 ) : (
                     <Card className="text-center p-8">
@@ -356,10 +343,10 @@ export default function PhotoAnalyzer() {
                         </div>
                         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Button onClick={() => handleUploadAndOptionalAnalysis(true)} size="lg">
-                                <Sparkles className="mr-2" /> {t('button_analyze', { cost: ANALYSIS_COST })}
+                                <Sparkles className="mr-2" /> Analiz Et ({ANALYSIS_COST} Auro)
                             </Button>
                              <Button onClick={() => handleUploadAndOptionalAnalysis(false)} size="lg" variant="secondary">
-                                {t('button_upload_only')}
+                                Sadece Yükle (Ücretsiz)
                             </Button>
                         </div>
                     </Card>

@@ -2,21 +2,18 @@
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/types';
-import { useTranslations } from 'next-intl';
 import { getLevelFromXp, levels } from '@/lib/gamification';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Gem, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/lib/firebase';
-import { useRouter } from '@/navigation';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/shared/hooks/use-toast';
 import AdminPanel from '@/modules/admin/components/admin-panel';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 
-// This component is defined inside to easily access translations and other hooks
 const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) => {
   const { toast } = useToast();
   const displayName = userProfile.name || 'Kullanıcı';
@@ -55,8 +52,7 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
   );
 };
 
-// This component is defined inside to easily access translations
-const LevelProgress = ({ userProfile, t }: { userProfile: User, t: any }) => {
+const LevelProgress = ({ userProfile }: { userProfile: User }) => {
     const currentLevel = getLevelFromXp(userProfile.current_xp);
     const nextLevelIndex = levels.findIndex(l => l.name === currentLevel.name) + 1;
     const nextLevel = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
@@ -70,7 +66,7 @@ const LevelProgress = ({ userProfile, t }: { userProfile: User, t: any }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
               <Award className="h-6 w-6 text-amber-400" />
-              {t('level_title')}
+              Seviye & İlerleme
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -80,9 +76,9 @@ const LevelProgress = ({ userProfile, t }: { userProfile: User, t: any }) => {
             </div>
             <div className="text-sm text-muted-foreground">
               {nextLevel ? (
-                <span>{t('next_level', { level: nextLevel.name })}</span>
+                <span>Sonraki: {nextLevel.name}</span>
               ) : (
-                <span className="font-semibold">{t('max_level')}</span>
+                <span className="font-semibold">Maksimum Seviye</span>
               )}
             </div>
           </div>
@@ -95,20 +91,19 @@ const LevelProgress = ({ userProfile, t }: { userProfile: User, t: any }) => {
     );
 }
 
-// This component is defined inside to easily access translations and router
-const AuroBalance = ({ userProfile, t, router }: { userProfile: User, t: any, router: any }) => {
+const AuroBalance = ({ userProfile, router }: { userProfile: User, router: any }) => {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
               <Gem className="h-6 w-6 text-cyan-400" />
-              {t('auro_balance_title')}
+              Auro Bakiyesi
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <p className="text-3xl font-bold">{userProfile.auro_balance}</p>
-            <Button onClick={() => router.push('/pricing')}>{t('button_buy_auro')}</Button>
+            <Button onClick={() => router.push('/pricing')}>Auro Satın Al</Button>
           </div>
         </CardContent>
       </Card>
@@ -116,8 +111,6 @@ const AuroBalance = ({ userProfile, t, router }: { userProfile: User, t: any, ro
 }
 
 export default function ProfilePage() {
-  const t = useTranslations('ProfilePage');
-  const tNav = useTranslations('AppLayout');
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -125,11 +118,11 @@ export default function ProfilePage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
   
-  const isAdmin = userProfile?.email === 'admin@viewora.ai';
+  const isAdmin = userProfile?.email === 'admin@viewora.ai' || userProfile?.email === 'babacan.muharrem@gmail.com';
 
   if (isUserLoading || isProfileLoading) {
     return (
-      <div className="container mx-auto max-w-2xl space-y-8">
+      <div className="container mx-auto max-w-2xl space-y-8 px-4">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-40 w-full" />
@@ -139,16 +132,16 @@ export default function ProfilePage() {
   }
 
   if (!userProfile || !user) {
-    return <div className="container text-center">Kullanıcı bulunamadı.</div>;
+    return <div className="container text-center px-4">Kullanıcı bulunamadı.</div>;
   }
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">{tNav('title_profile')}</h1>
+    <div className="container mx-auto max-w-2xl space-y-8 px-4">
+      <h1 className="text-3xl font-bold tracking-tight">Profilim</h1>
       
       <UserInfoCard user={user} userProfile={userProfile} />
-      <LevelProgress userProfile={userProfile} t={t} />
-      <AuroBalance userProfile={userProfile} t={t} router={router}/>
+      <LevelProgress userProfile={userProfile} />
+      <AuroBalance userProfile={userProfile} router={router}/>
 
       {isAdmin && <AdminPanel />}
     </div>

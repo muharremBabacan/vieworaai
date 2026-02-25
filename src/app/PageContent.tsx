@@ -11,9 +11,9 @@ import Logo from '@/core/components/logo';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useState } from 'react';
-import { useRouter, Link } from '@/navigation';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { useAuth, useFirestore } from '@/lib/firebase';
 import type { User as UserProfile, PublicUserProfile } from '@/types';
 
@@ -31,7 +31,6 @@ export default function PageContent() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const t = useTranslations('LoginPage');
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -50,7 +49,7 @@ export default function PageContent() {
       const result: UserCredential = await signInWithPopup(auth, provider);
   
       toast({
-        title: t('toast_success'),
+        title: "Başarıyla giriş yaptınız. Yönlendiriliyorsunuz...",
       });
   
       const firebaseUser = result.user;
@@ -63,11 +62,10 @@ export default function PageContent() {
       const now = new Date().toISOString();
   
       if (!userSnap.exists()) {
-        // Yeni kullanıcı oluştur
         const newUserProfile: UserProfile = {
           id: firebaseUser.uid,
           email: firebaseUser.email || `user+${firebaseUser.uid}@viewora.ai`,
-          name: firebaseUser.displayName?.split(' ')[0] || t('anonymous_artist'),
+          name: firebaseUser.displayName?.split(' ')[0] || "İsimsiz Sanatçı",
           photoURL: firebaseUser.photoURL,
           auro_balance: 20,
           current_xp: 0,
@@ -97,7 +95,6 @@ export default function PageContent() {
         onboarded = false;
   
       } else {
-        // Var olan kullanıcı
         const existing = userSnap.data() as UserProfile;
         onboarded = existing.onboarded ?? false;
         
@@ -113,15 +110,15 @@ export default function PageContent() {
         ]);
       }
   
-      router.push(onboarded ? '/profile' : '/onboarding');
+      router.push(onboarded ? '/dashboard' : '/onboarding');
   
     } catch (error: any) {
       console.error('Popup login error:', error);
   
       toast({
         variant: 'destructive',
-        title: t('toast_error_title', { code: error.code || 'Hata' }),
-        description: t('toast_error_description'),
+        title: "Giriş Başarısız",
+        description: "Google ile giriş yapılamadı.",
       });
   
       setIsLoading(false);
@@ -139,10 +136,10 @@ export default function PageContent() {
               platformu"
             </p>
             <h1 className="!mt-6 text-2xl font-semibold tracking-tight">
-              {t('title')}
+              Hesap oluşturun veya giriş yapın
             </h1>
             <p className="text-sm text-muted-foreground">
-              {t('description')}
+              Devam etmek için Google ile giriş yapın.
             </p>
           </div>
 
@@ -155,22 +152,22 @@ export default function PageContent() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('button_loading')}
+                Giriş Yapılıyor...
               </>
             ) : (
               <>
                 <GoogleIcon />
-                {t('button_google')}
+                Google ile Giriş Yap
               </>
             )}
           </Button>
 
           <p className="px-8 text-center text-xs text-muted-foreground">
-            {t('terms_prefix')}{' '}
+            Devam ederek{' '}
             <Link href="/terms" className="underline">
-              {t('terms_link')}
+              Hizmet Şartlarını
             </Link>{' '}
-            {t('terms_suffix')}
+            kabul etmiş olursunuz.
           </p>
         </div>
       </main>

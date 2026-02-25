@@ -18,14 +18,11 @@ import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/navigation';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { GroupInvitesPopover } from '@/core/components/group-invites-popover';
 
 export function UserNav() {
-  const t = useTranslations('UserNav');
-  const tFallback = useTranslations('UserNavFallback');
-  const tNav = useTranslations('AppLayout');
   const { user: authUser, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -54,17 +51,17 @@ export function UserNav() {
   if (!authUser || !userProfile) {
     return (
       <Button variant="outline" onClick={() => router.push('/')}>
-        {tFallback('login')}
+        Giriş Yap
       </Button>
     )
   }
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
-  const isAdmin = userProfile.email === 'admin@viewora.ai';
+  const isAdmin = userProfile.email === 'admin@viewora.ai' || userProfile.email === 'babacan.muharrem@gmail.com';
   const levelName = userProfile.level_name ?? 'Neuner';
-  const displayName = userProfile.name || tFallback('username_fallback');
-  const displayEmail = userProfile.email || tFallback('email_fallback');
+  const displayName = userProfile.name || "Kullanıcı";
+  const displayEmail = userProfile.email || "E-posta yok";
   const fallbackChar = displayName?.charAt(0) || displayEmail?.charAt(0) || 'U';
 
 
@@ -95,20 +92,20 @@ export function UserNav() {
               <DropdownMenuItem asChild>
                 <Link href="/admin">
                   <Shield className="mr-2 h-4 w-4" />
-                  <span>{tNav('nav_admin_panel')}</span>
+                  <span>Yönetici Paneli</span>
                 </Link>
               </DropdownMenuItem>
             )}
             <DropdownMenuItem asChild>
               <Link href="/settings">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>{tNav('nav_settings')}</span>
+                  <span>Ayarlar</span>
                 </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/pricing">
                 <Coins className="mr-2 h-4 w-4" />
-                <span>{t('buy_auro')}</span>
+                <span>Auro Satın Al</span>
               </Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
@@ -117,14 +114,14 @@ export function UserNav() {
             <div className="px-2 py-1.5 text-sm flex items-center justify-between">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Gem className="h-4 w-4 text-cyan-400" />
-                <span>{t('auro')}</span>
+                <span>Auro</span>
               </div>
               <span className="font-semibold">{auroBalance}</span>
             </div>
             <div className="px-2 py-1.5 text-sm flex items-center justify-between">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Award className="h-4 w-4" />
-                <span>{t('level')}</span>
+                <span>Seviye</span>
               </div>
               <Badge variant={isMentor ? 'default' : 'secondary'} className="capitalize">
                 {isMentor && <ShieldCheck className="mr-1 h-3 w-3"/>}
@@ -135,7 +132,7 @@ export function UserNav() {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
-            <span>{t('sign_out')}</span>
+            <span>Çıkış Yap</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

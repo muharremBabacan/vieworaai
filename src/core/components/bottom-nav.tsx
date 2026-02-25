@@ -1,22 +1,21 @@
 'use client';
 
-import { Link, usePathname } from '@/navigation';
-import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { GraduationCap, Compass, Users, Sparkles, LayoutGrid, User } from 'lucide-react';
 
 const orderedNavItems = [
-    { href: '/academy', label: 'nav_academy', icon: GraduationCap },
-    { href: '/explore', label: 'nav_explore', icon: Compass },
-    { href: '/groups', label: 'nav_groups', icon: Users },
-    { href: '/dashboard', label: 'nav_coach', icon: Sparkles },
-    { href: '/gallery', label: 'nav_gallery', icon: LayoutGrid },
-    { href: '/profile', label: 'nav_profile', icon: User },
+    { href: '/academy', label: 'Akademi', icon: GraduationCap },
+    { href: '/explore', label: 'Keşfet', icon: Compass },
+    { href: '/groups', label: 'Gruplar', icon: Users },
+    { href: '/dashboard', label: 'Koç', icon: Sparkles },
+    { href: '/gallery', label: 'Galerim', icon: LayoutGrid },
+    { href: '/profile', label: 'Profilim', icon: User },
 ];
 
 
 export function BottomNav() {
-  const t = useTranslations('AppLayout');
   const pathname = usePathname();
 
   return (
@@ -42,7 +41,7 @@ export function BottomNav() {
                     isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
                   )}
                 >
-                  {t(item.label)}
+                  {item.label}
                 </span>
               </Link>
             );

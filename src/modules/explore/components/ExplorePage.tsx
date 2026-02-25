@@ -1,9 +1,8 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
-import { useRouter, Link } from '@/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { Photo, PublicUserProfile } from '@/types';
 import { Card } from '@/shared/ui/card';
 import {
@@ -13,12 +12,11 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/shared/ui/dialog';
-import { Star, Camera, X, Heart, Loader2 } from 'lucide-react';
+import { Star, Heart, Loader2, Camera, X } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDocumentNonBlocking } from '@/lib/firebase';
 import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Badge } from '@/shared/ui/badge';
-import { useTranslations } from 'next-intl';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,8 +28,6 @@ const normalizeScore = (score: number | undefined | null): number => {
 };
 
 function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
-  const t = useTranslations('ExplorePage');
-  const tRatings = useTranslations('Ratings');
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -45,7 +41,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
 
   const overallScore = useMemo(() => {
     if (!photo?.aiFeedback) return 0;
-    const lightScore = normalizeScore(photo.aiFeedback.light_score);
+    const lScore = normalizeScore(photo.aiFeedback.light_score);
     const compositionScore = normalizeScore(photo.aiFeedback.composition_score);
     const technicalScores = [
       normalizeScore(photo.aiFeedback.focus_score),
@@ -58,7 +54,6 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
   }, [photo]);
 
 
-  // Use denormalized data directly from the photo object.
   const profileToShow = photo?.userName ? {
       name: photo.userName,
       photoURL: photo.userPhotoURL,
@@ -95,7 +90,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "Beğeni güncellenemedi. Lütfen daha sonra tekrar deneyin.",
+        description: "Beğeni güncellenemedi.",
       });
     } finally {
       setIsLiking(false);
@@ -114,7 +109,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
             <DialogClose asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-background/60 backdrop-blur-sm text-foreground/80 hover:bg-background/80 hover:text-foreground">
                     <X className="h-5 w-5" />
-                    <span className="sr-only">Close</span>
+                    <span className="sr-only">Kapat</span>
                 </Button>
             </DialogClose>
         </div>
@@ -131,7 +126,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
         </div>
         <div className="md:w-2/5 w-full overflow-y-auto p-6 space-y-6">
              <DialogHeader>
-              <DialogTitle>{t('dialog_title')}</DialogTitle>
+              <DialogTitle>Fotoğraf Detayı</DialogTitle>
             </DialogHeader>
             {profileToShow ? (
               <div className="flex items-center gap-3 rounded-lg p-2 -ml-2">
@@ -153,7 +148,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
                     </Button>
                     <div>
                         <p className="font-semibold text-lg">{photo.likes?.length || 0}</p>
-                        <p className="text-xs text-muted-foreground -mt-1">{tRatings('likes')}</p>
+                        <p className="text-xs text-muted-foreground -mt-1">Beğeni</p>
                     </div>
                 </div>
 
@@ -164,7 +159,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
                         </div>
                         <div>
                             <p className="font-semibold text-lg">{overallScore.toFixed(1)}</p>
-                            <p className="text-xs text-muted-foreground -mt-1">{tRatings('overall')}</p>
+                            <p className="text-xs text-muted-foreground -mt-1">Genel Puan</p>
                         </div>
                     </div>
                 )}
@@ -172,7 +167,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
             
             {photo.aiFeedback?.short_neutral_analysis && (
                 <div>
-                    <h4 className="font-semibold text-base mb-2">{t('analysis_summary_title')}</h4>
+                    <h4 className="font-semibold text-base mb-2">Analiz Özeti</h4>
                     <p className="text-sm text-muted-foreground italic">
                         "{photo.aiFeedback.short_neutral_analysis}"
                     </p>
@@ -188,7 +183,6 @@ export default function ExplorePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const firestore = useFirestore();
   const { user } = useUser();
-  const t = useTranslations('ExplorePage');
   const router = useRouter();
   const searchParams = useSearchParams();
   const filterUserId = searchParams.get('user');
@@ -210,8 +204,8 @@ export default function ExplorePage() {
 
 
   return (
-    <div className="container mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight mb-8">{t('title')}</h1>
+    <div className="container mx-auto px-4">
+        <h1 className="text-3xl font-bold tracking-tight mb-8">Sergi Salonu</h1>
         {filterUserId && (
             <div className="mb-6 flex items-center justify-between rounded-lg border p-3 bg-secondary/50">
                 {isFilterUserLoading ? <Skeleton className="h-6 w-48" /> : 
@@ -220,12 +214,12 @@ export default function ExplorePage() {
                         {filterUser?.photoURL && <AvatarImage src={filterUser.photoURL} alt={filterUser.name || ''} />}
                         <AvatarFallback>{filterUser?.name?.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="font-semibold">{t('showing_photos_by', {name: filterUser?.name})}</span>
+                    <span className="font-semibold">{filterUser?.name} kullanıcısının fotoğrafları</span>
                 </div>
                 }
                 <Button variant="ghost" onClick={() => router.push('/explore')}>
                     <X className="mr-2 h-4 w-4" />
-                    {t('clear_filter')}
+                    Filtreyi Temizle
                 </Button>
             </div>
         )}
@@ -286,8 +280,8 @@ export default function ExplorePage() {
             ) : (
                 <div className="col-span-full text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
                     <Camera className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-                    <h3 className="text-2xl font-semibold">{t('no_photos_title')}</h3>
-                    <p className="text-muted-foreground mt-2">{t('no_photos_description')}</p>
+                    <h3 className="text-2xl font-semibold">Henüz kimse eserini paylaşmadı</h3>
+                    <p className="text-muted-foreground mt-2">Kendi galerinizden bir fotoğrafı Sergi'ye göndererek burayı canlandırın!</p>
                 </div>
             )}
         </div>

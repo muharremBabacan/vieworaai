@@ -1,12 +1,10 @@
-
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, updateDoc, writeBatch, increment, deleteDoc, arrayUnion, arrayRemove, setDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, writeBatch, increment, deleteDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useLocale, useTranslations } from 'next-intl';
 
 import type { Photo, PhotoAnalysis, User } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -19,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertDialogTitleComponent, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Trash2, Globe, Loader2, ArrowLeftRight, Star } from 'lucide-react';
-import { useRouter } from '@/navigation';
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
@@ -58,10 +56,6 @@ const PhotoDetailDialog = ({
   onDelete: (photo: Photo) => void;
   isProcessing: boolean;
 }) => {
-  const t = useTranslations('GalleryPage');
-  const tRatings = useTranslations('Ratings');
-  const tDashboard = useTranslations('DashboardPage');
-
   const { overallScore, lightScore, compositionScore, technicalScore } = useMemo(() => {
     if (!photo?.aiFeedback) return { overallScore: 0, lightScore: 0, compositionScore: 0, technicalScore: 0 };
     
@@ -85,29 +79,29 @@ const PhotoDetailDialog = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
           <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/50 shrink-0">
-              <Image src={photo.imageUrl} alt="User photo" fill className="object-contain" />
+              <Image src={photo.imageUrl} alt="Kullanıcı fotoğrafı" fill className="object-contain" />
           </div>
           <div className="md:w-2/5 w-full flex flex-col overflow-hidden min-h-0">
               <DialogHeader className="p-6 pb-4 shrink-0 border-b">
-                  <DialogTitle>{t('dialog_title')}</DialogTitle>
+                  <DialogTitle>YZ Geri Bildirimi</DialogTitle>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {photo.aiFeedback ? (
                       <>
                           <Card>
                               <CardHeader>
-                                  <CardTitle>{t('rating_card_title')}</CardTitle>
+                                  <CardTitle>Puanlama</CardTitle>
                               </CardHeader>
                               <CardContent className="space-y-4">
                                   <div className="flex justify-between items-baseline">
-                                      <h3 className="font-semibold text-lg">{tRatings('overall')}</h3>
+                                      <h3 className="font-semibold text-lg">Genel</h3>
                                       <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
                                   </div>
                                   <hr className="border-border" />
                                   <div className="space-y-4">
-                                      <RatingBar label={tRatings('light')} score={lightScore} />
-                                      <RatingBar label={tRatings('composition')} score={compositionScore} />
-                                      <RatingBar label={tRatings('technical')} score={technicalScore} />
+                                      <RatingBar label="Işık" score={lightScore} />
+                                      <RatingBar label="Kompozisyon" score={compositionScore} />
+                                      <RatingBar label="Teknik" score={technicalScore} />
                                   </div>
                               </CardContent>
                           </Card>
@@ -115,7 +109,7 @@ const PhotoDetailDialog = ({
                           <div>
                               <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
                                   <Sparkles className="h-5 w-5 text-primary" />
-                                  {tDashboard('ai_analysis_title')}
+                                  YZ Analizi
                               </h3>
                               <div
                                   className="prose prose-sm dark:prose-invert"
@@ -125,10 +119,10 @@ const PhotoDetailDialog = ({
                       </>
                   ) : (
                       <div className="flex flex-col items-center justify-center text-center p-8 border rounded-lg bg-muted/50 h-full">
-                          <p className="text-muted-foreground font-semibold">{t('status_awaiting_analysis')}</p>
+                          <p className="text-muted-foreground font-semibold">Analiz Bekliyor</p>
                           <Button onClick={() => onAnalyze(photo)} className="mt-4" disabled={isProcessing}>
                               {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                              {t('button_get_score', { cost: ANALYSIS_COST })}
+                              Skoru Öğren ({ANALYSIS_COST} Auro)
                           </Button>
                       </div>
                   )}
@@ -137,23 +131,23 @@ const PhotoDetailDialog = ({
                   <Button onClick={() => onToggleExhibition(photo)} variant="outline" disabled={isProcessing}>
                       {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                       <ArrowLeftRight className="mr-2 h-4 w-4" />
-                      {photo.isSubmittedToExhibition ? t('button_withdraw_from_exhibition') : t('button_submit_to_exhibition', { cost: SUBMIT_TO_EXHIBITION_COST })}
+                      {photo.isSubmittedToExhibition ? "Sergi'den Çek" : `Sergi'ye Gönder (${SUBMIT_TO_EXHIBITION_COST} Auro)`}
                   </Button>
                   <AlertDialog>
                       <AlertDialogTrigger asChild>
                           <Button variant="destructive" className="w-full" disabled={isProcessing}>
                               {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                              <Trash2 className="mr-2 h-4 w-4" /> {t('button_delete_permanently')}
+                              <Trash2 className="mr-2 h-4 w-4" /> Kalıcı Olarak Sil
                           </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                           <AlertDialogHeader>
-                              <AlertDialogTitleComponent>{t('alert_dialog_title')}</AlertDialogTitleComponent>
-                              <AlertDialogDescription>{t('alert_dialog_delete_description')}</AlertDialogDescription>
+                              <AlertDialogTitleComponent>Emin misiniz?</AlertDialogTitleComponent>
+                              <AlertDialogDescription>Bu fotoğraf galerinizden kalıcı olarak silinecektir. Bu işlem geri alınamaz.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                               <AlertDialogCancel>İptal</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => onDelete(photo)}>{t('alert_dialog_confirm')}</AlertDialogAction>
+                              <AlertDialogAction onClick={() => onDelete(photo)}>Evet, Devam Et</AlertDialogAction>
                           </AlertDialogFooter>
                       </AlertDialogContent>
                   </AlertDialog>
@@ -166,14 +160,11 @@ const PhotoDetailDialog = ({
 
 
 export default function GalleryPage() {
-    const t = useTranslations('GalleryPage');
-    const tLogin = useTranslations('LoginPage');
     const router = useRouter();
     const { user } = useUser();
     const firestore = useFirestore();
     const storage = getStorage();
     const { toast } = useToast();
-    const locale = useLocale();
 
     const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -186,11 +177,11 @@ export default function GalleryPage() {
     const { data: photos, isLoading } = useCollection<Photo>(photosQuery);
 
     const filters = [
-      { id: 'all', label: t('filter_all') },
-      { id: 'unanalyzed', label: t('status_awaiting_analysis') },
-      { id: 'best_overall', label: t('filter_best_overall') },
-      { id: 'best_light', label: t('filter_best_light') },
-      { id: 'best_composition', label: t('filter_best_composition') },
+      { id: 'all', label: "Tümü" },
+      { id: 'unanalyzed', label: "Analiz Bekleyenler" },
+      { id: 'best_overall', label: "En İyilerim" },
+      { id: 'best_light', label: "En İyi Işık" },
+      { id: 'best_composition', label: "En İyi Kompozisyon" },
     ];
     
     const getOverallScore = (photo: Photo): number => {
@@ -233,14 +224,14 @@ export default function GalleryPage() {
 
     const handleAnalyze = async (photo: Photo) => {
         if (!userProfile || userProfile.auro_balance < ANALYSIS_COST) {
-            toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_analysis', { cost: ANALYSIS_COST }) });
+            toast({ variant: 'destructive', title: "Yetersiz Auro", description: `Analiz için ${ANALYSIS_COST} Auro gereklidir.` });
             return;
         }
         setIsProcessing(true);
-        toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
+        toast({ title: "Analiz Başlatılıyor...", description: "Lütfen bekleyin." });
 
         try {
-            const analysis = await generatePhotoAnalysis({ photoUrl: photo.imageUrl, language: locale });
+            const analysis = await generatePhotoAnalysis({ photoUrl: photo.imageUrl, language: 'tr' });
             const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
             const userRef = doc(firestore, 'users', user.uid);
             
@@ -249,10 +240,10 @@ export default function GalleryPage() {
             batch.update(userRef, { auro_balance: increment(-ANALYSIS_COST) });
             await batch.commit();
 
-            toast({ title: t('toast_success_title'), description: t('toast_analysis_complete') });
+            toast({ title: "Başarılı!", description: "Analiz tamamlandı." });
             setSelectedPhoto({ ...photo, aiFeedback: analysis });
         } catch (error) {
-            toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_analysis') });
+            toast({ variant: 'destructive', title: "Hata", description: "Analiz yapılamadı." });
         } finally {
             setIsProcessing(false);
         }
@@ -267,7 +258,7 @@ export default function GalleryPage() {
             const publicPhotoRef = doc(firestore, 'public_photos', photo.id);
             
             batch.delete(photoRef);
-            batch.delete(publicPhotoRef); // Also delete from public collection
+            batch.delete(publicPhotoRef);
             
             await batch.commit();
 
@@ -276,10 +267,10 @@ export default function GalleryPage() {
                 await deleteObject(storageRef);
             }
 
-            toast({ title: t('toast_success_title'), description: t('toast_delete_complete') });
+            toast({ title: "Başarılı!", description: "Fotoğrafınız galeriden kalıcı olarak silindi." });
             onCloseDialog();
         } catch (error) {
-            toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_delete') });
+            toast({ variant: 'destructive', title: "Hata", description: "Silme işlemi tamamlanamadı." });
         } finally {
             setIsProcessing(false);
         }
@@ -294,13 +285,11 @@ export default function GalleryPage() {
   
       try {
         if (photo.isSubmittedToExhibition) {
-          // Withdraw from exhibition
           await deleteDoc(publicPhotoRef);
           await updateDoc(userPhotoRef, { isSubmittedToExhibition: false });
-          toast({ title: t('toast_success_title'), description: t('toast_withdraw_exhibition_complete') });
+          toast({ title: "Başarılı!", description: "Fotoğrafınız Sergi'den geri çekildi." });
           setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false } : null);
         } else {
-          // Submit to exhibition
           if (!photo.aiFeedback) {
              toast({ variant: 'destructive', title: 'Analiz Gerekli', description: 'Sergiye göndermeden önce fotoğrafı analiz etmelisiniz.' });
              setIsProcessing(false);
@@ -309,18 +298,18 @@ export default function GalleryPage() {
           const publicPhotoData = {
             ...photo,
             isSubmittedToExhibition: true,
-            userName: userProfile.name || tLogin('anonymous_artist'),
+            userName: userProfile.name || "İsimsiz Sanatçı",
             userPhotoURL: userProfile.photoURL || null,
             userLevelName: userProfile.level_name,
           };
           await setDoc(publicPhotoRef, publicPhotoData);
           await updateDoc(userPhotoRef, { isSubmittedToExhibition: true });
-          toast({ title: t('toast_success_title'), description: t('toast_submit_exhibition_complete') });
+          toast({ title: "Başarılı!", description: "Fotoğrafınız Sergi'ye gönderildi." });
           setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true } : null);
         }
       } catch (error) {
         console.error("Exhibition toggle error:", error);
-        toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_exhibition') });
+        toast({ variant: 'destructive', title: "Hata", description: "İşlem sırasında bir hata oluştu." });
       } finally {
         setIsProcessing(false);
       }
@@ -330,7 +319,7 @@ export default function GalleryPage() {
 
     if (isLoading) {
         return (
-            <div className="container mx-auto">
+            <div className="container mx-auto px-4">
                 <Skeleton className="h-8 w-48 mb-8" />
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}
@@ -340,8 +329,8 @@ export default function GalleryPage() {
     }
     
     return (
-      <div className="container mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight mb-8">{t('title')}</h1>
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl font-bold tracking-tight mb-8">Galerim</h1>
         {photos && photos.length > 0 ? (
           <>
             <div className="mb-6">
@@ -374,7 +363,7 @@ export default function GalleryPage() {
 
                     {!photo.aiFeedback && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <p className="text-white font-semibold text-sm">{t('status_awaiting_analysis')}</p>
+                            <p className="text-white font-semibold text-sm">Analiz Bekliyor</p>
                         </div>
                     )}
                     {photo.isSubmittedToExhibition && (
@@ -388,11 +377,11 @@ export default function GalleryPage() {
           </>
         ) : (
           <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
-            <h3 className="text-2xl font-semibold">{t('no_photos_title')}</h3>
-            <p className="text-muted-foreground mt-2">{t('no_photos_description')}</p>
+            <h3 className="text-2xl font-semibold">Galerinizde Henüz Fotoğraf Yok</h3>
+            <p className="text-muted-foreground mt-2">Yapay zeka koçu ile ilk analizinizi yaparak galeriyi doldurun!</p>
             <Button onClick={() => router.push('/dashboard')} className="mt-6">
                 <Sparkles className="mr-2 h-4 w-4" />
-                {t('button_start_analysis')}
+                Analiz Başlat
             </Button>
           </div>
         )}

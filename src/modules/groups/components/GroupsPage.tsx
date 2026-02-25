@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
@@ -7,8 +6,8 @@ import type { Group, User } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useTranslations } from 'next-intl';
-import { useRouter, Link } from '@/navigation';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useToast } from '@/shared/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
 
@@ -20,10 +19,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, LogIn, Users, Crown } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function GroupsPage() {
-  const t = useTranslations('GroupsPage');
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -45,12 +43,12 @@ export default function GroupsPage() {
   const { data: ownedGroups, isLoading: isOwnedLoading } = useCollection<Group>(ownedGroupsQuery);
   
   const createFormSchema = z.object({
-    name: z.string().min(3, t('form_error_name_min')).max(50, t('form_error_name_max')),
-    description: z.string().max(200, t('form_error_description_max')).optional(),
+    name: z.string().min(3, 'Grup adı en az 3 karakter olmalıdır.').max(50, 'Grup adı en fazla 50 karakter olabilir.'),
+    description: z.string().max(200, 'Açıklama 200 karakteri geçemez.').optional(),
   });
 
   const joinFormSchema = z.object({
-      code: z.string().length(6, t('form_error_code_length')).regex(/^\d{6}$/, t('form_error_code_format')),
+      code: z.string().length(6, 'Kod 6 haneli olmalıdır.').regex(/^\d{6}$/, 'Kod sadece 6 rakamdan oluşmalıdır.'),
   });
 
   const createForm = useForm<z.infer<typeof createFormSchema>>({
@@ -83,11 +81,11 @@ export default function GroupsPage() {
       };
       const docRef = await addDoc(collection(firestore, 'groups'), newGroup);
       await updateDoc(docRef, { id: docRef.id });
-      toast({ title: t('toast_create_success_title'), description: t('toast_create_success_description', { name: values.name }) });
+      toast({ title: "Grup Oluşturuldu!", description: `'${values.name}' adlı grubunuz başarıyla oluşturuldu.` });
       setIsCreateDialogOpen(false);
       createForm.reset();
     } catch (error) {
-      toast({ variant: 'destructive', title: t('toast_create_error_title'), description: t('toast_create_error_description') });
+      toast({ variant: 'destructive', title: "Hata", description: "Grup oluşturulurken bir sorun oluştu." });
     }
   };
 
@@ -97,20 +95,20 @@ export default function GroupsPage() {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-          toast({ variant: "destructive", title: t('toast_join_not_found_title'), description: t('toast_join_not_found_description') });
+          toast({ variant: "destructive", title: "Grup Bulunamadı", description: "Bu koda sahip bir grup bulunamadı. Kodu kontrol edin." });
           return;
       }
 
       const group = querySnapshot.docs[0].data() as Group;
       
       if (group.memberIds.includes(user.uid)) {
-          toast({ title: t('toast_join_already_member_title'), description: t('toast_join_already_member_description', { name: group.name }) });
+          toast({ title: "Zaten Üyesiniz", description: `Zaten '${group.name}' grubunun bir üyesisiniz. Yönlendiriliyorsunuz.` });
           router.push(`/groups/${group.id}`);
           return;
       }
       
       if (group.memberIds.length >= group.maxMembers) {
-          toast({ variant: "destructive", title: t('toast_join_fail_title'), description: t('toast_join_fail_description') });
+          toast({ variant: "destructive", title: "Katılım Başarısız", description: "Grup dolu olabilir veya bir hata oluştu." });
           return;
       }
 
@@ -118,17 +116,17 @@ export default function GroupsPage() {
           await updateDoc(doc(firestore, "groups", group.id), {
               memberIds: arrayUnion(user.uid)
           });
-          toast({ title: t('toast_join_success_title'), description: t('toast_join_success_description', { name: group.name }) });
+          toast({ title: "Başarıyla Katıldın!", description: `'${group.name}' grubuna hoş geldin.` });
           router.push(`/groups/${group.id}`);
       } catch (error) {
-          toast({ variant: "destructive", title: t('toast_join_fail_title'), description: t('toast_join_fail_description') });
+          toast({ variant: "destructive", title: "Katılım Başarısız", description: "Grup dolu olabilir veya bir hata oluştu." });
       }
   };
 
   const isLoading = isUserLoading || isGroupsLoading || isOwnedLoading;
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Gruplarım</h1>
         <div className="flex gap-2">
@@ -139,59 +137,59 @@ export default function GroupsPage() {
                             <div className="inline-block">
                                 <DialogTrigger asChild>
                                     <Button disabled={!canCreateGroup}>
-                                        <PlusCircle className="mr-2 h-4 w-4" /> {t('button_create_group')}
+                                        <PlusCircle className="mr-2 h-4 w-4" /> Yeni Grup Oluştur
                                     </Button>
                                 </DialogTrigger>
                             </div>
                         </TooltipTrigger>
-                        {!canCreateGroup && <TooltipContent><p>{t('create_limit_tooltip', { ownedCount: ownedGroups?.length || 0, limit: groupLimits.maxGroups })}</p></TooltipContent>}
+                        {!canCreateGroup && <TooltipContent><p>Grup oluşturma limitine ulaştınız ({ownedGroups?.length || 0}/{groupLimits.maxGroups}).</p></TooltipContent>}
                     </Tooltip>
                 </TooltipProvider>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{t('create_dialog_title')}</DialogTitle>
-                        <DialogDescription>{t('create_dialog_description')}</DialogDescription>
+                        <DialogTitle>Yeni Grup Oluştur</DialogTitle>
+                        <DialogDescription>Grubunuza bir isim ve amaç vererek topluluğunuzu başlatın.</DialogDescription>
                     </DialogHeader>
                     <Form {...createForm}>
                         <form onSubmit={createForm.handleSubmit(onCreateGroup)} className="space-y-4">
                             <FormField control={createForm.control} name="name" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{t('form_label_group_name')}</FormLabel>
-                                    <FormControl><Input placeholder={t('form_placeholder_name')} {...field} /></FormControl>
+                                    <FormLabel>Grup Adı</FormLabel>
+                                    <FormControl><Input placeholder="Örn: Ankara Sokak Fotoğrafçıları" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={createForm.control} name="description" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{t('form_label_group_description')}</FormLabel>
-                                    <FormControl><Textarea placeholder={t('form_placeholder_description')} {...field} /></FormControl>
+                                    <FormLabel>Açıklama (İsteğe Bağlı)</FormLabel>
+                                    <FormControl><Textarea placeholder="Grubun amacı, hedefleri veya kuralları hakkında kısa bilgi." {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" className="w-full">{t('button_create')}</Button>
+                            <Button type="submit" className="w-full">Oluştur</Button>
                         </form>
                     </Form>
                 </DialogContent>
             </Dialog>
             <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="secondary"><LogIn className="mr-2 h-4 w-4" /> {t('button_join_by_code')}</Button>
+                    <Button variant="secondary"><LogIn className="mr-2 h-4 w-4" /> Koda Göre Katıl</Button>
                 </DialogTrigger>
                 <DialogContent>
                      <DialogHeader>
-                        <DialogTitle>{t('join_dialog_title')}</DialogTitle>
-                        <DialogDescription>{t('join_dialog_description')}</DialogDescription>
+                        <DialogTitle>Bir Gruba Katıl</DialogTitle>
+                        <DialogDescription>Katılmak istediğiniz grubun 6 haneli davet kodunu girin.</DialogDescription>
                     </DialogHeader>
                     <Form {...joinForm}>
                         <form onSubmit={joinForm.handleSubmit(onJoinGroup)} className="space-y-4">
                             <FormField control={joinForm.control} name="code" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{t('form_label_invite_code')}</FormLabel>
-                                    <FormControl><Input placeholder={t('form_placeholder_code')} {...field} /></FormControl>
+                                    <FormLabel>Davet Kodu</FormLabel>
+                                    <FormControl><Input placeholder="123456" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" className="w-full">{t('button_join')}</Button>
+                            <Button type="submit" className="w-full">Gruba Katıl</Button>
                         </form>
                     </Form>
                 </DialogContent>
@@ -216,7 +214,7 @@ export default function GroupsPage() {
                                           <TooltipTrigger>
                                               <Crown className="h-5 w-5 text-amber-400" />
                                           </TooltipTrigger>
-                                          <TooltipContent>{t('card_owner_tooltip')}</TooltipContent>
+                                          <TooltipContent>Bu grubun sahibisiniz.</TooltipContent>
                                       </Tooltip>
                                   </TooltipProvider>
                               )}
@@ -227,10 +225,10 @@ export default function GroupsPage() {
                           <div className="flex justify-between items-center">
                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                   <Users className="h-4 w-4" />
-                                  <span>{t('card_member_count', { count: group.memberIds.length })}</span>
+                                  <span>{group.memberIds.length} üye</span>
                                </div>
                                <Button asChild>
-                                  <Link href={`/groups/${group.id}`}>{t('button_view_group')}</Link>
+                                  <Link href={`/groups/${group.id}`}>Grubu Gör</Link>
                                </Button>
                           </div>
                       </CardContent>
@@ -239,12 +237,10 @@ export default function GroupsPage() {
           </div>
       ) : (
           <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
-              <h3 className="text-2xl font-semibold">{t('no_groups_title')}</h3>
-              <p className="text-muted-foreground mt-2">{t('no_groups_description')}</p>
+              <h3 className="text-2xl font-semibold">Henüz Bir Gruba Üye Değilsiniz</h3>
+              <p className="text-muted-foreground mt-2">Yeni bir grup oluşturarak kendi topluluğunuzu başlatın veya bir arkadaşınızdan davet alın.</p>
           </div>
       )}
     </div>
   );
 }
-
-    

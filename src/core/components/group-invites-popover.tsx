@@ -9,7 +9,7 @@ import { Button } from '@/shared/ui/button';
 import { Bell, Users, Check, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from '@/navigation';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -19,7 +19,7 @@ const localeMap: Record<string, Locale> = { tr, en: enUS };
 export function GroupInvitesPopover() {
   const t = useTranslations('Notifications');
   const tGroups = useTranslations('GroupsPage');
-  const locale = useLocale();
+  const locale = tr;
   const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
