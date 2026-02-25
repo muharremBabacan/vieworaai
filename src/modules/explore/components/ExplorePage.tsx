@@ -48,16 +48,16 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
       normalizeScore(photo.aiFeedback.color_control_score),
       normalizeScore(photo.aiFeedback.background_control_score),
     ];
-    const tScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
-    return (lScore + cScore + tScore) / 3;
+    const technicalScore = technicalScores.reduce((sum, score) => sum + score, 0) / technicalScores.length;
+    return (lScore + cScore + technicalScore) / 3;
   }, [photo]);
 
-
-  const profileToShow = photo?.userName ? {
-      name: photo.userName,
-      photoURL: photo.userPhotoURL,
-      level_name: photo.userLevelName
-  } : null;
+  // Fallback profile if data is missing
+  const profileInfo = {
+      name: photo?.userName || "İsimsiz Sanatçı",
+      photoURL: photo?.userPhotoURL || null,
+      level_name: photo?.userLevelName || "Neuner"
+  };
 
   const hasLiked = useMemo(() => {
     if (!user || !photo?.likes) return false;
@@ -96,7 +96,6 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
     }
   };
 
-
   if (!photo) return null;
 
   return (
@@ -129,20 +128,18 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
             </DialogHeader>
             
             {/* Mini Profil Bilgisi - En Üstte */}
-            {profileToShow ? (
-              <div className="flex items-center gap-3 rounded-xl p-4 bg-gradient-to-br from-secondary/50 to-background border border-border/50 shadow-sm">
-                <Avatar className="h-14 w-14 border-2 border-primary/20 shadow-md">
-                  {profileToShow.photoURL && <AvatarImage src={profileToShow.photoURL} alt={profileToShow.name || ''} />}
-                  <AvatarFallback className="text-xl font-bold">{profileToShow.name?.charAt(0) || '?'}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-base truncate text-foreground">{profileToShow.name}</p>
-                  <Badge variant="outline" className="mt-1 bg-primary/5 text-primary border-primary/20 text-[11px] px-2 py-0.5">
-                    {profileToShow.level_name}
-                  </Badge>
-                </div>
+            <div className="flex items-center gap-3 rounded-xl p-4 bg-gradient-to-br from-secondary/50 to-background border border-border/50 shadow-sm">
+              <Avatar className="h-14 w-14 border-2 border-primary/20 shadow-md">
+                {profileInfo.photoURL && <AvatarImage src={profileInfo.photoURL} alt={profileInfo.name} />}
+                <AvatarFallback className="text-xl font-bold">{profileInfo.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base truncate text-foreground">{profileInfo.name}</p>
+                <Badge variant="outline" className="mt-1 bg-primary/5 text-primary border-primary/20 text-[11px] px-2 py-0.5">
+                  {profileInfo.level_name}
+                </Badge>
               </div>
-            ) : null}
+            </div>
 
             <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3">
