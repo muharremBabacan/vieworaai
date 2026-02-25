@@ -17,8 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Globe, Eye, Loader2, ArrowLeftRight } from 'lucide-react';
+import { Sparkles, Trash2, Globe, Eye, Loader2, ArrowLeftRight, Star } from 'lucide-react';
 import { useRouter } from '@/navigation';
+import { Badge } from '@/components/ui/badge';
 
 const ANALYSIS_COST = 1;
 const SUBMIT_TO_EXHIBITION_COST = 0; // Or some other value
@@ -322,17 +323,26 @@ export default function GalleryPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filteredPhotos.map((photo) => (
                 <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
-                  <Image src={photo.imageUrl} alt="User submission" fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
-                  {!photo.aiFeedback && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <p className="text-white font-semibold text-sm">{t('status_awaiting_analysis')}</p>
-                    </div>
-                  )}
-                   {photo.isSubmittedToExhibition && (
-                    <div className="absolute top-2 left-2 p-1.5 bg-background/70 rounded-full backdrop-blur-sm">
-                        <Globe className="h-4 w-4 text-primary" />
-                    </div>
-                   )}
+                    <Image src={photo.imageUrl} alt="User submission" fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    
+                    {photo.aiFeedback && (
+                        <Badge variant="secondary" className="absolute top-2 right-2 flex items-center gap-1 border-transparent bg-black/50 text-white backdrop-blur-sm">
+                            <Star className="h-3 w-3 text-yellow-400" />
+                            <span className="text-xs font-bold">{getOverallScore(photo).toFixed(1)}</span>
+                        </Badge>
+                    )}
+
+                    {!photo.aiFeedback && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <p className="text-white font-semibold text-sm">{t('status_awaiting_analysis')}</p>
+                        </div>
+                    )}
+                    {photo.isSubmittedToExhibition && (
+                        <div className="absolute top-2 left-2 p-1.5 bg-background/70 rounded-full backdrop-blur-sm">
+                            <Globe className="h-4 w-4 text-primary" />
+                        </div>
+                    )}
                 </Card>
               ))}
             </div>
