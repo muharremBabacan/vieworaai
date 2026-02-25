@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -9,9 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { collection, doc, writeBatch, getCountFromServer, addDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, setDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Calendar, Trash2, Edit, StopCircle, Check } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
@@ -19,6 +20,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Competition } from '@/types';
+import { errorEmitter } from '@/lib/firebase/error-emitter';
+import { FirestorePermissionError } from '@/lib/firebase/errors';
 
 const curriculum = {
   Temel: [ 
@@ -69,7 +72,6 @@ export default function AdminPanel() {
 
     const isAdmin = user?.email === 'admin@viewora.ai';
 
-    // Competitions Data
     const competitionsQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null,
         [firestore]
@@ -95,26 +97,32 @@ export default function AdminPanel() {
     const selectedLevel = lessonWatch('level');
 
     const onGenerateLessons = async (data: { level: Level; category: string; }) => {
-        if (!data.level || !data.category) {
+        if (!data.level || !data.category || !firestore) {
             toast({ variant: 'destructive', title: "Eksik Seçim", description: "Lütfen ders üretmek için bir seviye ve bir kategori seçin." });
             return;
         }
         setIsGenerating(true);
         try {
             const lessons = await generateDailyLessons({ level: data.level, category: data.category, language: 'tr' });
-            if (firestore) {
-                const batch = writeBatch(firestore);
-                lessons.forEach(lessonData => {
-                    const docRef = doc(collection(firestore, 'academyLessons'));
-                    batch.set(docRef, {
-                        ...lessonData,
-                        id: docRef.id,
-                        imageUrl: `https://picsum.photos/seed/${docRef.id}/600/400`,
-                        createdAt: new Date().toISOString()
-                    });
+            const batch = writeBatch(firestore);
+            
+            lessons.forEach(lessonData => {
+                const docRef = doc(collection(firestore, 'academyLessons'));
+                batch.set(docRef, {
+                    ...lessonData,
+                    id: docRef.id,
+                    imageUrl: `https://picsum.photos/seed/${docRef.id}/600/400`,
+                    createdAt: new Date().toISOString()
                 });
-                await batch.commit();
-            }
+            });
+
+            batch.commit().catch(async (error) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'academyLessons/batch',
+                    operation: 'create'
+                }));
+            });
+
             toast({ title: "Başarılı!", description: `${lessons.length} yeni ders eklendi.` });
         } catch (error) {
             toast({ variant: 'destructive', title: "Hata!", description: "Dersler üretilemedi." });
@@ -124,30 +132,50 @@ export default function AdminPanel() {
     const onSubmitCompetition = async (data: CompetitionFormValues) => {
         if (!firestore || !isAdmin || isCreatingComp) return;
         setIsCreatingComp(true);
+
         try {
             if (editingCompId) {
-                // Update
                 const compRef = doc(firestore, 'competitions', editingCompId);
-                await updateDoc(compRef, { ...data });
+                updateDoc(compRef, { ...data }).catch(async (error) => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: compRef.path,
+                        operation: 'update',
+                        requestResourceData: data
+                    }));
+                });
                 toast({ title: "Yarışma Güncellendi" });
                 setEditingCompId(null);
             } else {
-                // Create
-                const docRef = await addDoc(collection(firestore, 'competitions'), {
+                const batch = writeBatch(firestore);
+                const compRef = doc(collection(firestore, 'competitions'));
+                const notifRef = doc(collection(firestore, 'global_notifications'));
+                
+                const compId = compRef.id;
+                const competitionData = {
                     ...data,
+                    id: compId,
                     createdAt: new Date().toISOString(),
                     imageUrl: `https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1000&auto=format&fit=crop`,
                     imageHint: data.theme,
-                });
-                await updateDoc(doc(firestore, 'competitions', docRef.id), { id: docRef.id });
+                };
 
-                await addDoc(collection(firestore, 'global_notifications'), {
+                batch.set(compRef, competitionData);
+                batch.set(notifRef, {
+                    id: notifRef.id,
                     title: "Yeni Yarışma!",
                     message: `${data.title} yarışması başladı! Hedef seviye: ${data.targetLevel}`,
                     targetLevel: data.targetLevel,
-                    competitionId: docRef.id,
+                    competitionId: compId,
                     createdAt: new Date().toISOString(),
                 });
+
+                batch.commit().catch(async (error) => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: 'competitions/notification/batch',
+                        operation: 'create'
+                    }));
+                });
+
                 toast({ title: "Yarışma Oluşturuldu" });
             }
             resetComp();
@@ -171,24 +199,29 @@ export default function AdminPanel() {
     const handleDeleteComp = async (compId: string) => {
         if (!firestore || !isAdmin) return;
         if (!confirm('Bu yarışmayı tamamen silmek istediğinize emin misiniz?')) return;
-        try {
-            await deleteDoc(doc(firestore, 'competitions', compId));
-            toast({ title: "Yarışma Silindi" });
-        } catch (e) {
-            toast({ variant: 'destructive', title: "Hata", description: "Silme işlemi başarısız." });
-        }
+        
+        const compRef = doc(firestore, 'competitions', compId);
+        deleteDoc(compRef).catch(async (error) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: compRef.path,
+                operation: 'delete'
+            }));
+        });
+        toast({ title: "Yarışma Silindi" });
     };
 
     const handleEndComp = async (compId: string) => {
         if (!firestore || !isAdmin) return;
-        try {
-            await updateDoc(doc(firestore, 'competitions', compId), {
-                endDate: new Date().toISOString()
-            });
-            toast({ title: "Yarışma Bitirildi" });
-        } catch (e) {
-            toast({ variant: 'destructive', title: "Hata", description: "İşlem başarısız." });
-        }
+        const compRef = doc(firestore, 'competitions', compId);
+        updateDoc(compRef, {
+            endDate: new Date().toISOString()
+        }).catch(async (error) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: compRef.path,
+                operation: 'update'
+            }));
+        });
+        toast({ title: "Yarışma Bitirildi" });
     };
 
     useEffect(() => {
