@@ -9,6 +9,7 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
+import { errorEmitter } from '@/lib/firebase/error-emitter';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -23,9 +24,7 @@ export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
 ): UseDocResult<T> {
 
-  type StateDataType = WithId<T> | null;
-
-  const [data, setData] = useState<StateDataType>(null);
+  const [data, setData] = useState<WithId<T> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
@@ -46,30 +45,24 @@ export function useDoc<T = any>(
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          // Doc yoksa crash etme
           setData(null);
         }
         setError(null);
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-
-        // 🔥 ÖNEMLİ FIX
-        // Permission error artık global crash tetiklemez.
+        // Zengin içerikli izin hatası oluşturulur ve yayılır
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
         });
 
-        console.warn('Firestore permission denied:', memoizedDocRef.path);
-
-        // sadece local state güncelle
         setError(contextualError);
         setData(null);
         setIsLoading(false);
 
-        // ❌ GLOBAL EMIT KALDIRILDI
-        // errorEmitter.emit('permission-error', contextualError);
+        // Global dinleyiciye gönderilir
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 

@@ -5,6 +5,8 @@ import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@
 import { collection, query, where, doc, updateDoc, writeBatch, increment, deleteDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
+import { errorEmitter } from '@/lib/firebase/error-emitter';
+import { FirestorePermissionError } from '@/lib/firebase/errors';
 
 import type { Photo, PhotoAnalysis, User } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -77,9 +79,9 @@ const PhotoDetailDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0">
-          <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/50 shrink-0">
-              <Image src={photo.imageUrl} alt="Kullanıcı fotoğrafı" fill className="object-contain" />
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden">
+          <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black shrink-0">
+              <Image src={photo.imageUrl} alt="Kullanıcı fotoğrafı" fill className="object-contain" unoptimized />
           </div>
           <div className="md:w-2/5 w-full flex flex-col overflow-hidden min-h-0">
               <DialogHeader className="p-6 pb-4 shrink-0 border-b">
@@ -89,8 +91,8 @@ const PhotoDetailDialog = ({
                   {photo.aiFeedback ? (
                       <>
                           <Card>
-                              <CardHeader>
-                                  <CardTitle>Puanlama</CardTitle>
+                              <CardHeader className="pb-4">
+                                  <CardTitle className="text-sm font-medium">Puanlama</CardTitle>
                               </CardHeader>
                               <CardContent className="space-y-4">
                                   <div className="flex justify-between items-baseline">
@@ -127,7 +129,7 @@ const PhotoDetailDialog = ({
                       </div>
                   )}
               </div>
-              <div className="p-6 border-t flex flex-col gap-2 shrink-0">
+              <div className="p-6 border-t flex flex-col gap-2 shrink-0 bg-background">
                   <Button onClick={() => onToggleExhibition(photo)} variant="outline" disabled={isProcessing}>
                       {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                       <ArrowLeftRight className="mr-2 h-4 w-4" />
@@ -173,7 +175,7 @@ export default function GalleryPage() {
     const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile } = useDoc<User>(userDocRef);
 
-    const photosQuery = useMemoFirebase(() => user ? query(collection(firestore, 'users', user.uid, 'photos'), where('userId', '==', user.uid)) : null, [user, firestore]);
+    const photosQuery = useMemoFirebase(() => user ? query(collection(firestore, 'users', user.uid, 'photos')) : null, [user, firestore]);
     const { data: photos, isLoading } = useCollection<Photo>(photosQuery);
 
     const filters = [
@@ -223,7 +225,7 @@ export default function GalleryPage() {
     }, [photos, activeFilter]);
 
     const handleAnalyze = async (photo: Photo) => {
-        if (!userProfile || userProfile.auro_balance < ANALYSIS_COST) {
+        if (!user || !userProfile || userProfile.auro_balance < ANALYSIS_COST) {
             toast({ variant: 'destructive', title: "Yetersiz Auro", description: `Analiz için ${ANALYSIS_COST} Auro gereklidir.` });
             return;
         }
@@ -232,13 +234,20 @@ export default function GalleryPage() {
 
         try {
             const analysis = await generatePhotoAnalysis({ photoUrl: photo.imageUrl, language: 'tr' });
+            
             const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
             const userRef = doc(firestore, 'users', user.uid);
             
             const batch = writeBatch(firestore);
             batch.update(photoRef, { aiFeedback: analysis });
             batch.update(userRef, { auro_balance: increment(-ANALYSIS_COST) });
-            await batch.commit();
+            
+            batch.commit().catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'photos-update-batch',
+                    operation: 'update'
+                }));
+            });
 
             toast({ title: "Başarılı!", description: "Analiz tamamlandı." });
             setSelectedPhoto({ ...photo, aiFeedback: analysis });
@@ -250,7 +259,7 @@ export default function GalleryPage() {
     };
 
     const handleDelete = async (photo: Photo) => {
-        if (!user) return;
+        if (!user || !firestore) return;
         setIsProcessing(true);
         try {
             const batch = writeBatch(firestore);
@@ -260,11 +269,16 @@ export default function GalleryPage() {
             batch.delete(photoRef);
             batch.delete(publicPhotoRef);
             
-            await batch.commit();
+            batch.commit().catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: photoRef.path,
+                    operation: 'delete'
+                }));
+            });
 
             if (photo.filePath) {
                 const storageRef = ref(storage, photo.filePath);
-                await deleteObject(storageRef);
+                await deleteObject(storageRef).catch(() => {});
             }
 
             toast({ title: "Başarılı!", description: "Fotoğrafınız galeriden kalıcı olarak silindi." });
@@ -277,7 +291,7 @@ export default function GalleryPage() {
     };
     
     const handleToggleExhibition = async (photo: Photo) => {
-      if (!user || !userProfile) return;
+      if (!user || !userProfile || !firestore) return;
       setIsProcessing(true);
   
       const publicPhotoRef = doc(firestore, 'public_photos', photo.id);
@@ -285,8 +299,18 @@ export default function GalleryPage() {
   
       try {
         if (photo.isSubmittedToExhibition) {
-          await deleteDoc(publicPhotoRef);
-          await updateDoc(userPhotoRef, { isSubmittedToExhibition: false });
+          deleteDoc(publicPhotoRef).catch(async (err) => {
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: publicPhotoRef.path,
+                  operation: 'delete'
+              }));
+          });
+          updateDoc(userPhotoRef, { isSubmittedToExhibition: false }).catch(async (err) => {
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: userPhotoRef.path,
+                  operation: 'update'
+              }));
+          });
           toast({ title: "Başarılı!", description: "Fotoğrafınız Sergi'den geri çekildi." });
           setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false } : null);
         } else {
@@ -302,8 +326,19 @@ export default function GalleryPage() {
             userPhotoURL: userProfile.photoURL || null,
             userLevelName: userProfile.level_name,
           };
-          await setDoc(publicPhotoRef, publicPhotoData);
-          await updateDoc(userPhotoRef, { isSubmittedToExhibition: true });
+          setDoc(publicPhotoRef, publicPhotoData).catch(async (err) => {
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: publicPhotoRef.path,
+                  operation: 'create',
+                  requestResourceData: publicPhotoData
+              }));
+          });
+          updateDoc(userPhotoRef, { isSubmittedToExhibition: true }).catch(async (err) => {
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: userPhotoRef.path,
+                  operation: 'update'
+              }));
+          });
           toast({ title: "Başarılı!", description: "Fotoğrafınız Sergi'ye gönderildi." });
           setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true } : null);
         }
@@ -351,7 +386,7 @@ export default function GalleryPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filteredPhotos.map((photo) => (
                 <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
-                    <Image src={photo.imageUrl} alt="User submission" fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <Image src={photo.imageUrl} alt="User submission" fill className="object-cover transition-transform duration-300 group-hover:scale-105" unoptimized />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                     
                     {photo.aiFeedback && (

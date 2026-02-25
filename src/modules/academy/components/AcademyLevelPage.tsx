@@ -7,6 +7,8 @@ import type { Lesson, User } from '@/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, doc, updateDoc, writeBatch, increment } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { errorEmitter } from '@/lib/firebase/error-emitter';
+import { FirestorePermissionError } from '@/lib/firebase/errors';
 
 import { getLevelFromXp } from '@/lib/gamification';
 
@@ -125,7 +127,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
 
                         {preview && (
                             <div className="mt-4 relative aspect-video rounded-lg overflow-hidden">
-                                <Image src={preview} alt="Preview" fill className="object-cover" />
+                                <Image src={preview} alt="Preview" fill className="object-cover" unoptimized />
                             </div>
                         )}
                     </div>
@@ -169,6 +171,7 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
             fill
             className="object-cover"
             data-ai-hint={lesson.imageHint}
+            unoptimized
           />
         </div>
         <CardContent className="p-4">
@@ -302,25 +305,35 @@ export default function AcademyLevelPage() {
             auro_balance: increment(auroGain)
         });
 
-        try {
-            await batch.commit();
+        batch.commit().catch(async (err) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: 'academy-complete-batch',
+                operation: 'write'
+            }));
+        });
 
-            toast({ title: "Ödül Kazandın!", description: `Bu dersten ${xpGain} XP ve ${auroGain} Auro kazandın.` });
+        toast({ title: "Ödül Kazandın!", description: `Bu dersten ${xpGain} XP ve ${auroGain} Auro kazandın.` });
 
-            const oldLevel = getLevelFromXp(userProfile.current_xp);
-            const newLevel = getLevelFromXp(userProfile.current_xp + xpGain);
+        const oldLevel = getLevelFromXp(userProfile.current_xp);
+        const newLevel = getLevelFromXp(userProfile.current_xp + xpGain);
 
-            if (newLevel.name !== oldLevel.name) {
-                await updateDoc(userRef, { level_name: newLevel.name });
-                toast({ title: "🎉 Seviye Atladın!", description: `Tebrikler! Yeni seviyen: ${newLevel.name}` });
-                if (newLevel.isMentor && !oldLevel.isMentor) {
-                    await updateDoc(userRef, { is_mentor: true });
-                    toast({ title: "👑 Mentor Oldun!", description: "Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin." });
-                }
+        if (newLevel.name !== oldLevel.name) {
+            updateDoc(userRef, { level_name: newLevel.name }).catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userRef.path,
+                    operation: 'update'
+                }));
+            });
+            toast({ title: "🎉 Seviye Atladın!", description: `Tebrikler! Yeni seviyen: ${newLevel.name}` });
+            if (newLevel.isMentor && !oldLevel.isMentor) {
+                updateDoc(userRef, { is_mentor: true }).catch(async (err) => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: userRef.path,
+                        operation: 'update'
+                    }));
+                });
+                toast({ title: "👑 Mentor Oldun!", description: "Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin." });
             }
-
-        } catch (error) {
-            console.error("Error completing lesson:", error);
         }
     };
     

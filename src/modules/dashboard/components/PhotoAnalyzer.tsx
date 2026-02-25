@@ -8,6 +8,8 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
 import { useToast } from '@/shared/hooks/use-toast';
+import { errorEmitter } from '@/lib/firebase/error-emitter';
+import { FirestorePermissionError } from '@/lib/firebase/errors';
 
 import type { User, Photo, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -277,16 +279,32 @@ export default function PhotoAnalyzer() {
             batch.set(photoDocRef, photoData);
             batch.update(userRef, { current_xp: increment(xpGained) });
             
-            await batch.commit();
+            batch.commit().catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'dashboard-upload-batch',
+                    operation: 'write'
+                }));
+            });
+
             toast({ title: "XP Kazandın!", description: `${xpGained} XP kazandın.` });
 
             const oldLevel = getLevelFromXp(userProfile.current_xp);
             const newLevel = getLevelFromXp(userProfile.current_xp + xpGained);
             if (newLevel.name !== oldLevel.name) {
-                await updateDoc(userRef, { level_name: newLevel.name });
+                updateDoc(userRef, { level_name: newLevel.name }).catch(async (err) => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: userRef.path,
+                        operation: 'update'
+                    }));
+                });
                 toast({ title: "🎉 Seviye Atladın!", description: `Tebrikler! Yeni seviyen: ${newLevel.name}` });
                 if (newLevel.isMentor && !oldLevel.isMentor) {
-                    await updateDoc(userRef, { is_mentor: true });
+                    updateDoc(userRef, { is_mentor: true }).catch(async (err) => {
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({
+                            path: userRef.path,
+                            operation: 'update'
+                        }));
+                    });
                     toast({ title: "👑 Mentor Oldun!", description: "Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin." });
                 }
             }
@@ -339,7 +357,7 @@ export default function PhotoAnalyzer() {
                 ) : (
                     <Card className="text-center p-8">
                         <div className="max-w-lg mx-auto">
-                            <Image src={preview!} alt="Preview" width={512} height={512} className="rounded-lg object-contain aspect-video" />
+                            <Image src={preview!} alt="Preview" width={512} height={512} className="rounded-lg object-contain aspect-video" unoptimized />
                         </div>
                         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Button onClick={() => handleUploadAndOptionalAnalysis(true)} size="lg">
