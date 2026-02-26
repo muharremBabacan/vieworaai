@@ -1,8 +1,9 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import type { Photo, PublicUserProfile } from '@/types';
+import type { Photo, PublicUserProfile, ExhibitionConfig } from '@/types';
 import { Card, CardContent } from '@/shared/ui/card';
 import {
   Dialog,
@@ -12,7 +13,7 @@ import {
   DialogClose,
   DialogDescription,
 } from '@/shared/ui/dialog';
-import { Star, Heart, Loader2, X, Trophy, Sparkles, LayoutGrid, ChevronRight, ArrowLeft, Filter, Layers, Camera } from 'lucide-react';
+import { Star, Heart, Loader2, X, Trophy, Sparkles, LayoutGrid, ChevronRight, ArrowLeft, Filter, Layers, Camera, Globe, Clock, Info } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDocumentNonBlocking } from '@/lib/firebase';
 import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove, getCountFromServer } from 'firebase/firestore';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -22,6 +23,8 @@ import { Button } from '@/shared/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatDistanceToNow } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -203,6 +206,9 @@ export default function ExplorePage() {
   const { user } = useUser();
   const router = useRouter();
 
+  const exhibitionConfigRef = useMemoFirebase(() => (firestore) ? doc(firestore, 'settings', 'exhibition') : null, [firestore]);
+  const { data: exConfig } = useDoc<ExhibitionConfig>(exhibitionConfigRef);
+
   useEffect(() => {
     if (!firestore || !user) return;
     const fetchCounts = async () => {
@@ -244,6 +250,8 @@ export default function ExplorePage() {
       );
   }
 
+  const remainingDays = exConfig?.endDate ? Math.ceil((new Date(exConfig.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
   return (
     <div className="container mx-auto px-4 pt-8 animate-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col gap-8 mb-10">
@@ -251,6 +259,42 @@ export default function ExplorePage() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Keşfet Merkezine Dön
             </Button>
             
+            {exConfig?.isActive && (
+                <Card className="border-cyan-500/20 bg-cyan-500/5 rounded-[24px] overflow-hidden">
+                    <CardContent className="p-0">
+                        <div className="flex flex-col md:flex-row items-center">
+                            <div className="p-6 md:p-8 flex-1 space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <Badge className="bg-cyan-500 hover:bg-cyan-600 text-white border-none px-3 h-6 text-[10px] font-bold uppercase tracking-widest">AKTİF SERGİ</Badge>
+                                    {remainingDays > 0 && (
+                                        <div className="flex items-center gap-1.5 text-cyan-400 text-[10px] font-bold uppercase">
+                                            <Clock className="h-3 w-3" /> {remainingDays} GÜN KALDI
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-black tracking-tight text-white mb-2">{exConfig.currentTheme}</h2>
+                                    <p className="text-cyan-100/70 text-sm max-w-xl leading-relaxed">{exConfig.description}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-4 pt-2">
+                                    <div className="flex items-center gap-2 text-xs font-medium text-cyan-200/60">
+                                        <Info className="h-3.5 w-3.5" /> Katılım Şartı: <Badge variant="outline" className="h-5 border-cyan-500/30 text-cyan-300 text-[10px]">{exConfig.minLevel}+</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs font-medium text-cyan-200/60">
+                                        <Globe className="h-3.5 w-3.5" /> Tüm Topluluğa Açık
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="hidden md:block w-1/3 relative h-48 bg-cyan-500/10">
+                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                                    <Globe className="h-32 w-32 text-cyan-400" />
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
                 <div>
                     <h1 className="text-4xl font-bold tracking-tight mb-2">Sergi Salonu</h1>

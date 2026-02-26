@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -9,16 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc } from 'firebase/firestore';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send, Globe, LayoutGrid, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send, Globe, LayoutGrid, Image as ImageIcon, Sparkles, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Competition, ScoringModel, User, GlobalNotification, Photo } from '@/types';
+import type { Competition, ScoringModel, User, GlobalNotification, Photo, ExhibitionConfig } from '@/types';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 import Image from 'next/image';
@@ -75,11 +76,12 @@ export default function AdminPanel() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isCreatingComp, setIsCreatingComp] = useState(false);
     const [isSendingNotif, setIsSendingNotif] = useState(false);
+    const [isUpdatingExhibition, setIsUpdatingExhibition] = useState(false);
     const [editingCompId, setEditingCompId] = useState<string | null>(null);
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
 
-    const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
+    const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com';
 
     // Queries
     const competitionsQuery = useMemoFirebase(() => 
@@ -93,6 +95,9 @@ export default function AdminPanel() {
         [firestore, isAdmin]
     );
     const { data: exhibitionPhotos, isLoading: exhibitionLoading } = useCollection<Photo>(exhibitionQuery);
+
+    const exhibitionConfigRef = useMemoFirebase(() => (firestore && isAdmin) ? doc(firestore, 'settings', 'exhibition') : null, [firestore, isAdmin]);
+    const { data: exhibitionConfig } = useDoc<ExhibitionConfig>(exhibitionConfigRef);
 
     // Forms
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
@@ -120,6 +125,22 @@ export default function AdminPanel() {
 
     const { control: notifControl, handleSubmit: handleNotifSubmit, reset: resetNotif } = useForm<{ title: string; message: string; targetLevel: string; type: any }>({
         defaultValues: { title: '', message: '', targetLevel: 'all', type: 'system' }
+    });
+
+    const { control: exhibitionForm, handleSubmit: handleExhibitionSubmit } = useForm<Omit<ExhibitionConfig, 'id' | 'updatedAt'>>({
+        values: exhibitionConfig ? {
+            currentTheme: exhibitionConfig.currentTheme,
+            description: exhibitionConfig.description,
+            endDate: exhibitionConfig.endDate?.split('T')[0] || '',
+            minLevel: exhibitionConfig.minLevel,
+            isActive: exhibitionConfig.isActive,
+        } : {
+            currentTheme: 'Serbest Tema',
+            description: 'İstediğiniz kategoride fotoğrafınızı paylaşın.',
+            endDate: '',
+            minLevel: 'Neuner',
+            isActive: true,
+        }
     });
     
     const selectedLevel = lessonWatch('level');
@@ -210,6 +231,22 @@ export default function AdminPanel() {
         } catch (error) {
             toast({ variant: 'destructive', title: "Hata" });
         } finally { setIsCreatingComp(false); }
+    };
+
+    const onUpdateExhibitionConfig = async (data: Omit<ExhibitionConfig, 'id' | 'updatedAt'>) => {
+        if (!firestore || !isAdmin || isUpdatingExhibition) return;
+        setIsUpdatingExhibition(true);
+        try {
+            await setDoc(doc(firestore, 'settings', 'exhibition'), {
+                ...data,
+                updatedAt: new Date().toISOString(),
+            }, { merge: true });
+            toast({ title: "Sergi Yapılandırması Güncellendi" });
+        } catch (e) {
+            toast({ variant: 'destructive', title: "Hata" });
+        } finally {
+            setIsUpdatingExhibition(false);
+        }
     };
 
     const onSendNotification = async (data: { title: string; message: string; targetLevel: string; type: any }) => {
@@ -473,6 +510,66 @@ export default function AdminPanel() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* EXHIBITION MANAGEMENT */}
+            <Card className="border-cyan-500/20">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-cyan-400" /> Sergi Etkinliği Yönetimi
+                    </CardTitle>
+                    <CardDescription>Sergi salonunun aktif temasını ve katılım şartlarını belirleyin.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleExhibitionSubmit(onUpdateExhibitionConfig)} className="space-y-6">
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Sergi Teması</Label>
+                                    <Controller name="currentTheme" control={exhibitionForm} render={({ field }) => <Input placeholder="Örn: Şehir Işıkları" {...field} />} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Katılım Şartları / Açıklama</Label>
+                                    <Controller name="description" control={exhibitionForm} render={({ field }) => <Textarea placeholder="Serginin amacı ve kuralları..." {...field} className="min-h-[100px]" />} />
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Bitiş Tarihi</Label>
+                                        <Controller name="endDate" control={exhibitionForm} render={({ field }) => <Input type="date" {...field} />} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Min. Seviye Şartı</Label>
+                                        <Controller name="minLevel" control={exhibitionForm} render={({ field }) => (
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                        )} />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 py-4">
+                                    <Label>Sergi Aktif mi?</Label>
+                                    <Controller name="isActive" control={exhibitionForm} render={({ field }) => (
+                                        <Button 
+                                            type="button" 
+                                            variant={field.value ? "default" : "outline"} 
+                                            size="sm" 
+                                            onClick={() => field.onChange(!field.value)}
+                                        >
+                                            {field.value ? "Yayında" : "Yayından Kaldırıldı"}
+                                        </Button>
+                                    )} />
+                                </div>
+                            </div>
+                        </div>
+                        <Button type="submit" disabled={isUpdatingExhibition} className="w-full h-12 font-bold bg-cyan-600 hover:bg-cyan-700">
+                            {isUpdatingExhibition ? <Loader2 className="mr-2 animate-spin h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
+                            Sergi Kurallarını Güncelle
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
 
             {/* COMPETITION FORM */}
             <Card className="border-amber-500/20">

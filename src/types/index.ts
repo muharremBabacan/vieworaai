@@ -112,6 +112,16 @@ export type Competition = {
   communityWeight: number;
 };
 
+export type ExhibitionConfig = {
+  id: string;
+  currentTheme: string;
+  description: string;
+  endDate: string;
+  minLevel: string;
+  isActive: boolean;
+  updatedAt: string;
+};
+
 export type Group = {
   id: string;
   name: string;

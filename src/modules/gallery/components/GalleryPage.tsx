@@ -1,15 +1,16 @@
+
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, updateDoc, writeBatch, increment, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, writeBatch, increment, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 
-import type { Photo, PhotoAnalysis, User } from '@/types';
-import { getLevelFromXp } from '@/lib/gamification';
+import type { Photo, PhotoAnalysis, User, ExhibitionConfig } from '@/types';
+import { getLevelFromXp, levels as gamificationLevels } from '@/lib/gamification';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
 
@@ -18,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertDialogTitleComponent, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Globe, Loader2, ArrowLeftRight, Star } from 'lucide-react';
+import { Sparkles, Trash2, Globe, Loader2, ArrowLeftRight, Star, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -327,11 +328,40 @@ export default function GalleryPage() {
           toast({ title: "Başarılı!", description: "Fotoğrafınız Sergi'den geri çekildi." });
           setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false } : null);
         } else {
+          // Check exhibition config for rules
+          const exConfigSnap = await getDoc(doc(firestore, 'settings', 'exhibition'));
+          if (exConfigSnap.exists()) {
+              const exConfig = exConfigSnap.data() as ExhibitionConfig;
+              if (exConfig.isActive) {
+                  // Check end date
+                  if (exConfig.endDate && new Date() > new Date(exConfig.endDate)) {
+                      toast({ variant: 'destructive', title: 'Sergi Sona Erdi', description: 'Bu sergi dönemi kapandı. Yeni temayı bekleyin.' });
+                      setIsProcessing(false);
+                      return;
+                  }
+                  // Check min level
+                  const currentLevelIndex = gamificationLevels.findIndex(l => l.name === userProfile.level_name);
+                  const minLevelIndex = gamificationLevels.findIndex(l => l.name === exConfig.minLevel);
+                  if (currentLevelIndex < minLevelIndex) {
+                      toast({ variant: 'destructive', title: 'Seviye Yetersiz', description: `Bu sergiye katılmak için en az ${exConfig.minLevel} seviyesinde olmalısınız.` });
+                      setIsProcessing(false);
+                      return;
+                  }
+              }
+          }
+
           if (!photo.aiFeedback) {
              toast({ variant: 'destructive', title: 'Analiz Gerekli', description: 'Sergiye göndermeden önce fotoğrafı analiz etmelisiniz.' });
              setIsProcessing(false);
              return;
           }
+
+          if (userProfile.auro_balance < SUBMIT_TO_EXHIBITION_COST) {
+              toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Sergiye katılım için ${SUBMIT_TO_EXHIBITION_COST} Auro gereklidir.` });
+              setIsProcessing(false);
+              return;
+          }
+
           const publicPhotoData = {
             ...photo,
             isSubmittedToExhibition: true,
@@ -339,19 +369,19 @@ export default function GalleryPage() {
             userPhotoURL: userProfile.photoURL || null,
             userLevelName: userProfile.level_name,
           };
-          setDoc(publicPhotoRef, publicPhotoData).catch(async (err) => {
+
+          const batch = writeBatch(firestore);
+          batch.set(publicPhotoRef, publicPhotoData);
+          batch.update(userPhotoRef, { isSubmittedToExhibition: true });
+          batch.update(doc(firestore, 'users', user.uid), { auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST) });
+
+          await batch.commit().catch(async (err) => {
               errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: publicPhotoRef.path,
-                  operation: 'create',
-                  requestResourceData: publicPhotoData
+                  path: 'exhibition-submit-batch',
+                  operation: 'write'
               }));
           });
-          updateDoc(userPhotoRef, { isSubmittedToExhibition: true }).catch(async (err) => {
-              errorEmitter.emit('permission-error', new FirestorePermissionError({
-                  path: userPhotoRef.path,
-                  operation: 'update'
-              }));
-          });
+
           toast({ title: "Başarılı!", description: "Fotoğrafınız Sergi'ye gönderildi." });
           setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true } : null);
         }
