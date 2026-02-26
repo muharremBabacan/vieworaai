@@ -36,12 +36,14 @@ const GROUP_PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   };
 });
 
-function MemberItem({ member, isGroupOwner, isCurrentUserOwner, currentUserId, onRemove }: { member: PublicUserProfile, isGroupOwner: boolean, isCurrentUserOwner: boolean, currentUserId?: string, onRemove: (memberId: string, memberName: string) => void }) {
+function MemberItem({ member, isGroupOwner, isCurrentUserOwner, currentUserId, onRemove }: { member: any, isGroupOwner: boolean, isCurrentUserOwner: boolean, currentUserId?: string, onRemove: (memberId: string, memberName: string) => void }) {
+  const isBilinmeyen = !member.name || member.name === 'Bilinmeyen Üye';
+  
   return (
       <div className={cn("flex items-center justify-between p-3 rounded-xl transition-colors", isGroupOwner ? "bg-primary/5 border border-primary/10" : "hover:bg-muted/50")}>
           <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar className={cn(isGroupOwner && "ring-2 ring-amber-400/50")}>
+                <Avatar className={cn(isGroupOwner && "ring-2 ring-amber-400/50", isBilinmeyen && "opacity-50")}>
                     <AvatarImage src={member.photoURL || ''} alt={member.name || ''} className="object-cover" />
                     <AvatarFallback>{member.name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
@@ -53,10 +55,14 @@ function MemberItem({ member, isGroupOwner, isCurrentUserOwner, currentUserId, o
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm">{member.name}</span>
+                  <span className={cn("font-semibold text-sm", isBilinmeyen && "text-muted-foreground italic")}>
+                    {member.name || 'Bilinmeyen Üye'}
+                  </span>
                   {isGroupOwner && <Badge variant="outline" className="h-4 px-1.5 text-[8px] font-bold uppercase bg-amber-400/10 text-amber-500 border-amber-400/20">Yönetici</Badge>}
                 </div>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">{member.level_name}</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
+                    {member.level_name || 'Neuner'}
+                </span>
               </div>
           </div>
           {isCurrentUserOwner && currentUserId !== member.id && !isGroupOwner && (
@@ -69,7 +75,7 @@ function MemberItem({ member, isGroupOwner, isCurrentUserOwner, currentUserId, o
                    <AlertDialogContent>
                       <AlertDialogHeader>
                           <AlertDialogTitle>Üyeyi çıkartmak istediğinizden emin misiniz?</AlertDialogTitle>
-                          <AlertDialogDescription>{member.name} gruptan kalıcı olarak çıkartılacaktır.</AlertDialogDescription>
+                          <AlertDialogDescription>{member.name || 'Bu üye'} gruptan kalıcı olarak çıkartılacaktır.</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                           <AlertDialogCancel>İptal</AlertDialogCancel>
@@ -101,9 +107,35 @@ export default function GroupDetailPage() {
   const isCurrentUserOwner = group?.ownerId === user?.uid;
   const groupLimits = getGroupLimits(userProfile?.level_name);
   
-  const membersQuery = useMemoFirebase(() => (group && group.memberIds && group.memberIds.length > 0) ? query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds)) : null, [group, firestore]);
-  const { data: members, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
+  // Üye profillerini getir
+  const membersQuery = useMemoFirebase(() => {
+    if (!group?.memberIds || group.memberIds.length === 0) return null;
+    // Firestore 'in' operatörü maksimum 30 ID destekler
+    const ids = group.memberIds.slice(0, 30);
+    return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', ids));
+  }, [group?.memberIds, firestore]);
+
+  const { data: profiles, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
   
+  // Eksik profiller için placeholder oluşturarak tüm üyeleri hazırla
+  const allMembers = useMemo(() => {
+    if (!group?.memberIds) return [];
+    return group.memberIds.map(uid => {
+        const foundProfile = profiles?.find(p => p.id === uid);
+        if (foundProfile) return foundProfile;
+        // Profil dökümanı henüz oluşmamış üyeler için fallback
+        return { 
+            id: uid, 
+            name: uid === group.ownerId ? 'Grup Sahibi' : 'Bilinmeyen Üye', 
+            level_name: 'Neuner' 
+        };
+    });
+  }, [group?.memberIds, group?.ownerId, profiles]);
+
+  const founderMember = useMemo(() => {
+    return allMembers.find(m => m.id === group?.ownerId);
+  }, [allMembers, group?.ownerId]);
+
   const inviteFormSchema = z.object({ email: z.string().email("Geçerli bir e-posta adresi girin.") });
   const inviteForm = useForm({ resolver: zodResolver(inviteFormSchema), defaultValues: { email: '' } });
 
@@ -121,10 +153,6 @@ export default function GroupDetailPage() {
       maxMembers: group.maxMembers
     } : { name: '', description: '', maxMembers: 7 }
   });
-
-  const founderMember = useMemo(() => {
-    return members?.find(m => m.id === group?.ownerId);
-  }, [members, group?.ownerId]);
 
   const handleUpdateSettings = async (values: z.infer<typeof settingsFormSchema>) => {
     if (!group || !isCurrentUserOwner || isUpdating) return;
@@ -268,7 +296,7 @@ export default function GroupDetailPage() {
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 uppercase tracking-wider">
                         <Crown className="h-3 w-3" />
-                        <span>Kurucu: {founderMember?.name || "..."}</span>
+                        <span>Kurucu: {founderMember?.name || "Yükleniyor..."}</span>
                       </div>
                       <p className="text-muted-foreground text-sm line-clamp-1">{group.description}</p>
                     </div>
@@ -306,7 +334,7 @@ export default function GroupDetailPage() {
                 <Card className="rounded-[24px] border-border/40 bg-card/50 shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex justify-between items-center text-xl">
-                            <span>Üyeler ({members?.length || 0} / {group.maxMembers})</span>
+                            <span>Üyeler ({group.memberIds.length} / {group.maxMembers})</span>
                             {isCurrentUserOwner && (
                                 <Dialog>
                                     <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-lg text-xs font-bold uppercase tracking-wider">Davet Seçenekleri</Button></DialogTrigger>
@@ -341,7 +369,7 @@ export default function GroupDetailPage() {
                             <div className="space-y-3">{[...Array(3)].map((_,i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>
                         ) : (
                             <div className="grid gap-3">
-                                {members?.map(member => (
+                                {allMembers.map(member => (
                                   <MemberItem 
                                     key={member.id} 
                                     member={member} 
