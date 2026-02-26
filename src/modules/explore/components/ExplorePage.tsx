@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import type { Photo, PublicUserProfile, ExhibitionConfig } from '@/types';
+import type { Photo, PublicUserProfile, Exhibition } from '@/types';
 import { Card, CardContent } from '@/shared/ui/card';
 import {
   Dialog,
@@ -18,8 +18,8 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDo
 import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove, getCountFromServer } from 'firebase/firestore';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Badge } from '@/shared/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
-import { Button } from '@/shared/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -81,9 +81,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
       <DialogContent className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden border-none shadow-2xl bg-background">
         <DialogHeader className="sr-only">
             <DialogTitle>Fotoğraf Detayı</DialogTitle>
-            <DialogDescription>
-                {profileInfo.name} tarafından paylaşılan fotoğrafın detayları ve analizi.
-            </DialogDescription>
+            <DialogDescription>{profileInfo.name} tarafından paylaşılan fotoğraf.</DialogDescription>
         </DialogHeader>
         <div className="absolute right-4 top-4 z-20">
             <DialogClose asChild>
@@ -144,51 +142,27 @@ function ExploreHub({ exhibitionCount, activeCompCount, onSelect }: { exhibition
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-                <Card 
-                    className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/10 active:scale-[0.98]"
-                    onClick={() => onSelect('gallery')}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Card className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02]" onClick={() => onSelect('gallery')}>
                     <CardContent className="p-8 relative z-10">
                         <div className="flex justify-between items-start mb-12">
-                            <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                                <LayoutGrid className="h-7 w-7 text-primary" />
-                            </div>
-                            <Badge variant="secondary" className="h-7 px-3 bg-secondary/80 backdrop-blur-md border-border/50 text-xs font-bold uppercase tracking-wider">
-                                {exhibitionCount} Eser Yayında
-                            </Badge>
+                            <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center"><LayoutGrid className="h-7 w-7 text-primary" /></div>
+                            <Badge variant="secondary" className="h-7 px-3 bg-secondary/80 backdrop-blur-md border-border/50 text-xs font-bold uppercase tracking-wider">{exhibitionCount} Eser Yayında</Badge>
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-3xl font-bold tracking-tight">Sergi Salonu</h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px]">Türkiye'nin dört bir yanından seçkin fotoğraf karelerini inceleyin.</p>
-                        </div>
-                        <div className="mt-8 flex items-center gap-2 text-primary font-bold text-sm group-hover:gap-3 transition-all">
-                            İçeri Gir <ChevronRight className="h-4 w-4" />
-                        </div>
+                        <h3 className="text-3xl font-bold tracking-tight">Sergi Salonu</h3>
+                        <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px] mt-2">Türkiye'nin dört bir yanından seçkin fotoğraf karelerini inceleyin.</p>
+                        <div className="mt-8 flex items-center gap-2 text-primary font-bold text-sm group-hover:gap-3 transition-all">İçeri Gir <ChevronRight className="h-4 w-4" /></div>
                     </CardContent>
                 </Card>
 
-                <Card 
-                    className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-amber-500/10 active:scale-[0.98]"
-                    onClick={() => onSelect('competitions')}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Card className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02]" onClick={() => onSelect('competitions')}>
                     <CardContent className="p-8 relative z-10">
                         <div className="flex justify-between items-start mb-12">
-                            <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                                <Trophy className="h-7 w-7 text-amber-500" />
-                            </div>
-                            <Badge className="h-7 px-3 bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs font-bold uppercase tracking-wider">
-                                {activeCompCount} Aktif Yarışma
-                            </Badge>
+                            <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center"><Trophy className="h-7 w-7 text-amber-500" /></div>
+                            <Badge className="h-7 px-3 bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs font-bold uppercase tracking-wider">{activeCompCount} Aktif Yarışma</Badge>
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-3xl font-bold tracking-tight">Yarışmalar</h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px]">Resmi ödüllü yarışmalara katılın, yeteneklerinizi tescilleyin.</p>
-                        </div>
-                        <div className="mt-8 flex items-center gap-2 text-amber-500 font-bold text-sm group-hover:gap-3 transition-all">
-                            Yarışmaları Gör <ChevronRight className="h-4 w-4" />
-                        </div>
+                        <h3 className="text-3xl font-bold tracking-tight">Yarışmalar</h3>
+                        <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px] mt-2">Resmi ödüllü yarışmalara katılın, yeteneklerinizi tescilleyin.</p>
+                        <div className="mt-8 flex items-center gap-2 text-amber-500 font-bold text-sm group-hover:gap-3 transition-all">Yarışmaları Gör <ChevronRight className="h-4 w-4" /></div>
                     </CardContent>
                 </Card>
             </div>
@@ -201,13 +175,15 @@ export default function ExplorePage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [counts, setCounts] = useState({ exhibition: 0, competitions: 0 });
   const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedExhibitionId, setSelectedExhibitionId] = useState<string | null>(null);
   
   const firestore = useFirestore();
   const { user } = useUser();
   const router = useRouter();
 
-  const exhibitionConfigRef = useMemoFirebase(() => (firestore) ? doc(firestore, 'settings', 'exhibition') : null, [firestore]);
-  const { data: exConfig } = useDoc<ExhibitionConfig>(exhibitionConfigRef);
+  // Fetch all active exhibitions
+  const exhibitionsQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true)) : null, [firestore]);
+  const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
 
   useEffect(() => {
     if (!firestore || !user) return;
@@ -226,17 +202,11 @@ export default function ExplorePage() {
     if (!firestore || !user || view !== 'gallery') return null;
     let q = query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc'));
     if (activeFilter !== 'all') q = query(q, where('userLevelName', '==', activeFilter));
+    if (selectedExhibitionId) q = query(q, where('exhibitionId', '==', selectedExhibitionId));
     return q;
-  }, [firestore, user, view, activeFilter]);
+  }, [firestore, user, view, activeFilter, selectedExhibitionId]);
   
   const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
-
-  const filters = [
-      { id: 'all', label: 'Tümü', icon: LayoutGrid },
-      { id: 'Neuner', label: 'Yeni Başlayan (Neuner)', icon: Camera },
-      { id: 'Vexer', label: 'Mentorlar (Vexer)', icon: Star },
-      { id: 'Omner', label: 'İleri Seviye (Omner)', icon: Layers },
-  ];
 
   if (view === 'hub') {
       return (
@@ -250,8 +220,6 @@ export default function ExplorePage() {
       );
   }
 
-  const remainingDays = exConfig?.endDate ? Math.ceil((new Date(exConfig.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
-
   return (
     <div className="container mx-auto px-4 pt-8 animate-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col gap-8 mb-10">
@@ -259,40 +227,27 @@ export default function ExplorePage() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Keşfet Merkezine Dön
             </Button>
             
-            {exConfig?.isActive && (
-                <Card className="border-cyan-500/20 bg-cyan-500/5 rounded-[24px] overflow-hidden">
-                    <CardContent className="p-0">
-                        <div className="flex flex-col md:flex-row items-center">
-                            <div className="p-6 md:p-8 flex-1 space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <Badge className="bg-cyan-500 hover:bg-cyan-600 text-white border-none px-3 h-6 text-[10px] font-bold uppercase tracking-widest">AKTİF SERGİ</Badge>
-                                    {remainingDays > 0 && (
-                                        <div className="flex items-center gap-1.5 text-cyan-400 text-[10px] font-bold uppercase">
-                                            <Clock className="h-3 w-3" /> {remainingDays} GÜN KALDI
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <h2 className="text-3xl font-black tracking-tight text-white mb-2">{exConfig.currentTheme}</h2>
-                                    <p className="text-cyan-100/70 text-sm max-w-xl leading-relaxed">{exConfig.description}</p>
-                                </div>
-                                <div className="flex flex-wrap gap-4 pt-2">
-                                    <div className="flex items-center gap-2 text-xs font-medium text-cyan-200/60">
-                                        <Info className="h-3.5 w-3.5" /> Katılım Şartı: <Badge variant="outline" className="h-5 border-cyan-500/30 text-cyan-300 text-[10px]">{exConfig.minLevel}+</Badge>
+            {/* Multi-Exhibition Banners */}
+            {exhibitions && exhibitions.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {exhibitions.map(ex => {
+                        const isSelected = selectedExhibitionId === ex.id;
+                        const remainingDays = Math.ceil((new Date(ex.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        return (
+                            <Card key={ex.id} className={cn("cursor-pointer border-cyan-500/20 transition-all", isSelected ? "bg-cyan-500/20 border-cyan-500 ring-2 ring-cyan-500/20" : "bg-cyan-500/5 hover:bg-cyan-500/10")} onClick={() => setSelectedExhibitionId(isSelected ? null : ex.id)}>
+                                <CardContent className="p-4 space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <Badge className="bg-cyan-500 text-white text-[9px] uppercase font-bold">SERGİ</Badge>
+                                        {remainingDays > 0 && <span className="text-[9px] font-bold text-cyan-400 uppercase">{remainingDays} GÜN KALDI</span>}
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs font-medium text-cyan-200/60">
-                                        <Globe className="h-3.5 w-3.5" /> Tüm Topluluğa Açık
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="hidden md:block w-1/3 relative h-48 bg-cyan-500/10">
-                                <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                                    <Globe className="h-32 w-32 text-cyan-400" />
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                                    <h3 className="font-bold text-lg leading-tight">{ex.title}</h3>
+                                    <p className="text-xs text-muted-foreground line-clamp-2">{ex.description}</p>
+                                    <div className="flex items-center gap-2 pt-2"><Badge variant="outline" className="text-[9px] h-4">{ex.minLevel}+</Badge></div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
             )}
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
@@ -302,16 +257,14 @@ export default function ExplorePage() {
                 </div>
                 
                 <div className="flex items-center gap-2 p-1 bg-secondary/30 border border-border/50 rounded-2xl backdrop-blur-sm overflow-x-auto max-w-full no-scrollbar">
-                    {filters.map(f => (
+                    {['all', 'Neuner', 'Viewner', 'Sytner', 'Omner', 'Vexer'].map(id => (
                         <Button 
-                            key={f.id} 
-                            variant={activeFilter === f.id ? 'default' : 'ghost'} 
+                            key={id} 
+                            variant={activeFilter === id ? 'default' : 'ghost'} 
                             size="sm"
-                            className={cn("h-9 rounded-xl px-4 text-xs font-bold transition-all", activeFilter === f.id ? "shadow-lg shadow-primary/20" : "text-muted-foreground")}
-                            onClick={() => setActiveFilter(f.id)}
-                        >
-                            <f.icon className="mr-2 h-3.5 w-3.5" /> {f.label}
-                        </Button>
+                            className={cn("h-9 rounded-xl px-4 text-xs font-bold transition-all", activeFilter === id ? "shadow-lg shadow-primary/20" : "text-muted-foreground")}
+                            onClick={() => setActiveFilter(id)}
+                        >{id === 'all' ? 'Tümü' : id}</Button>
                     ))}
                 </div>
             </div>
@@ -324,38 +277,24 @@ export default function ExplorePage() {
         ) : photos && photos.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {photos.map((photo) => (
-                    <Card 
-                        key={photo.id} 
-                        className="group relative aspect-square overflow-hidden cursor-pointer rounded-[24px] border-none shadow-sm hover:shadow-2xl transition-all hover:-translate-y-1" 
-                        onClick={() => setSelectedPhoto(photo)}
-                    >
+                    <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer rounded-[24px] border-none shadow-sm hover:shadow-2xl transition-all" onClick={() => setSelectedPhoto(photo)}>
                         <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60" />
+                        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
                             <div className="flex items-center gap-2 min-w-0">
-                                <Avatar className="h-6 w-6 border border-white/20">
-                                    <AvatarImage src={photo.userPhotoURL || ''} className="object-cover" />
-                                    <AvatarFallback className="text-[8px]">{photo.userName?.charAt(0)}</AvatarFallback>
-                                </Avatar>
+                                <Avatar className="h-6 w-6 border border-white/20"><AvatarImage src={photo.userPhotoURL || ''} className="object-cover" /><AvatarFallback>{photo.userName?.charAt(0)}</AvatarFallback></Avatar>
                                 <span className="text-[11px] text-white font-bold truncate">@{photo.userName}</span>
                             </div>
-                            {photo.aiFeedback && (
-                                <Badge className="bg-primary text-white text-[10px] h-6 px-2 rounded-lg border-none">
-                                    <Star className="h-2.5 w-2.5 text-white mr-1 fill-current" /> {normalizeScore(photo.aiFeedback.light_score).toFixed(1)}
-                                </Badge>
-                            )}
+                            {photo.aiFeedback && <Badge className="bg-primary text-white text-[10px] h-6 px-2 rounded-lg border-none"><Star className="h-2.5 w-2.5 text-white mr-1 fill-current" /> {normalizeScore(photo.aiFeedback.light_score).toFixed(1)}</Badge>}
                         </div>
                     </Card>
                 ))}
             </div>
         ) : (
-            <div className="text-center py-32 rounded-[32px] border-2 border-dashed border-border/40 bg-muted/5 animate-in fade-in zoom-in duration-500">
-                <div className="h-20 w-20 rounded-3xl bg-secondary/50 flex items-center justify-center mx-auto mb-6">
-                    <Filter className="h-10 w-10 text-muted-foreground/40" />
-                </div>
+            <div className="text-center py-32 rounded-[32px] border-2 border-dashed border-border/40 bg-muted/5">
                 <h3 className="text-2xl font-bold mb-2">Eser Bulunamadı</h3>
-                <p className="text-muted-foreground max-w-xs mx-auto">Bu kategori veya seviyede henüz paylaşılan bir eser bulunmuyor.</p>
-                <Button variant="outline" className="mt-8 rounded-xl" onClick={() => setActiveFilter('all')}>Tüm Eserleri Göster</Button>
+                <p className="text-muted-foreground">Bu kategori veya seviyede henüz paylaşılan bir eser bulunmuyor.</p>
+                <Button variant="outline" className="mt-8 rounded-xl" onClick={() => { setActiveFilter('all'); setSelectedExhibitionId(null); }}>Tüm Eserleri Göster</Button>
             </div>
         )}
 

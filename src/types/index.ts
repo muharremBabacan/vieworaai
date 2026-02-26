@@ -45,6 +45,7 @@ export type Photo = {
   adaptiveFeedback?: string | null;
   createdAt: string;
   isSubmittedToExhibition?: boolean;
+  exhibitionId?: string; // Hangi sergiye gönderildiği
   isInFoyer?: boolean;
   likes?: string[];
   userName?: string;
@@ -112,13 +113,17 @@ export type Competition = {
   communityWeight: number;
 };
 
-export type ExhibitionConfig = {
+export type Exhibition = {
   id: string;
-  currentTheme: string;
+  title: string;
   description: string;
+  startDate: string;
   endDate: string;
   minLevel: string;
   isActive: boolean;
+  imageUrl: string;
+  imageHint: string;
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -161,6 +166,7 @@ export type GlobalNotification = {
   type: 'system' | 'competition' | 'exhibition' | 'reward';
   targetLevel?: string; // If null, means everyone
   competitionId?: string;
+  exhibitionId?: string;
   createdAt: string;
 };
 
