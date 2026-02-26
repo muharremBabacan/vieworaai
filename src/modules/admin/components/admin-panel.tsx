@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -276,6 +275,7 @@ export default function AdminPanel() {
 
     const handleEndComp = async (compId: string) => {
         if (!firestore || !isAdmin) return;
+        if (!confirm('Yarışmayı şimdi sonlandırmak istiyor musunuz?')) return;
         await updateDoc(doc(firestore, 'competitions', compId), { endDate: new Date().toISOString() });
         toast({ title: "Yarışma Bitirildi" });
     };
@@ -376,8 +376,8 @@ export default function AdminPanel() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Yarışma Başlat</CardTitle>
-                        <CardDescription>Yeni bir fotoğraf yarışması kurgulayın.</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> {editingCompId ? 'Yarışmayı Düzenle' : 'Yarışma Başlat'}</CardTitle>
+                        <CardDescription>Yeni veya mevcut bir fotoğraf yarışmasını yönetin.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleCompSubmit(onSubmitCompetition)} className="space-y-4">
@@ -406,10 +406,15 @@ export default function AdminPanel() {
                                     )} />
                                 </div>
                             </div>
-                            <Button type="submit" disabled={isCreatingComp} className="w-full">
-                                {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
-                                Yarışmayı Oluştur
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button type="submit" disabled={isCreatingComp} className="flex-1">
+                                    {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
+                                    {editingCompId ? 'Güncelle' : 'Yarışmayı Oluştur'}
+                                </Button>
+                                {editingCompId && (
+                                    <Button type="button" variant="outline" onClick={() => { setEditingCompId(null); resetComp(); }}>İptal</Button>
+                                )}
+                            </div>
                         </form>
                     </CardContent>
                 </Card>
@@ -429,7 +434,21 @@ export default function AdminPanel() {
                                             <TableCell className="font-medium">{comp.title}</TableCell>
                                             <TableCell><Badge variant="secondary">{comp.targetLevel}</Badge></TableCell>
                                             <TableCell><Badge variant="outline">{comp.scoringModel}</Badge></TableCell>
-                                            <TableCell className="text-right"><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => handleDeleteComp(comp.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {!isEnded && (
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEndComp(comp.id)} title="Bitir">
+                                                            <StopCircle className="h-4 w-4 text-orange-500" />
+                                                        </Button>
+                                                    )}
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditComp(comp)} title="Düzenle">
+                                                        <Edit className="h-4 w-4 text-blue-500" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteComp(comp.id)} title="Sil">
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
                                     );
                                 })}
