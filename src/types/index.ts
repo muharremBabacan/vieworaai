@@ -19,11 +19,11 @@ export type User = {
   interests: string[];
   onboarded: boolean;
   groups?: string[];
-  createdAt?: string; // For admin stats
-  lastLoginAt?: string; // For admin stats
+  createdAt?: string;
+  lastLoginAt?: string;
   communication_style?: 'soft' | 'balanced' | 'technical';
   score_history?: { score: number; date: string }[];
-  profileIndex?: UserProfileIndex; // For recommendations
+  profileIndex?: UserProfileIndex;
 };
 
 export type PublicUserProfile = {
@@ -45,7 +45,6 @@ export type Photo = {
   isSubmittedToExhibition?: boolean;
   isInFoyer?: boolean;
   likes?: string[];
-  // Denormalized user data for public photos
   userName?: string;
   userPhotoURL?: string | null;
   userLevelName?: string;
@@ -88,7 +87,7 @@ export type Transaction = {
     currency?: string;
 };
 
-export type ScoringModel = 'community' | 'jury_ai' | 'hybrid' | 'ai_only';
+export type ScoringModel = 'community' | 'jury_ai' | 'hybrid' | 'ai_only' | 'custom';
 
 export type Competition = {
   id: string;
@@ -96,14 +95,19 @@ export type Competition = {
   description: string;
   theme: string;
   prize: string;
-  targetLevel: string; // Added: Eligibility level
-  startDate: string; // ISO string
-  endDate: string; // ISO string
-  createdAt: string; // ISO string
+  targetLevel: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
   imageUrl: string;
   imageHint: string;
   scoringModel: ScoringModel;
   juryIds?: string[];
+  isCommunityVoteActive: boolean;
+  isAIAnalysisIncluded: boolean;
+  juryWeight: number;
+  aiWeight: number;
+  communityWeight: number;
 };
 
 export type Group = {
@@ -124,7 +128,7 @@ export type ChatMessage = {
   userId: string;
   userName: string;
   userAvatar: string | null;
-  timestamp: string; // ISO string
+  timestamp: string;
 };
 
 export type GroupInvite = {
@@ -135,7 +139,7 @@ export type GroupInvite = {
   fromUserName: string;
   toUserId: string;
   status: 'pending' | 'accepted' | 'declined';
-  createdAt: string; // ISO string
+  createdAt: string;
 };
 
 export type UserProfileIndex = {
@@ -148,18 +152,6 @@ export type UserProfileIndex = {
   last_updated: string;
 };
 
-export type GroupCompetition = {
-  id: string;
-  groupId: string;
-  title: string;
-  description: string;
-  theme: string;
-  prize: string;
-  startDate: string; // ISO string
-  endDate: string; // ISO string
-  createdAt: string; // ISO string
-};
-
 export type CompetitionEntry = {
   id: string;
   competitionId: string;
@@ -167,8 +159,8 @@ export type CompetitionEntry = {
   userName: string;
   photoUrl: string;
   filePath: string;
-  submittedAt: string; // ISO string
-  votes: string[]; // Array of user UIDs
-  juryScores?: Record<string, number>; // Jury UID -> Score
+  submittedAt: string;
+  votes: string[];
+  juryScores?: Record<string, number>;
   aiScore?: number;
 };
