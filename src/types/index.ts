@@ -88,6 +88,8 @@ export type Transaction = {
     currency?: string;
 };
 
+export type ScoringModel = 'community' | 'jury_ai' | 'hybrid' | 'ai_only';
+
 export type Competition = {
   id: string;
   title: string;
@@ -100,6 +102,8 @@ export type Competition = {
   createdAt: string; // ISO string
   imageUrl: string;
   imageHint: string;
+  scoringModel: ScoringModel;
+  juryIds?: string[];
 };
 
 export type Group = {
@@ -165,4 +169,6 @@ export type CompetitionEntry = {
   filePath: string;
   submittedAt: string; // ISO string
   votes: string[]; // Array of user UIDs
+  juryScores?: Record<string, number>; // Jury UID -> Score
+  aiScore?: number;
 };

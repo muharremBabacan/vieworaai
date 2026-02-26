@@ -10,18 +10,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Competition } from '@/types';
+import type { Competition, ScoringModel, User } from '@/types';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const curriculum = {
   Temel: [ 
@@ -57,6 +58,8 @@ interface CompetitionFormValues {
     targetLevel: string;
     startDate: string;
     endDate: string;
+    scoringModel: ScoringModel;
+    juryIds: string[];
 }
 
 export default function AdminPanel() {
@@ -78,23 +81,33 @@ export default function AdminPanel() {
     );
     const { data: competitions, isLoading: compsLoading } = useCollection<Competition>(competitionsQuery);
 
+    // Fetch potential jury members (Mentors)
+    const mentorsQuery = useMemoFirebase(() => 
+        (firestore && isAdmin) ? query(collection(firestore, 'users'), where('is_mentor', '==', true)) : null,
+        [firestore, isAdmin]
+    );
+    const { data: mentors } = useCollection<User>(mentorsQuery);
+
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
         defaultValues: { level: 'Temel', category: '' }
     });
 
-    const { control: compControl, handleSubmit: handleCompSubmit, reset: resetComp, setValue: setCompValue } = useForm<CompetitionFormValues>({
+    const { control: compControl, handleSubmit: handleCompSubmit, reset: resetComp, setValue: setCompValue, watch: compWatch } = useForm<CompetitionFormValues>({
         defaultValues: {
             title: '',
             description: '',
             theme: '',
             prize: '',
             targetLevel: 'Neuner',
+            scoringModel: 'hybrid',
+            juryIds: [],
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         }
     });
     
     const selectedLevel = lessonWatch('level');
+    const selectedJuryIds = compWatch('juryIds');
 
     const onGenerateLessons = async (data: { level: Level; category: string; }) => {
         if (!data.level || !data.category || !firestore || !isAdmin) {
@@ -165,7 +178,7 @@ export default function AdminPanel() {
                 batch.set(notifRef, {
                     id: notifRef.id,
                     title: "Yeni Yarışma!",
-                    message: `${data.title} yarışması başladı! Hedef seviye: ${data.targetLevel}`,
+                    message: `${data.title} yarışması başladı! Değerlendirme Modeli: ${data.scoringModel}`,
                     targetLevel: data.targetLevel,
                     competitionId: compId,
                     createdAt: new Date().toISOString(),
@@ -195,6 +208,8 @@ export default function AdminPanel() {
         setCompValue('theme', comp.theme);
         setCompValue('prize', comp.prize);
         setCompValue('targetLevel', comp.targetLevel);
+        setCompValue('scoringModel', comp.scoringModel || 'hybrid');
+        setCompValue('juryIds', comp.juryIds || []);
         setCompValue('startDate', comp.startDate.split('T')[0]);
         setCompValue('endDate', comp.endDate.split('T')[0]);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -246,7 +261,7 @@ export default function AdminPanel() {
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pb-20">
             <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader>
@@ -294,56 +309,104 @@ export default function AdminPanel() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleCompSubmit(onSubmitCompetition)} className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Yarışma Başlığı</Label>
-                                <Controller name="title" control={compControl} render={({ field }) => <Input placeholder="Örn: Sokak ve İnsan" {...field} />} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Açıklama</Label>
-                                <Controller name="description" control={compControl} render={({ field }) => <Textarea placeholder="Kurallar ve katılım şartları..." {...field} />} />
-                            </div>
-                            <div className="grid gap-4 grid-cols-2">
+                    <form onSubmit={handleCompSubmit(onSubmitCompetition)} className="space-y-8">
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label>Tema</Label>
-                                    <Controller name="theme" control={compControl} render={({ field }) => <Input placeholder="Örn: Siyah Beyaz" {...field} />} />
+                                    <Label>Yarışma Başlığı</Label>
+                                    <Controller name="title" control={compControl} render={({ field }) => <Input placeholder="Örn: Sokak ve İnsan" {...field} />} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Ödül</Label>
-                                    <Controller name="prize" control={compControl} render={({ field }) => <Input placeholder="Örn: 100 Auro" {...field} />} />
+                                    <Label>Açıklama</Label>
+                                    <Controller name="description" control={compControl} render={({ field }) => <Textarea placeholder="Kurallar ve katılım şartları..." {...field} />} />
+                                </div>
+                                <div className="grid gap-4 grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label>Tema</Label>
+                                        <Controller name="theme" control={compControl} render={({ field }) => <Input placeholder="Örn: Siyah Beyaz" {...field} />} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Ödül</Label>
+                                        <Controller name="prize" control={compControl} render={({ field }) => <Input placeholder="Örn: 100 Auro" {...field} />} />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Hedef Kullanıcı Seviyesi</Label>
+                                    <Controller name="targetLevel" control={compControl} render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    )} />
+                                </div>
+                                <div className="grid gap-4 grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label>Başlangıç Tarihi</Label>
+                                        <Controller name="startDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Bitiş Tarihi</Label>
+                                        <Controller name="endDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><Scale className="h-4 w-4" /> Değerlendirme Modeli</Label>
+                                    <Controller name="scoringModel" control={compControl} render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="community">🟢 Sadece Topluluk</SelectItem>
+                                                <SelectItem value="jury_ai">🟣 Jüri + AI</SelectItem>
+                                                <SelectItem value="hybrid">🔵 Hibrit (Önerilen)</SelectItem>
+                                                <SelectItem value="ai_only">🔴 Sadece AI (deneysel)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )} />
+                                    <p className="text-[10px] text-muted-foreground italic">Hibrit modelde: %40 Jüri, %30 Topluluk, %30 AI Analiz puanı etkilidir.</p>
                                 </div>
                             </div>
                         </div>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Hedef Kullanıcı Seviyesi</Label>
-                                <Controller name="targetLevel" control={compControl} render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                )} />
-                            </div>
-                            <div className="grid gap-4 grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label>Başlangıç Tarihi</Label>
-                                    <Controller name="startDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Bitiş Tarihi</Label>
-                                    <Controller name="endDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} />
-                                </div>
-                            </div>
-                            <div className="pt-4 flex gap-2">
-                                {editingCompId && (
-                                    <Button type="button" variant="outline" onClick={() => { setEditingCompId(null); resetComp(); }}>İptal</Button>
+
+                        <div className="space-y-4 border-t pt-6">
+                            <Label className="flex items-center gap-2 text-lg font-bold"><UserCheck className="h-5 w-5 text-blue-400" /> Jüri Atama (Mentorlar)</Label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {mentors?.map(mentor => (
+                                    <div key={mentor.id} className="flex items-center space-x-2 border p-3 rounded-xl hover:bg-muted/50 transition-colors">
+                                        <Checkbox 
+                                            id={`mentor-${mentor.id}`}
+                                            checked={selectedJuryIds.includes(mentor.id)}
+                                            onCheckedChange={(checked) => {
+                                                const current = [...selectedJuryIds];
+                                                if (checked) {
+                                                    setCompValue('juryIds', [...current, mentor.id]);
+                                                } else {
+                                                    setCompValue('juryIds', current.filter(id => id !== mentor.id));
+                                                }
+                                            }}
+                                        />
+                                        <div className="grid gap-0.5 leading-none">
+                                            <label htmlFor={`mentor-${mentor.id}`} className="text-sm font-medium leading-none cursor-pointer">{mentor.name}</label>
+                                            <p className="text-[10px] text-muted-foreground truncate">{mentor.email}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {mentors?.length === 0 && (
+                                    <p className="col-span-full text-sm text-muted-foreground italic">Henüz mentor (Vexer) seviyesinde kullanıcı bulunmuyor.</p>
                                 )}
-                                <Button type="submit" disabled={isCreatingComp} className="flex-1 h-12 text-lg font-bold">
-                                    {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : editingCompId ? <Check className="mr-2" /> : <Trophy className="mr-2" />}
-                                    {editingCompId ? "Değişiklikleri Kaydet" : "Yarışmayı Başlat ve Bildir"}
-                                </Button>
                             </div>
+                        </div>
+
+                        <div className="pt-4 flex gap-2">
+                            {editingCompId && (
+                                <Button type="button" variant="outline" onClick={() => { setEditingCompId(null); resetComp(); }}>İptal</Button>
+                            )}
+                            <Button type="submit" disabled={isCreatingComp} className="flex-1 h-12 text-lg font-bold">
+                                {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : editingCompId ? <Check className="mr-2" /> : <Trophy className="mr-2" />}
+                                {editingCompId ? "Değişiklikleri Kaydet" : "Yarışmayı Başlat ve Bildir"}
+                            </Button>
                         </div>
                     </form>
                 </CardContent>
@@ -364,9 +427,9 @@ export default function AdminPanel() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Başlık</TableHead>
-                                    <TableHead>Seviye</TableHead>
+                                    <TableHead>Model</TableHead>
+                                    <TableHead>Jüri</TableHead>
                                     <TableHead>Durum</TableHead>
-                                    <TableHead>Bitiş</TableHead>
                                     <TableHead className="text-right">İşlemler</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -377,7 +440,22 @@ export default function AdminPanel() {
                                     return (
                                         <TableRow key={comp.id}>
                                             <TableCell className="font-medium">{comp.title}</TableCell>
-                                            <TableCell><Badge variant="outline">{comp.targetLevel}</Badge></TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="text-[10px]">
+                                                    {comp.scoringModel === 'community' && '🟢 Topluluk'}
+                                                    {comp.scoringModel === 'jury_ai' && '🟣 Jüri+AI'}
+                                                    {comp.scoringModel === 'hybrid' && '🔵 Hibrit'}
+                                                    {comp.scoringModel === 'ai_only' && '🔴 AI'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex -space-x-2 overflow-hidden">
+                                                    {comp.juryIds?.map(id => (
+                                                        <div key={id} className="inline-block h-6 w-6 rounded-full border-2 border-background bg-secondary text-[8px] flex items-center justify-center font-bold">J</div>
+                                                    ))}
+                                                    {(comp.juryIds?.length || 0) === 0 && <span className="text-[10px] text-muted-foreground">Yok</span>}
+                                                </div>
+                                            </TableCell>
                                             <TableCell>
                                                 {isEnded ? (
                                                     <Badge variant="secondary">Bitti</Badge>
@@ -385,7 +463,6 @@ export default function AdminPanel() {
                                                     <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Aktif</Badge>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">{new Date(comp.endDate).toLocaleDateString('tr-TR')}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <Button variant="ghost" size="icon" onClick={() => handleEditComp(comp)} title="Düzenle">

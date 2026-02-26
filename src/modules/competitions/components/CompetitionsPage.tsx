@@ -5,12 +5,12 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
 import { collection, query, orderBy, doc, addDoc, where, writeBatch, increment, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Competition, User, Photo, CompetitionEntry } from '@/types';
+import type { Competition, User, Photo, CompetitionEntry, ScoringModel } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X, Clock, Camera, Upload, Loader2, CheckCircle2, LayoutGrid, Star, Users } from 'lucide-react';
+import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X, Clock, Camera, Upload, Loader2, CheckCircle2, LayoutGrid, Star, Users, Scale } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -41,6 +41,21 @@ const StatusBadge = ({ status }: { status: 'active' | 'upcoming' | 'ended' }) =>
         ended: { class: 'bg-secondary text-muted-foreground border-border', text: 'Sona Erdi' },
     };
     return <Badge className={cn("border px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider", config[status].class)}>{config[status].text}</Badge>;
+};
+
+const ScoringModelBadge = ({ model }: { model: ScoringModel }) => {
+    const config = {
+        community: { icon: '🟢', text: 'Topluluk' },
+        jury_ai: { icon: '🟣', text: 'Jüri + AI' },
+        hybrid: { icon: '🔵', text: 'Hibrit' },
+        ai_only: { icon: '🔴', text: 'Sadece AI' },
+    };
+    const c = config[model] || config.hybrid;
+    return (
+        <Badge variant="outline" className="h-5 px-2 bg-secondary/50 text-[9px] font-bold uppercase tracking-tight border-border/50">
+            <span className="mr-1">{c.icon}</span> {c.text}
+        </Badge>
+    );
 };
 
 const Countdown = ({ endDate }: { endDate: string }) => {
@@ -300,6 +315,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                 <div className="absolute bottom-4 left-6 right-6">
                                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                                         <StatusBadge status={status} />
+                                        <ScoringModelBadge model={competition.scoringModel} />
                                         <Badge variant="outline" className="h-5 px-2 bg-primary/10 text-primary border-primary/20 text-[10px] font-bold uppercase">
                                             {competition.targetLevel} SEVİYESİ
                                         </Badge>
@@ -334,6 +350,21 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        {(competition.juryIds?.length || 0) > 0 && (
+                                            <div className="space-y-2">
+                                                <h4 className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center gap-2">
+                                                    <Scale className="h-3 w-3" /> Resmi Jüri Üyeleri
+                                                </h4>
+                                                <div className="flex -space-x-2 overflow-hidden">
+                                                    {competition.juryIds?.map((id, i) => (
+                                                        <Avatar key={id} className="h-8 w-8 border-2 border-background shadow-md">
+                                                            <AvatarFallback className="text-[10px] font-bold">J{i+1}</AvatarFallback>
+                                                        </Avatar>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="md:col-span-5 space-y-4">
@@ -473,7 +504,10 @@ export default function CompetitionsPage() {
                                 <div className="relative h-56 w-full overflow-hidden">
                                     <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
                                     <div className="absolute top-4 left-4 flex flex-col gap-2">
-                                        <StatusBadge status={status} />
+                                        <div className="flex gap-2">
+                                            <StatusBadge status={status} />
+                                            <ScoringModelBadge model={comp.scoringModel} />
+                                        </div>
                                         {status === 'active' && (
                                             <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white shadow-xl">
                                                 <Countdown endDate={comp.endDate} />
