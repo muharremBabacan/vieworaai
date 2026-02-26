@@ -26,7 +26,7 @@ service cloud.firestore {
     }
     
     //-------------------------------------------------------------------------
-    // Collection Group Rules (Must be at the top-level match)
+    // Collection Group Rules (CRITICAL for Luma Mentor & Global Queries)
     //-------------------------------------------------------------------------
     
     match /{path=**}/entries/{entryId} {
@@ -34,6 +34,10 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isSignedIn() && (isAdmin() || (request.resource.data.votes != null && resource.data.votes != null && request.resource.data.votes.size() > resource.data.votes.size()));
       allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /{path=**}/photos/{photoId} {
+      allow read: if isSignedIn();
     }
 
     //-------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -38,9 +39,9 @@ export default function LumaMentorPage() {
     const groupsQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null, [user, firestore]);
     const { data: userGroups } = useCollection<Group>(groupsQuery);
 
-    // Fetch Competition Entries for badges
+    // Fetch Competition Entries for badges (Collection Group query)
     const entriesQuery = useMemoFirebase(() => (user && firestore) ? query(collectionGroup(firestore, 'entries'), where('userId', '==', user.uid)) : null, [user, firestore]);
-    const { data: userEntries } = useCollection<CompetitionEntry>(entriesQuery);
+    const { data: userEntries, error: entriesError } = useCollection<CompetitionEntry>(entriesQuery);
 
     // Calculate aggregated metrics
     const stats = useMemo(() => {
@@ -75,8 +76,8 @@ export default function LumaMentorPage() {
         if (!userEntries) return { participants: 0, honorable: 0, winners: 0 };
         return userEntries.reduce((acc, entry) => {
             if (entry.award === 'participant') acc.participants++;
-            if (entry.award === 'honorable_mention') acc.honorable++;
-            if (entry.award === 'winner') acc.winners++;
+            else if (entry.award === 'honorable_mention') acc.honorable++;
+            else if (entry.award === 'winner') acc.winners++;
             return acc;
         }, { participants: 0, honorable: 0, winners: 0 });
     }, [userEntries]);
