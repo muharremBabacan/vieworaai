@@ -1,8 +1,9 @@
+
 'use client';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
 import { doc, updateDoc, increment, collection, writeBatch, query, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
@@ -12,7 +13,7 @@ import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 import { useRouter } from 'next/navigation';
 
-import type { User, Photo, PhotoAnalysis } from '@/types';
+import type { User, Photo, PhotoAnalysis, AnalysisLog } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
 
 import { Button } from '@/components/ui/button';
@@ -257,6 +258,9 @@ export default function PhotoAnalyzer() {
             const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'));
             const userRef = doc(firestore, 'users', user.uid);
             
+            const today = new Date().toISOString().split('T')[0];
+            const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+
             let photoData: Photo = {
                 id: photoDocRef.id,
                 userId: user.uid,
@@ -268,6 +272,7 @@ export default function PhotoAnalyzer() {
             };
 
             let xpGained = UPLOAD_XP_GAIN;
+            batch.update(statRef, { photoUploads: increment(1) });
 
             if (analyze) {
                 setLoadingState('analyzing');
@@ -289,7 +294,29 @@ export default function PhotoAnalyzer() {
                 photoData.adaptiveFeedback = adaptive.feedback;
                 setAdaptiveFeedback(adaptive.feedback);
 
-                batch.update(userRef, { auro_balance: increment(-ANALYSIS_COST) });
+                batch.update(userRef, { 
+                  auro_balance: increment(-ANALYSIS_COST),
+                  total_auro_spent: increment(ANALYSIS_COST),
+                  total_analyses_count: increment(1)
+                });
+
+                batch.update(statRef, { 
+                  technicalAnalyses: increment(1),
+                  auroSpent: increment(ANALYSIS_COST)
+                });
+
+                // Log entry
+                const logRef = doc(collection(firestore, 'analysis_logs'));
+                const log: AnalysisLog = {
+                  id: logRef.id,
+                  userId: user.uid,
+                  userName: userProfile.name || 'Sanatçı',
+                  type: 'technical',
+                  auroSpent: ANALYSIS_COST,
+                  timestamp: new Date().toISOString(),
+                  status: 'success'
+                };
+                batch.set(logRef, log);
                 
                 xpGained += 15;
                 if(overallScore > 8) {
@@ -303,7 +330,7 @@ export default function PhotoAnalyzer() {
             batch.set(photoDocRef, photoData);
             batch.update(userRef, { current_xp: increment(xpGained) });
             
-            batch.commit().catch(async (err) => {
+            await batch.commit().catch(async (err) => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: 'dashboard-upload-batch',
                     operation: 'write'

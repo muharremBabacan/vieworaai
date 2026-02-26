@@ -3,8 +3,8 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit, where, collectionGroup } from 'firebase/firestore';
-import type { User, Photo, StrategicFeedback, CompetitionEntry, Group } from '@/types';
+import { doc, collection, query, orderBy, limit, where, collectionGroup, writeBatch, increment } from 'firebase/firestore';
+import type { User, Photo, StrategicFeedback, CompetitionEntry, Group, AnalysisLog } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
+
+const MENTOR_COST = 2;
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -39,9 +41,9 @@ export default function LumaMentorPage() {
     const groupsQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null, [user, firestore]);
     const { data: userGroups } = useCollection<Group>(groupsQuery);
 
-    // Fetch Competition Entries for badges (Collection Group query)
+    // Fetch Competition Entries for badges
     const entriesQuery = useMemoFirebase(() => (user && firestore) ? query(collectionGroup(firestore, 'entries'), where('userId', '==', user.uid)) : null, [user, firestore]);
-    const { data: userEntries, error: entriesError } = useCollection<CompetitionEntry>(entriesQuery);
+    const { data: userEntries } = useCollection<CompetitionEntry>(entriesQuery);
 
     // Calculate aggregated metrics
     const stats = useMemo(() => {
@@ -83,14 +85,18 @@ export default function LumaMentorPage() {
     }, [userEntries]);
 
     const handleAskLuma = async () => {
-        if (!user || !userProfile || !stats) {
+        if (!user || !userProfile || !stats || !firestore) {
             toast({ variant: 'destructive', title: "Eksik Veri", description: "Analiz yapabilmem için önce birkaç fotoğrafını analiz etmelisin." });
             return;
         }
 
+        if (userProfile.auro_balance < MENTOR_COST) {
+          toast({ variant: 'destructive', title: "Yetersiz Auro", description: `Mentor analizi için ${MENTOR_COST} Auro gereklidir.` });
+          return;
+        }
+
         setIsAnalyzing(true);
         try {
-            // Map application levels to Genkit flow enum values
             const levelMapping: Record<string, 'beginner' | 'intermediate' | 'advanced'> = {
                 'Neuner': 'beginner',
                 'Viewner': 'beginner',
@@ -120,6 +126,37 @@ export default function LumaMentorPage() {
                 userProfileIndex: mockIndex
             });
 
+            // Tracking and cost
+            const batch = writeBatch(firestore);
+            const today = new Date().toISOString().split('T')[0];
+            const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const logRef = doc(collection(firestore, 'analysis_logs'));
+
+            batch.update(userDocRef, { 
+              auro_balance: increment(-MENTOR_COST),
+              total_auro_spent: increment(MENTOR_COST),
+              total_analyses_count: increment(1)
+            });
+
+            batch.update(statRef, { 
+              mentorAnalyses: increment(1),
+              auroSpent: increment(MENTOR_COST)
+            });
+
+            const log: AnalysisLog = {
+              id: logRef.id,
+              userId: user.uid,
+              userName: userProfile.name || 'Sanatçı',
+              type: 'mentor',
+              auroSpent: MENTOR_COST,
+              timestamp: new Date().toISOString(),
+              status: 'success'
+            };
+            batch.set(logRef, log);
+
+            await batch.commit();
+
             setFeedback(result);
             toast({ title: "Analiz Hazır", description: "Luma senin için stratejik planını hazırladı." });
         } catch (error) {
@@ -143,7 +180,6 @@ export default function LumaMentorPage() {
 
     return (
         <div className="container mx-auto px-4 pt-8 pb-24 space-y-10 animate-in fade-in duration-700">
-            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="space-y-4 max-w-2xl">
                     <div className="flex items-center gap-3">
@@ -159,15 +195,18 @@ export default function LumaMentorPage() {
                         <p className="text-muted-foreground mt-1 text-lg">Kişisel gelişim stratejistiniz ve sanatsal rehberiniz.</p>
                     </div>
                 </div>
-                <Button 
-                    onClick={handleAskLuma} 
-                    disabled={isAnalyzing || !stats} 
-                    size="lg" 
-                    className="h-14 px-8 rounded-2xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-primary to-accent border-none text-white"
-                >
-                    {isAnalyzing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
-                    Stratejik Analiz Başlat
-                </Button>
+                <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <Button 
+                      onClick={handleAskLuma} 
+                      disabled={isAnalyzing || !stats} 
+                      size="lg" 
+                      className="h-14 px-8 rounded-2xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-primary to-accent border-none text-white"
+                  >
+                      {isAnalyzing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
+                      Stratejik Analiz Başlat ({MENTOR_COST} Auro)
+                  </Button>
+                  <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">Maliyet: {MENTOR_COST} Auro</p>
+                </div>
             </div>
 
             {!stats ? (
@@ -180,7 +219,6 @@ export default function LumaMentorPage() {
                 <div className="grid gap-8 lg:grid-cols-3">
                     <div className="lg:col-span-2 space-y-8">
                         <div className="grid sm:grid-cols-2 gap-6">
-                            {/* Technical Stats */}
                             <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
                                 <CardHeader className="bg-secondary/20 border-b pb-4">
                                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -212,7 +250,6 @@ export default function LumaMentorPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* Activity Stats */}
                             <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
                                 <CardHeader className="bg-secondary/20 border-b pb-4">
                                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -290,7 +327,6 @@ export default function LumaMentorPage() {
                     </div>
 
                     <div className="space-y-6">
-                        {/* Awards & Badges Section */}
                         <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
                             <CardHeader className="pb-4">
                                 <CardTitle className="text-lg flex items-center gap-2">

@@ -11,6 +11,8 @@ export type User = {
   email: string | null;
   photoURL?: string | null;
   auro_balance: number;
+  total_auro_spent?: number;
+  total_analyses_count?: number;
   current_xp: number;
   level_name: string;
   is_mentor?: boolean;
@@ -24,7 +26,27 @@ export type User = {
   lastNotificationsViewedAt?: string;
   communication_style?: 'soft' | 'balanced' | 'technical';
   score_history?: { score: number; date: string }[];
-  profileIndex?: UserProfileIndex;
+};
+
+export type AnalysisLog = {
+  id: string;
+  userId: string;
+  userName: string;
+  type: 'technical' | 'mentor';
+  auroSpent: number;
+  timestamp: string;
+  status: 'success' | 'failed';
+};
+
+export type DailyStats = {
+  id: string;
+  date: string;
+  dau: number;
+  technicalAnalyses: number;
+  mentorAnalyses: number;
+  photoUploads: number;
+  auroSpent: number;
+  activeUsersList: string[];
 };
 
 export type PublicUserProfile = {
@@ -45,52 +67,12 @@ export type Photo = {
   adaptiveFeedback?: string | null;
   createdAt: string;
   isSubmittedToExhibition?: boolean;
-  exhibitionId?: string; // Hangi sergiye gönderildiği
-  isInFoyer?: boolean;
+  exhibitionId?: string;
   likes?: string[];
   userName?: string;
   userPhotoURL?: string | null;
   userLevelName?: string;
 };
-
-export type Lesson = {
-  id: string;
-  level: 'Temel' | 'Orta' | 'İleri';
-  category: string;
-  title: string;
-  learningObjective: string;
-  theory: string;
-  analysisCriteria: string[];
-  practiceTask: string;
-  auroNote: string;
-  imageUrl: string;
-  imageHint: string;
-  createdAt: string;
-};
-
-export type Package = {
-  id: string;
-  name: string;
-  target: string;
-  slogan: string;
-  auro: number;
-  price: number;
-  currency: string;
-  isBestValue: boolean;
-};
-
-export type Transaction = {
-    id: string;
-    userId: string;
-    amount: number;
-    type: 'Purchase' | 'Gift' | 'Refill';
-    status: 'Completed' | 'Pending' | 'Failed';
-    transactionDate: string;
-    currencyAmount?: number;
-    currency?: string;
-};
-
-export type ScoringModel = 'community' | 'jury_ai' | 'hybrid' | 'ai_only' | 'custom';
 
 export type Competition = {
   id: string;
@@ -104,27 +86,23 @@ export type Competition = {
   createdAt: string;
   imageUrl: string;
   imageHint: string;
-  scoringModel: ScoringModel;
-  juryIds?: string[];
-  isCommunityVoteActive: boolean;
-  isAIAnalysisIncluded: boolean;
+  scoringModel: 'community' | 'jury_ai' | 'hybrid' | 'ai_only' | 'custom';
   juryWeight: number;
   aiWeight: number;
   communityWeight: number;
 };
 
-export type Exhibition = {
+export type CompetitionEntry = {
   id: string;
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  minLevel: string;
-  isActive: boolean;
-  imageUrl: string;
-  imageHint: string;
-  createdAt: string;
-  updatedAt: string;
+  competitionId: string;
+  userId: string;
+  userName: string;
+  photoUrl: string;
+  filePath: string;
+  submittedAt: string;
+  votes: string[];
+  aiScore?: number;
+  award?: 'winner' | 'honorable_mention' | 'participant';
 };
 
 export type Group = {
@@ -137,15 +115,6 @@ export type Group = {
   joinCode?: string;
   maxMembers: number;
   photoURL?: string | null;
-};
-
-export type ChatMessage = {
-  id: string;
-  text: string;
-  userId: string;
-  userName: string;
-  userAvatar: string | null;
-  timestamp: string;
 };
 
 export type GroupInvite = {
@@ -164,32 +133,22 @@ export type GlobalNotification = {
   title: string;
   message: string;
   type: 'system' | 'competition' | 'exhibition' | 'reward';
-  targetLevel?: string; // If null, means everyone
+  targetLevel?: string;
   competitionId?: string;
   exhibitionId?: string;
   createdAt: string;
 };
 
-export type UserProfileIndex = {
+export type Exhibition = {
   id: string;
-  userId: string;
-  dominant_style: string;
-  strengths: string[];
-  areas_for_improvement: string[];
-  trend: 'improving' | 'stagnant' | 'declining';
-  last_updated: string;
-};
-
-export type CompetitionEntry = {
-  id: string;
-  competitionId: string;
-  userId: string;
-  userName: string;
-  photoUrl: string;
-  filePath: string;
-  submittedAt: string;
-  votes: string[];
-  juryScores?: Record<string, number>;
-  aiScore?: number;
-  award?: 'winner' | 'honorable_mention' | 'participant';
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  minLevel: string;
+  isActive: boolean;
+  imageUrl: string;
+  imageHint: string;
+  createdAt: string;
+  updatedAt: string;
 };

@@ -1,3 +1,4 @@
+
 'use client';
 import {
   GoogleAuthProvider,
@@ -8,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import Logo from '@/core/components/logo';
 
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -40,6 +41,37 @@ export default function PageContent() {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
+
+  const trackDAU = async (userId: string) => {
+    if (!firestore) return;
+    const today = new Date().toISOString().split('T')[0];
+    const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+    
+    try {
+      const snap = await getDoc(statRef);
+      if (!snap.exists()) {
+        await setDoc(statRef, {
+          date: today,
+          dau: 1,
+          technicalAnalyses: 0,
+          mentorAnalyses: 0,
+          photoUploads: 0,
+          auroSpent: 0,
+          activeUsersList: [userId]
+        });
+      } else {
+        const data = snap.data();
+        if (!data.activeUsersList?.includes(userId)) {
+          await updateDoc(statRef, {
+            dau: increment(1),
+            activeUsersList: arrayUnion(userId)
+          });
+        }
+      }
+    } catch (e) {
+      console.error("DAU tracking error", e);
+    }
+  };
 
   const handleSignIn = async () => {
     if (!auth || !firestore) return;
@@ -73,6 +105,8 @@ export default function PageContent() {
           name: firebaseUser.displayName?.split(' ')[0] || "İsimsiz Sanatçı",
           photoURL: firebaseUser.photoURL,
           auro_balance: 20,
+          total_analyses_count: 0,
+          total_auro_spent: 0,
           current_xp: 0,
           level_name: 'Neuner',
           is_mentor: false,
@@ -108,38 +142,21 @@ export default function PageContent() {
           firebaseUser.displayName?.split(' ')[0] || existing.name;
 
         await Promise.all([
-          setDoc(
-            userRef,
-            {
-              lastLoginAt: now,
-              name: updatedName,
-            },
-            { merge: true }
-          ),
-          setDoc(
-            publicProfileRef,
-            {
-              name: updatedName,
-              email: firebaseUser.email,
-              photoURL: firebaseUser.photoURL || null,
-              level_name: existing.level_name,
-            },
-            { merge: true }
-          ),
+          updateDoc(userRef, { lastLoginAt: now, name: updatedName }),
+          updateDoc(publicProfileRef, { name: updatedName, email: firebaseUser.email, photoURL: firebaseUser.photoURL || null, level_name: existing.level_name })
         ]);
       }
 
+      await trackDAU(firebaseUser.uid);
       router.push(onboarded ? '/dashboard' : '/onboarding');
 
     } catch (error: any) {
       console.error('Popup login error:', error);
-
       toast({
         variant: 'destructive',
         title: "Giriş Başarısız",
         description: "Google ile giriş yapılamadı.",
       });
-
       setIsLoading(false);
     }
   };
