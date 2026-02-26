@@ -1,19 +1,24 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, addDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Competition, User } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X, Clock } from 'lucide-react';
+import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X, Clock, Camera, Upload, Loader2, CheckCircle2 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useDropzone } from 'react-dropzone';
+import { useToast } from '@/shared/hooks/use-toast';
+import { errorEmitter } from '@/lib/firebase/error-emitter';
+import { FirestorePermissionError } from '@/lib/firebase/errors';
 
 const getCompetitionStatus = (startDate: string, endDate: string) => {
     const now = new Date();
@@ -30,7 +35,7 @@ const StatusBadge = ({ status }: { status: 'active' | 'upcoming' | 'ended' }) =>
         upcoming: { class: 'bg-blue-500/20 text-blue-400 border-blue-500/30', text: 'Yakında' },
         ended: { class: 'bg-secondary text-muted-foreground border-border', text: 'Sona Erdi' },
     };
-    return <Badge className={cn("border", config[status].class)}>{config[status].text}</Badge>;
+    return <Badge className={cn("border px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider", config[status].class)}>{config[status].text}</Badge>;
 };
 
 const Countdown = ({ endDate }: { endDate: string }) => {
@@ -50,11 +55,11 @@ const Countdown = ({ endDate }: { endDate: string }) => {
             const minutes = differenceInMinutes(end, now) % 60;
 
             if (days > 0) {
-                setTimeLeft(`${days} gün ${hours} saat kaldı`);
+                setTimeLeft(`${days}g ${hours}s kaldı`);
             } else if (hours > 0) {
-                setTimeLeft(`${hours} saat ${minutes} dak kaldı`);
+                setTimeLeft(`${hours}s ${minutes}dk kaldı`);
             } else {
-                setTimeLeft(`${minutes} dak kaldı`);
+                setTimeLeft(`${minutes}dk kaldı`);
             }
         };
 
@@ -66,8 +71,8 @@ const Countdown = ({ endDate }: { endDate: string }) => {
     if (!timeLeft) return null;
 
     return (
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-orange-400">
-            <Clock className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-1 text-[10px] font-bold text-orange-400 uppercase tracking-tighter">
+            <Clock className="h-3 w-3" />
             {timeLeft}
         </div>
     );
@@ -76,18 +81,17 @@ const Countdown = ({ endDate }: { endDate: string }) => {
 function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenChange: (open: boolean) => void }) {
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0">
-                <DialogHeader className="p-6 border-b">
-                    <DialogTitle className="flex items-center gap-2">
+            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0 border border-border/50">
+                <DialogHeader className="p-6 border-b bg-muted/20">
+                    <DialogTitle className="flex items-center gap-2 text-lg">
                         <ScrollText className="h-5 w-5 text-primary" />
                         VİEWORA YARIŞMALARI – GENEL KURALLAR
                     </DialogTitle>
-                    <DialogDescription>Viewora platformunda düzenlenen tüm yarışmalar için geçerli genel katılım ve kullanım şartları.</DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="flex-1 p-6">
-                    <div className="space-y-6 text-sm leading-relaxed">
+                    <div className="space-y-6 text-sm leading-relaxed text-muted-foreground">
                         <section>
-                            <h3 className="font-bold text-base mb-2">1. Katılım Koşulları</h3>
+                            <h3 className="font-bold text-foreground text-base mb-2">1. Katılım Koşulları</h3>
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Yarışmalar platform üyelerine açıktır.</li>
                                 <li>Katılımcı, fotoğrafın kendisine ait olduğunu beyan eder.</li>
@@ -97,28 +101,28 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
                         </section>
 
                         <section>
-                            <h3 className="font-bold text-base mb-2">2. Telif ve Hak Sahipliği</h3>
+                            <h3 className="font-bold text-foreground text-base mb-2">2. Telif ve Hak Sahipliği</h3>
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Fotoğrafın tüm fikri ve sınai hakları katılımcıya aittir.</li>
                                 <li>Katılımcı, gönderdiği içeriğin üçüncü kişilerin telif, marka, kişilik veya mülkiyet haklarını ihlal etmediğini kabul eder.</li>
                                 <li>İhlal durumunda doğacak tüm hukuki ve cezai sorumluluk katılımcıya aittir.</li>
-                                <li>Platform, ihlal şüphesi olan içeriği önceden bildirim yapmaksızın kaldırma hakkını sahipdir.</li>
+                                <li>Platform, ihlal şüphesi olan içeriği önceden bildirim yapmaksızın kaldırma hakkına sahiptir.</li>
                             </ul>
                         </section>
 
                         <section>
-                            <h3 className="font-bold text-base mb-2">3. Kullanım Lisansı</h3>
+                            <h3 className="font-bold text-foreground text-base mb-2">3. Kullanım Lisansı</h3>
                             <p className="mb-2">Katılımcı, gönderdiği fotoğrafın Viewora tarafından;</p>
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Platform içinde sergilenmesine,</li>
                                 <li>Sosyal medya ve tanıtım içeriklerinde kullanılmasına,</li>
                                 <li>Dijital ve basılı materyallerde yer almasına</li>
                             </ul>
-                            <p className="mt-2 font-medium">ücretsiz, süresiz ve dünya çapında lisans verir. Bu lisans, eser sahipliğini devretmez; yalnızca kullanım hakkı sağlar.</p>
+                            <p className="mt-2 font-medium text-foreground">ücretsiz, süresiz ve dünya çapında lisans verir. Bu lisans, eser sahipliğini devretmez; yalnızca kullanım hakkı sağlar.</p>
                         </section>
 
                         <section>
-                            <h3 className="font-bold text-base mb-2">4. İçerik ve Etik Kurallar</h3>
+                            <h3 className="font-bold text-foreground text-base mb-2">4. İçerik ve Etik Kurallar</h3>
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Hakaret, nefret söylemi, ayrımcılık, şiddet, müstehcenlik veya yasa dışı içerik kabul edilmez.</li>
                                 <li>Kişilerin açık rızası olmadan çekilmiş ve özel hayatı ihlal eden fotoğraflar diskalifiye edilir.</li>
@@ -128,7 +132,7 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
                         </section>
 
                         <section>
-                            <h3 className="font-bold text-base mb-2">5. Teknik ve Başvuru Kuralları</h3>
+                            <h3 className="font-bold text-foreground text-base mb-2">5. Teknik ve Başvuru Kuralları</h3>
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Her yarışmada belirtilen format, çözünürlük ve süre şartlarına uyulmalıdır.</li>
                                 <li>Süre bitiminden sonra yapılan başvurular geçersizdir.</li>
@@ -137,7 +141,7 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
                         </section>
 
                         <section>
-                            <h3 className="font-bold text-base mb-2">6. Değerlendirme ve Sonuç</h3>
+                            <h3 className="font-bold text-foreground text-base mb-2">6. Değerlendirme ve Sonuç</h3>
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Değerlendirme jüri ve/veya AI analiz sistemi tarafından yapılır.</li>
                                 <li>Puanlama sistemi yarışma duyurusunda belirtilir.</li>
@@ -147,7 +151,7 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
                         </section>
 
                         <section>
-                            <h3 className="font-bold text-base mb-2">7. Sorumluluk Reddi</h3>
+                            <h3 className="font-bold text-foreground text-base mb-2">7. Sorumluluk Reddi</h3>
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Platform, teknik aksaklıklar, internet kesintileri veya üçüncü taraf hizmet kaynaklı sorunlardan sorumlu değildir.</li>
                                 <li>Katılımcı, yarışmaya katılarak bu genel kuralları kabul etmiş sayılır.</li>
@@ -156,9 +160,9 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
                         </section>
                     </div>
                 </ScrollArea>
-                <div className="p-4 border-t flex justify-end">
+                <div className="p-4 border-t bg-muted/10 flex justify-end">
                     <DialogClose asChild>
-                        <Button variant="outline">Kapat</Button>
+                        <Button variant="ghost">Kapat</Button>
                     </DialogClose>
                 </div>
             </DialogContent>
@@ -168,6 +172,76 @@ function GeneralRulesDialog({ isOpen, onOpenChange }: { isOpen: boolean, onOpenC
 
 function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfile }: { competition: Competition | null, isOpen: boolean, onOpenChange: (open: boolean) => void, userProfile: User | null }) {
     const [isRulesOpen, setIsRulesOpen] = useState(false);
+    const [file, setFile] = useState<File | null>(null);
+    const [preview, setPreview] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const { toast } = useToast();
+    const firestore = useFirestore();
+    const storage = getStorage();
+
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        if (acceptedFiles.length > 0) {
+            const selected = acceptedFiles[0];
+            if (selected.size > 10 * 1024 * 1024) {
+                toast({ variant: 'destructive', title: "Dosya Çok Büyük", description: "Lütfen 10MB'dan küçük bir resim seçin." });
+                return;
+            }
+            setFile(selected);
+            setPreview(URL.createObjectURL(selected));
+        }
+    }, [toast]);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
+        maxFiles: 1,
+        disabled: isUploading
+    });
+
+    const handleUploadEntry = async () => {
+        if (!file || !competition || !userProfile || !firestore) return;
+        
+        setIsUploading(true);
+        toast({ title: "Katılım İşleniyor...", description: "Fotoğrafınız yarışmaya gönderiliyor." });
+
+        try {
+            const filePath = `competitions/${competition.id}/entries/${userProfile.id}/${Date.now()}_${file.name}`;
+            const fileRef = ref(storage, filePath);
+            const uploadResult = await uploadBytes(fileRef, file);
+            const photoUrl = await getDownloadURL(uploadResult.ref);
+
+            const entryRef = doc(collection(firestore, 'competitions', competition.id, 'entries'));
+            const entryData = {
+                id: entryRef.id,
+                competitionId: competition.id,
+                userId: userProfile.id,
+                userName: userProfile.name || 'İsimsiz Sanatçı',
+                photoUrl,
+                filePath,
+                submittedAt: new Date().toISOString(),
+                votes: []
+            };
+
+            await addDoc(collection(firestore, 'competitions', competition.id, 'entries'), entryData).catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: `competitions/${competition.id}/entries`,
+                    operation: 'create',
+                    requestResourceData: entryData
+                }));
+                throw err;
+            });
+
+            toast({ title: "Tebrikler!", description: "Yarışmaya başarıyla katıldınız." });
+            setFile(null);
+            setPreview(null);
+            onOpenChange(false);
+        } catch (error) {
+            console.error("Upload error:", error);
+            toast({ variant: 'destructive', title: "Hata", description: "Katılım gerçekleştirilemedi." });
+        } finally {
+            setIsUploading(false);
+        }
+    };
     
     if (!competition) return null;
 
@@ -177,117 +251,128 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-3xl max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl">
                     <DialogHeader className="sr-only">
                         <DialogTitle>{competition.title}</DialogTitle>
-                        <DialogDescription>Yarışma detayları, kurallar ve katılım şartları.</DialogDescription>
+                        <DialogDescription>Yarışma detayları ve katılım alanı.</DialogDescription>
                     </DialogHeader>
                     
-                    <div className="absolute top-4 right-4 z-20">
+                    <div className="absolute top-3 right-3 z-30">
                         <DialogClose asChild>
-                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 border border-white/10">
-                                <X className="h-6 w-6" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/20 hover:bg-black/40 text-white/80 border border-white/10 backdrop-blur-sm">
+                                <X className="h-4 w-4" />
                             </Button>
                         </DialogClose>
                     </div>
 
-                    <ScrollArea className="max-h-[95vh] w-full">
+                    <ScrollArea className="max-h-[90vh] w-full">
                         <div className="flex flex-col">
-                            <div className="relative h-64 sm:h-80 w-full shrink-0">
+                            {/* Smaller Hero Image */}
+                            <div className="relative h-48 sm:h-56 w-full shrink-0">
                                 <Image src={competition.imageUrl} alt={competition.title} fill className="object-cover" unoptimized />
-                                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                                <div className="absolute bottom-6 left-6 right-6">
-                                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                                <div className="absolute bottom-4 left-6 right-6">
+                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                                         <StatusBadge status={status} />
-                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 backdrop-blur-md">
-                                            {competition.targetLevel} Seviyesi
+                                        <Badge variant="outline" className="h-5 px-2 bg-primary/10 text-primary border-primary/20 text-[10px] font-bold uppercase">
+                                            {competition.targetLevel} SEVİYESİ
                                         </Badge>
                                     </div>
-                                    <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">{competition.title}</h2>
+                                    <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight drop-shadow-md">{competition.title}</h2>
                                 </div>
                             </div>
 
-                            <div className="p-6 sm:p-8 space-y-8">
-                                <div className="grid md:grid-cols-3 gap-8">
-                                    <div className="md:col-span-2 space-y-8">
-                                        <div>
-                                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                                <Info className="h-5 w-5 text-primary" /> Yarışma Hakkında
+                            <div className="p-6 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                    {/* Left Content */}
+                                    <div className="md:col-span-7 space-y-6">
+                                        <div className="bg-secondary/20 p-4 rounded-xl border border-border/40">
+                                            <h3 className="text-sm font-bold mb-2 flex items-center gap-2">
+                                                <Info className="h-4 w-4 text-primary" /> Yarışma Hakkında
                                             </h3>
-                                            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
+                                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
                                         </div>
 
-                                        <div className="p-5 rounded-2xl bg-secondary/30 border border-border/50 backdrop-blur-sm">
-                                            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
-                                                <Sparkles className="h-3 w-3" /> Katılım Bilgileri
-                                            </h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                                                        <Sparkles className="h-5 w-5 text-purple-400" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Tema</p>
-                                                        <p className="text-sm font-semibold">{competition.theme}</p>
-                                                    </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 rounded-xl bg-card border border-border/40 flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                                                    <Sparkles className="h-4 w-4 text-purple-400" />
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                                                        <Trophy className="h-5 w-5 text-amber-400" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Büyük Ödül</p>
-                                                        <p className="text-sm font-semibold">{competition.prize}</p>
-                                                    </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight">Tema</p>
+                                                    <p className="text-xs font-bold truncate">{competition.theme}</p>
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                                                        <Calendar className="h-5 w-5 text-blue-400" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Başlangıç</p>
-                                                        <p className="text-sm font-semibold">{format(new Date(competition.startDate), 'd MMMM yyyy', { locale: tr })}</p>
-                                                    </div>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-card border border-border/40 flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                                                    <Trophy className="h-4 w-4 text-amber-400" />
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center">
-                                                        <Calendar className="h-5 w-5 text-red-400" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Bitiş</p>
-                                                        <p className="text-sm font-semibold">{format(new Date(competition.endDate), 'd MMMM yyyy', { locale: tr })}</p>
-                                                    </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight">Ödül</p>
+                                                    <p className="text-xs font-bold truncate">{competition.prize}</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4">
+                                    {/* Right Sidebar / Upload Area */}
+                                    <div className="md:col-span-5 space-y-4">
                                         {status === 'active' && (
-                                            <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20 text-center">
-                                                <p className="text-[10px] uppercase font-bold text-orange-400 mb-1">Kalan Süre</p>
-                                                <div className="flex justify-center"><Countdown endDate={competition.endDate} /></div>
+                                            <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/20 text-center">
+                                                <Countdown endDate={competition.endDate} />
                                             </div>
                                         )}
 
-                                        <Button variant="outline" className="w-full h-12 flex items-center gap-2 rounded-xl" onClick={() => setIsRulesOpen(true)}>
-                                            <ScrollText className="h-4 w-4" />
-                                            Genel Kurallar
+                                        <Button variant="outline" size="sm" className="w-full h-9 text-xs flex items-center gap-2 rounded-lg" onClick={() => setIsRulesOpen(true)}>
+                                            <ScrollText className="h-3.5 w-3.5" />
+                                            Yarışma Genel Kuralları
                                         </Button>
 
-                                        <div className="p-5 rounded-2xl border border-dashed border-border bg-muted/5 text-center space-y-4">
-                                            <p className="text-xs text-muted-foreground">Yarışmaya katılmak için galerinizden uygun bir fotoğraf seçmelisiniz.</p>
-                                            {!isEligible && status === 'active' && (
-                                                <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 text-amber-500 text-[10px] font-semibold uppercase text-left border border-amber-500/20">
-                                                    <AlertCircle className="h-4 w-4 shrink-0" /> Mevcut seviyeniz bu yarışma için uygun değildir.
+                                        <div className="p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 space-y-4">
+                                            {preview ? (
+                                                <div className="space-y-3">
+                                                    <div className="relative aspect-square rounded-lg overflow-hidden border border-border shadow-inner">
+                                                        <Image src={preview} alt="Preview" fill className="object-cover" unoptimized />
+                                                        <button 
+                                                            onClick={() => { setFile(null); setPreview(null); }}
+                                                            className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                    <Button 
+                                                        onClick={handleUploadEntry} 
+                                                        disabled={isUploading}
+                                                        className="w-full h-10 font-bold text-sm bg-primary shadow-lg shadow-primary/20"
+                                                    >
+                                                        {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                                                        Katılımı Onayla
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div 
+                                                    {...getRootProps()} 
+                                                    className={cn(
+                                                        "group flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all rounded-lg",
+                                                        isDragActive ? "bg-primary/10 border-primary" : "hover:bg-primary/5 border-transparent",
+                                                        (status !== 'active' || !isEligible) && "opacity-50 cursor-not-allowed pointer-events-none"
+                                                    )}
+                                                >
+                                                    <input {...getInputProps()} />
+                                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                        <Upload className="h-5 w-5 text-primary" />
+                                                    </div>
+                                                    <p className="text-xs font-bold mb-1">Fotoğraf Yükle ve Katıl</p>
+                                                    <p className="text-[10px] text-muted-foreground">Max 10MB, JPG/PNG</p>
                                                 </div>
                                             )}
-                                            <Button 
-                                                className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20 rounded-xl" 
-                                                disabled={status !== 'active' || !isEligible}
-                                            >
-                                                {status === 'active' ? (isEligible ? 'Fotoğraf Yükle ve Katıl' : 'Uygun Değil') : 'Yarışma Kapalı'}
-                                            </Button>
+
+                                            {!isEligible && status === 'active' && (
+                                                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 text-amber-500 text-[9px] font-bold uppercase border border-amber-500/20 leading-tight">
+                                                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                                    Seviyeniz bu kategori için uygun değildir.
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -334,13 +419,13 @@ export default function CompetitionsPage() {
     };
 
     return (
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 pb-12">
             <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Yarışmalar</h1>
                     <p className="text-muted-foreground mt-2 max-w-md">Luma tarafından düzenlenen haftalık etkinlikler ve global yarışmalarla yeteneklerini sergile.</p>
                 </div>
-                <Badge variant="secondary" className="w-fit h-8 px-4 text-xs font-medium bg-primary/10 text-primary border-none">
+                <Badge variant="secondary" className="w-fit h-8 px-4 text-xs font-medium bg-primary/10 text-primary border-none rounded-full">
                     <Sparkles className="h-3.5 w-3.5 mr-2" /> Toplam {competitions?.length || 0} Yarışma
                 </Badge>
             </div>
@@ -389,7 +474,7 @@ export default function CompetitionsPage() {
                                             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Seviye</span>
                                             <Badge variant="outline" className="h-6 mt-1 bg-secondary/50 border-none font-bold text-[11px]">{comp.targetLevel}</Badge>
                                         </div>
-                                        <Button className="rounded-xl font-bold px-6 h-11 transition-all" variant={status === 'active' ? 'default' : 'secondary'} onClick={() => handleViewDetail(comp)}>
+                                        <Button className="rounded-xl font-bold px-6 h-11 transition-all shadow-lg hover:shadow-primary/20" variant={status === 'active' ? 'default' : 'secondary'} onClick={() => handleViewDetail(comp)}>
                                             {status === 'active' ? 'Katıl' : 'Görüntüle'}
                                         </Button>
                                     </div>
