@@ -79,7 +79,6 @@ export default function PageContent() {
           weekly_free_refill_date: now,
           completed_modules: [],
           interests: [],
-          is_seed: false,
           onboarded: false,
           groups: [],
           createdAt: now,
@@ -114,7 +113,6 @@ export default function PageContent() {
             {
               lastLoginAt: now,
               name: updatedName,
-              is_seed: false, // 🔥 normalize existing user
             },
             { merge: true }
           ),
@@ -147,7 +145,12 @@ export default function PageContent() {
   };
 
   if (isUserLoading || user) {
-    return null;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm text-muted-foreground">Oturum kontrol ediliyor...</p>
+      </div>
+    );
   }
 
   return (

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
@@ -10,6 +10,7 @@ import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback'
 import { useToast } from '@/shared/hooks/use-toast';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
+import { useRouter } from 'next/navigation';
 
 import type { User, Photo, PhotoAnalysis } from '@/types';
 import { getLevelFromXp } from '@/lib/gamification';
@@ -190,7 +191,8 @@ const Uploader = ({ onFileSelect, userProfile, hasPhotos }: { onFileSelect: (fil
 // Main component
 export default function PhotoAnalyzer() {
     const { toast } = useToast();
-    const { user } = useUser();
+    const router = useRouter();
+    const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     
     const userDocRef = useMemoFirebase(() => (user && firestore ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
@@ -211,6 +213,12 @@ export default function PhotoAnalyzer() {
     const [analysisResult, setAnalysisResult] = useState<PhotoAnalysis | null>(null);
     const [adaptiveFeedback, setAdaptiveFeedback] = useState<string | null>(null);
 
+    // Redirect if not logged in
+    useEffect(() => {
+        if (!isUserLoading && !user) {
+            router.push('/');
+        }
+    }, [user, isUserLoading, router]);
 
     const handleFileSelect = useCallback((selectedFile: File) => {
         if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
@@ -339,12 +347,16 @@ export default function PhotoAnalyzer() {
         }
     };
 
-    if (!userProfile || arePhotosLoading) {
+    if (isUserLoading || isProfileLoading || arePhotosLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         );
+    }
+
+    if (!user || !userProfile) {
+        return null; // Effect handles redirect
     }
     
     return (
