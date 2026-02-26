@@ -1,18 +1,20 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
 import { doc, collection, query, orderBy, limit, where, collectionGroup, writeBatch, increment } from 'firebase/firestore';
-import type { User, Photo, StrategicFeedback, CompetitionEntry, Group, AnalysisLog } from '@/types';
+import type { User, Photo, StrategicFeedback, CompetitionEntry, AnalysisLog } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield } from 'lucide-react';
+import { Sparkles, Camera, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 const MENTOR_COST = 2;
 
@@ -24,64 +26,68 @@ const normalizeScore = (score: number | undefined | null): number => {
 export default function LumaMentorPage() {
     const { user } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
     const { toast } = useToast();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [feedback, setFeedback] = useState<StrategicFeedback | null>(null);
+    const [strategicFeedback, setStrategicFeedback] = useState<StrategicFeedback | null>(null);
 
     // Fetch User Profile
     const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userRef);
 
     // Fetch Recent Photos for Context
-    const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'), limit(50)) : null, [user, firestore]);
-    const { data: allPhotos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
+    const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'), limit(5)) : null, [user, firestore]);
+    const { data: recentPhotos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
 
-    // Fetch Groups for activity context
-    const groupsQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null, [user, firestore]);
-    const { data: userGroups } = useCollection<Group>(groupsQuery);
+    const lastPhoto = useMemo(() => recentPhotos?.[0] || null, [recentPhotos]);
 
-    // Fetch Competition Entries for badges
-    const entriesQuery = useMemoFirebase(() => (user && firestore) ? query(collectionGroup(firestore, 'entries'), where('userId', '==', user.uid)) : null, [user, firestore]);
-    const { data: userEntries } = useCollection<CompetitionEntry>(entriesQuery);
-
-    // Calculate aggregated metrics
+    // Calculate aggregated metrics for coach logic
     const stats = useMemo(() => {
-        if (!allPhotos || allPhotos.length === 0) return null;
-        const analyzed = allPhotos.filter(p => !!p.aiFeedback);
+        if (!recentPhotos || recentPhotos.length === 0) return null;
+        const analyzed = recentPhotos.filter(p => !!p.aiFeedback);
         if (analyzed.length === 0) return null;
 
         const sum = analyzed.reduce((acc, p) => ({
             light: acc.light + normalizeScore(p.aiFeedback?.light_score),
             composition: acc.composition + normalizeScore(p.aiFeedback?.composition_score),
             focus: acc.focus + normalizeScore(p.aiFeedback?.focus_score),
-            color: acc.color + normalizeScore(p.aiFeedback?.color_control_score),
-        }), { light: 0, composition: 0, focus: 0, color: 0 });
-
-        const count = analyzed.length;
-        const exhibitionCount = allPhotos.filter(p => p.isSubmittedToExhibition).length;
-        const groupCount = userGroups?.length || 0;
+        }), { light: 0, composition: 0, focus: 0 });
 
         return {
-            avgLight: sum.light / count,
-            avgComp: sum.composition / count,
-            avgFocus: sum.focus / count,
-            avgColor: sum.color / count,
-            totalAnalyzed: count,
-            exhibitionCount,
-            groupCount
+            avgLight: sum.light / analyzed.length,
+            avgComp: sum.composition / analyzed.length,
+            avgFocus: sum.focus / analyzed.length,
+            totalAnalyzed: analyzed.length,
+            lastUploadDate: new Date(recentPhotos[0].createdAt)
         };
-    }, [allPhotos, userGroups]);
+    }, [recentPhotos]);
 
-    // Badge counts
-    const badges = useMemo(() => {
-        if (!userEntries) return { participants: 0, honorable: 0, winners: 0 };
-        return userEntries.reduce((acc, entry) => {
-            if (entry.award === 'participant') acc.participants++;
-            else if (entry.award === 'honorable_mention') acc.honorable++;
-            else if (entry.award === 'winner') acc.winners++;
-            return acc;
-        }, { participants: 0, honorable: 0, winners: 0 });
-    }, [userEntries]);
+    // 👋 Dynamic Top Messages
+    const dynamicGreeting = useMemo(() => {
+        if (!stats) return "Merhaba! Yolculuğumuza başlamaya hazır mısın? İlk fotoğrafını yüklediğinde seni daha yakından tanıyabilirim.";
+        
+        const now = new Date();
+        const daysSinceLast = Math.floor((now.getTime() - stats.lastUploadDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysSinceLast >= 3) return `${daysSinceLast} gündür üretmedin. Bugün küçük bir kare yakalayalım mı?`;
+        if (stats.avgLight > 8) return "Son günlerde ışığı harika fark ediyorsun. Bu vizyonunu derinleştirebiliriz.";
+        if (stats.avgComp > 8) return "Minimal kadrajın giderek güçleniyor, bunu hissedebiliyorum.";
+        
+        return "Bugün ışığı fark ettin mi? Her an yeni bir hikaye barındırıyor.";
+    }, [stats]);
+
+    // 📌 Focus Point Logic
+    const focusPoint = useMemo(() => {
+        if (!stats) return { title: "Fotoğrafın Temelleri", desc: "Kadrajına güvenmeyi öğrenmelisin.", icon: Target };
+        
+        const metrics = [
+            { id: 'light', score: stats.avgLight, title: "Işığı Evcilleştir", desc: "Bu hafta: Ters ışık ve sert gölgelerle oyna.", icon: Zap },
+            { id: 'comp', score: stats.avgComp, title: "Sadeleşmeyi Seç", desc: "Bu hafta: Arka planı olabildiğince sadeleştir.", icon: Target },
+            { id: 'focus', score: stats.avgFocus, title: "Netlikte Ustalık", desc: "Bu hafta: Detaylara odaklan, dokuları hisset.", icon: Camera }
+        ];
+        
+        return metrics.sort((a, b) => a.score - b.score)[0];
+    }, [stats]);
 
     const handleAskLuma = async () => {
         if (!user || !userProfile || !stats || !firestore) {
@@ -97,70 +103,40 @@ export default function LumaMentorPage() {
         setIsAnalyzing(true);
         try {
             const levelMapping: Record<string, 'beginner' | 'intermediate' | 'advanced'> = {
-                'Neuner': 'beginner',
-                'Viewner': 'beginner',
-                'Sytner': 'intermediate',
-                'Omner': 'intermediate',
-                'Vexer': 'advanced'
-            };
-
-            const technicalLevel = levelMapping[userProfile.level_name] || 'beginner';
-
-            const mockIndex = {
-                dominant_style: "Portre ve Sokak",
-                strengths: stats.avgLight > 7.5 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
-                weaknesses: stats.avgComp < 7 ? ["Kompozisyon Düzeni"] : ["Detay Kontrolü"],
-                dominant_technical_level: technicalLevel,
-                trend: { direction: 'improving' as const, percentage: 15 },
-                consistency_gap: 12,
-                communication_profile: { 
-                    tone: 'analytical' as const, 
-                    explanation_depth: 'medium' as const, 
-                    challenge_level: 3 
-                }
+                'Neuner': 'beginner', 'Viewner': 'beginner', 'Sytner': 'intermediate', 'Omner': 'intermediate', 'Vexer': 'advanced'
             };
 
             const result = await generateStrategicFeedback({
-                userPrompt: "Genel gelişimimi ve topluluk aktivitelerimi değerlendir, bana bu hafta için stratejik bir yol haritası çıkar.",
-                userProfileIndex: mockIndex
+                userPrompt: "Genel gelişimimi değerlendir ve bana bu hafta için stratejik bir yol haritası çıkar.",
+                userProfileIndex: {
+                    dominant_style: "Karma",
+                    strengths: stats.avgLight > 7.5 ? ["Işık"] : ["Vizyon"],
+                    weaknesses: stats.avgComp < 7 ? ["Kompozisyon"] : ["Teknik"],
+                    dominant_technical_level: levelMapping[userProfile.level_name] || 'beginner',
+                    trend: { direction: 'improving', percentage: 10 },
+                    consistency_gap: 15,
+                    communication_profile: { tone: 'supportive', explanation_depth: 'medium', challenge_level: 3 }
+                }
             });
 
-            // Tracking and cost
             const batch = writeBatch(firestore);
             const today = new Date().toISOString().split('T')[0];
             const statRef = doc(firestore, 'global_stats', `daily_${today}`);
-            const userDocRef = doc(firestore, 'users', user.uid);
             const logRef = doc(collection(firestore, 'analysis_logs'));
 
-            batch.update(userDocRef, { 
+            batch.update(doc(firestore, 'users', user.uid), { 
               auro_balance: increment(-MENTOR_COST),
               total_auro_spent: increment(MENTOR_COST),
               total_analyses_count: increment(1)
             });
-
-            batch.update(statRef, { 
-              mentorAnalyses: increment(1),
-              auroSpent: increment(MENTOR_COST)
-            });
-
-            const log: AnalysisLog = {
-              id: logRef.id,
-              userId: user.uid,
-              userName: userProfile.name || 'Sanatçı',
-              type: 'mentor',
-              auroSpent: MENTOR_COST,
-              timestamp: new Date().toISOString(),
-              status: 'success'
-            };
-            batch.set(logRef, log);
+            batch.update(statRef, { mentorAnalyses: increment(1), auroSpent: increment(MENTOR_COST) });
+            batch.set(logRef, { id: logRef.id, userId: user.uid, userName: userProfile.name, type: 'mentor', auroSpent: MENTOR_COST, timestamp: new Date().toISOString(), status: 'success' });
 
             await batch.commit();
-
-            setFeedback(result);
-            toast({ title: "Analiz Hazır", description: "Luma senin için stratejik planını hazırladı." });
+            setStrategicFeedback(result);
+            toast({ title: "Analiz Hazır", description: "Luma derin mentorluk planını hazırladı." });
         } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: "Hata", description: "Mentor analizi şu an yapılamıyor." });
+            toast({ variant: 'destructive', title: "Hata" });
         } finally {
             setIsAnalyzing(false);
         }
@@ -168,229 +144,128 @@ export default function LumaMentorPage() {
 
     if (isProfileLoading || isPhotosLoading) {
         return (
-            <div className="container mx-auto px-4 py-8 space-y-6 text-center">
-                <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-                <p className="text-muted-foreground animate-pulse">Luma verilerini hazırlıyor...</p>
+            <div className="container mx-auto px-4 py-12 flex flex-col items-center gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse font-medium">Luma verilerini hazırlıyor...</p>
             </div>
         );
     }
 
-    const firstName = userProfile?.name?.split(' ')[0] || 'Sanatçı';
-
     return (
-        <div className="container mx-auto px-4 pt-8 pb-24 space-y-10 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="space-y-4 max-w-2xl">
-                    <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
-                            <Sparkles className="h-7 w-7 text-primary" />
-                        </div>
-                        <h1 className="text-4xl font-extrabold tracking-tight">Luma Mentor</h1>
+        <div className="container mx-auto px-4 pt-10 pb-24 max-w-2xl animate-in fade-in duration-1000">
+            {/* 👋 Dynamic Greeting */}
+            <header className="mb-12 space-y-4">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                        <Sparkles className="h-6 w-6 text-primary" />
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-foreground">
-                            Merhaba {firstName}, bugün senin için harika planlarım var.
-                        </h2>
-                        <p className="text-muted-foreground mt-1 text-lg">Kişisel gelişim stratejistiniz ve sanatsal rehberiniz.</p>
-                    </div>
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Luma Mentor</span>
                 </div>
-                <div className="flex flex-col gap-2 w-full md:w-auto">
-                  <Button 
-                      onClick={handleAskLuma} 
-                      disabled={isAnalyzing || !stats} 
-                      size="lg" 
-                      className="h-14 px-8 rounded-2xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-primary to-accent border-none text-white"
-                  >
-                      {isAnalyzing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
-                      Stratejik Analiz Başlat ({MENTOR_COST} Auro)
-                  </Button>
-                  <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">Maliyet: {MENTOR_COST} Auro</p>
-                </div>
+                <h1 className="text-3xl font-bold leading-tight tracking-tight">
+                    {dynamicGreeting}
+                </h1>
+            </header>
+
+            <div className="space-y-10">
+                {/* 📌 Focus Point Section */}
+                <section className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 ml-1">Günün Odak Noktası</h3>
+                    <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden group hover:border-primary/30 transition-all shadow-sm">
+                        <CardContent className="p-8 flex flex-col sm:flex-row items-center gap-6">
+                            <div className="h-16 w-16 rounded-3xl bg-secondary flex items-center justify-center shrink-0 border border-border/50 group-hover:scale-110 transition-transform duration-500">
+                                <focusPoint.icon className="h-8 w-8 text-primary" />
+                            </div>
+                            <div className="flex-1 text-center sm:text-left">
+                                <h4 className="text-xl font-bold mb-1">{focusPoint.title}</h4>
+                                <p className="text-muted-foreground text-sm leading-relaxed">{focusPoint.desc}</p>
+                            </div>
+                            <Button onClick={() => router.push('/dashboard')} className="rounded-2xl px-6 font-bold shadow-lg shadow-primary/10">
+                                <Camera className="mr-2 h-4 w-4" /> Hemen dene
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </section>
+
+                {/* 📎 Last Photo Feedback Section */}
+                {lastPhoto && (
+                    <section className="space-y-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 ml-1">Son Kareye Dair</h3>
+                        <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
+                            <CardContent className="p-6 flex items-start gap-6">
+                                <div className="relative h-24 w-24 rounded-2xl overflow-hidden shrink-0 border border-border/50">
+                                    <Image src={lastPhoto.imageUrl} alt="Son Kare" fill className="object-cover" unoptimized />
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <p className="text-sm italic text-foreground/90 leading-relaxed font-medium">
+                                        {lastPhoto.aiFeedback ? 
+                                            `"${lastPhoto.aiFeedback.short_neutral_analysis}"` : 
+                                            "Henüz analiz edilmemiş bir kare. Ne hissettiğini merak ediyorum."
+                                        }
+                                    </p>
+                                    {!lastPhoto.aiFeedback && (
+                                        <Button variant="ghost" size="sm" onClick={() => router.push('/gallery')} className="text-[10px] h-7 px-2 font-bold uppercase hover:bg-primary/5 hover:text-primary">
+                                            Analizi başlat <ChevronRight className="ml-1 h-3 w-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </section>
+                )}
+
+                {/* 🔒 Strategic Analysis Area (Premium Upsell) */}
+                <section className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 ml-1">Derinlik</h3>
+                    {!strategicFeedback ? (
+                        <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 overflow-hidden shadow-md">
+                            <CardContent className="p-10 text-center space-y-6">
+                                <div className="max-w-sm mx-auto space-y-3">
+                                    <h4 className="text-xl font-bold">Detaylı gelişim planını görmek ister misin?</h4>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        Tüm geçmişini tarayıp, vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlayabilirim.
+                                    </p>
+                                </div>
+                                <Button 
+                                    onClick={handleAskLuma} 
+                                    disabled={isAnalyzing || !stats}
+                                    className="h-12 px-10 rounded-2xl font-bold bg-foreground text-background hover:bg-foreground/90 transition-all active:scale-95"
+                                >
+                                    {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                    Analizi Başlat ({MENTOR_COST} Auro)
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 animate-in slide-in-from-bottom-4 duration-500 shadow-xl">
+                            <CardContent className="p-8 space-y-8">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <Sparkles className="h-5 w-5 text-purple-400" />
+                                    <h4 className="text-lg font-black uppercase tracking-widest">Luma'nın Stratejisi</h4>
+                                </div>
+                                <p className="text-lg leading-relaxed text-foreground/90 italic">"{strategicFeedback.feedback}"</p>
+                                
+                                <div className="pt-8 border-t border-primary/10">
+                                    <h5 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
+                                        <Zap className="h-4 w-4" /> Haftalık Gelişim Görevi
+                                    </h5>
+                                    <div className="bg-background/50 rounded-2xl p-6 border border-primary/10">
+                                        <h6 className="text-lg font-bold mb-3">{strategicFeedback.actionTask.title}</h6>
+                                        <ul className="space-y-2">
+                                            {strategicFeedback.actionTask.steps.map((step, i) => (
+                                                <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground leading-relaxed">
+                                                    <div className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold">{i+1}</div>
+                                                    {step}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <Button variant="ghost" className="w-full text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary" onClick={() => setStrategicFeedback(null)}>Yeni bir analiz ister misin?</Button>
+                            </CardContent>
+                        </Card>
+                    )}
+                </section>
             </div>
-
-            {!stats ? (
-                <Card className="border-dashed border-2 bg-muted/5 rounded-[32px] py-20 text-center">
-                    <History className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-                    <h3 className="text-xl font-bold">Henüz Yeterli Veri Yok</h3>
-                    <p className="text-muted-foreground mt-2 max-w-sm mx-auto">Luma'nın sana mentorluk yapabilmesi için önce "Koç" sayfasından birkaç fotoğrafını analiz etmen gerekiyor.</p>
-                </Card>
-            ) : (
-                <div className="grid gap-8 lg:grid-cols-3">
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="grid sm:grid-cols-2 gap-6">
-                            <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
-                                <CardHeader className="bg-secondary/20 border-b pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                        <Target className="h-4 w-4 text-primary" /> Teknik Yetkinlik
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-6 space-y-5">
-                                    <div className="space-y-1.5">
-                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                            <span>Işık</span>
-                                            <span className="text-primary font-mono">{stats.avgLight.toFixed(1)} / 10</span>
-                                        </div>
-                                        <Progress value={stats.avgLight * 10} className="h-1.5" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                            <span>Kompozisyon</span>
-                                            <span className="text-primary font-mono">{stats.avgComp.toFixed(1)} / 10</span>
-                                        </div>
-                                        <Progress value={stats.avgComp * 10} className="h-1.5" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                            <span>Netlik</span>
-                                            <span className="text-primary font-mono">{stats.avgFocus.toFixed(1)} / 10</span>
-                                        </div>
-                                        <Progress value={stats.avgFocus * 10} className="h-1.5" />
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
-                                <CardHeader className="bg-secondary/20 border-b pb-4">
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                        <Zap className="h-4 w-4 text-amber-400" /> Aktivite & Etkileşim
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
-                                            <Globe className="h-4 w-4 mx-auto mb-1 text-cyan-400" />
-                                            <p className="text-xl font-bold">{stats.exhibitionCount}</p>
-                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Sergi Eseri</p>
-                                        </div>
-                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
-                                            <Users className="h-4 w-4 mx-auto mb-1 text-purple-400" />
-                                            <p className="text-xl font-bold">{stats.groupCount}</p>
-                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Grup Üyeliği</p>
-                                        </div>
-                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
-                                            <Trophy className="h-4 w-4 mx-auto mb-1 text-amber-400" />
-                                            <p className="text-xl font-bold">{badges.participants + badges.honorable + badges.winners}</p>
-                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Yarışma</p>
-                                        </div>
-                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
-                                            <Star className="h-4 w-4 mx-auto mb-1 text-primary" />
-                                            <p className="text-xl font-bold">{stats.totalAnalyzed}</p>
-                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Toplam Analiz</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {feedback && (
-                            <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 animate-in slide-in-from-bottom-4 duration-500 shadow-xl">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-2xl font-black">
-                                        <Sparkles className="h-6 w-6 text-purple-400" /> Luma'nın Değerlendirmesi
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-8 space-y-8">
-                                    <div className="prose prose-invert max-w-none">
-                                        <p className="text-lg leading-relaxed text-foreground/90 italic">
-                                            "{feedback.feedback}"
-                                        </p>
-                                    </div>
-
-                                    <div className="pt-8 border-t border-primary/10">
-                                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-2">
-                                            <Zap className="h-4 w-4" /> Haftalık Gelişim Görevi
-                                        </h4>
-                                        <div className="bg-background/50 rounded-2xl p-6 border border-primary/10 shadow-inner">
-                                            <h5 className="text-xl font-bold mb-4">{feedback.actionTask.title}</h5>
-                                            <ul className="space-y-3">
-                                                {feedback.actionTask.steps.map((step, i) => (
-                                                    <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                                                        <div className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold">{i+1}</div>
-                                                        {step}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                            <div className="mt-6 flex items-center justify-between border-t border-primary/5 pt-4">
-                                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Zorluk Seviyesi</span>
-                                                <div className="flex gap-1">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <div key={i} className={cn("h-1.5 w-6 rounded-full", i < feedback.actionTask.difficulty ? "bg-primary" : "bg-muted")} />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-
-                    <div className="space-y-6">
-                        <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
-                            <CardHeader className="pb-4">
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <Medal className="h-5 w-5 text-amber-400" /> Başarılar & Rozetler
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className={cn("p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2", badges.participants === 0 && "opacity-40")}>
-                                        <div className="h-10 w-10 mx-auto rounded-full bg-blue-500/10 flex items-center justify-center shadow-inner">
-                                            <Shield className="h-5 w-5 text-blue-400" />
-                                        </div>
-                                        <p className="text-[10px] font-bold uppercase tracking-tighter">Katılım Şilti</p>
-                                        <Badge variant="outline" className={cn("text-[9px]", badges.participants > 0 ? "bg-blue-500/5 text-blue-400 border-blue-500/20" : "")}>
-                                            {badges.participants > 0 ? `x${badges.participants} Aktif` : 'Kilitli'}
-                                        </Badge>
-                                    </div>
-                                    <div className={cn("p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2", badges.honorable === 0 && "opacity-40")}>
-                                        <div className="h-10 w-10 mx-auto rounded-full bg-purple-500/10 flex items-center justify-center">
-                                            <Award className="h-5 w-5 text-purple-400" />
-                                        </div>
-                                        <p className="text-[10px] font-bold uppercase tracking-tighter">Mansiyon</p>
-                                        <Badge variant="outline" className="text-[9px]">
-                                            {badges.honorable > 0 ? `x${badges.honorable}` : 'Kilitli'}
-                                        </Badge>
-                                    </div>
-                                    <div className={cn("p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2", badges.winners === 0 && "opacity-40")}>
-                                        <div className="h-10 w-10 mx-auto rounded-full bg-amber-500/10 flex items-center justify-center">
-                                            <Trophy className="h-5 w-5 text-amber-400" />
-                                        </div>
-                                        <p className="text-[10px] font-bold uppercase tracking-tighter">Birincilik</p>
-                                        <Badge variant="outline" className="text-[9px]">
-                                            {badges.winners > 0 ? `x${badges.winners}` : 'Kilitli'}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
-                            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-purple-400" /> Eğitim Önerileri</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="p-4 rounded-2xl bg-secondary/30 border border-border/50 group cursor-pointer hover:bg-secondary/50 transition-all">
-                                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Sana Özel</p>
-                                    <h5 className="font-bold text-sm mt-1 group-hover:text-primary transition-colors">Işık ve Gölge Oyunları</h5>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Zayıf gördüğümüz 'Işık' puanını yükseltmek için bu derse odaklanmalısın.</p>
-                                    <Button variant="ghost" size="sm" className="w-full mt-3 h-8 text-[10px] font-bold uppercase" asChild><a href="/academy/temel">Derslere Git <ArrowUpRight className="ml-1 h-3 w-3" /></a></Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
-                            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Etkinlik Rehberi</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-                                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Yarışma Tavsiyesi</p>
-                                    <h5 className="font-bold text-sm mt-1">Minimalist Sokak Yarışması</h5>
-                                    <p className="text-xs text-muted-foreground mt-1">Kompozisyon becerilerini sergilemek için harika bir fırsat!</p>
-                                    <Button variant="outline" size="sm" className="w-full mt-3 h-8 text-[10px] font-bold uppercase" asChild><a href="/explore">Yarışmayı İncele</a></Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
