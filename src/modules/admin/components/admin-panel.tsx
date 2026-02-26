@@ -18,7 +18,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/utils';
+import { cn } from '@/lib/utils';
 import type { Competition, ScoringModel, User } from '@/types';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';

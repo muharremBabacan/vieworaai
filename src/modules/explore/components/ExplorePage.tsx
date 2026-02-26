@@ -20,7 +20,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { Badge } from '@/shared/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
-import { cn } from '@/utils';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
