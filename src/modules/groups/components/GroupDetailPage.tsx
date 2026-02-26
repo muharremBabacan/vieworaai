@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, UserPlus, Trash2, Copy, Link as LinkIcon, Settings as SettingsIcon, Camera, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Copy, Link as LinkIcon, Settings as SettingsIcon, Camera, Check, Loader2, Crown, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const GROUP_PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
@@ -34,20 +36,30 @@ const GROUP_PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   };
 });
 
-function MemberItem({ member, isOwner, currentUserId, onRemove }: { member: PublicUserProfile, isOwner: boolean, currentUserId?: string, onRemove: (memberId: string, memberName: string) => void }) {
+function MemberItem({ member, isGroupOwner, isCurrentUserOwner, currentUserId, onRemove }: { member: PublicUserProfile, isGroupOwner: boolean, isCurrentUserOwner: boolean, currentUserId?: string, onRemove: (memberId: string, memberName: string) => void }) {
   return (
-      <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+      <div className={cn("flex items-center justify-between p-3 rounded-xl transition-colors", isGroupOwner ? "bg-primary/5 border border-primary/10" : "hover:bg-muted/50")}>
           <div className="flex items-center gap-3">
-              <Avatar>
-                  <AvatarImage src={member.photoURL || ''} alt={member.name || ''} className="object-cover" />
-                  <AvatarFallback>{member.name?.charAt(0) || 'U'}</AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className={cn(isGroupOwner && "ring-2 ring-amber-400/50")}>
+                    <AvatarImage src={member.photoURL || ''} alt={member.name || ''} className="object-cover" />
+                    <AvatarFallback>{member.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                {isGroupOwner && (
+                  <div className="absolute -top-1 -right-1 bg-amber-400 rounded-full p-0.5 shadow-sm">
+                    <Crown className="h-2.5 w-2.5 text-black" />
+                  </div>
+                )}
+              </div>
               <div className="flex flex-col">
-                <span className="font-medium text-sm">{member.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm">{member.name}</span>
+                  {isGroupOwner && <Badge variant="outline" className="h-4 px-1.5 text-[8px] font-bold uppercase bg-amber-400/10 text-amber-500 border-amber-400/20">Yönetici</Badge>}
+                </div>
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">{member.level_name}</span>
               </div>
           </div>
-          {isOwner && currentUserId !== member.id && (
+          {isCurrentUserOwner && currentUserId !== member.id && !isGroupOwner && (
               <AlertDialog>
                   <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive transition-colors">
@@ -86,7 +98,7 @@ export default function GroupDetailPage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
-  const isOwner = group?.ownerId === user?.uid;
+  const isCurrentUserOwner = group?.ownerId === user?.uid;
   const groupLimits = getGroupLimits(userProfile?.level_name);
   
   const membersQuery = useMemoFirebase(() => (group && group.memberIds && group.memberIds.length > 0) ? query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds)) : null, [group, firestore]);
@@ -110,8 +122,12 @@ export default function GroupDetailPage() {
     } : { name: '', description: '', maxMembers: 7 }
   });
 
+  const founderMember = useMemo(() => {
+    return members?.find(m => m.id === group?.ownerId);
+  }, [members, group?.ownerId]);
+
   const handleUpdateSettings = async (values: z.infer<typeof settingsFormSchema>) => {
-    if (!group || !isOwner || isUpdating) return;
+    if (!group || !isCurrentUserOwner || isUpdating) return;
     setIsUpdating(true);
     try {
       await updateDoc(groupRef, {
@@ -128,7 +144,7 @@ export default function GroupDetailPage() {
   };
 
   const handleUpdatePhoto = async (url: string) => {
-    if (!group || !isOwner || isUpdating) return;
+    if (!group || !isCurrentUserOwner || isUpdating) return;
     setIsUpdating(true);
     try {
       await updateDoc(groupRef, { photoURL: url });
@@ -141,7 +157,7 @@ export default function GroupDetailPage() {
   };
 
   const handleInviteMember = async (values: { email: string }) => {
-    if (!group || !isOwner || !user) {
+    if (!group || !isCurrentUserOwner || !user) {
         toast({ variant: 'destructive', title: "Hata", description: "Üye eklemek için izniniz yok." });
         return;
     }
@@ -189,7 +205,7 @@ export default function GroupDetailPage() {
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-      if (!group || !isOwner) return;
+      if (!group || !isCurrentUserOwner) return;
       try {
           await updateDoc(groupRef, { memberIds: arrayRemove(memberId) });
           toast({ title: `${memberName} gruptan çıkartıldı.` });
@@ -199,7 +215,7 @@ export default function GroupDetailPage() {
   };
   
   const handleDeleteGroup = async () => {
-    if (!group || !isOwner) return;
+    if (!group || !isCurrentUserOwner) return;
     try {
         await deleteDoc(groupRef);
         toast({ title: "Grup başarıyla silindi." });
@@ -247,12 +263,18 @@ export default function GroupDetailPage() {
                     <AvatarImage src={group.photoURL || ''} className="object-cover" />
                     <AvatarFallback className="text-3xl font-bold">{group.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="space-y-1">
                     <h1 className="text-3xl font-extrabold tracking-tight">{group.name}</h1>
-                    <p className="text-muted-foreground line-clamp-1">{group.description}</p>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 uppercase tracking-wider">
+                        <Crown className="h-3 w-3" />
+                        <span>Kurucu: {founderMember?.name || "..."}</span>
+                      </div>
+                      <p className="text-muted-foreground text-sm line-clamp-1">{group.description}</p>
+                    </div>
                 </div>
             </div>
-            {isOwner && (
+            {isCurrentUserOwner && (
                 <Dialog>
                     <DialogTrigger asChild><Button className="w-full sm:w-auto h-11 px-6 rounded-xl shadow-md"><UserPlus className="mr-2 h-4 w-4" /> Üye Davet Et</Button></DialogTrigger>
                     <DialogContent>
@@ -278,14 +300,14 @@ export default function GroupDetailPage() {
                 <TabsTrigger value="members" className="rounded-lg">Üyeler</TabsTrigger>
                 <TabsTrigger value="gallery" disabled className="rounded-lg">Galeri</TabsTrigger>
                 <TabsTrigger value="competitions" className="rounded-lg">Yarışmalar</TabsTrigger>
-                {isOwner && <TabsTrigger value="settings" className="rounded-lg">Ayarlar</TabsTrigger>}
+                {isCurrentUserOwner && <TabsTrigger value="settings" className="rounded-lg">Ayarlar</TabsTrigger>}
             </TabsList>
             <TabsContent value="members" className="mt-8">
                 <Card className="rounded-[24px] border-border/40 bg-card/50 shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex justify-between items-center text-xl">
                             <span>Üyeler ({members?.length || 0} / {group.maxMembers})</span>
-                            {isOwner && (
+                            {isCurrentUserOwner && (
                                 <Dialog>
                                     <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-lg text-xs font-bold uppercase tracking-wider">Davet Seçenekleri</Button></DialogTrigger>
                                     <DialogContent className="max-w-md">
@@ -318,12 +340,13 @@ export default function GroupDetailPage() {
                         {areMembersLoading ? (
                             <div className="space-y-3">{[...Array(3)].map((_,i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>
                         ) : (
-                            <div className="space-y-2">
+                            <div className="grid gap-3">
                                 {members?.map(member => (
                                   <MemberItem 
                                     key={member.id} 
                                     member={member} 
-                                    isOwner={isOwner} 
+                                    isGroupOwner={member.id === group.ownerId} 
+                                    isCurrentUserOwner={isCurrentUserOwner} 
                                     currentUserId={user?.uid}
                                     onRemove={handleRemoveMember} 
                                   />
@@ -338,7 +361,7 @@ export default function GroupDetailPage() {
                     <p className="text-muted-foreground font-medium">Gruba özel sergi ve ödev alanı yakında burada olacak.</p>
                 </div>
             </TabsContent>
-            {isOwner && (
+            {isCurrentUserOwner && (
                 <TabsContent value="settings" className="mt-8 space-y-8">
                     <Card className="rounded-[24px] border-border/40 bg-card/50">
                         <CardHeader>
