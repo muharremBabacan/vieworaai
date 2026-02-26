@@ -1,9 +1,10 @@
 'use client';
-import { Award, BarChart3, Diamond } from 'lucide-react';
+import { Award, BarChart3, Diamond, Lock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const academyLevels = [
   {
@@ -43,17 +44,34 @@ export default function AcademyHubPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {academyLevels.map((level) => {
           const content = (
-            <Card className={`flex flex-col h-full transition-all ${level.unlocked ? 'hover:border-primary hover:shadow-lg' : 'bg-muted/30'}`}>
+            <Card className={cn(
+              "flex flex-col h-full transition-all duration-300",
+              level.unlocked 
+                ? "hover:border-primary hover:shadow-lg cursor-pointer" 
+                : "bg-muted/20 opacity-60 grayscale-[0.5] cursor-default border-dashed"
+            )}>
               <CardHeader>
-                <div className="flex items-center gap-4">
-                  <level.icon className={`h-8 w-8 ${level.unlocked ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <CardTitle>{level.title}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <level.icon className={cn(
+                      "h-8 w-8",
+                      level.unlocked ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    <CardTitle className={cn(
+                      !level.unlocked && "text-muted-foreground"
+                    )}>{level.title}</CardTitle>
+                  </div>
+                  {!level.unlocked && <Lock className="h-4 w-4 text-muted-foreground" />}
                 </div>
               </CardHeader>
               <CardContent className="flex-grow flex flex-col">
                 <CardDescription className="flex-grow">{level.description}</CardDescription>
-                <Button asChild className="mt-6 w-full" disabled={!level.unlocked}>
-                  <Link href={level.href}>Dersleri Gör</Link>
+                <Button asChild className="mt-6 w-full" disabled={!level.unlocked} variant={level.unlocked ? "default" : "secondary"}>
+                  {level.unlocked ? (
+                    <Link href={level.href}>Dersleri Gör</Link>
+                  ) : (
+                    <span>Yakında Açılacak</span>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -67,13 +85,15 @@ export default function AcademyHubPage() {
             );
           }
 
-          const tooltipText = level.name === 'Orta' ? 'Orta Seviye — İlerlemeye devam et, kilit açılıyor.' : 'İleri Seviye için Uzman içerik. Kilidi açmak için gelişimine devam et.';
+          const tooltipText = level.name === 'Orta' 
+            ? 'Orta Seviye — İlerlemeye devam et, kilit açılıyor.' 
+            : 'İleri Seviye için Uzman içerik. Kilidi açmak için gelişimine devam et.';
 
           return (
             <TooltipProvider key={level.name}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="h-full cursor-not-allowed">
+                  <div className="h-full">
                     {content}
                   </div>
                 </TooltipTrigger>
