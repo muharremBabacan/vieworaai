@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs } from 'firebase/firestore';
 import type { Group, User } from '@/types';
@@ -27,8 +27,13 @@ export default function GroupsPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const [mounted, setMounted] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const groupsQuery = useMemoFirebase(
     () => user ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null,
@@ -127,14 +132,16 @@ export default function GroupsPage() {
 
   return (
     <div className="container mx-auto px-4 pt-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10">
+      <div className="flex flex-col gap-6 mb-10">
         <h1 className="text-4xl font-extrabold tracking-tight">Gruplarım</h1>
-        <div className="flex flex-row items-center gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar py-1">
+        
+        {mounted && (
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="flex-1 sm:flex-none">
+                            <div className="w-full sm:w-auto">
                                 <DialogTrigger asChild>
                                     <Button disabled={!canCreateGroup} className="w-full sm:w-auto h-11 px-6 shadow-md transition-all active:scale-95">
                                         <PlusCircle className="mr-2 h-4 w-4" /> Yeni Grup Oluştur
@@ -173,7 +180,7 @@ export default function GroupsPage() {
             </Dialog>
             <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="secondary" className="flex-1 sm:w-auto h-11 px-6 shadow-md transition-all active:scale-95">
+                    <Button variant="secondary" className="w-full sm:w-auto h-11 px-6 shadow-md transition-all active:scale-95">
                         <LogIn className="mr-2 h-4 w-4" /> Koda Göre Katıl
                     </Button>
                 </DialogTrigger>
@@ -196,7 +203,8 @@ export default function GroupsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
-        </div>
+          </div>
+        )}
       </div>
       
       {isLoading ? (
