@@ -21,6 +21,7 @@ export type User = {
   groups?: string[];
   createdAt?: string;
   lastLoginAt?: string;
+  lastNotificationsViewedAt?: string;
   communication_style?: 'soft' | 'balanced' | 'technical';
   score_history?: { score: number; date: string }[];
   profileIndex?: UserProfileIndex;

@@ -3,17 +3,18 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy } from 'firebase/firestore';
+import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy, updateDoc } from 'firebase/firestore';
 import type { GroupInvite, GlobalNotification, User } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Button } from '@/shared/ui/button';
-import { Bell, Users, Check, X, Sparkles, Trophy, Globe, Gift, Info } from 'lucide-react';
+import { Bell, Users, Check, X, Trophy, Globe, Gift, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useDoc } from '@/lib/firebase';
+import { cn } from '@/lib/utils';
 
 export function NotificationCenter() {
   const { user } = useUser();
@@ -22,7 +23,7 @@ export function NotificationCenter() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // User profile for level-based filtering
+  // User profile for level-based filtering and read status
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userRef);
 
@@ -69,7 +70,22 @@ export function NotificationCenter() {
     return combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [invitesData, globalNotifsData, userProfile]);
   
-  const unreadCount = notifications.length;
+  // Calculate unread count based on timestamp
+  const unreadCount = useMemo(() => {
+    if (!userProfile?.lastNotificationsViewedAt) return notifications.length;
+    const lastViewed = new Date(userProfile.lastNotificationsViewedAt).getTime();
+    return notifications.filter(n => new Date(n.createdAt).getTime() > lastViewed).length;
+  }, [notifications, userProfile?.lastNotificationsViewedAt]);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open && user && firestore) {
+      // Mark all as viewed by updating the timestamp in user profile
+      updateDoc(doc(firestore, 'users', user.uid), {
+        lastNotificationsViewedAt: new Date().toISOString()
+      }).catch(err => console.error("Failed to update notification viewed timestamp", err));
+    }
+  };
 
   const handleInviteAction = async (invite: GroupInvite, action: 'accepted' | 'declined') => {
     if (!user || !firestore) return;
@@ -106,7 +122,7 @@ export function NotificationCenter() {
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full">
           <Bell className="h-5 w-5" />
@@ -125,39 +141,59 @@ export function NotificationCenter() {
         <ScrollArea className="h-[400px]">
           <div className="divide-y divide-border/40">
             {notifications.length > 0 ? (
-              notifications.map((item) => (
-                <div key={item.id} className="p-4 transition-colors hover:bg-accent/50 group">
-                  <div className="flex gap-3">
-                    <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary border border-border/50 group-hover:border-primary/20 transition-colors">
-                      {getIcon(item)}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        {item.category === 'invite' ? 'Grup Daveti' : (item.title || 'Sistem Duyurusu')}
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground/90">
-                        {item.category === 'invite' ? (
-                          <><b>{item.fromUserName}</b> sizi "<b>{item.groupName}</b>" grubuna davet etti.</>
-                        ) : item.message}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/70 font-medium">
-                        {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}
-                      </p>
-                      
-                      {item.category === 'invite' && (
-                        <div className="mt-3 flex gap-2">
-                           <Button size="sm" variant="secondary" className="h-8 flex-1 rounded-lg text-xs" onClick={() => handleInviteAction(item, 'accepted')}>Kabul Et</Button>
-                           <Button size="sm" variant="ghost" className="h-8 px-3 rounded-lg text-xs text-muted-foreground hover:text-destructive" onClick={() => handleInviteAction(item, 'declined')}>Reddet</Button>
+              notifications.map((item) => {
+                const isUnread = !userProfile?.lastNotificationsViewedAt || 
+                                new Date(item.createdAt).getTime() > new Date(userProfile.lastNotificationsViewedAt).getTime();
+                
+                return (
+                  <div 
+                    key={item.id} 
+                    className={cn(
+                      "p-4 transition-colors group relative",
+                      isUnread ? "bg-primary/5 hover:bg-primary/10" : "opacity-60 hover:bg-accent/50"
+                    )}
+                  >
+                    <div className="flex gap-3">
+                      <div className={cn(
+                        "mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary border border-border/50 transition-colors",
+                        isUnread && "border-primary/30"
+                      )}>
+                        {getIcon(item)}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {item.category === 'invite' ? 'Grup Daveti' : (item.title || 'Sistem Duyurusu')}
+                          </p>
+                          {isUnread && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
                         </div>
-                      )}
-                      
-                      {item.type === 'competition' && (
-                        <Button variant="outline" size="sm" className="mt-2 h-7 text-[10px] rounded-lg border-primary/20 hover:bg-primary/10" onClick={() => { setIsOpen(false); router.push('/competitions'); }}>Yarışmaya Git</Button>
-                      )}
+                        <p className={cn(
+                          "text-sm leading-relaxed text-foreground/90",
+                          isUnread && "font-medium"
+                        )}>
+                          {item.category === 'invite' ? (
+                            <><b>{item.fromUserName}</b> sizi "<b>{item.groupName}</b>" grubuna davet etti.</>
+                          ) : item.message}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/70 font-medium">
+                          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}
+                        </p>
+                        
+                        {item.category === 'invite' && (
+                          <div className="mt-3 flex gap-2">
+                             <Button size="sm" variant="secondary" className="h-8 flex-1 rounded-lg text-xs" onClick={() => handleInviteAction(item, 'accepted')}>Kabul Et</Button>
+                             <Button size="sm" variant="ghost" className="h-8 px-3 rounded-lg text-xs text-muted-foreground hover:text-destructive" onClick={() => handleInviteAction(item, 'declined')}>Reddet</Button>
+                          </div>
+                        )}
+                        
+                        {item.type === 'competition' && (
+                          <Button variant="outline" size="sm" className="mt-2 h-7 text-[10px] rounded-lg border-primary/20 hover:bg-primary/10" onClick={() => { setIsOpen(false); router.push('/competitions'); }}>Yarışmaya Git</Button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="py-20 text-center space-y-3">
                 <div className="h-12 w-12 bg-secondary/50 rounded-full flex items-center justify-center mx-auto">

@@ -47,6 +47,11 @@
           "description": "Timestamp of the user's last login.",
           "format": "date-time"
         },
+        "lastNotificationsViewedAt": {
+          "type": "string",
+          "description": "Timestamp of when the user last opened the notification panel.",
+          "format": "date-time"
+        },
         "communication_style": {
           "type": "string",
           "description": "User's preferred communication style for AI feedback.",
@@ -635,6 +640,42 @@
       },
       "description": "Group specific photos."
     },
+    "groups/{groupId}/assignments/{assignmentId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupAssignment"
+      },
+      "description": "Group assignments."
+    },
+    "groups/{groupId}/assignments/{assignmentId}/submissions/{submissionId}": {
+      "schema": {
+        "$ref": "#/backend/entities/AssignmentSubmission"
+      },
+      "description": "Assignment submissions."
+    },
+    "groups/{groupId}/events/{eventId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupEvent"
+      },
+      "description": "Group events."
+    },
+    "groups/{groupId}/competitions/{competitionId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupCompetition"
+      },
+      "description": "Group competitions."
+    },
+    "groups/{groupId}/competitions/{competitionId}/entries/{entryId}": {
+      "schema": {
+        "$ref": "#/backend/entities/CompetitionEntry"
+      },
+      "description": "Group competition entries."
+    },
+    "groups/{groupId}/trainings/{trainingId}": {
+      "schema": {
+        "$ref": "#/backend/entities/GroupTraining"
+      },
+      "description": "Group trainings."
+    },
     "group_invites/{inviteId}": {
       "schema": {
         "$ref": "#/backend/entities/GroupInvite"
@@ -672,12 +713,19 @@
           "id": { "type": "string" },
           "title": { "type": "string" },
           "message": { "type": "string" },
+          "type": { "type": "string" },
           "targetLevel": { "type": "string" },
           "competitionId": { "type": "string" },
           "createdAt": { "type": "string", "format": "date-time" }
         }
       },
       "description": "Global announcements."
+    },
+    "user_profile_index/{userId}": {
+      "schema": {
+        "$ref": "#/backend/entities/UserProfileIndex"
+      },
+      "description": "User photography profile summary."
     }
   }
 }
