@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
@@ -267,7 +268,10 @@ export default function GalleryPage() {
             const publicPhotoRef = doc(firestore, 'public_photos', photo.id);
             
             batch.delete(photoRef);
-            batch.delete(publicPhotoRef);
+            // Only attempt to delete from public exhibition if it was submitted
+            if (photo.isSubmittedToExhibition) {
+                batch.delete(publicPhotoRef);
+            }
             
             batch.commit().catch(async (err) => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({

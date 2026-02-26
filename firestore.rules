@@ -18,6 +18,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'admin@viewora.ai' ||
+        request.auth.token.email == 'babacan.muharrem@gmail.com' ||
         request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
         request.auth.token.admin == true
       );
@@ -157,7 +158,8 @@ service cloud.firestore {
     match /public_photos/{photoId} {
       allow get, list: if isSignedIn(); 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      // Allow delete if doc doesn't exist OR if user is owner
+      allow delete: if (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid)) || isAdmin();
       
       allow update: if isSignedIn()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
