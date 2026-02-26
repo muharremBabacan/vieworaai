@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit, getDoc } from 'firebase/firestore';
-import type { User, Photo, UserProfileIndex, StrategicFeedback } from '@/types';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
+import type { User, Photo, StrategicFeedback } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BrainCircuit, Sparkles, Target, Zap, ChevronRight, BookOpen, Trophy, ArrowUpRight, Loader2, Award, History } from 'lucide-react';
+import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 
@@ -41,10 +40,10 @@ export default function LumaMentorPage() {
         if (analyzed.length === 0) return null;
 
         const sum = analyzed.reduce((acc, p) => ({
-            light: acc.light + normalizeScore(p.aiFeedback!.light_score),
-            composition: acc.composition + normalizeScore(p.aiFeedback!.composition_score),
-            focus: acc.focus + normalizeScore(p.aiFeedback!.focus_score),
-            color: acc.color + normalizeScore(p.aiFeedback!.color_control_score),
+            light: acc.light + normalizeScore(p.aiFeedback?.light_score),
+            composition: acc.composition + normalizeScore(p.aiFeedback?.composition_score),
+            focus: acc.focus + normalizeScore(p.aiFeedback?.focus_score),
+            color: acc.color + normalizeScore(p.aiFeedback?.color_control_score),
         }), { light: 0, composition: 0, focus: 0, color: 0 });
 
         const count = analyzed.length;
@@ -65,12 +64,11 @@ export default function LumaMentorPage() {
 
         setIsAnalyzing(true);
         try {
-            // Mocking a UserProfileIndex for the AI Flow based on current stats
             const mockIndex: any = {
-                dominant_style: "Belirleniyor...",
-                strengths: stats.avgLight > 7 ? ["Işık Kullanımı"] : [],
-                weaknesses: stats.avgComp < 6 ? ["Kompozisyon Düzeni"] : [],
-                dominant_technical_level: userProfile.level_name.toLowerCase() as any,
+                dominant_style: "Portre ve Sokak",
+                strengths: stats.avgLight > 7 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
+                weaknesses: stats.avgComp < 6 ? ["Kompozisyon Düzeni"] : ["Detay Kontrolü"],
+                dominant_technical_level: (userProfile.level_name?.toLowerCase() as any) || 'beginner',
                 trend: { direction: 'improving', percentage: 15 },
                 consistency_gap: 12,
                 communication_profile: { tone: 'analytical', explanation_depth: 'medium', challenge_level: 3 }
@@ -135,7 +133,6 @@ export default function LumaMentorPage() {
                 </Card>
             ) : (
                 <div className="grid gap-8 lg:grid-cols-3">
-                    {/* Progress Dashboard */}
                     <div className="lg:col-span-2 space-y-8">
                         <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden">
                             <CardHeader className="bg-secondary/20 border-b pb-6">
@@ -168,7 +165,6 @@ export default function LumaMentorPage() {
                             </CardContent>
                         </Card>
 
-                        {/* AI Feedback Display */}
                         {feedback && (
                             <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 animate-in slide-in-from-bottom-4 duration-500">
                                 <CardHeader>
@@ -212,10 +208,9 @@ export default function LumaMentorPage() {
                         )}
                     </div>
 
-                    {/* Sidebar Recommendations */}
                     <div className="space-y-6">
                         <Card className="rounded-[32px] border-border/40 bg-card/50">
-                            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><BookOpen className="h-5 w-5 text-purple-400" /> Eğitim Önerileri</CardTitle></CardHeader>
+                            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-purple-400" /> Eğitim Önerileri</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="p-4 rounded-2xl bg-secondary/30 border border-border/50 group cursor-pointer hover:bg-secondary/50 transition-all">
                                     <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Sana Özel</p>
@@ -235,14 +230,6 @@ export default function LumaMentorPage() {
                                     <p className="text-xs text-muted-foreground mt-1">Kompozisyon becerilerini sergilemek için harika bir fırsat!</p>
                                     <Button variant="outline" size="sm" className="w-full mt-3 h-8 text-[10px] font-bold uppercase" asChild><a href="/explore">Yarışmayı İncele</a></Button>
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="rounded-[32px] bg-gradient-to-br from-indigo-600 to-purple-700 border-none text-white overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-4 opacity-20"><Award className="h-24 w-24" /></div>
-                            <CardContent className="p-6 relative z-10">
-                                <h5 className="font-black text-xl leading-tight">Vexer Yolculuğu</h5>
-                                <p className="text-white/80 text-xs mt-2">Mentor (Vexer) seviyesine ulaşmana 3400 XP kaldı. Her hafta Luma tavsiyelerini uygulamak gelişimini hızlandırır.</p>
                             </CardContent>
                         </Card>
                     </div>
