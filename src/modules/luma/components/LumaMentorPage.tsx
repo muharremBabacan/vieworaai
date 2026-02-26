@@ -1,15 +1,16 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
-import type { User, Photo, StrategicFeedback } from '@/types';
+import { doc, collection, query, orderBy, limit, where } from 'firebase/firestore';
+import type { User, Photo, StrategicFeedback, CompetitionEntry, Group } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy } from 'lucide-react';
+import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 
@@ -19,7 +20,7 @@ const normalizeScore = (score: number | undefined | null): number => {
 };
 
 export default function LumaMentorPage() {
-    const { user } = useUser();
+    const { user } = user ? useUser() : { user: null };
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -30,13 +31,17 @@ export default function LumaMentorPage() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userRef);
 
     // Fetch Recent Photos for Context
-    const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'), limit(10)) : null, [user, firestore]);
-    const { data: recentPhotos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
+    const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'), limit(50)) : null, [user, firestore]);
+    const { data: allPhotos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
+
+    // Fetch Groups for activity context
+    const groupsQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null, [user, firestore]);
+    const { data: userGroups } = useCollection<Group>(groupsQuery);
 
     // Calculate aggregated metrics
     const stats = useMemo(() => {
-        if (!recentPhotos || recentPhotos.length === 0) return null;
-        const analyzed = recentPhotos.filter(p => !!p.aiFeedback);
+        if (!allPhotos || allPhotos.length === 0) return null;
+        const analyzed = allPhotos.filter(p => !!p.aiFeedback);
         if (analyzed.length === 0) return null;
 
         const sum = analyzed.reduce((acc, p) => ({
@@ -47,14 +52,19 @@ export default function LumaMentorPage() {
         }), { light: 0, composition: 0, focus: 0, color: 0 });
 
         const count = analyzed.length;
+        const exhibitionCount = allPhotos.filter(p => p.isSubmittedToExhibition).length;
+        const groupCount = userGroups?.length || 0;
+
         return {
             avgLight: sum.light / count,
             avgComp: sum.composition / count,
             avgFocus: sum.focus / count,
             avgColor: sum.color / count,
-            count
+            totalAnalyzed: count,
+            exhibitionCount,
+            groupCount
         };
-    }, [recentPhotos]);
+    }, [allPhotos, userGroups]);
 
     const handleAskLuma = async () => {
         if (!user || !userProfile || !stats) {
@@ -66,8 +76,8 @@ export default function LumaMentorPage() {
         try {
             const mockIndex: any = {
                 dominant_style: "Portre ve Sokak",
-                strengths: stats.avgLight > 7 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
-                weaknesses: stats.avgComp < 6 ? ["Kompozisyon Düzeni"] : ["Detay Kontrolü"],
+                strengths: stats.avgLight > 7.5 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
+                weaknesses: stats.avgComp < 7 ? ["Kompozisyon Düzeni"] : ["Detay Kontrolü"],
                 dominant_technical_level: (userProfile.level_name?.toLowerCase() as any) || 'beginner',
                 trend: { direction: 'improving', percentage: 15 },
                 consistency_gap: 12,
@@ -75,7 +85,7 @@ export default function LumaMentorPage() {
             };
 
             const result = await generateStrategicFeedback({
-                userPrompt: "Genel gelişimimi değerlendir ve bana bu hafta için bir plan hazırla.",
+                userPrompt: "Genel gelişimimi ve topluluk aktivitelerimi değerlendir, bana bu hafta için stratejik bir yol haritası çıkar.",
                 userProfileIndex: mockIndex
             });
 
@@ -91,12 +101,9 @@ export default function LumaMentorPage() {
 
     if (isProfileLoading || isPhotosLoading) {
         return (
-            <div className="container mx-auto px-4 py-8 space-y-6">
-                <Skeleton className="h-12 w-48" />
-                <div className="grid gap-6 md:grid-cols-2">
-                    <Skeleton className="h-64 rounded-3xl" />
-                    <Skeleton className="h-64 rounded-3xl" />
-                </div>
+            <div className="container mx-auto px-4 py-8 space-y-6 text-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+                <p className="text-muted-foreground animate-pulse">Luma verilerini hazırlıyor...</p>
             </div>
         );
     }
@@ -141,48 +148,72 @@ export default function LumaMentorPage() {
             ) : (
                 <div className="grid gap-8 lg:grid-cols-3">
                     <div className="lg:col-span-2 space-y-8">
-                        <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
-                            <CardHeader className="bg-secondary/20 border-b pb-6">
-                                <CardTitle className="flex items-center gap-2 text-xl">
-                                    <Target className="h-5 w-5 text-primary" /> Mevcut Yetkinlik Analizi
-                                </CardTitle>
-                                <CardDescription>Son {stats.count} fotoğrafındaki teknik performans ortalaman.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-8 grid sm:grid-cols-2 gap-8">
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
+                        <div className="grid sm:grid-cols-2 gap-6">
+                            {/* Technical Stats */}
+                            <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
+                                <CardHeader className="bg-secondary/20 border-b pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <Target className="h-4 w-4 text-primary" /> Teknik Yetkinlik
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6 space-y-5">
+                                    <div className="space-y-1.5">
                                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                            <span>Işık Hakimiyeti</span>
+                                            <span>Işık</span>
                                             <span className="text-primary">{stats.avgLight.toFixed(1)} / 10</span>
                                         </div>
-                                        <Progress value={stats.avgLight * 10} className="h-2 rounded-full" />
+                                        <Progress value={stats.avgLight * 10} className="h-1.5" />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                             <span>Kompozisyon</span>
                                             <span className="text-primary">{stats.avgComp.toFixed(1)} / 10</span>
                                         </div>
-                                        <Progress value={stats.avgComp * 10} className="h-2 rounded-full" />
+                                        <Progress value={stats.avgComp * 10} className="h-1.5" />
                                     </div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                            <span>Netlik & Odak</span>
+                                            <span>Netlik</span>
                                             <span className="text-primary">{stats.avgFocus.toFixed(1)} / 10</span>
                                         </div>
-                                        <Progress value={stats.avgFocus * 10} className="h-2 rounded-full" />
+                                        <Progress value={stats.avgFocus * 10} className="h-1.5" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                            <span>Renk Kontrolü</span>
-                                            <span className="text-primary">{stats.avgColor.toFixed(1)} / 10</span>
+                                </CardContent>
+                            </Card>
+
+                            {/* Activity Stats */}
+                            <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
+                                <CardHeader className="bg-secondary/20 border-b pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <Zap className="h-4 w-4 text-amber-400" /> Aktivite & Etkileşim
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
+                                            <Globe className="h-4 w-4 mx-auto mb-1 text-cyan-400" />
+                                            <p className="text-xl font-bold">{stats.exhibitionCount}</p>
+                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Sergi Eseri</p>
                                         </div>
-                                        <Progress value={stats.avgColor * 10} className="h-2 rounded-full" />
+                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
+                                            <Users className="h-4 w-4 mx-auto mb-1 text-purple-400" />
+                                            <p className="text-xl font-bold">{stats.groupCount}</p>
+                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Grup Üyeliği</p>
+                                        </div>
+                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
+                                            <Trophy className="h-4 w-4 mx-auto mb-1 text-amber-400" />
+                                            <p className="text-xl font-bold">{userProfile.current_xp > 500 ? '1' : '0'}</p>
+                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Yarışma</p>
+                                        </div>
+                                        <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
+                                            <Star className="h-4 w-4 mx-auto mb-1 text-primary" />
+                                            <p className="text-xl font-bold">{stats.totalAnalyzed}</p>
+                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Toplam Analiz</p>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        </div>
 
                         {feedback && (
                             <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 animate-in slide-in-from-bottom-4 duration-500 shadow-xl">
