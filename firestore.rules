@@ -26,9 +26,10 @@ service cloud.firestore {
     }
     
     //-------------------------------------------------------------------------
-    // Collection Group Rules (CRITICAL for Luma Mentor & Global Queries)
+    // Collection Group Rules (Must be top-level for Luma Mentor)
     //-------------------------------------------------------------------------
     
+    // allow collectionGroup('entries') queries
     match /{path=**}/entries/{entryId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -36,12 +37,13 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
+    // allow collectionGroup('photos') queries
     match /{path=**}/photos/{photoId} {
       allow read: if isSignedIn();
     }
 
     //-------------------------------------------------------------------------
-    // Collection Rules
+    // Individual Collection Rules
     //-------------------------------------------------------------------------
 
     match /users/{userId} {
