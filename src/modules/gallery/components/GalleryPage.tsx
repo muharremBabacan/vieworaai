@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
@@ -108,6 +107,16 @@ const PhotoDetailDialog = ({
                                   </div>
                               </CardContent>
                           </Card>
+
+                          {photo.tags && photo.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                  {photo.tags.map((tag, i) => (
+                                      <Badge key={i} variant="secondary" className="bg-secondary/50 text-[10px] font-bold uppercase tracking-wider">
+                                          {tag}
+                                      </Badge>
+                                  ))}
+                              </div>
+                          )}
 
                           <div>
                               <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
@@ -240,7 +249,7 @@ export default function GalleryPage() {
             const userRef = doc(firestore, 'users', user.uid);
             
             const batch = writeBatch(firestore);
-            batch.update(photoRef, { aiFeedback: analysis });
+            batch.update(photoRef, { aiFeedback: analysis, tags: analysis.tags || [] });
             batch.update(userRef, { auro_balance: increment(-ANALYSIS_COST) });
             
             batch.commit().catch(async (err) => {
@@ -251,7 +260,7 @@ export default function GalleryPage() {
             });
 
             toast({ title: "Başarılı!", description: "Analiz tamamlandı." });
-            setSelectedPhoto({ ...photo, aiFeedback: analysis });
+            setSelectedPhoto({ ...photo, aiFeedback: analysis, tags: analysis.tags || [] });
         } catch (error) {
             toast({ variant: 'destructive', title: "Hata", description: "Analiz yapılamadı." });
         } finally {
@@ -285,7 +294,7 @@ export default function GalleryPage() {
                 await deleteObject(storageRef).catch(() => {});
             }
 
-            toast({ title: "Başarılı!", description: "Fotoğrafınız galeriden kalıcı olarak silindi." });
+            toast({ title: "Başarılı!", description: "Fotoğrafınız galeriden kalıcı olarak silinecektir." });
             onCloseDialog();
         } catch (error) {
             toast({ variant: 'destructive', title: "Hata", description: "Silme işlemi tamamlanamadı." });

@@ -31,6 +31,7 @@ const PhotoAnalysisOutputSchema = z.object({
   background_control_score: z.number().min(0).max(10),
   creativity_risk_score: z.number().min(0).max(10),
   technical_level_estimation: z.enum(["beginner", "lower_intermediate", "intermediate", "advanced"]),
+  tags: z.array(z.string()).max(4).describe("Up to 4 descriptive tags about the photo style or subject (e.g., 'Golden Hour', 'Minimalist', 'Sharp Focus')."),
   error_flags: z.object({
     overexposed: z.boolean(),
     underexposed: z.boolean(),
@@ -61,6 +62,8 @@ const analysisPrompt = ai.definePrompt({
 Analyze the uploaded image strictly and objectively.
 
 Return ONLY valid JSON. Do not write explanations outside JSON.
+
+Generate exactly 4 tags that best describe the photo's mood, style, or specific content in language: {{{language}}}.
 
 Respond in language: {{{language}}}
 

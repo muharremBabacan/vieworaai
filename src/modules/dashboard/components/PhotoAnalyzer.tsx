@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { UploadCloud, Sparkles, Loader2, Award, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 // Constants
 const ANALYSIS_COST = 1;
@@ -90,18 +91,31 @@ const AnalysisResult = ({
 
     return (
         <div className="grid md:grid-cols-2 gap-8">
-            <Card className="p-6">
-                <div className="flex justify-between items-baseline mb-2">
-                    <h3 className="text-2xl font-bold">Genel Puan</h3>
-                    <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
-                </div>
-                <hr className="border-border mb-6" />
-                <div className="space-y-5">
-                    <RatingBar label="Işık" score={lightScore} />
-                    <RatingBar label="Kompozisyon" score={compositionScore} />
-                    <RatingBar label="Teknik" score={technicalScore} />
-                </div>
-            </Card>
+            <div className="space-y-6">
+                <Card className="p-6">
+                    <div className="flex justify-between items-baseline mb-2">
+                        <h3 className="text-2xl font-bold">Genel Puan</h3>
+                        <p className="text-4xl font-bold tracking-tighter text-blue-400">{overallScore.toFixed(1)}</p>
+                    </div>
+                    <hr className="border-border mb-6" />
+                    <div className="space-y-5">
+                        <RatingBar label="Işık" score={lightScore} />
+                        <RatingBar label="Kompozisyon" score={compositionScore} />
+                        <RatingBar label="Teknik" score={technicalScore} />
+                    </div>
+                </Card>
+
+                {analysis.tags && analysis.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {analysis.tags.map((tag, i) => (
+                            <Badge key={i} variant="secondary" className="bg-secondary/50 text-[10px] font-bold uppercase tracking-wider">
+                                {tag}
+                            </Badge>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             <div className="space-y-6">
                 <Card className="p-6">
                     <h3 className="text-lg font-semibold mb-4">YZ Analizi</h3>
@@ -241,7 +255,8 @@ export default function PhotoAnalyzer() {
                 imageUrl,
                 filePath,
                 createdAt: new Date().toISOString(),
-                aiFeedback: null
+                aiFeedback: null,
+                tags: []
             };
 
             let xpGained = UPLOAD_XP_GAIN;
@@ -250,6 +265,7 @@ export default function PhotoAnalyzer() {
                 setLoadingState('analyzing');
                 const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr' });
                 photoData.aiFeedback = analysis;
+                photoData.tags = analysis.tags || [];
                 setAnalysisResult(analysis);
 
                 const overallScore = Object.values(analysis).reduce((sum, value) => typeof value === 'number' ? sum + normalizeScore(value) : sum, 0) / 6;
