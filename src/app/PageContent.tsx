@@ -1,3 +1,4 @@
+
 'use client';
 import {
   GoogleAuthProvider,
@@ -91,6 +92,7 @@ export default function PageContent() {
         const newPublicProfile: PublicUserProfile = {
           id: firebaseUser.uid,
           name: newUserProfile.name,
+          email: firebaseUser.email,
           photoURL: firebaseUser.photoURL,
           level_name: 'Neuner',
         };
@@ -112,6 +114,7 @@ export default function PageContent() {
           setDoc(userRef, { lastLoginAt: now, name: updatedName }, { merge: true }),
           setDoc(publicProfileRef, {
             name: updatedName,
+            email: firebaseUser.email,
             photoURL: firebaseUser.photoURL || null,
             level_name: existing.level_name,
           }, { merge: true }),

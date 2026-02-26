@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, UserPlus, Trash2, Copy, Link as LinkIcon, Settings as SettingsIcon, Camera, Check, Loader2, Crown, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Copy, Link as LinkIcon, Settings as SettingsIcon, Camera, Check, Loader2, Crown } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
@@ -110,25 +110,22 @@ export default function GroupDetailPage() {
   // Üye profillerini getir
   const membersQuery = useMemoFirebase(() => {
     if (!group?.memberIds || group.memberIds.length === 0) return null;
-    // Firestore 'in' operatörü maksimum 30 ID destekler
     const ids = group.memberIds.slice(0, 30);
     return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', ids));
   }, [group?.memberIds, firestore]);
 
   const { data: profiles, isLoading: areMembersLoading } = useCollection<PublicUserProfile>(membersQuery);
   
-  // Eksik profiller için placeholder oluşturarak tüm üyeleri hazırla
   const allMembers = useMemo(() => {
     if (!group?.memberIds) return [];
     return group.memberIds.map(uid => {
         const foundProfile = profiles?.find(p => p.id === uid);
         if (foundProfile) return foundProfile;
-        // Profil dökümanı henüz oluşmamış üyeler için fallback
         return { 
             id: uid, 
             name: uid === group.ownerId ? 'Grup Sahibi' : 'Bilinmeyen Üye', 
             level_name: 'Neuner' 
-        };
+        } as PublicUserProfile;
     });
   }, [group?.memberIds, group?.ownerId, profiles]);
 
@@ -195,10 +192,11 @@ export default function GroupDetailPage() {
     }
 
     try {
-        const userQuery = query(collection(firestore, 'users'), where('email', '==', values.email));
+        // Query public_profiles instead of private users collection to avoid permission errors
+        const userQuery = query(collection(firestore, 'public_profiles'), where('email', '==', values.email));
         const userSnapshot = await getDocs(userQuery);
         if (userSnapshot.empty) {
-            toast({ variant: 'destructive', title: "Kullanıcı Bulunamadı", description: "Bu e-postaya sahip bir kullanıcı yok." });
+            toast({ variant: 'destructive', title: "Kullanıcı Bulunamadı", description: "Bu e-postaya sahip bir kullanıcı yok veya henüz Viewora'ya giriş yapmamış." });
             return;
         }
         const invitedUserDoc = userSnapshot.docs[0];
@@ -295,7 +293,6 @@ export default function GroupDetailPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight">{group.name}</h1>
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 uppercase tracking-wider">
-                        <Crown className="h-3 w-3" />
                         <span>Kurucu: {founderMember?.name || "Yükleniyor..."}</span>
                       </div>
                       <p className="text-muted-foreground text-sm line-clamp-1">{group.description}</p>

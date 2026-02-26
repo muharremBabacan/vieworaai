@@ -29,6 +29,7 @@ export type User = {
 export type PublicUserProfile = {
   id: string;
   name: string | null;
+  email: string | null;
   photoURL?: string | null;
   level_name: string;
 };

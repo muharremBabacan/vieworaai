@@ -80,9 +80,17 @@
       "type": "object",
       "description": "Stores non-sensitive user information that can be displayed publicly, such as in photo galleries or leaderboards.",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The user's unique ID."
+        },
         "name": {
           "type": "string",
           "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email for discovery/invites."
         },
         "photoURL": {
           "type": "string",
@@ -94,7 +102,7 @@
           "description": "The user's current gamification level (e.g., Basic, Mid, Pro)."
         }
       },
-      "required": ["name", "level_name"]
+      "required": ["name", "level_name", "email"]
     },
     "Photo": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -379,6 +387,12 @@
           "type": "string",
           "description": "Timestamp when the group was created.",
           "format": "date-time"
+        },
+        "joinCode": {
+          "type": "string"
+        },
+        "photoURL": {
+          "type": "string"
         }
       },
       "required": [
@@ -461,6 +475,7 @@
       "type": "object",
       "description": "A global competition organized by Viewora admins.",
       "properties": {
+        "id": { "type": "string" },
         "title": { "type": "string" },
         "description": { "type": "string" },
         "theme": { "type": "string" },
@@ -469,7 +484,14 @@
         "endDate": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" },
         "imageUrl": { "type": "string", "format": "uri" },
-        "imageHint": { "type": "string" }
+        "imageHint": { "type": "string" },
+        "scoringModel": { "type": "string" },
+        "juryIds": { "type": "array", "items": { "type": "string" } },
+        "isCommunityVoteActive": { "type": "boolean" },
+        "isAIAnalysisIncluded": { "type": "boolean" },
+        "juryWeight": { "type": "number" },
+        "aiWeight": { "type": "number" },
+        "communityWeight": { "type": "number" }
       },
       "required": ["title", "description", "theme", "prize", "startDate", "endDate", "createdAt", "imageUrl"]
     },
@@ -567,8 +589,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "google.com"
     ]
   },
   "firestore": {
@@ -576,115 +597,87 @@
       "schema": {
         "$ref": "#/backend/entities/User"
       },
-      "description": "Stores individual user profiles including authentication details, token balance, and gamification level. This collection is private, with documents owned by the user matching the '{userId}' wildcard."
+      "description": "Stores individual user profiles including authentication details, token balance, and gamification level."
     },
     "public_profiles/{userId}": {
       "schema": {
         "$ref": "#/backend/entities/PublicUserProfile"
       },
-      "description": "Stores public-facing, non-sensitive user profile data. Readable by all authenticated users, writable only by the owner."
+      "description": "Stores public-facing, non-sensitive user profile data including email for discovery."
     },
     "users/{userId}/photos/{photoId}": {
       "schema": {
         "$ref": "#/backend/entities/Photo"
       },
-      "description": "A subcollection storing photos submitted by a specific user for AI analysis. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' for authorization independence and easier querying."
+      "description": "A subcollection storing photos submitted by a specific user."
     },
     "users/{userId}/lessonProgress/{progressId}": {
       "schema": {
         "$ref": "#/backend/entities/UserLessonProgress"
       },
-      "description": "A subcollection tracking a specific user's progress through the academy lessons. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' and 'lessonId' for authorization independence and easier querying."
+      "description": "Tracking user progress through lessons."
     },
     "users/{userId}/transactions/{transactionId}": {
       "schema": {
         "$ref": "#/backend/entities/Transaction"
       },
-      "description": "A subcollection recording all financial and token-related transactions for a specific user. Documents are private and owned by the user matching the '{userId}' wildcard. Includes denormalized 'userId' for authorization independence and easier querying."
+      "description": "User token transactions."
     },
     "groups/{groupId}": {
       "schema": {
         "$ref": "#/backend/entities/Group"
       },
-      "description": "Stores group information, including owner and member lists. Access is restricted to members."
+      "description": "Group data."
     },
     "groups/{groupId}/photos/{photoId}": {
       "schema": {
         "$ref": "#/backend/entities/Photo"
       },
-      "description": "A subcollection for photos shared within a specific group. Access is limited to group members."
+      "description": "Group specific photos."
     },
     "group_invites/{inviteId}": {
       "schema": {
         "$ref": "#/backend/entities/GroupInvite"
       },
-      "description": "A global collection of all pending and processed group invitations."
+      "description": "Group invitations."
     },
     "academyLessons/{lessonId}": {
       "schema": {
         "$ref": "#/backend/entities/AcademyLesson"
       },
-      "description": "A top-level collection containing all micro-learning lessons for the Viewora Academy. These documents are public and read-only for all authenticated users."
-    },
-    "groups/{groupId}/assignments/{assignmentId}": {
-      "schema": {
-        "$ref": "#/backend/entities/GroupAssignment"
-      },
-      "description": "Stores assignments for a specific group. Writable only by group owner."
-    },
-    "groups/{groupId}/assignments/{assignmentId}/submissions/{submissionId}": {
-      "schema": {
-        "$ref": "#/backend/entities/AssignmentSubmission"
-      },
-      "description": "Stores member submissions for a specific assignment. Writable only by the submitting member."
-    },
-    "groups/{groupId}/events/{eventId}": {
-      "schema": {
-        "$ref": "#/backend/entities/GroupEvent"
-      },
-      "description": "Stores events (trips, meetings) for a specific group. Writable by owner, but members can update their own RSVP status."
+      "description": "Educational content."
     },
     "competitions/{competitionId}": {
       "schema": {
         "$ref": "#/backend/entities/Competition"
       },
-      "description": "Stores global competitions created by admins. Readable by all authenticated users, writable only by admins."
+      "description": "Competitions."
     },
     "competitions/{competitionId}/entries/{entryId}": {
       "schema": {
         "$ref": "#/backend/entities/CompetitionEntry"
       },
-      "description": "Stores user submissions for a specific global competition."
-    },
-    "groups/{groupId}/competitions/{competitionId}": {
-      "schema": {
-        "$ref": "#/backend/entities/GroupCompetition"
-      },
-      "description": "Stores competitions for a specific group. Writable only by group owner."
-    },
-    "groups/{groupId}/competitions/{competitionId}/entries/{entryId}": {
-      "schema": {
-        "$ref": "#/backend/entities/CompetitionEntry"
-      },
-      "description": "Stores member entries for a specific competition. Writable only by the submitting member, members can vote."
-    },
-    "groups/{groupId}/trainings/{trainingId}": {
-      "schema": {
-        "$ref": "#/backend/entities/GroupTraining"
-      },
-      "description": "Stores trainings for a specific group. Writable only by group owner."
-    },
-    "user_profile_index/{userId}": {
-      "schema": {
-        "$ref": "#/backend/entities/UserProfileIndex"
-      },
-      "description": "Stores the AI-generated photographic profile index for each user. Documents are private and owned by the user matching the '{userId}'."
+      "description": "Competition submissions."
     },
     "public_photos/{photoId}": {
       "schema": {
         "$ref": "#/backend/entities/Photo"
       },
-      "description": "Stores public-facing photos submitted to the general exhibition hall. Readable by all authenticated users."
+      "description": "Public exhibition hall photos."
+    },
+    "global_notifications/{notifId}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "message": { "type": "string" },
+          "targetLevel": { "type": "string" },
+          "competitionId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Global announcements."
     }
   }
 }
