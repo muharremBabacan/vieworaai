@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -13,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { Badge } from '@/shared/ui/badge';
-import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield, User as UserIcon } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
@@ -59,7 +58,6 @@ export function UserNav() {
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
-  // Sadece admin@viewora.ai admin panelini görebilir
   const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
   const displayName = userProfile.name || "Kullanıcı";
@@ -97,14 +95,12 @@ export function UserNav() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            {isAdmin && (
-              <DropdownMenuItem asChild>
-                <Link href="/admin">
-                  <Shield className="mr-2 h-4 w-4" />
-                  <span>Yönetici Paneli</span>
-                </Link>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem asChild>
+              <Link href="/profile">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Profilim</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/settings">
                   <Settings className="mr-2 h-4 w-4" />
@@ -117,6 +113,14 @@ export function UserNav() {
                 <span>Auro Satın Al</span>
               </Link>
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <Shield className="mr-2 h-4 w-4 text-amber-500" />
+                  <span>Yönetici Paneli</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>

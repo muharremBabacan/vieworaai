@@ -6,7 +6,7 @@ import { useUser } from '@/lib/firebase';
 import { usePathname } from 'next/navigation';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const pathname = usePathname();
   
   // Giriş ve Onboarding sayfaları navigasyon içermeyen bağımsız sayfalardır
@@ -18,7 +18,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-screen flex-col">
       {showNav && <AppHeader />}
-      <main className={`flex-1 ${showNav ? 'py-8 pb-20' : ''}`}>
+      <main className={`flex-1 ${showNav ? 'py-8 pb-24' : ''}`}>
         {children}
       </main>
       {showNav && <BottomNav />}
