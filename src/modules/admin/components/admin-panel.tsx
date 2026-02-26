@@ -12,12 +12,13 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, setDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send, Globe, LayoutGrid, Image as ImageIcon, Sparkles, Calendar } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send, Globe, LayoutGrid, Image as ImageIcon, Sparkles, Calendar, Rocket, Target } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import type { Competition, ScoringModel, User, GlobalNotification, Photo, ExhibitionConfig } from '@/types';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
@@ -82,6 +83,11 @@ export default function AdminPanel() {
     const [isFetchingCount, setIsFetchingCount] = useState(true);
 
     const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com';
+
+    // Milestones logic
+    const milestones = [50, 100, 200, 500, 1000, 5000];
+    const nextMilestone = milestones.find(m => m > (totalUsers || 0)) || milestones[milestones.length - 1];
+    const progressToMilestone = totalUsers ? Math.min((totalUsers / nextMilestone) * 100, 100) : 0;
 
     // Queries
     const competitionsQuery = useMemoFirebase(() => 
@@ -330,7 +336,74 @@ export default function AdminPanel() {
 
     return (
         <div className="space-y-10 pb-20">
-            {/* TOP ROW: ACTIVE LISTS */}
+            
+            {/* 1. SEVİYE: TOTAL USERS & GROWTH GOALS */}
+            <Card className="bg-gradient-to-br from-primary/10 via-background to-accent/5 border-primary/20 overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                    <Rocket className="h-64 w-64 text-primary rotate-12" />
+                </div>
+                <CardContent className="py-12 relative z-10">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+                        <div className="space-y-4 flex-1">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                                    <Users className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary">Topluluk Büyümesi</h3>
+                                    <p className="text-muted-foreground text-xs font-bold uppercase">Canlı Kullanıcı İstatistiği</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-baseline gap-4">
+                                {isFetchingCount ? (
+                                    <Skeleton className="h-24 w-48" />
+                                ) : (
+                                    <p className="text-9xl font-black tracking-tighter bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">
+                                        {totalUsers || '0'}
+                                    </p>
+                                )}
+                                <div className="space-y-1">
+                                    <Badge variant="outline" className="text-[10px] font-black tracking-widest border-primary/30 text-primary uppercase">Kayıtlı Sanatçı</Badge>
+                                    <p className="text-xs text-muted-foreground font-medium">Global Erişim</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="lg:w-1/3 space-y-6">
+                            <div className="flex justify-between items-end">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                        <Target className="h-3 w-3 text-accent" /> Sonraki Hedef
+                                    </p>
+                                    <p className="text-2xl font-black text-foreground">{nextMilestone} Kullanıcı</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-2xl font-black text-primary">%{progressToMilestone.toFixed(0)}</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Tamamlandı</p>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <Progress value={progressToMilestone} className="h-4 bg-primary/10" />
+                                <div className="flex justify-between text-[10px] font-black text-muted-foreground/60 uppercase tracking-tighter">
+                                    <span>0</span>
+                                    <span>{Math.floor(nextMilestone * 0.25)}</span>
+                                    <span>{Math.floor(nextMilestone * 0.5)}</span>
+                                    <span>{Math.floor(nextMilestone * 0.75)}</span>
+                                    <span className="text-primary">{nextMilestone}</span>
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground leading-relaxed italic">
+                                "{nextMilestone} kullanıcı hedefine ulaşmak için {(nextMilestone - (totalUsers || 0))} yeni sanatçıya ihtiyacımız var. Topluluğu canlandırmak için yeni bir yarışma başlatmayı veya duyuru yapmayı düşünün."
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* 2. SEVİYE: ACTIVE LISTS */}
             <div className="grid gap-6 lg:grid-cols-2">
                 <Card className="flex flex-col h-[500px]">
                     <CardHeader className="shrink-0">
@@ -414,22 +487,7 @@ export default function AdminPanel() {
                 </Card>
             </div>
 
-            {/* STATS SECTION */}
-            <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="py-8 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-1">
-                            <Users className="h-4 w-4 text-primary" /> Toplam Kayıtlı Kullanıcı
-                        </h3>
-                        <p className="text-sm text-muted-foreground">Sisteme kayıtlı benzersiz hesap sayısı.</p>
-                    </div>
-                    {isFetchingCount ? <Skeleton className="h-14 w-32" /> : (
-                        <p className="text-6xl font-black tracking-tighter text-primary">{totalUsers || '0'}</p>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* MANAGEMENT TOOLS */}
+            {/* 3. SEVİYE: MANAGEMENT TOOLS */}
             <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader>
