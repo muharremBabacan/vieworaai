@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -9,16 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Competition, ScoringModel, User } from '@/types';
+import type { Competition, ScoringModel, User, GlobalNotification } from '@/types';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -75,6 +76,7 @@ export default function AdminPanel() {
     
     const [isGenerating, setIsGenerating] = useState(false);
     const [isCreatingComp, setIsCreatingComp] = useState(false);
+    const [isSendingNotif, setIsSendingNotif] = useState(false);
     const [editingCompId, setEditingCompId] = useState<string | null>(null);
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
@@ -114,6 +116,10 @@ export default function AdminPanel() {
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         }
+    });
+
+    const { control: notifControl, handleSubmit: handleNotifSubmit, reset: resetNotif } = useForm<{ title: string; message: string; targetLevel: string; type: any }>({
+        defaultValues: { title: '', message: '', targetLevel: 'all', type: 'system' }
     });
     
     const selectedLevel = lessonWatch('level');
@@ -196,8 +202,9 @@ export default function AdminPanel() {
                 batch.set(notifRef, {
                     id: notifRef.id,
                     title: "Yeni Yarışma!",
-                    message: `${data.title} başladı!`,
-                    targetLevel: data.targetLevel,
+                    message: `${data.title} başladı! Katılmak için hazır mısın?`,
+                    type: 'competition',
+                    targetLevel: data.targetLevel === 'Neuner' ? 'all' : data.targetLevel,
                     competitionId: compId,
                     createdAt: new Date().toISOString(),
                 });
@@ -214,6 +221,26 @@ export default function AdminPanel() {
         } catch (error) {
             toast({ variant: 'destructive', title: "Hata" });
         } finally { setIsCreatingComp(false); }
+    };
+
+    const onSendNotification = async (data: { title: string; message: string; targetLevel: string; type: any }) => {
+        if (!firestore || !isAdmin || isSendingNotif) return;
+        setIsSendingNotif(true);
+        try {
+            const notifRef = doc(collection(firestore, 'global_notifications'));
+            await addDoc(collection(firestore, 'global_notifications'), {
+                id: notifRef.id,
+                title: data.title,
+                message: data.message,
+                type: data.type,
+                targetLevel: data.targetLevel === 'all' ? null : data.targetLevel,
+                createdAt: new Date().toISOString(),
+            });
+            toast({ title: "Bildirim Gönderildi", description: "Duyuru başarıyla yayınlandı." });
+            resetNotif();
+        } catch (error) {
+            toast({ variant: 'destructive', title: "Hata", description: "Bildirim gönderilemedi." });
+        } finally { setIsSendingNotif(false); }
     };
 
     const handleEditComp = (comp: Competition) => {
@@ -295,127 +322,114 @@ export default function AdminPanel() {
                 </Card>
             </div>
 
-            <Card className={cn(editingCompId && "border-primary ring-1 ring-primary shadow-primary/20")}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> {editingCompId ? "Yarışmayı Düzenle" : "Yarışma Başlat"}</CardTitle>
-                    <CardDescription>Yarışma stratejisini ve puanlama ağırlıklarını belirleyin.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleCompSubmit(onSubmitCompetition)} className="space-y-8">
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-4">
-                                <div className="space-y-2"><Label>Yarışma Başlığı</Label><Controller name="title" control={compControl} render={({ field }) => <Input placeholder="Örn: Sokak ve İnsan" {...field} />} /></div>
-                                <div className="space-y-2"><Label>Açıklama</Label><Controller name="description" control={compControl} render={({ field }) => <Textarea className="h-32" placeholder="Kurallar ve katılım şartları..." {...field} />} /></div>
-                                <div className="grid gap-4 grid-cols-2">
-                                    <div className="space-y-2"><Label>Tema</Label><Controller name="theme" control={compControl} render={({ field }) => <Input placeholder="Örn: Siyah Beyaz" {...field} />} /></div>
-                                    <div className="space-y-2"><Label>Ödül</Label><Controller name="prize" control={compControl} render={({ field }) => <Input placeholder="Örn: 100 Auro" {...field} />} /></div>
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-cyan-400" /> Duyuru Gönder</CardTitle>
+                        <CardDescription>Kullanıcılara veya belirli seviyelere bildirim yollayın.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleNotifSubmit(onSendNotification)} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Başlık</Label>
+                                <Controller name="title" control={notifControl} render={({ field }) => <Input placeholder="Duyuru Başlığı" {...field} />} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Mesaj</Label>
+                                <Controller name="message" control={notifControl} render={({ field }) => <Textarea placeholder="Kullanıcılara ne söylemek istersiniz?" {...field} />} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Hedef Kitle</Label>
+                                    <Controller name="targetLevel" control={notifControl} render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Herkes</SelectItem>
+                                                {gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    )} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Tür</Label>
+                                    <Controller name="type" control={notifControl} render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="system">Sistem Duyurusu</SelectItem>
+                                                <SelectItem value="competition">Yarışma Haberi</SelectItem>
+                                                <SelectItem value="exhibition">Sergi Güncellemesi</SelectItem>
+                                                <SelectItem value="reward">Ödül Bildirimi</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )} />
                                 </div>
                             </div>
-                            
-                            <div className="space-y-6">
+                            <Button type="submit" disabled={isSendingNotif} className="w-full">
+                                {isSendingNotif ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                Bildirimi Yayınla
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Yarışma Başlat</CardTitle>
+                        <CardDescription>Yeni bir fotoğraf yarışması kurgulayın.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleCompSubmit(onSubmitCompetition)} className="space-y-4">
+                            <div className="space-y-2"><Label>Başlık</Label><Controller name="title" control={compControl} render={({ field }) => <Input placeholder="Yarışma Başlığı" {...field} />} /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2"><Label>Tema</Label><Controller name="theme" control={compControl} render={({ field }) => <Input placeholder="Siyah Beyaz vb." {...field} />} /></div>
+                                <div className="space-y-2"><Label>Ödül</Label><Controller name="prize" control={compControl} render={({ field }) => <Input placeholder="100 Auro" {...field} />} /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Hedef Kullanıcı Seviyesi</Label>
+                                    <Label>Seviye</Label>
                                     <Controller name="targetLevel" control={compControl} render={({ field }) => (
                                         <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select>
                                     )} />
                                 </div>
-                                <div className="grid gap-4 grid-cols-2">
-                                    <div className="space-y-2"><Label>Başlangıç</Label><Controller name="startDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} /></div>
-                                    <div className="space-y-2"><Label>Bitiş</Label><Controller name="endDate" control={compControl} render={({ field }) => <Input type="date" {...field} />} /></div>
-                                </div>
-                                <div className="p-4 rounded-xl border bg-muted/20 space-y-4">
-                                    <div className="space-y-2">
-                                        <Label className="flex items-center gap-2"><Scale className="h-4 w-4" /> Değerlendirme Modeli</Label>
-                                        <Controller name="scoringModel" control={compControl} render={({ field }) => (
-                                            <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="community">🟢 Sadece Topluluk</SelectItem>
-                                                <SelectItem value="jury_ai">🟣 Jüri + AI</SelectItem>
-                                                <SelectItem value="hybrid">🔵 Hibrit (Önerilen)</SelectItem>
-                                                <SelectItem value="ai_only">🔴 Sadece AI</SelectItem>
-                                                <SelectItem value="custom">⚙️ Özel Yapılandırma</SelectItem>
-                                            </SelectContent></Select>
-                                        )} />
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <div className="flex items-center space-x-2">
-                                            <Controller name="isCommunityVoteActive" control={compControl} render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />} />
-                                            <Label className="text-xs">Topluluk Oyu</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <Controller name="isAIAnalysisIncluded" control={compControl} render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />} />
-                                            <Label className="text-xs">AI Analizi</Label>
-                                        </div>
-                                    </div>
-                                    {scoringModel === 'custom' && (
-                                        <div className="space-y-4 pt-2 border-t">
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-[10px] uppercase font-bold"><span>Jüri Ağırlığı</span><span>%{compWatch('juryWeight')}</span></div>
-                                                <Controller name="juryWeight" control={compControl} render={({ field }) => <Slider value={[field.value]} onValueChange={([v]) => field.onChange(v)} max={100} step={5} />} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-[10px] uppercase font-bold"><span>AI Ağırlığı</span><span>%{compWatch('aiWeight')}</span></div>
-                                                <Controller name="aiWeight" control={compControl} render={({ field }) => <Slider value={[field.value]} onValueChange={([v]) => field.onChange(v)} max={100} step={5} />} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-[10px] uppercase font-bold"><span>Topluluk Ağırlığı</span><span>%{compWatch('communityWeight')}</span></div>
-                                                <Controller name="communityWeight" control={compControl} render={({ field }) => <Slider value={[field.value]} onValueChange={([v]) => field.onChange(v)} max={100} step={5} />} />
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="space-y-2">
+                                    <Label>Model</Label>
+                                    <Controller name="scoringModel" control={compControl} render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="community">Topluluk</SelectItem>
+                                            <SelectItem value="hybrid">Hibrit</SelectItem>
+                                            <SelectItem value="ai_only">Sadece AI</SelectItem>
+                                        </SelectContent></Select>
+                                    )} />
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="space-y-4 border-t pt-6">
-                            <Label className="flex items-center gap-2 text-lg font-bold"><UserCheck className="h-5 w-5 text-blue-400" /> Jüri Atama (Mentorlar)</Label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                {mentors?.map(mentor => (
-                                    <div key={mentor.id} className="flex items-center space-x-2 border p-3 rounded-xl hover:bg-muted/50 transition-colors">
-                                        <Checkbox id={`m-${mentor.id}`} checked={selectedJuryIds.includes(mentor.id)} onCheckedChange={(c) => {
-                                            const curr = [...selectedJuryIds];
-                                            setCompValue('juryIds', c ? [...curr, mentor.id] : curr.filter(id => id !== mentor.id));
-                                        }} />
-                                        <div className="grid gap-0.5 leading-none"><label htmlFor={`m-${mentor.id}`} className="text-sm font-medium leading-none cursor-pointer truncate">{mentor.name}</label><p className="text-[10px] text-muted-foreground truncate">{mentor.email}</p></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="pt-4 flex gap-2">
-                            {editingCompId && <Button type="button" variant="outline" onClick={() => { setEditingCompId(null); resetComp(); }}>İptal</Button>}
-                            <Button type="submit" disabled={isCreatingComp} className="flex-1 h-12 text-lg font-bold">{isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : editingCompId ? <Check className="mr-2" /> : <Trophy className="mr-2" />}{editingCompId ? "Değişiklikleri Kaydet" : "Yarışmayı Başlat"}</Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+                            <Button type="submit" disabled={isCreatingComp} className="w-full">
+                                {isCreatingComp ? <Loader2 className="mr-2 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
+                                Yarışmayı Oluştur
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
 
             <Card>
-                <CardHeader><CardTitle>Mevcut Yarışmalar</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Aktif Yarışmalar</CardTitle></CardHeader>
                 <CardContent>
                     {compsLoading ? <Skeleton className="h-32 w-full" /> : (
                         <Table>
-                            <TableHeader><TableRow><TableHead>Başlık</TableHead><TableHead>Strateji</TableHead><TableHead>Jüri</TableHead><TableHead>Durum</TableHead><TableHead className="text-right">İşlemler</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Başlık</TableHead><TableHead>Seviye</TableHead><TableHead>Strateji</TableHead><TableHead className="text-right">İşlemler</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {competitions?.map((comp) => {
                                     const isEnded = new Date() > new Date(comp.endDate);
                                     return (
                                         <TableRow key={comp.id}>
                                             <TableCell className="font-medium">{comp.title}</TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col gap-1">
-                                                    <Badge variant="outline" className="text-[10px] w-fit">
-                                                        {comp.scoringModel === 'community' ? '🟢 Topluluk' : comp.scoringModel === 'jury_ai' ? '🟣 Jüri+AI' : comp.scoringModel === 'hybrid' ? '🔵 Hibrit' : comp.scoringModel === 'ai_only' ? '🔴 AI' : '⚙️ Özel'}
-                                                    </Badge>
-                                                    <p className="text-[9px] text-muted-foreground font-mono">
-                                                        J:{comp.juryWeight}% | A:{comp.aiWeight}% | T:{comp.communityWeight}%
-                                                    </p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell><div className="flex -space-x-2">{comp.juryIds?.map(id => <div key={id} className="h-6 w-6 rounded-full border-2 border-background bg-secondary text-[8px] flex items-center justify-center font-bold">J</div>)}</div></TableCell>
-                                            <TableCell>{isEnded ? <Badge variant="secondary">Bitti</Badge> : <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Aktif</Badge>}</TableCell>
-                                            <TableCell className="text-right"><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => handleEditComp(comp)}><Edit className="h-4 w-4" /></Button>{!isEnded && <Button variant="ghost" size="icon" onClick={() => handleEndComp(comp.id)}><StopCircle className="h-4 w-4" /></Button>}<Button variant="ghost" size="icon" onClick={() => handleDeleteComp(comp.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></TableCell>
+                                            <TableCell><Badge variant="secondary">{comp.targetLevel}</Badge></TableCell>
+                                            <TableCell><Badge variant="outline">{comp.scoringModel}</Badge></TableCell>
+                                            <TableCell className="text-right"><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => handleDeleteComp(comp.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div></TableCell>
                                         </TableRow>
                                     );
                                 })}

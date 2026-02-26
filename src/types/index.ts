@@ -143,6 +143,16 @@ export type GroupInvite = {
   createdAt: string;
 };
 
+export type GlobalNotification = {
+  id: string;
+  title: string;
+  message: string;
+  type: 'system' | 'competition' | 'exhibition' | 'reward';
+  targetLevel?: string; // If null, means everyone
+  competitionId?: string;
+  createdAt: string;
+};
+
 export type UserProfileIndex = {
   id: string;
   userId: string;

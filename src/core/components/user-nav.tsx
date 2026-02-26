@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -20,7 +21,7 @@ import type { User as UserProfile } from '@/types';
 import { Skeleton } from '@/shared/ui/skeleton';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { GroupInvitesPopover } from '@/core/components/group-invites-popover';
+import { NotificationCenter } from '@/core/components/notification-popover';
 
 export function UserNav() {
   const { user: authUser, isUserLoading } = useUser();
@@ -59,18 +60,17 @@ export function UserNav() {
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
   // Sadece admin@viewora.ai admin panelini görebilir
-  const isAdmin = userProfile.email === 'admin@viewora.ai';
+  const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
   const displayName = userProfile.name || "Kullanıcı";
   const displayEmail = userProfile.email || "E-posta yok";
   const fallbackChar = displayName?.charAt(0) || displayEmail?.charAt(0) || 'U';
 
-  // Seçilen nick fotoğrafını (Firestore) öncelikli kullan, yoksa auth fotoğrafını kullan
   const displayPhotoURL = userProfile.photoURL || authUser.photoURL || '';
 
   return (
     <div className="flex items-center gap-3">
-      <GroupInvitesPopover />
+      <NotificationCenter />
       
       <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary/50 rounded-full border border-border/50">
         <Gem className="h-4 w-4 text-cyan-400" />
