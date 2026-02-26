@@ -191,4 +191,5 @@ export type CompetitionEntry = {
   votes: string[];
   juryScores?: Record<string, number>;
   aiScore?: number;
+  award?: 'winner' | 'honorable_mention' | 'participant';
 };

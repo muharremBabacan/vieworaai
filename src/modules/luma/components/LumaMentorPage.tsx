@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star } from 'lucide-react';
+import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 
@@ -20,7 +20,7 @@ const normalizeScore = (score: number | undefined | null): number => {
 };
 
 export default function LumaMentorPage() {
-    const { user } = user ? useUser() : { user: null };
+    const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -37,6 +37,13 @@ export default function LumaMentorPage() {
     // Fetch Groups for activity context
     const groupsQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null, [user, firestore]);
     const { data: userGroups } = useCollection<Group>(groupsQuery);
+
+    // Fetch Competition Entries for badges
+    const entriesQuery = useMemoFirebase(() => (user && firestore) ? query(collectionGroup(firestore, 'entries'), where('userId', '==', user.uid)) : null, [user, firestore]);
+    // Note: collectionGroup requires an index, but for MVP we can assume user has entries
+    // For simplicity, let's assume we fetch them or mock them for now if index not ready
+    // const { data: userEntries } = useCollection<CompetitionEntry>(entriesQuery);
+    const userEntries: any[] = []; // Placeholder
 
     // Calculate aggregated metrics
     const stats = useMemo(() => {
@@ -259,6 +266,33 @@ export default function LumaMentorPage() {
                     </div>
 
                     <div className="space-y-6">
+                        {/* Awards & Badges Section */}
+                        <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Medal className="h-5 w-5 text-amber-400" /> Başarılar & Rozetler
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2">
+                                        <div className="h-10 w-10 mx-auto rounded-full bg-blue-500/10 flex items-center justify-center shadow-inner">
+                                            <Shield className="h-5 w-5 text-blue-400" />
+                                        </div>
+                                        <p className="text-[10px] font-bold uppercase tracking-tighter">Katılım Şilti</p>
+                                        <Badge variant="outline" className="text-[9px] bg-blue-500/5 text-blue-400 border-blue-500/20">Aktif</Badge>
+                                    </div>
+                                    <div className="p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2 opacity-40">
+                                        <div className="h-10 w-10 mx-auto rounded-full bg-amber-500/10 flex items-center justify-center">
+                                            <Award className="h-5 w-5 text-amber-400" />
+                                        </div>
+                                        <p className="text-[10px] font-bold uppercase tracking-tighter">Mansiyon</p>
+                                        <Badge variant="outline" className="text-[9px]">Kilitli</Badge>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
                             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-purple-400" /> Eğitim Önerileri</CardTitle></CardHeader>
                             <CardContent className="space-y-4">

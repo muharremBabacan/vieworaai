@@ -1,14 +1,15 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
-import { collection, query, orderBy, doc, addDoc, where, writeBatch, increment, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, doc, addDoc, where, writeBatch, increment, getDocs, collectionGroup } from 'firebase/firestore';
 import type { Competition, User, Photo, CompetitionEntry, ScoringModel } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X, Clock, Camera, Upload, Loader2, CheckCircle2, LayoutGrid, Star, Users, Scale, Cpu } from 'lucide-react';
+import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X, Clock, Camera, Upload, Loader2, CheckCircle2, LayoutGrid, Star, Users, Scale, Cpu, Medal, Shield } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
@@ -84,15 +85,53 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange }: { compe
     const firestore = useFirestore();
     const entriesQuery = useMemoFirebase(() => (competition && firestore) ? query(collection(firestore, 'competitions', competition.id, 'entries'), orderBy('submittedAt', 'desc')) : null, [competition, firestore]);
     const { data: entries, isLoading } = useCollection<CompetitionEntry>(entriesQuery);
+    
     if (!competition) return null;
+
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl">
                 <DialogHeader className="p-6 border-b shrink-0"><DialogTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> {competition.title} - Katılımlar</DialogTitle></DialogHeader>
                 <ScrollArea className="flex-1 p-6">
                     {isLoading ? <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}</div> :
-                     entries && entries.length > 0 ? <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{entries.map(e => <div key={e.id} className="group relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-muted/20"><Image src={e.photoUrl} alt="Eser" fill className="object-cover transition-transform group-hover:scale-105" unoptimized /><div className="absolute bottom-2 left-2 right-2"><p className="text-[10px] font-bold text-white truncate">@{e.userName}</p></div></div>)}</div> :
-                     <div className="text-center py-20"><p className="text-muted-foreground font-medium">Henüz katılım bulunmuyor.</p></div>}
+                     entries && entries.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            {entries.map(e => (
+                                <div key={e.id} className="group relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-muted/20">
+                                    <Image src={e.photoUrl} alt="Eser" fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
+                                    
+                                    {/* Award Badge Overlay */}
+                                    {e.award && (
+                                        <div className="absolute top-2 left-2 z-10">
+                                            {e.award === 'winner' && (
+                                                <Badge className="bg-amber-500 text-white border-none shadow-lg px-1.5 h-6">
+                                                    <Medal className="h-3 w-3 mr-1" /> <span className="text-[9px] font-bold">BİRİNCİ</span>
+                                                </Badge>
+                                            )}
+                                            {e.award === 'honorable_mention' && (
+                                                <Badge className="bg-purple-500 text-white border-none shadow-lg px-1.5 h-6">
+                                                    <Star className="h-3 w-3 mr-1" /> <span className="text-[9px] font-bold">MANSİYON</span>
+                                                </Badge>
+                                            )}
+                                            {e.award === 'participant' && (
+                                                <Badge className="bg-blue-500 text-white border-none shadow-lg px-1.5 h-6">
+                                                    <Shield className="h-3 w-3 mr-1" /> <span className="text-[9px] font-bold">ŞİLT</span>
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
+                                        <p className="text-[10px] font-bold text-white truncate drop-shadow-md">@{e.userName}</p>
+                                        {e.aiScore && <Badge variant="secondary" className="h-4 px-1 text-[8px] bg-black/40 text-white border-none">{e.aiScore.toFixed(1)}</Badge>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                     ) : (
+                     <div className="text-center py-20"><p className="text-muted-foreground font-medium">Henüz katılım bulunmuyor.</p></div>
+                    )}
                 </ScrollArea>
             </DialogContent>
         </Dialog>
@@ -116,6 +155,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
         if (!photo) return;
         setIsSubmitting(true);
         try {
+            // Automatically assign participation shield award
             await addDoc(collection(firestore, 'competitions', competition.id, 'entries'), {
                 competitionId: competition.id,
                 userId: userProfile.id,
@@ -123,9 +163,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 photoUrl: photo.imageUrl,
                 filePath: photo.filePath || '',
                 submittedAt: new Date().toISOString(),
-                votes: []
+                votes: [],
+                award: 'participant' // Default award for participation
             });
-            toast({ title: "Tebrikler!", description: "Yarışmaya başarıyla katıldınız." });
+            toast({ title: "Tebrikler!", description: "Yarışmaya katıldınız ve Katılım Şilti kazandınız!" });
             setSelectedPhotoId(null);
             onOpenChange(false);
         } catch (error) {
@@ -205,6 +246,12 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                                     </div>
                                                 ) : <p className="text-[10px] text-muted-foreground text-center py-10">Analizli fotoğraf bulunamadı.</p>}
                                             </ScrollArea>
+                                            <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 mb-2">
+                                                <p className="text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1">
+                                                    <Shield className="h-3 w-3" /> Katılım Hediyesi
+                                                </p>
+                                                <p className="text-[11px] text-foreground/80 mt-1">Yarışmaya katıldığın an profilin için "Katılım Şilti" kazanırsın.</p>
+                                            </div>
                                             <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Katılımı Tamamla"}</Button>
                                         </div>
                                     )}
