@@ -221,35 +221,35 @@ export default function GroupDetailPage() {
   };
 
   if (isGroupLoading) {
-    return <div className="container text-center p-8"><Skeleton className="h-12 w-full" /></div>;
+    return <div className="container mx-auto px-4 pt-8 text-center"><Skeleton className="h-12 w-full rounded-2xl" /></div>;
   }
 
   if (!group || error) {
     return (
-      <div className="container text-center p-8">
+      <div className="container mx-auto px-4 pt-12 text-center">
         <h1 className="text-2xl font-bold">Grup Bulunamadı</h1>
         <p className="text-muted-foreground">{error ? "Bu grubu yüklerken bir hata oluştu." : "Böyle bir grup mevcut değil veya görme izniniz yok."}</p>
-        <Button onClick={() => router.back()} className="mt-4"><ArrowLeft className="mr-2 h-4 w-4" /> Geri Dön</Button>
+        <Button onClick={() => router.back()} className="mt-6 rounded-xl"><ArrowLeft className="mr-2 h-4 w-4" /> Geri Dön</Button>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-sm">
+    <div className="container mx-auto px-4 pt-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+            <div className="flex items-center gap-5">
+                <Avatar className="h-20 w-20 border-4 border-primary/10 shadow-lg">
                     <AvatarImage src={group.photoURL || ''} className="object-cover" />
-                    <AvatarFallback className="text-2xl font-bold">{group.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="text-3xl font-bold">{group.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
-                    <p className="text-muted-foreground">{group.description}</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight">{group.name}</h1>
+                    <p className="text-muted-foreground line-clamp-1">{group.description}</p>
                 </div>
             </div>
             {isOwner && (
                 <Dialog>
-                    <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" /> Üye Davet Et</Button></DialogTrigger>
+                    <DialogTrigger asChild><Button className="w-full sm:w-auto h-11 px-6 rounded-xl shadow-md"><UserPlus className="mr-2 h-4 w-4" /> Üye Davet Et</Button></DialogTrigger>
                     <DialogContent>
                         <DialogHeader><DialogTitle>Üye Davet Et</DialogTitle><DialogDescription>Gruba davet etmek istediğiniz kullanıcının e-posta adresini girin.</DialogDescription></DialogHeader>
                         <Form {...inviteForm}>
@@ -260,7 +260,7 @@ export default function GroupDetailPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <Button type="submit" className="w-full">Davet Et</Button>
+                                <Button type="submit" className="w-full h-11">Davet Et</Button>
                             </form>
                         </Form>
                     </DialogContent>
@@ -269,92 +269,103 @@ export default function GroupDetailPage() {
         </div>
 
         <Tabs defaultValue="members" className="w-full">
-            <TabsList>
-                <TabsTrigger value="members">Üyeler</TabsTrigger>
-                <TabsTrigger value="gallery" disabled>Galeri</TabsTrigger>
-                <TabsTrigger value="competitions">Yarışmalar</TabsTrigger>
-                {isOwner && <TabsTrigger value="settings">Grup Ayarları</TabsTrigger>}
+            <TabsList className="bg-secondary/30 p-1 rounded-xl">
+                <TabsTrigger value="members" className="rounded-lg">Üyeler</TabsTrigger>
+                <TabsTrigger value="gallery" disabled className="rounded-lg">Galeri</TabsTrigger>
+                <TabsTrigger value="competitions" className="rounded-lg">Yarışmalar</TabsTrigger>
+                {isOwner && <TabsTrigger value="settings" className="rounded-lg">Ayarlar</TabsTrigger>}
             </TabsList>
-            <TabsContent value="members" className="mt-6">
-                <Card>
+            <TabsContent value="members" className="mt-8">
+                <Card className="rounded-[24px] border-border/40 bg-card/50 shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex justify-between items-center">Üyeler ({members?.length || 0} / {group.maxMembers})
-                        {isOwner && (
-                            <Dialog>
-                                <DialogTrigger asChild><Button variant="secondary">Davet Seçeneklerini Göster</Button></DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader><DialogTitle>Gruba Katılım Daveti</DialogTitle><DialogDescription>Bu QR kodu, linki veya 6 haneli kodu kullanarak yeni üyeleri grubunuza davet edebilirsiniz.</DialogDescription></DialogHeader>
-                                    <div className="flex flex-col items-center gap-4">
-                                        {qrCodeDataUrl && <img src={qrCodeDataUrl} alt="Grup QR Kodu" />}
-                                        <div className="flex items-center gap-2">
-                                            <Input readOnly value={group.joinCode} className="text-center font-mono text-lg tracking-widest" />
-                                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(group.joinCode || '', 'code')}><Copy /></Button>
+                        <CardTitle className="flex justify-between items-center text-xl">
+                            <span>Üyeler ({members?.length || 0} / {group.maxMembers})</span>
+                            {isOwner && (
+                                <Dialog>
+                                    <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-lg text-xs font-bold uppercase tracking-wider">Davet Seçenekleri</Button></DialogTrigger>
+                                    <DialogContent className="max-w-md">
+                                        <DialogHeader><DialogTitle>Gruba Katılım Daveti</DialogTitle><DialogDescription>Aşağıdaki seçeneklerle yeni üyeleri davet edebilirsiniz.</DialogDescription></DialogHeader>
+                                        <div className="flex flex-col items-center gap-6 py-4">
+                                            {qrCodeDataUrl && <div className="p-4 bg-white rounded-2xl shadow-inner"><img src={qrCodeDataUrl} alt="Grup QR Kodu" className="w-48 h-48" /></div>}
+                                            <div className="space-y-4 w-full">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Katılım Kodu</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input readOnly value={group.joinCode} className="text-center font-mono text-lg tracking-[0.2em] font-bold h-12 bg-secondary/50 border-none" />
+                                                        <Button size="icon" variant="secondary" className="h-12 w-12" onClick={() => copyToClipboard(group.joinCode || '', 'code')}><Copy className="h-5 w-5" /></Button>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Paylaşılabilir Link</Label>
+                                                    <div className="flex items-center gap-2 w-full">
+                                                        <Input readOnly value={shareableLink} className="text-xs h-10 bg-secondary/50 border-none truncate" />
+                                                        <Button size="icon" variant="secondary" className="h-10 w-10 shrink-0" onClick={() => copyToClipboard(shareableLink, 'link')}><LinkIcon className="h-4 w-4" /></Button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                         <div className="flex items-center gap-2 w-full">
-                                            <Input readOnly value={shareableLink} className="text-sm" />
-                                            <Button size="icon" variant="outline" onClick={() => copyToClipboard(shareableLink, 'link')}><LinkIcon /></Button>
-                                        </div>
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-                        )}
+                                    </DialogContent>
+                                </Dialog>
+                            )}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         {areMembersLoading ? (
-                            <div className="space-y-2">{[...Array(3)].map((_,i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                            <div className="space-y-3">{[...Array(3)].map((_,i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>
                         ) : (
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                                 {members?.map(member => <MemberItem key={member.id} member={member} isOwner={isOwner} onRemove={handleRemoveMember} />)}
                             </div>
                         )}
                     </CardContent>
                 </Card>
             </TabsContent>
-            <TabsContent value="competitions" className="mt-6">
-                <p className="text-muted-foreground text-center p-8">Gruba özel sergi ve ödev alanı yakında burada olacak.</p>
+            <TabsContent value="competitions" className="mt-8">
+                <div className="text-center py-24 rounded-[32px] border-2 border-dashed border-border/40 bg-muted/5">
+                    <p className="text-muted-foreground font-medium">Gruba özel sergi ve ödev alanı yakında burada olacak.</p>
+                </div>
             </TabsContent>
             {isOwner && (
-                <TabsContent value="settings" className="mt-6 space-y-6">
-                    <Card>
+                <TabsContent value="settings" className="mt-8 space-y-8">
+                    <Card className="rounded-[24px] border-border/40 bg-card/50">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <SettingsIcon className="h-5 w-5" />
+                            <CardTitle className="flex items-center gap-3">
+                                <SettingsIcon className="h-5 w-5 text-primary" />
                                 Genel Bilgiler
                             </CardTitle>
                             <CardDescription>Grup adını, açıklamasını ve üye kapasitesini güncelleyin.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Form {...settingsForm}>
-                                <form onSubmit={settingsForm.handleSubmit(handleUpdateSettings)} className="space-y-4">
+                                <form onSubmit={settingsForm.handleSubmit(handleUpdateSettings)} className="space-y-6">
                                     <FormField control={settingsForm.control} name="name" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Grup Adı</FormLabel>
-                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormLabel className="text-xs font-bold uppercase tracking-wider">Grup Adı</FormLabel>
+                                            <FormControl><Input {...field} className="h-11 rounded-xl" /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                     <FormField control={settingsForm.control} name="description" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Açıklama</FormLabel>
-                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormLabel className="text-xs font-bold uppercase tracking-wider">Açıklama</FormLabel>
+                                            <FormControl><Textarea {...field} className="rounded-xl min-h-[100px]" /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                     <FormField control={settingsForm.control} name="maxMembers" render={({ field }) => (
                                         <FormItem>
-                                            <div className="flex justify-between items-center">
-                                                <FormLabel>Maksimum Üye Sayısı</FormLabel>
-                                                <span className="text-[10px] font-bold text-primary uppercase">Maksimum: {groupLimits.maxMembers} üye</span>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <FormLabel className="text-xs font-bold uppercase tracking-wider">Maksimum Üye Sayısı</FormLabel>
+                                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">LİMİT: {groupLimits.maxMembers}</span>
                                             </div>
                                             <FormControl>
-                                                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                                                <Input type="number" {...field} className="h-11 rounded-xl" onChange={e => field.onChange(parseInt(e.target.value))} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                    <Button type="submit" disabled={isUpdating} className="w-full">
-                                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Button type="submit" disabled={isUpdating} className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/10">
+                                        {isUpdating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
                                         Değişiklikleri Kaydet
                                     </Button>
                                 </form>
@@ -362,10 +373,10 @@ export default function GroupDetailPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="rounded-[24px] border-border/40 bg-card/50">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Camera className="h-5 w-5" />
+                            <CardTitle className="flex items-center gap-3">
+                                <Camera className="h-5 w-5 text-purple-400" />
                                 Grup Görseli
                             </CardTitle>
                             <CardDescription>Grubunuzu temsil edecek bir simge seçin.</CardDescription>
@@ -378,8 +389,8 @@ export default function GroupDetailPage() {
                                         onClick={() => handleUpdatePhoto(avatar.url)}
                                         disabled={isUpdating}
                                         className={cn(
-                                            "relative aspect-square rounded-xl border-2 transition-all hover:scale-105 active:scale-95 overflow-hidden",
-                                            group.photoURL === avatar.url ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"
+                                            "relative aspect-square rounded-2xl border-2 transition-all hover:scale-105 active:scale-95 overflow-hidden",
+                                            group.photoURL === avatar.url ? "border-primary ring-2 ring-primary/20 shadow-lg" : "border-border hover:border-primary/50"
                                         )}
                                     >
                                         <img src={avatar.url} alt="Grup Simge" className="w-full h-full object-cover" />
@@ -396,17 +407,17 @@ export default function GroupDetailPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-destructive/50 bg-destructive/5">
+                    <Card className="border-destructive/30 bg-destructive/5 rounded-[24px]">
                         <CardHeader>
-                            <CardTitle className="text-destructive">Tehlikeli Bölge</CardTitle>
+                            <CardTitle className="text-destructive flex items-center gap-2"><Trash2 className="h-5 w-5" /> Tehlikeli Bölge</CardTitle>
                             <CardDescription>Bu işlem geri alınamaz. Grup ve tüm içeriği kalıcı olarak silinecektir.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="destructive">Grubu Kalıcı Olarak Sil</Button></AlertDialogTrigger>
+                                <AlertDialogTrigger asChild><Button variant="destructive" className="rounded-xl px-8 h-11 font-bold">Grubu Kalıcı Olarak Sil</Button></AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader><AlertDialogTitle>Grubu silmek istediğinizden emin misiniz?</AlertDialogTitle><AlertDialogDescription>Bu işlem grubu ve ilişkili tüm verileri kalıcı olarak silecektir.</AlertDialogDescription></AlertDialogHeader>
-                                    <AlertDialogFooter><AlertDialogCancel>İptal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteGroup}>Grubu Kalıcı Olarak Sil</AlertDialogAction></AlertDialogFooter>
+                                    <AlertDialogFooter><AlertDialogCancel className="rounded-xl">İptal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteGroup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">Grubu Kalıcı Olarak Sil</AlertDialogAction></AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
                         </CardContent>

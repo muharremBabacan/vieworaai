@@ -126,17 +126,17 @@ export default function GroupsPage() {
   const isLoading = isUserLoading || isGroupsLoading || isOwnedLoading;
 
   return (
-    <div className="container mx-auto px-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Gruplarım</h1>
-        <div className="flex gap-2">
+    <div className="container mx-auto px-4 pt-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-10">
+        <h1 className="text-4xl font-extrabold tracking-tight">Gruplarım</h1>
+        <div className="flex flex-row items-center gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar py-1">
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="inline-block">
+                            <div className="flex-1 sm:flex-none">
                                 <DialogTrigger asChild>
-                                    <Button disabled={!canCreateGroup}>
+                                    <Button disabled={!canCreateGroup} className="w-full sm:w-auto h-11 px-6 shadow-md transition-all active:scale-95">
                                         <PlusCircle className="mr-2 h-4 w-4" /> Yeni Grup Oluştur
                                     </Button>
                                 </DialogTrigger>
@@ -166,14 +166,16 @@ export default function GroupsPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" className="w-full">Oluştur</Button>
+                            <Button type="submit" className="w-full h-11">Oluştur</Button>
                         </form>
                     </Form>
                 </DialogContent>
             </Dialog>
             <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="secondary"><LogIn className="mr-2 h-4 w-4" /> Koda Göre Katıl</Button>
+                    <Button variant="secondary" className="flex-1 sm:w-auto h-11 px-6 shadow-md transition-all active:scale-95">
+                        <LogIn className="mr-2 h-4 w-4" /> Koda Göre Katıl
+                    </Button>
                 </DialogTrigger>
                 <DialogContent>
                      <DialogHeader>
@@ -189,7 +191,7 @@ export default function GroupsPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" className="w-full">Gruba Katıl</Button>
+                            <Button type="submit" className="w-full h-11">Gruba Katıl</Button>
                         </form>
                     </Form>
                 </DialogContent>
@@ -199,20 +201,20 @@ export default function GroupsPage() {
       
       {isLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[24px]" />)}
           </div>
       ) : memberGroups && memberGroups.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {memberGroups.map(group => (
-                  <Card key={group.id} className="flex flex-col">
+                  <Card key={group.id} className="flex flex-col group overflow-hidden border-border/40 bg-card/50 rounded-[24px] transition-all hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]">
                       <CardHeader>
-                          <CardTitle className="flex justify-between items-start">
-                              {group.name}
+                          <CardTitle className="flex justify-between items-start text-xl font-bold">
+                              <span className="truncate mr-2">{group.name}</span>
                               {group.ownerId === user?.uid && (
                                   <TooltipProvider>
                                       <Tooltip>
                                           <TooltipTrigger>
-                                              <Crown className="h-5 w-5 text-amber-400" />
+                                              <Crown className="h-5 w-5 text-amber-400 shrink-0" />
                                           </TooltipTrigger>
                                           <TooltipContent>Bu grubun sahibisiniz.</TooltipContent>
                                       </Tooltip>
@@ -221,13 +223,13 @@ export default function GroupsPage() {
                           </CardTitle>
                       </CardHeader>
                       <CardContent className="flex-grow flex flex-col">
-                          <p className="text-sm text-muted-foreground flex-grow mb-4">{group.description}</p>
-                          <div className="flex justify-between items-center">
-                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground line-clamp-2 flex-grow mb-6 h-10">{group.description || "Bu grup için bir açıklama bulunmuyor."}</p>
+                          <div className="flex justify-between items-center mt-auto">
+                               <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                                   <Users className="h-4 w-4" />
                                   <span>{group.memberIds.length} üye</span>
                                </div>
-                               <Button asChild>
+                               <Button asChild className="rounded-xl px-6 shadow-lg shadow-primary/10">
                                   <Link href={`/groups/${group.id}`}>Grubu Gör</Link>
                                </Button>
                           </div>
@@ -236,9 +238,12 @@ export default function GroupsPage() {
               ))}
           </div>
       ) : (
-          <div className="text-center py-24 rounded-2xl border-2 border-dashed bg-muted/10">
-              <h3 className="text-2xl font-semibold">Henüz Bir Gruba Üye Değilsiniz</h3>
-              <p className="text-muted-foreground mt-2">Yeni bir grup oluşturarak kendi topluluğunuzu başlatın veya bir arkadaşınızdan davet alın.</p>
+          <div className="text-center py-32 rounded-[32px] border-2 border-dashed border-border/40 bg-muted/5 animate-in fade-in zoom-in duration-500">
+              <div className="h-20 w-20 rounded-3xl bg-secondary/50 flex items-center justify-center mx-auto mb-6">
+                  <Users className="h-10 w-10 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Henüz Bir Gruba Üye Değilsiniz</h3>
+              <p className="text-muted-foreground max-w-xs mx-auto">Yeni bir grup oluşturarak kendi topluluğunuzu başlatın veya bir arkadaşınızdan davet alın.</p>
           </div>
       )}
     </div>

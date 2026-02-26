@@ -33,7 +33,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-// rebuild trigger b
 export default function RootLayout({
   children,
 }: {
