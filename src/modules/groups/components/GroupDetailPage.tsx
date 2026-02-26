@@ -37,7 +37,7 @@ const GROUP_PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
 });
 
 function MemberItem({ member, isGroupOwner, isCurrentUserOwner, currentUserId, onRemove }: { member: any, isGroupOwner: boolean, isCurrentUserOwner: boolean, currentUserId?: string, onRemove: (memberId: string, memberName: string) => void }) {
-  const isBilinmeyen = !member.name || member.name === 'Bilinmeyen Üye';
+  const isBilinmeyen = !member.name || member.name === 'Bilinmeyen Üye' || member.name === 'Grup Sahibi';
   
   return (
       <div className={cn("flex items-center justify-between p-3 rounded-xl transition-colors", isGroupOwner ? "bg-primary/5 border border-primary/10" : "hover:bg-muted/50")}>
@@ -118,20 +118,42 @@ export default function GroupDetailPage() {
   
   const allMembers = useMemo(() => {
     if (!group?.memberIds) return [];
+    
+    // Profiller yüklenirken fallback kullan, ancak loading durumunu areMembersLoading ile yönetiyoruz
     return group.memberIds.map(uid => {
         const foundProfile = profiles?.find(p => p.id === uid);
         if (foundProfile) return foundProfile;
+        
+        // Eğer kullanıcı kendisiyse ve profil henüz profiles listesinde yoksa (snapshot gecikmesi),
+        // mevcut userProfile veya auth user bilgisini kullan
+        if (uid === user?.uid && userProfile) {
+            return {
+                id: uid,
+                name: userProfile.name || user.displayName || 'Siz',
+                photoURL: userProfile.photoURL || user.photoURL,
+                level_name: userProfile.level_name,
+                email: userProfile.email || user.email
+            } as PublicUserProfile;
+        }
+
         return { 
             id: uid, 
-            name: uid === group.ownerId ? 'Grup Sahibi' : 'Bilinmeyen Üye', 
+            name: areMembersLoading ? 'Yükleniyor...' : (uid === group.ownerId ? 'Grup Sahibi' : 'Bilinmeyen Üye'), 
             level_name: 'Neuner' 
         } as PublicUserProfile;
     });
-  }, [group?.memberIds, group?.ownerId, profiles]);
+  }, [group?.memberIds, group?.ownerId, profiles, areMembersLoading, user, userProfile]);
 
   const founderMember = useMemo(() => {
     return allMembers.find(m => m.id === group?.ownerId);
   }, [allMembers, group?.ownerId]);
+
+  const founderName = useMemo(() => {
+    if (areMembersLoading && !founderMember?.name) return "Yükleniyor...";
+    if (founderMember?.name && founderMember.name !== 'Grup Sahibi') return founderMember.name;
+    if (group?.ownerId === user?.uid) return userProfile?.name || user?.displayName || "Siz";
+    return "Grup Sahibi";
+  }, [founderMember, areMembersLoading, group?.ownerId, user, userProfile]);
 
   const inviteFormSchema = z.object({ email: z.string().email("Geçerli bir e-posta adresi girin.") });
   const inviteForm = useForm({ resolver: zodResolver(inviteFormSchema), defaultValues: { email: '' } });
@@ -192,7 +214,6 @@ export default function GroupDetailPage() {
     }
 
     try {
-        // Query public_profiles instead of private users collection to avoid permission errors
         const userQuery = query(collection(firestore, 'public_profiles'), where('email', '==', values.email));
         const userSnapshot = await getDocs(userQuery);
         if (userSnapshot.empty) {
@@ -293,7 +314,7 @@ export default function GroupDetailPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight">{group.name}</h1>
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 uppercase tracking-wider">
-                        <span>Kurucu: {founderMember?.name || "Yükleniyor..."}</span>
+                        <span>Kurucu: {founderName}</span>
                       </div>
                       <p className="text-muted-foreground text-sm line-clamp-1">{group.description}</p>
                     </div>
@@ -362,7 +383,7 @@ export default function GroupDetailPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {areMembersLoading ? (
+                        {areMembersLoading && !profiles ? (
                             <div className="space-y-3">{[...Array(3)].map((_,i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>
                         ) : (
                             <div className="grid gap-3">
