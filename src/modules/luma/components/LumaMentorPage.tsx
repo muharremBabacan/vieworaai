@@ -151,22 +151,34 @@ export default function LumaMentorPage() {
                             <CardContent className="p-8 grid sm:grid-cols-2 gap-8">
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-muted-foreground"><span>Işık Hakimiyeti</span><span>%{stats.avgLight.toFixed(0)}</span></div>
-                                        <Progress value={stats.avgLight * 10} className="h-3 rounded-full" />
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <span>Işık Hakimiyeti</span>
+                                            <span className="text-primary">{stats.avgLight.toFixed(1)} / 10</span>
+                                        </div>
+                                        <Progress value={stats.avgLight * 10} className="h-2 rounded-full" />
                                     </div>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-muted-foreground"><span>Kompozisyon</span><span>%{stats.avgComp.toFixed(0)}</span></div>
-                                        <Progress value={stats.avgComp * 10} className="h-3 rounded-full" />
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <span>Kompozisyon</span>
+                                            <span className="text-primary">{stats.avgComp.toFixed(1)} / 10</span>
+                                        </div>
+                                        <Progress value={stats.avgComp * 10} className="h-2 rounded-full" />
                                     </div>
                                 </div>
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-muted-foreground"><span>Netlik & Odak</span><span>%{stats.avgFocus.toFixed(0)}</span></div>
-                                        <Progress value={stats.avgFocus * 10} className="h-3 rounded-full" />
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <span>Netlik & Odak</span>
+                                            <span className="text-primary">{stats.avgFocus.toFixed(1)} / 10</span>
+                                        </div>
+                                        <Progress value={stats.avgFocus * 10} className="h-2 rounded-full" />
                                     </div>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-sm font-bold uppercase tracking-widest text-muted-foreground"><span>Renk Kontrolü</span><span>%{stats.avgColor.toFixed(0)}</span></div>
-                                        <Progress value={stats.avgColor * 10} className="h-3 rounded-full" />
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                            <span>Renk Kontrolü</span>
+                                            <span className="text-primary">{stats.avgColor.toFixed(1)} / 10</span>
+                                        </div>
+                                        <Progress value={stats.avgColor * 10} className="h-2 rounded-full" />
                                     </div>
                                 </div>
                             </CardContent>
