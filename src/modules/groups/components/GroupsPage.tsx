@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, LogIn, Users, Crown } from 'lucide-react';
+import { PlusCircle, LogIn, Users, Crown, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function GroupsPage() {
@@ -30,6 +30,8 @@ export default function GroupsPage() {
   const [mounted, setMounted] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -73,7 +75,8 @@ export default function GroupsPage() {
   const canCreateGroup = (ownedGroups?.length || 0) < groupLimits.maxGroups;
 
   const onCreateGroup = async (values: z.infer<typeof createFormSchema>) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || isCreating) return;
+    setIsCreating(true);
     try {
       const newGroup: Omit<Group, 'id'> = {
         name: values.name,
@@ -91,40 +94,53 @@ export default function GroupsPage() {
       createForm.reset();
     } catch (error) {
       toast({ variant: 'destructive', title: "Hata", description: "Grup oluşturulurken bir sorun oluştu." });
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const onJoinGroup = async (values: z.infer<typeof joinFormSchema>) => {
-      if (!user) return;
-      const q = query(collection(firestore, "groups"), where("joinCode", "==", values.code));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-          toast({ variant: "destructive", title: "Grup Bulunamadı", description: "Bu koda sahip bir grup bulunamadı. Kodu kontrol edin." });
-          return;
-      }
-
-      const group = querySnapshot.docs[0].data() as Group;
+      if (!user || !firestore || isJoining) return;
+      setIsJoining(true);
       
-      if (group.memberIds.includes(user.uid)) {
-          toast({ title: "Zaten Üyesiniz", description: `Zaten '${group.name}' grubunun bir üyesisiniz. Yönlendiriliyorsunuz.` });
-          router.push(`/groups/${group.id}`);
-          return;
-      }
-      
-      if (group.memberIds.length >= group.maxMembers) {
-          toast({ variant: "destructive", title: "Katılım Başarısız", description: "Grup dolu olabilir veya bir hata oluştu." });
-          return;
-      }
-
       try {
-          await updateDoc(doc(firestore, "groups", group.id), {
+          const q = query(collection(firestore, "groups"), where("joinCode", "==", values.code));
+          const querySnapshot = await getDocs(q);
+
+          if (querySnapshot.empty) {
+              toast({ variant: "destructive", title: "Grup Bulunamadı", description: "Bu koda sahip bir grup bulunamadı. Kodu kontrol edin." });
+              return;
+          }
+
+          const groupDoc = querySnapshot.docs[0];
+          const groupData = groupDoc.data() as Group;
+          const groupId = groupDoc.id;
+          
+          if (groupData.memberIds.includes(user.uid)) {
+              toast({ title: "Zaten Üyesiniz", description: `Zaten '${groupData.name}' grubunun bir üyesisiniz. Yönlendiriliyorsunuz.` });
+              setIsJoinDialogOpen(false);
+              router.push(`/groups/${groupId}`);
+              return;
+          }
+          
+          if (groupData.memberIds.length >= groupData.maxMembers) {
+              toast({ variant: "destructive", title: "Katılım Başarısız", description: "Grup kapasitesi dolu." });
+              return;
+          }
+
+          await updateDoc(doc(firestore, "groups", groupId), {
               memberIds: arrayUnion(user.uid)
           });
-          toast({ title: "Başarıyla Katıldın!", description: `'${group.name}' grubuna hoş geldin.` });
-          router.push(`/groups/${group.id}`);
+          
+          toast({ title: "Başarıyla Katıldın!", description: `'${groupData.name}' grubuna hoş geldin.` });
+          joinForm.reset();
+          setIsJoinDialogOpen(false);
+          router.push(`/groups/${groupId}`);
       } catch (error) {
-          toast({ variant: "destructive", title: "Katılım Başarısız", description: "Grup dolu olabilir veya bir hata oluştu." });
+          console.error("Join group error:", error);
+          toast({ variant: "destructive", title: "Katılım Başarısız", description: "Bir hata oluştu, lütfen tekrar deneyin." });
+      } finally {
+          setIsJoining(false);
       }
   };
 
@@ -173,7 +189,10 @@ export default function GroupsPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" className="w-full h-11">Oluştur</Button>
+                            <Button type="submit" disabled={isCreating} className="w-full h-11">
+                                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Oluştur
+                            </Button>
                         </form>
                     </Form>
                 </DialogContent>
@@ -198,7 +217,10 @@ export default function GroupsPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" className="w-full h-11">Gruba Katıl</Button>
+                            <Button type="submit" disabled={isJoining} className="w-full h-11">
+                                {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Gruba Katıl
+                            </Button>
                         </form>
                     </Form>
                 </DialogContent>
