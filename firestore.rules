@@ -126,11 +126,7 @@ service cloud.firestore {
     
     match /group_invites/{inviteId} {
       allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
-      allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.toUserId || 
-        request.auth.uid == resource.data.fromUserId || 
-        isAdmin()
-      );
+      allow read, list: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == resource.data.toUserId || isAdmin());
       allow delete: if isAdmin();
     }
@@ -163,7 +159,7 @@ service cloud.firestore {
     }
     
     match /public_photos/{photoId} {
-      allow read: if isSignedIn(); 
+      allow read, list: if isSignedIn(); 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow delete: if (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid)) || isAdmin();
       
