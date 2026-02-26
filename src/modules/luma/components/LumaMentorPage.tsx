@@ -89,14 +89,29 @@ export default function LumaMentorPage() {
 
         setIsAnalyzing(true);
         try {
-            const mockIndex: any = {
+            // Map application levels to Genkit flow enum values
+            const levelMapping: Record<string, 'beginner' | 'intermediate' | 'advanced'> = {
+                'Neuner': 'beginner',
+                'Viewner': 'beginner',
+                'Sytner': 'intermediate',
+                'Omner': 'intermediate',
+                'Vexer': 'advanced'
+            };
+
+            const technicalLevel = levelMapping[userProfile.level_name] || 'beginner';
+
+            const mockIndex = {
                 dominant_style: "Portre ve Sokak",
                 strengths: stats.avgLight > 7.5 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
                 weaknesses: stats.avgComp < 7 ? ["Kompozisyon Düzeni"] : ["Detay Kontrolü"],
-                dominant_technical_level: (userProfile.level_name?.toLowerCase() as any) || 'beginner',
-                trend: { direction: 'improving', percentage: 15 },
+                dominant_technical_level: technicalLevel,
+                trend: { direction: 'improving' as const, percentage: 15 },
                 consistency_gap: 12,
-                communication_profile: { tone: 'analytical', explanation_depth: 'medium', challenge_level: 3 }
+                communication_profile: { 
+                    tone: 'analytical' as const, 
+                    explanation_depth: 'medium' as const, 
+                    challenge_level: 3 
+                }
             };
 
             const result = await generateStrategicFeedback({
