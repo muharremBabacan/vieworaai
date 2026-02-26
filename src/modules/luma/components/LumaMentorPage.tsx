@@ -42,7 +42,7 @@ export default function LumaMentorPage() {
 
         const sum = analyzed.reduce((acc, p) => ({
             light: acc.light + normalizeScore(p.aiFeedback!.light_score),
-            comp: acc.composition + normalizeScore(p.aiFeedback!.composition_score),
+            composition: acc.composition + normalizeScore(p.aiFeedback!.composition_score),
             focus: acc.focus + normalizeScore(p.aiFeedback!.focus_score),
             color: acc.color + normalizeScore(p.aiFeedback!.color_control_score),
         }), { light: 0, composition: 0, focus: 0, color: 0 });
@@ -50,7 +50,7 @@ export default function LumaMentorPage() {
         const count = analyzed.length;
         return {
             avgLight: sum.light / count,
-            avgComp: sum.comp / count,
+            avgComp: sum.composition / count,
             avgFocus: sum.focus / count,
             avgColor: sum.color / count,
             count
