@@ -337,56 +337,58 @@ export default function AdminPanel() {
     return (
         <div className="space-y-10 pb-20">
             
-            {/* 1. SEVİYE: TOTAL USERS & GROWTH GOALS */}
-            <Card className="bg-gradient-to-br from-primary/10 via-background to-accent/5 border-primary/20 overflow-hidden relative">
+            {/* 1. SEVİYE: TOTAL USERS & GROWTH GOALS (CENTERED REDESIGN) */}
+            <Card className="bg-gradient-to-br from-primary/10 via-background to-accent/5 border-primary/20 overflow-hidden relative min-h-[500px] flex items-center justify-center">
                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                     <Rocket className="h-64 w-64 text-primary rotate-12" />
                 </div>
-                <CardContent className="py-12 relative z-10">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
-                        <div className="space-y-4 flex-1">
-                            <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                                    <Users className="h-6 w-6 text-primary" />
+                <CardContent className="py-16 relative z-10 w-full">
+                    <div className="flex flex-col items-center justify-center text-center space-y-8">
+                        {/* Sayı */}
+                        <div className="flex items-center justify-center">
+                            {isFetchingCount ? (
+                                <Skeleton className="h-40 w-64" />
+                            ) : (
+                                <p className="text-[12rem] font-black tracking-tighter leading-none bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text text-transparent drop-shadow-2xl">
+                                    {totalUsers || '0'}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Etiketler ve Başlık */}
+                        <div className="space-y-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Users className="h-5 w-5 text-primary" />
+                                    <h3 className="text-base font-black uppercase tracking-[0.3em] text-primary">Topluluk Büyümesi</h3>
                                 </div>
-                                <div>
-                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary">Topluluk Büyümesi</h3>
-                                    <p className="text-muted-foreground text-xs font-bold uppercase">Canlı Kullanıcı İstatistiği</p>
-                                </div>
+                                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest opacity-70">Canlı Kullanıcı İstatistiği</p>
                             </div>
                             
-                            <div className="flex items-baseline gap-4">
-                                {isFetchingCount ? (
-                                    <Skeleton className="h-24 w-48" />
-                                ) : (
-                                    <p className="text-9xl font-black tracking-tighter bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">
-                                        {totalUsers || '0'}
-                                    </p>
-                                )}
-                                <div className="space-y-1">
-                                    <Badge variant="outline" className="text-[10px] font-black tracking-widest border-primary/30 text-primary uppercase">Kayıtlı Sanatçı</Badge>
-                                    <p className="text-xs text-muted-foreground font-medium">Global Erişim</p>
-                                </div>
+                            <div className="flex flex-col items-center gap-2">
+                                <Badge variant="outline" className="text-xs font-black tracking-[0.2em] border-primary/30 text-primary px-4 py-1 uppercase bg-primary/5">Kayıtlı Sanatçı</Badge>
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter opacity-50">Global Erişim</p>
                             </div>
                         </div>
 
-                        <div className="lg:w-1/3 space-y-6">
-                            <div className="flex justify-between items-end">
-                                <div className="space-y-1">
-                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                        {/* Hedef Barı */}
+                        <div className="w-full max-w-2xl mt-12 space-y-6">
+                            <div className="flex justify-between items-end px-1">
+                                <div className="text-left space-y-1">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
                                         <Target className="h-3 w-3 text-accent" /> Sonraki Hedef
                                     </p>
-                                    <p className="text-2xl font-black text-foreground">{nextMilestone} Kullanıcı</p>
+                                    <p className="text-2xl font-black text-foreground tracking-tight">{nextMilestone} Kullanıcı</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-2xl font-black text-primary">%{progressToMilestone.toFixed(0)}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Tamamlandı</p>
+                                    <p className="text-3xl font-black text-primary leading-none">%{progressToMilestone.toFixed(0)}</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Tamamlandı</p>
                                 </div>
                             </div>
                             
-                            <div className="space-y-2">
-                                <Progress value={progressToMilestone} className="h-4 bg-primary/10" />
-                                <div className="flex justify-between text-[10px] font-black text-muted-foreground/60 uppercase tracking-tighter">
+                            <div className="space-y-3">
+                                <Progress value={progressToMilestone} className="h-5 bg-primary/10 border border-primary/5" />
+                                <div className="flex justify-between text-[10px] font-black text-muted-foreground/60 uppercase tracking-tighter px-1">
                                     <span>0</span>
                                     <span>{Math.floor(nextMilestone * 0.25)}</span>
                                     <span>{Math.floor(nextMilestone * 0.5)}</span>
@@ -395,7 +397,7 @@ export default function AdminPanel() {
                                 </div>
                             </div>
 
-                            <p className="text-xs text-muted-foreground leading-relaxed italic">
+                            <p className="text-xs text-muted-foreground leading-relaxed italic max-w-lg mx-auto opacity-80 pt-4">
                                 "{nextMilestone} kullanıcı hedefine ulaşmak için {(nextMilestone - (totalUsers || 0))} yeni sanatçıya ihtiyacımız var. Topluluğu canlandırmak için yeni bir yarışma başlatmayı veya duyuru yapmayı düşünün."
                             </p>
                         </div>
