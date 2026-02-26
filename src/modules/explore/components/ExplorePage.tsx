@@ -182,7 +182,7 @@ export default function ExplorePage() {
   const router = useRouter();
 
   // Fetch all active exhibitions
-  const exhibitionsQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true)) : null, [firestore]);
+  const exhibitionsQuery = useMemoFirebase(() => (firestore && user) ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true)) : null, [firestore, user]);
   const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
 
   useEffect(() => {
@@ -193,7 +193,9 @@ export default function ExplorePage() {
             const compQuery = query(collection(firestore, 'competitions'), where('endDate', '>', new Date().toISOString()));
             const compSnap = await getCountFromServer(compQuery);
             setCounts({ exhibition: exhibitionSnap.data().count, competitions: compSnap.data().count });
-        } catch (e) {}
+        } catch (e) {
+            console.error("Count fetch error:", e);
+        }
     };
     fetchCounts();
   }, [firestore, user]);
@@ -302,4 +304,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-    

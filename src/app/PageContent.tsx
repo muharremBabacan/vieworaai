@@ -1,4 +1,3 @@
-
 'use client';
 import {
   GoogleAuthProvider,
@@ -36,7 +35,6 @@ export default function PageContent() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Zaten giriş yapmış olan kullanıcıyı Dashboard'a yönlendir
   useEffect(() => {
     if (user && !isUserLoading) {
       router.push('/dashboard');
@@ -46,30 +44,28 @@ export default function PageContent() {
   const handleSignIn = async () => {
     if (!auth || !firestore) return;
     if (isLoading) return;
-  
+
     setIsLoading(true);
-  
+
     try {
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account',
-      });
-  
+      provider.setCustomParameters({ prompt: 'select_account' });
+
       const result: UserCredential = await signInWithPopup(auth, provider);
-  
+
       toast({
         title: "Başarıyla giriş yaptınız. Yönlendiriliyorsunuz...",
       });
-  
+
       const firebaseUser = result.user;
       const userRef = doc(firestore, 'users', firebaseUser.uid);
       const publicProfileRef = doc(firestore, 'public_profiles', firebaseUser.uid);
-  
+
       const userSnap = await getDoc(userRef);
-  
+
       let onboarded = false;
       const now = new Date().toISOString();
-  
+
       if (!userSnap.exists()) {
         const newUserProfile: UserProfile = {
           id: firebaseUser.uid,
@@ -83,12 +79,13 @@ export default function PageContent() {
           weekly_free_refill_date: now,
           completed_modules: [],
           interests: [],
+          is_seed: false,
           onboarded: false,
           groups: [],
           createdAt: now,
           lastLoginAt: now,
         };
-  
+
         const newPublicProfile: PublicUserProfile = {
           id: firebaseUser.uid,
           name: newUserProfile.name,
@@ -96,47 +93,59 @@ export default function PageContent() {
           photoURL: firebaseUser.photoURL,
           level_name: 'Neuner',
         };
-  
+
         await Promise.all([
           setDoc(userRef, newUserProfile),
           setDoc(publicProfileRef, newPublicProfile),
         ]);
-  
+
         onboarded = false;
-  
+
       } else {
         const existing = userSnap.data() as UserProfile;
         onboarded = existing.onboarded ?? false;
-        
-        const updatedName = firebaseUser.displayName?.split(' ')[0] || existing.name;
-  
+
+        const updatedName =
+          firebaseUser.displayName?.split(' ')[0] || existing.name;
+
         await Promise.all([
-          setDoc(userRef, { lastLoginAt: now, name: updatedName }, { merge: true }),
-          setDoc(publicProfileRef, {
-            name: updatedName,
-            email: firebaseUser.email,
-            photoURL: firebaseUser.photoURL || null,
-            level_name: existing.level_name,
-          }, { merge: true }),
+          setDoc(
+            userRef,
+            {
+              lastLoginAt: now,
+              name: updatedName,
+              is_seed: false, // 🔥 normalize existing user
+            },
+            { merge: true }
+          ),
+          setDoc(
+            publicProfileRef,
+            {
+              name: updatedName,
+              email: firebaseUser.email,
+              photoURL: firebaseUser.photoURL || null,
+              level_name: existing.level_name,
+            },
+            { merge: true }
+          ),
         ]);
       }
-  
+
       router.push(onboarded ? '/dashboard' : '/onboarding');
-  
+
     } catch (error: any) {
       console.error('Popup login error:', error);
-  
+
       toast({
         variant: 'destructive',
         title: "Giriş Başarısız",
         description: "Google ile giriş yapılamadı.",
       });
-  
+
       setIsLoading(false);
     }
   };
 
-  // Auth durumu kontrol edilirken boş bir ekran göstererek yönlendirmeyi bekle
   if (isUserLoading || user) {
     return null;
   }
@@ -148,8 +157,7 @@ export default function PageContent() {
           <div className="flex flex-col items-center space-y-2 text-center">
             <Logo />
             <p className="!mt-3 text-center text-xs text-muted-foreground">
-              "Türkiye'de geliştirilen global fotoğrafçılık eğitimi ve koçluğu
-              platformu"
+              "Türkiye'de geliştirilen global fotoğrafçılık eğitimi ve koçluğu platformu"
             </p>
             <h1 className="!mt-6 text-2xl font-semibold tracking-tight">
               Hesap oluşturun veya giriş yapın
