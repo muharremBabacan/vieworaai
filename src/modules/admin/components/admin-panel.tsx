@@ -12,7 +12,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Bell, Send, Globe, LayoutGrid, Sparkles, Target, Rocket } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Bell, Send, Globe, LayoutGrid, Sparkles, Target, Rocket, Calendar, Flag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
@@ -235,6 +235,37 @@ export default function AdminPanel() {
         setExhibValue('startDate', exhib.startDate.split('T')[0]); setExhibValue('endDate', exhib.endDate.split('T')[0]);
     };
 
+    const handleEndComp = async (id: string) => {
+        if (!firestore || !isAdmin) return;
+        try {
+            await updateDoc(doc(firestore, 'competitions', id), { endDate: new Date().toISOString() });
+            toast({ title: "Yarışma Sona Erdirildi" });
+        } catch (e) {}
+    };
+
+    const handleEndExhib = async (id: string) => {
+        if (!firestore || !isAdmin) return;
+        try {
+            await updateDoc(doc(firestore, 'exhibitions', id), { endDate: new Date().toISOString(), isActive: false });
+            toast({ title: "Sergi Sona Erdirildi" });
+        } catch (e) {}
+    };
+
+    const handleAnnounceResults = async (comp: Competition) => {
+        if (!firestore || !isAdmin) return;
+        try {
+            await addDoc(collection(firestore, 'global_notifications'), {
+                title: "Yarışma Sonuçları!",
+                message: `${comp.title} sonuçları belli oldu! Hemen incele.`,
+                type: 'reward',
+                targetLevel: 'all',
+                competitionId: comp.id,
+                createdAt: new Date().toISOString()
+            });
+            toast({ title: "Sonuçlar Duyuruldu" });
+        } catch (e) {}
+    };
+
     useEffect(() => {
         const fetchCount = async () => {
             if (!firestore || !isAdmin) return;
@@ -255,7 +286,7 @@ export default function AdminPanel() {
                 <CardContent className="py-16 text-center space-y-8 relative z-10">
                     <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none"><Rocket className="h-64 w-64 text-primary rotate-12" /></div>
                     <div className="flex flex-col items-center">
-                        {isFetchingCount ? <Skeleton className="h-40 w-64" /> : <p className="text-[12rem] font-black tracking-tighter leading-none bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text text-transparent drop-shadow-2xl">{totalUsers || '0'}</p>}
+                        {isFetchingCount ? <Skeleton className="h-40 w-64" /> : <p className="text-[12rem] font-black tracking-tighter leading-none bg-gradient-to-b from-white to-muted-foreground bg-clip-text text-transparent drop-shadow-2xl">{totalUsers || '0'}</p>}
                         <div className="flex flex-col items-center gap-2 mt-4">
                             <div className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /><h3 className="text-base font-black uppercase tracking-[0.3em] text-primary">Topluluk Büyümesi</h3></div>
                             <Badge variant="outline" className="text-xs font-black tracking-[0.2em] border-primary/30 text-primary px-4 py-1 uppercase bg-primary/5">Kayıtlı Sanatçı</Badge>
@@ -266,31 +297,36 @@ export default function AdminPanel() {
                             <div className="text-left space-y-1"><p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2"><Target className="h-3 w-3 text-accent" /> Sonraki Hedef</p><p className="text-2xl font-black text-foreground tracking-tight">{nextMilestone} Kullanıcı</p></div>
                             <div className="text-right"><p className="text-3xl font-black text-primary leading-none">%{progressToMilestone.toFixed(0)}</p><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Tamamlandı</p></div>
                         </div>
-                        <Progress value={progressToMilestone} className="h-5" />
+                        <Progress value={progressToMilestone} className="h-5 rounded-full bg-secondary/50" />
                     </div>
                 </CardContent>
             </Card>
 
-            {/* ACTIVE LISTS: Competitions & Exhibitions */}
+            {/* ACTIVE LISTS */}
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Competition List */}
-                <Card className="flex flex-col">
-                    <CardHeader className="border-b pb-4"><CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Aktif Yarışmalar</CardTitle></CardHeader>
+                <Card className="flex flex-col overflow-hidden">
+                    <CardHeader className="bg-secondary/20 border-b pb-4"><CardTitle className="flex items-center gap-2 text-lg font-bold"><Trophy className="h-5 w-5 text-amber-400" /> Yarışma Yönetimi</CardTitle></CardHeader>
                     <CardContent className="p-0">
-                        <ScrollArea className="max-h-[400px]">
+                        <ScrollArea className="max-h-[500px]">
                             <Table>
-                                <TableHeader><TableRow><TableHead className="pl-6">Başlık</TableHead><TableHead>Seviye</TableHead><TableHead className="text-right pr-6">İşlemler</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead className="pl-6">Başlık</TableHead><TableHead>Durum</TableHead><TableHead className="text-right pr-6">İşlemler</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {competitions?.map(comp => (
-                                        <TableRow key={comp.id}>
-                                            <TableCell className="pl-6 font-medium">{comp.title}</TableCell>
-                                            <TableCell><Badge variant="outline" className="text-[10px]">{comp.targetLevel}</Badge></TableCell>
-                                            <TableCell className="text-right pr-6"><div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditComp(comp)}><Edit className="h-4 w-4 text-blue-500" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { if(confirm('Sil?')) deleteDoc(doc(firestore!, 'competitions', comp.id)) }}><Trash2 className="h-4 w-4" /></Button>
-                                            </div></TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {competitions?.map(comp => {
+                                        const isEnded = new Date(comp.endDate) < new Date();
+                                        return (
+                                            <TableRow key={comp.id} className="hover:bg-muted/30">
+                                                <TableCell className="pl-6 py-4 font-semibold">{comp.title}</TableCell>
+                                                <TableCell>{isEnded ? <Badge variant="secondary">Bitti</Badge> : <Badge className="bg-green-500/20 text-green-500 border-none">Aktif</Badge>}</TableCell>
+                                                <TableCell className="text-right pr-6"><div className="flex justify-end gap-1">
+                                                    {!isEnded && <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500" title="Bitir" onClick={() => handleEndComp(comp.id)}><StopCircle className="h-4 w-4" /></Button>}
+                                                    {isEnded && <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500" title="Sonuçları Duyur" onClick={() => handleAnnounceResults(comp)}><Flag className="h-4 w-4" /></Button>}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" title="Düzenle" onClick={() => handleEditComp(comp)}><Edit className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Sil" onClick={() => { if(confirm('Emin misiniz?')) deleteDoc(doc(firestore!, 'competitions', comp.id)) }}><Trash2 className="h-4 w-4" /></Button>
+                                                </div></TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </ScrollArea>
@@ -298,23 +334,27 @@ export default function AdminPanel() {
                 </Card>
 
                 {/* Exhibition List */}
-                <Card className="flex flex-col">
-                    <CardHeader className="border-b pb-4"><CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5 text-cyan-400" /> Aktif Sergiler</CardTitle></CardHeader>
+                <Card className="flex flex-col overflow-hidden">
+                    <CardHeader className="bg-secondary/20 border-b pb-4"><CardTitle className="flex items-center gap-2 text-lg font-bold"><Globe className="h-5 w-5 text-cyan-400" /> Sergi Yönetimi</CardTitle></CardHeader>
                     <CardContent className="p-0">
-                        <ScrollArea className="max-h-[400px]">
+                        <ScrollArea className="max-h-[500px]">
                             <Table>
                                 <TableHeader><TableRow><TableHead className="pl-6">Tema</TableHead><TableHead>Durum</TableHead><TableHead className="text-right pr-6">İşlemler</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {exhibitions?.map(exhib => (
-                                        <TableRow key={exhib.id}>
-                                            <TableCell className="pl-6 font-medium">{exhib.title}</TableCell>
-                                            <TableCell>{exhib.isActive ? <Badge className="bg-green-500/20 text-green-500">Yayında</Badge> : <Badge variant="outline">Pasif</Badge>}</TableCell>
-                                            <TableCell className="text-right pr-6"><div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditExhib(exhib)}><Edit className="h-4 w-4 text-blue-500" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { if(confirm('Sil?')) deleteDoc(doc(firestore!, 'exhibitions', exhib.id)) }}><Trash2 className="h-4 w-4" /></Button>
-                                            </div></TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {exhibitions?.map(exhib => {
+                                        const isEnded = new Date(exhib.endDate) < new Date();
+                                        return (
+                                            <TableRow key={exhib.id} className="hover:bg-muted/30">
+                                                <TableCell className="pl-6 py-4 font-semibold">{exhib.title}</TableCell>
+                                                <TableCell>{(exhib.isActive && !isEnded) ? <Badge className="bg-cyan-500/20 text-cyan-500 border-none">Yayında</Badge> : <Badge variant="outline">Pasif</Badge>}</TableCell>
+                                                <TableCell className="text-right pr-6"><div className="flex justify-end gap-1">
+                                                    {exhib.isActive && !isEnded && <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-500" title="Kapat" onClick={() => handleEndExhib(exhib.id)}><StopCircle className="h-4 w-4" /></Button>}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" title="Düzenle" onClick={() => handleEditExhib(exhib)}><Edit className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Sil" onClick={() => { if(confirm('Emin misiniz?')) deleteDoc(doc(firestore!, 'exhibitions', exhib.id)) }}><Trash2 className="h-4 w-4" /></Button>
+                                                </div></TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </ScrollArea>
@@ -334,16 +374,17 @@ export default function AdminPanel() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <Controller name="targetLevel" control={compControl} render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Hedef Seviye" /></SelectTrigger><SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select>
                             )} />
                             <Controller name="scoringModel" control={compControl} render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="community">Topluluk</SelectItem><SelectItem value="hybrid">Hibrit</SelectItem><SelectItem value="ai_only">Sadece AI</SelectItem></SelectContent></Select>
+                                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Puanlama" /></SelectTrigger><SelectContent><SelectItem value="community">Topluluk</SelectItem><SelectItem value="hybrid">Hibrit</SelectItem><SelectItem value="ai_only">Sadece AI</SelectItem></SelectContent></Select>
                             )} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <Input type="date" {...compControl.register('startDate')} /><Input type="date" {...compControl.register('endDate')} />
+                            <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Başlangıç</Label><Input type="date" {...compControl.register('startDate')} /></div>
+                            <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Bitiş</Label><Input type="date" {...compControl.register('endDate')} /></div>
                         </div>
-                        <Button type="submit" disabled={isCreatingComp} className="w-full h-11">{isCreatingComp ? <Loader2 className="animate-spin" /> : editingCompId ? 'Güncelle' : 'Yarışmayı Başlat'}</Button>
+                        <Button type="submit" disabled={isCreatingComp} className="w-full h-11 font-bold">{isCreatingComp ? <Loader2 className="animate-spin" /> : editingCompId ? 'Bilgileri Güncelle' : 'Yarışmayı Başlat'}</Button>
                         {editingCompId && <Button type="button" variant="outline" className="w-full" onClick={() => { setEditingCompId(null); resetComp(); }}>İptal</Button>}
                     </form></CardContent>
                 </Card>
@@ -354,7 +395,7 @@ export default function AdminPanel() {
                         <Textarea placeholder="Sergi Açıklaması" {...exhibControl.register('description')} />
                         <div className="grid grid-cols-2 gap-4">
                             <Controller name="minLevel" control={exhibControl} render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select>
+                                <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Min. Seviye" /></SelectTrigger><SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select>
                             )} />
                             <div className="flex items-center gap-2 px-3 border rounded-md">
                                 <Label className="text-xs">Aktif</Label>
@@ -362,9 +403,10 @@ export default function AdminPanel() {
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <Input type="date" {...exhibControl.register('startDate')} /><Input type="date" {...exhibControl.register('endDate')} />
+                            <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Başlangıç</Label><Input type="date" {...exhibControl.register('startDate')} /></div>
+                            <div className="space-y-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Bitiş</Label><Input type="date" {...exhibControl.register('endDate')} /></div>
                         </div>
-                        <Button type="submit" disabled={isCreatingExhib} className="w-full h-11 bg-cyan-600 hover:bg-cyan-700">{isCreatingExhib ? <Loader2 className="animate-spin" /> : editingExhibId ? 'Güncelle' : 'Sergiyi Başlat'}</Button>
+                        <Button type="submit" disabled={isCreatingExhib} className="w-full h-11 font-bold bg-cyan-600 hover:bg-cyan-700">{isCreatingExhib ? <Loader2 className="animate-spin" /> : editingExhibId ? 'Sergiyi Güncelle' : 'Sergiyi Başlat'}</Button>
                         {editingExhibId && <Button type="button" variant="outline" className="w-full" onClick={() => { setEditingExhibId(null); resetExhib(); }}>İptal</Button>}
                     </form></CardContent>
                 </Card>
@@ -376,24 +418,28 @@ export default function AdminPanel() {
                     <CardContent><form onSubmit={handleLessonSubmit(onGenerateLessons)} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <Controller name="level" control={lessonControl} render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.keys(curriculum).map(lvl => <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>)}</SelectContent></Select>} />
-                            <Controller name="category" control={lessonControl} render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{selectedLevel && curriculum[selectedLevel as Level]?.map(cat => <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>)}</SelectContent></Select>} />
+                            <Controller name="category" control={lessonControl} render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Kategori Seçin" /></SelectTrigger><SelectContent>{selectedLevel && curriculum[selectedLevel as Level]?.map(cat => <SelectItem key={cat.id} value={cat.label}>{cat.label}</SelectItem>)}</SelectContent></Select>} />
                         </div>
-                        <Button type="submit" disabled={isGenerating} className="w-full h-11"><Sparkles className="mr-2 h-4 w-4" /> Dersleri Üret</Button>
+                        <Button type="submit" disabled={isGenerating} className="w-full h-11 font-bold">
+                            {isGenerating ? <Loader2 className="mr-2 animate-spin h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                            Dersleri Üret ve Kaydet
+                        </Button>
                     </form></CardContent>
                 </Card>
 
                 <Card><CardHeader><CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5 text-blue-400" /> Manuel Duyuru Merkezi</CardTitle></CardHeader>
                     <CardContent><form onSubmit={handleNotifSubmit(onSendNotification)} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <Controller name="targetLevel" control={notifControl} render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Herkes</SelectItem>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select>} />
-                            <Controller name="type" control={notifControl} render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="system">Sistem</SelectItem><SelectItem value="reward">Ödül</SelectItem></SelectContent></Select>} />
+                            <Controller name="targetLevel" control={notifControl} render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue placeholder="Hedef Kitle" /></SelectTrigger><SelectContent><SelectItem value="all">Herkes</SelectItem>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select>} />
+                            <Controller name="type" control={notifControl} render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="system">Sistem</SelectItem><SelectItem value="reward">Ödül</SelectItem><SelectItem value="exhibition">Sergi</SelectItem></SelectContent></Select>} />
                         </div>
                         <Input placeholder="Duyuru Başlığı" {...notifControl.register('title')} />
-                        <Textarea placeholder="Mesaj..." {...notifControl.register('message')} />
-                        <Button type="submit" disabled={isSendingNotif} className="w-full h-11" variant="secondary"><Send className="mr-2 h-4 w-4" /> Bildirimi Yayınla</Button>
+                        <Textarea placeholder="Duyuru mesajı..." {...notifControl.register('message')} />
+                        <Button type="submit" disabled={isSendingNotif} className="w-full h-11 font-bold" variant="secondary"><Send className="mr-2 h-4 w-4" /> Bildirimi Yayınla</Button>
                     </form></CardContent>
                 </Card>
             </div>
         </div>
     );
 }
+    

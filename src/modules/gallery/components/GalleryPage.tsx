@@ -23,6 +23,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 const ANALYSIS_COST = 1;
 const SUBMIT_TO_EXHIBITION_COST = 1;
@@ -131,7 +132,14 @@ export default function GalleryPage() {
       setIsProcessing(true);
       try {
           const batch = writeBatch(firestore);
-          const publicData = { ...photo, isSubmittedToExhibition: true, exhibitionId: selectedEx.id, userName: userProfile.name || 'Sanatçı', userPhotoURL: userProfile.photoURL || null, userLevelName: userProfile.level_name };
+          const publicData = { 
+              ...photo, 
+              isSubmittedToExhibition: true, 
+              exhibitionId: selectedEx.id, 
+              userName: userProfile.name || 'Sanatçı', 
+              userPhotoURL: userProfile.photoURL || null, 
+              userLevelName: userProfile.level_name 
+          };
           batch.set(doc(firestore, 'public_photos', photo.id), publicData);
           batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: selectedEx.id });
           batch.update(doc(firestore, 'users', user.uid), { auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST) });
@@ -188,30 +196,46 @@ export default function GalleryPage() {
                         <DialogTitle>Detaylar</DialogTitle>
                         {selectedPhoto.aiFeedback ? (
                             <div className="space-y-4">
-                                <Card className="p-4"><p className="text-2xl font-bold text-blue-400 mb-4">{getOverallScore(selectedPhoto).toFixed(1)}</p>
-                                <div className="space-y-2">
-                                    <RatingBar label="Işık" score={normalizeScore(selectedPhoto.aiFeedback.light_score)} />
-                                    <RatingBar label="Kompozisyon" score={normalizeScore(selectedPhoto.aiFeedback.composition_score)} />
-                                </div></Card>
-                                <div className="prose prose-sm dark:prose-invert"><p>{selectedPhoto.adaptiveFeedback || selectedPhoto.aiFeedback.short_neutral_analysis}</p></div>
+                                <Card className="p-4 border-primary/20 bg-primary/5">
+                                    <div className="flex justify-between items-baseline mb-4">
+                                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Genel Puan</span>
+                                        <p className="text-2xl font-black text-primary">{getOverallScore(selectedPhoto).toFixed(1)}</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <RatingBar label="Işık" score={normalizeScore(selectedPhoto.aiFeedback.light_score)} />
+                                        <RatingBar label="Kompozisyon" score={normalizeScore(selectedPhoto.aiFeedback.composition_score)} />
+                                    </div>
+                                </Card>
+                                <div className="prose prose-sm dark:prose-invert">
+                                    <p className="text-sm italic text-foreground/80 leading-relaxed">
+                                        {selectedPhoto.adaptiveFeedback || selectedPhoto.aiFeedback.short_neutral_analysis}
+                                    </p>
+                                </div>
+                                {selectedPhoto.tags && (
+                                    <div className="flex flex-wrap gap-1.5 pt-2">
+                                        {selectedPhoto.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-[10px] bg-secondary/50 uppercase font-bold">{t}</Badge>)}
+                                    </div>
+                                )}
                             </div>
-                        ) : <Button onClick={() => handleAnalyze(selectedPhoto)} disabled={isProcessing}>Analiz Et ({ANALYSIS_COST} Auro)</Button>}
+                        ) : <Button onClick={() => handleAnalyze(selectedPhoto)} disabled={isProcessing} className="w-full h-11"><Sparkles className="mr-2 h-4 w-4" /> Analiz Et ({ANALYSIS_COST} Auro)</Button>}
                         
                         <div className="pt-6 border-t space-y-4">
                             {!selectedPhoto.isSubmittedToExhibition && activeExhibitions && activeExhibitions.length > 0 && (
                                 <div className="space-y-2">
-                                    <Label className="text-xs uppercase font-bold">Sergi Seçin</Label>
+                                    <Label className="text-xs uppercase font-black text-muted-foreground ml-1">Sergi Salonu Seçin</Label>
                                     <Select onValueChange={setTargetExhibitionId} value={targetExhibitionId}>
-                                        <SelectTrigger><SelectValue placeholder="Sergi teması seç..." /></SelectTrigger>
+                                        <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Sergi teması seç..." /></SelectTrigger>
                                         <SelectContent>{activeExhibitions.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                             )}
-                            <Button onClick={() => handleToggleExhibition(selectedPhoto)} variant="outline" className="w-full" disabled={isProcessing}>
+                            <Button onClick={() => handleToggleExhibition(selectedPhoto)} variant="outline" className="w-full h-11 rounded-xl font-bold" disabled={isProcessing}>
                                 <ArrowLeftRight className="mr-2 h-4 w-4" />
                                 {selectedPhoto.isSubmittedToExhibition ? "Sergiden Geri Çek" : "Sergiye Gönder"}
                             </Button>
-                            <Button variant="destructive" className="w-full" onClick={() => handleDelete(selectedPhoto)} disabled={isProcessing}>Sil</Button>
+                            <Button variant="ghost" className="w-full h-11 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" onClick={() => handleDelete(selectedPhoto)} disabled={isProcessing}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Kalıcı Olarak Sil
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>
@@ -220,3 +244,4 @@ export default function GalleryPage() {
       </div>
     );
 }
+    
