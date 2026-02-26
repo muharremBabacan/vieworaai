@@ -175,5 +175,10 @@ service cloud.firestore {
                       )
                     );
     }
+
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }
