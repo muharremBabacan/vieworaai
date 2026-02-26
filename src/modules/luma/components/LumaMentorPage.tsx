@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -174,21 +175,21 @@ export default function LumaMentorPage() {
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                             <span>Işık</span>
-                                            <span className="text-primary">{stats.avgLight.toFixed(1)} / 10</span>
+                                            <span className="text-primary font-mono">{stats.avgLight.toFixed(1)} / 10</span>
                                         </div>
                                         <Progress value={stats.avgLight * 10} className="h-1.5" />
                                     </div>
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                             <span>Kompozisyon</span>
-                                            <span className="text-primary">{stats.avgComp.toFixed(1)} / 10</span>
+                                            <span className="text-primary font-mono">{stats.avgComp.toFixed(1)} / 10</span>
                                         </div>
                                         <Progress value={stats.avgComp * 10} className="h-1.5" />
                                     </div>
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                             <span>Netlik</span>
-                                            <span className="text-primary">{stats.avgFocus.toFixed(1)} / 10</span>
+                                            <span className="text-primary font-mono">{stats.avgFocus.toFixed(1)} / 10</span>
                                         </div>
                                         <Progress value={stats.avgFocus * 10} className="h-1.5" />
                                     </div>
