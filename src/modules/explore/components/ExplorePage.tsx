@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
@@ -77,7 +76,12 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden border-none shadow-2xl bg-background">
-        <DialogHeader className="sr-only"><DialogTitle>Fotoğraf Detayı</DialogTitle></DialogHeader>
+        <DialogHeader className="sr-only">
+            <DialogTitle>Fotoğraf Detayı</DialogTitle>
+            <DialogDescription>
+                {profileInfo.name} tarafından paylaşılan fotoğrafın detayları ve analizi.
+            </DialogDescription>
+        </DialogHeader>
         <div className="absolute right-4 top-4 z-20">
             <DialogClose asChild>
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 border border-white/10"><X className="h-6 w-6" /></Button>

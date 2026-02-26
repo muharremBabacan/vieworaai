@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
@@ -141,6 +140,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[95vh] p-0 overflow-hidden border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>{competition.title}</DialogTitle>
+                    <DialogDescription>{competition.description}</DialogDescription>
+                </DialogHeader>
                 <ScrollArea className="max-h-[95vh] w-full">
                     <div className="flex flex-col">
                         <div className="relative h-48 w-full shrink-0">
