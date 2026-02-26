@@ -26,6 +26,17 @@ service cloud.firestore {
     }
     
     //-------------------------------------------------------------------------
+    // Collection Group Rules (Must be at the top-level match)
+    //-------------------------------------------------------------------------
+    
+    match /{path=**}/entries/{entryId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (isAdmin() || (request.resource.data.votes != null && resource.data.votes != null && request.resource.data.votes.size() > resource.data.votes.size()));
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    //-------------------------------------------------------------------------
     // Collection Rules
     //-------------------------------------------------------------------------
 
@@ -103,13 +114,6 @@ service cloud.firestore {
       match /competitions/{competitionId} {
         allow read: if isMember() || isAdmin();
         allow write: if isGroupOwner();
-
-        match /entries/{entryId} {
-          allow read: if isMember() || isAdmin();
-          allow create: if isMember() && request.resource.data.userId == request.auth.uid;
-          allow update: if isMember() && request.resource.data.votes == resource.data.votes.concat([request.auth.uid]);
-          allow delete: if isGroupOwner() || (isMember() && resource.data.userId == request.auth.uid);
-        }
       }
 
       match /events/{eventId} {
@@ -139,13 +143,6 @@ service cloud.firestore {
     match /competitions/{competitionId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
-
-      match /entries/{entryId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update: if isSignedIn() && request.resource.data.votes == resource.data.votes.concat([request.auth.uid]);
-        allow delete: if (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid)) || isAdmin();
-      }
     }
 
     match /exhibitions/{exhibitionId} {
