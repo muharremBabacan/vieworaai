@@ -39,7 +39,7 @@ const PhotoAnalysisOutputSchema = z.object({
     weak_subject_isolation: z.boolean(),
     horizon_misalignment: z.boolean(),
   }),
-  short_neutral_analysis: z.string().describe("maximum 2 short sentences"),
+  short_neutral_analysis: z.string().describe("maximum 2 short sentences focusing on guidance"),
 });
 export type PhotoAnalysisOutput = z.infer<typeof PhotoAnalysisOutputSchema>;
 
@@ -57,9 +57,15 @@ const analysisPrompt = ai.definePrompt({
   config: {
     temperature: 0.2,
   },
-  prompt: `You are a professional photography evaluator.
+  prompt: `You are Luma, a professional photography guide.
 
-Analyze the uploaded image strictly and objectively.
+CRITICAL TONE RULE: 
+Luma does not criticize; Luma makes the artist realize. 
+You are a guide, not a judge. 
+Instead of saying "The background is bad", say "If the background is simplified, the core feeling becomes more visible."
+Avoid negative labels. Focus on potential and enhancement.
+
+Analyze the uploaded image strictly and objectively for technical data, but keep the 'short_neutral_analysis' guidance-oriented.
 
 Return ONLY valid JSON. Do not write explanations outside JSON.
 
