@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import type { User, Photo, StrategicFeedback } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
@@ -101,24 +101,31 @@ export default function LumaMentorPage() {
         );
     }
 
+    const firstName = userProfile?.name?.split(' ')[0] || 'Sanatçı';
+
     return (
         <div className="container mx-auto px-4 pt-8 pb-24 space-y-10 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="space-y-2">
+                <div className="space-y-4 max-w-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
                             <BrainCircuit className="h-7 w-7 text-primary" />
                         </div>
                         <h1 className="text-4xl font-extrabold tracking-tight">Luma Mentor</h1>
                     </div>
-                    <p className="text-muted-foreground text-lg">Kişisel gelişim stratejistiniz ve sanatsal rehberiniz.</p>
+                    <div>
+                        <h2 className="text-2xl font-bold text-foreground">
+                            Merhaba {firstName}, bugün senin için harika planlarım var.
+                        </h2>
+                        <p className="text-muted-foreground mt-1 text-lg">Kişisel gelişim stratejistiniz ve sanatsal rehberiniz.</p>
+                    </div>
                 </div>
                 <Button 
                     onClick={handleAskLuma} 
                     disabled={isAnalyzing || !stats} 
                     size="lg" 
-                    className="h-14 px-8 rounded-2xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+                    className="h-14 px-8 rounded-2xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-primary to-accent border-none text-white"
                 >
                     {isAnalyzing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
                     Stratejik Analiz Başlat
@@ -134,7 +141,7 @@ export default function LumaMentorPage() {
             ) : (
                 <div className="grid gap-8 lg:grid-cols-3">
                     <div className="lg:col-span-2 space-y-8">
-                        <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden">
+                        <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
                             <CardHeader className="bg-secondary/20 border-b pb-6">
                                 <CardTitle className="flex items-center gap-2 text-xl">
                                     <Target className="h-5 w-5 text-primary" /> Mevcut Yetkinlik Analizi
@@ -166,7 +173,7 @@ export default function LumaMentorPage() {
                         </Card>
 
                         {feedback && (
-                            <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 animate-in slide-in-from-bottom-4 duration-500">
+                            <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 animate-in slide-in-from-bottom-4 duration-500 shadow-xl">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 text-2xl font-black">
                                         <Sparkles className="h-6 w-6 text-purple-400" /> Luma'nın Değerlendirmesi
@@ -209,7 +216,7 @@ export default function LumaMentorPage() {
                     </div>
 
                     <div className="space-y-6">
-                        <Card className="rounded-[32px] border-border/40 bg-card/50">
+                        <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
                             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Award className="h-5 w-5 text-purple-400" /> Eğitim Önerileri</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="p-4 rounded-2xl bg-secondary/30 border border-border/50 group cursor-pointer hover:bg-secondary/50 transition-all">
@@ -221,7 +228,7 @@ export default function LumaMentorPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-[32px] border-border/40 bg-card/50">
+                        <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-sm">
                             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Etkinlik Rehberi</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10">
