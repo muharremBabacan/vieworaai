@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { BrainCircuit, Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield } from 'lucide-react';
+import { Sparkles, Target, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 
@@ -184,7 +183,7 @@ export default function LumaMentorPage() {
                 <div className="space-y-4 max-w-2xl">
                     <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
-                            <BrainCircuit className="h-7 w-7 text-primary" />
+                            <Sparkles className="h-7 w-7 text-primary" />
                         </div>
                         <h1 className="text-4xl font-extrabold tracking-tight">Luma Mentor</h1>
                     </div>

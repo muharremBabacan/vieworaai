@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { GraduationCap, Compass, Plus, LayoutGrid, BrainCircuit } from 'lucide-react';
+import { GraduationCap, Compass, Plus, LayoutGrid, Sparkles } from 'lucide-react';
 
 const navItems = [
     { href: '/academy', label: 'Akademi', icon: GraduationCap },
     { href: '/explore', label: 'Keşfet', icon: Compass },
     { href: '/dashboard', label: 'Yükle', icon: Plus, isAction: true },
     { href: '/gallery', label: 'Galeri', icon: LayoutGrid },
-    { href: '/luma', label: 'Luma', icon: BrainCircuit },
+    { href: '/luma', label: 'Luma', icon: Sparkles },
 ];
 
 export function BottomNav() {
