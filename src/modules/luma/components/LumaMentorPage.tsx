@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, where, collectionGroup } from 'firebase/firestore';
 import type { User, Photo, StrategicFeedback, CompetitionEntry, Group } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -40,10 +39,7 @@ export default function LumaMentorPage() {
 
     // Fetch Competition Entries for badges
     const entriesQuery = useMemoFirebase(() => (user && firestore) ? query(collectionGroup(firestore, 'entries'), where('userId', '==', user.uid)) : null, [user, firestore]);
-    // Note: collectionGroup requires an index, but for MVP we can assume user has entries
-    // For simplicity, let's assume we fetch them or mock them for now if index not ready
-    // const { data: userEntries } = useCollection<CompetitionEntry>(entriesQuery);
-    const userEntries: any[] = []; // Placeholder
+    const { data: userEntries } = useCollection<CompetitionEntry>(entriesQuery);
 
     // Calculate aggregated metrics
     const stats = useMemo(() => {
@@ -72,6 +68,17 @@ export default function LumaMentorPage() {
             groupCount
         };
     }, [allPhotos, userGroups]);
+
+    // Badge counts
+    const badges = useMemo(() => {
+        if (!userEntries) return { participants: 0, honorable: 0, winners: 0 };
+        return userEntries.reduce((acc, entry) => {
+            if (entry.award === 'participant') acc.participants++;
+            if (entry.award === 'honorable_mention') acc.honorable++;
+            if (entry.award === 'winner') acc.winners++;
+            return acc;
+        }, { participants: 0, honorable: 0, winners: 0 });
+    }, [userEntries]);
 
     const handleAskLuma = async () => {
         if (!user || !userProfile || !stats) {
@@ -209,7 +216,7 @@ export default function LumaMentorPage() {
                                         </div>
                                         <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
                                             <Trophy className="h-4 w-4 mx-auto mb-1 text-amber-400" />
-                                            <p className="text-xl font-bold">{userProfile.current_xp > 500 ? '1' : '0'}</p>
+                                            <p className="text-xl font-bold">{badges.participants + badges.honorable + badges.winners}</p>
                                             <p className="text-[9px] uppercase font-bold text-muted-foreground">Yarışma</p>
                                         </div>
                                         <div className="bg-background/40 p-3 rounded-2xl border border-border/50 text-center">
@@ -275,19 +282,32 @@ export default function LumaMentorPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2">
+                                    <div className={cn("p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2", badges.participants === 0 && "opacity-40")}>
                                         <div className="h-10 w-10 mx-auto rounded-full bg-blue-500/10 flex items-center justify-center shadow-inner">
                                             <Shield className="h-5 w-5 text-blue-400" />
                                         </div>
                                         <p className="text-[10px] font-bold uppercase tracking-tighter">Katılım Şilti</p>
-                                        <Badge variant="outline" className="text-[9px] bg-blue-500/5 text-blue-400 border-blue-500/20">Aktif</Badge>
+                                        <Badge variant="outline" className={cn("text-[9px]", badges.participants > 0 ? "bg-blue-500/5 text-blue-400 border-blue-500/20" : "")}>
+                                            {badges.participants > 0 ? `x${badges.participants} Aktif` : 'Kilitli'}
+                                        </Badge>
                                     </div>
-                                    <div className="p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2 opacity-40">
-                                        <div className="h-10 w-10 mx-auto rounded-full bg-amber-500/10 flex items-center justify-center">
-                                            <Award className="h-5 w-5 text-amber-400" />
+                                    <div className={cn("p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2", badges.honorable === 0 && "opacity-40")}>
+                                        <div className="h-10 w-10 mx-auto rounded-full bg-purple-500/10 flex items-center justify-center">
+                                            <Award className="h-5 w-5 text-purple-400" />
                                         </div>
                                         <p className="text-[10px] font-bold uppercase tracking-tighter">Mansiyon</p>
-                                        <Badge variant="outline" className="text-[9px]">Kilitli</Badge>
+                                        <Badge variant="outline" className="text-[9px]">
+                                            {badges.honorable > 0 ? `x${badges.honorable}` : 'Kilitli'}
+                                        </Badge>
+                                    </div>
+                                    <div className={cn("p-3 rounded-2xl bg-secondary/30 border border-border/50 text-center space-y-2", badges.winners === 0 && "opacity-40")}>
+                                        <div className="h-10 w-10 mx-auto rounded-full bg-amber-500/10 flex items-center justify-center">
+                                            <Trophy className="h-5 w-5 text-amber-400" />
+                                        </div>
+                                        <p className="text-[10px] font-bold uppercase tracking-tighter">Birincilik</p>
+                                        <Badge variant="outline" className="text-[9px]">
+                                            {badges.winners > 0 ? `x${badges.winners}` : 'Kilitli'}
+                                        </Badge>
                                     </div>
                                 </div>
                             </CardContent>
