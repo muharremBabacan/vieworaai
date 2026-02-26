@@ -37,7 +37,7 @@ export function NotificationCenter() {
     );
   }, [user, firestore]);
 
-  const { data: invitesData } = useCollection<GroupInvite>(invitesQuery);
+  const { data: invitesData, error: invitesError } = useCollection<GroupInvite>(invitesQuery);
 
   // Global Notifications Query
   const notificationsQuery = useMemoFirebase(() => {
@@ -49,7 +49,7 @@ export function NotificationCenter() {
     );
   }, [firestore]);
 
-  const { data: globalNotifsData } = useCollection<GlobalNotification>(notificationsQuery);
+  const { data: globalNotifsData, error: notifsError } = useCollection<GlobalNotification>(notificationsQuery);
 
   const notifications = useMemo(() => {
     let combined: any[] = [];
@@ -140,7 +140,11 @@ export function NotificationCenter() {
         </div>
         <ScrollArea className="h-[400px]">
           <div className="divide-y divide-border/40">
-            {notifications.length > 0 ? (
+            {invitesError || notifsError ? (
+              <div className="p-8 text-center text-xs text-muted-foreground">
+                <p>Bildirimler yüklenirken bir sorun oluştu.</p>
+              </div>
+            ) : notifications.length > 0 ? (
               notifications.map((item) => {
                 const isUnread = !userProfile?.lastNotificationsViewedAt || 
                                 new Date(item.createdAt).getTime() > new Date(userProfile.lastNotificationsViewedAt).getTime();

@@ -90,7 +90,7 @@ export default function AdminPanel() {
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
 
-    const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com';
+    const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com' || user?.uid === 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1';
 
     const milestones = [50, 100, 200, 500, 1000, 5000];
     const nextMilestone = milestones.find(m => m > (totalUsers || 0)) || milestones[milestones.length - 1];
@@ -442,4 +442,3 @@ export default function AdminPanel() {
         </div>
     );
 }
-    

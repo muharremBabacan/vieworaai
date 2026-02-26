@@ -20,6 +20,7 @@ service cloud.firestore {
         request.auth.token.email == 'admin@viewora.ai' ||
         request.auth.token.email == 'babacan.muharrem@gmail.com' ||
         request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
+        request.auth.uid == 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1' ||
         request.auth.token.admin == true
       );
     }
@@ -75,7 +76,7 @@ service cloud.firestore {
     
       allow update: if isGroupOwner() || (
         isSignedIn() &&
-        !(request.auth.uid in resource.data.memberIds) &&
+        !(request.auth.uid in request.resource.data.memberIds) &&
         request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1 &&
         request.auth.uid in request.resource.data.memberIds &&
         request.resource.data.memberIds.size() <= resource.data.maxMembers
@@ -125,9 +126,11 @@ service cloud.firestore {
     
     match /group_invites/{inviteId} {
       allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
-      allow read: if isSignedIn() && 
-                    (request.auth.uid == resource.data.toUserId || request.auth.uid == resource.data.fromUserId || isAdmin());
-      allow list: if isSignedIn();
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.toUserId || 
+        request.auth.uid == resource.data.fromUserId || 
+        isAdmin()
+      );
       allow update: if isSignedIn() && (request.auth.uid == resource.data.toUserId || isAdmin());
       allow delete: if isAdmin();
     }
