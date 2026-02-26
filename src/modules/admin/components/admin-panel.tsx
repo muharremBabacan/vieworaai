@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -12,7 +11,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send, Globe, LayoutGrid, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send, Globe, LayoutGrid, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
