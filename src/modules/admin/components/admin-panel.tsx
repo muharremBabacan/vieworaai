@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -12,7 +11,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, setDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, UserCheck, Cpu, Star, Bell, Send, Globe, LayoutGrid, Image as ImageIcon, Sparkles, Calendar, Rocket, Target } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Scale, Star, Bell, Send, Globe, LayoutGrid, Sparkles, Target, Rocket, Cpu } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
@@ -20,10 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import type { Competition, ScoringModel, User, GlobalNotification, Photo, ExhibitionConfig } from '@/types';
-import { errorEmitter } from '@/lib/firebase/error-emitter';
-import { FirestorePermissionError } from '@/lib/firebase/errors';
-import Image from 'next/image';
+import type { Competition, ScoringModel, User, GlobalNotification, ExhibitionConfig } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const curriculum = {
@@ -84,28 +80,19 @@ export default function AdminPanel() {
 
     const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com';
 
-    // Milestones logic
     const milestones = [50, 100, 200, 500, 1000, 5000];
     const nextMilestone = milestones.find(m => m > (totalUsers || 0)) || milestones[milestones.length - 1];
     const progressToMilestone = totalUsers ? Math.min((totalUsers / nextMilestone) * 100, 100) : 0;
 
-    // Queries
     const competitionsQuery = useMemoFirebase(() => 
         (firestore && isAdmin) ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null,
         [firestore, isAdmin]
     );
     const { data: competitions, isLoading: compsLoading } = useCollection<Competition>(competitionsQuery);
 
-    const exhibitionQuery = useMemoFirebase(() => 
-        (firestore && isAdmin) ? query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc')) : null,
-        [firestore, isAdmin]
-    );
-    const { data: exhibitionPhotos, isLoading: exhibitionLoading } = useCollection<Photo>(exhibitionQuery);
-
     const exhibitionConfigRef = useMemoFirebase(() => (firestore && isAdmin) ? doc(firestore, 'settings', 'exhibition') : null, [firestore, isAdmin]);
     const { data: exhibitionConfig } = useDoc<ExhibitionConfig>(exhibitionConfigRef);
 
-    // Forms
     const { control: lessonControl, watch: lessonWatch, handleSubmit: handleLessonSubmit } = useForm<{ level: Level; category: string; }>({
         defaultValues: { level: 'Temel', category: '' }
     });
@@ -275,17 +262,6 @@ export default function AdminPanel() {
         } finally { setIsSendingNotif(false); }
     };
 
-    const handleDeleteExhibitionPhoto = async (photoId: string) => {
-        if (!firestore || !isAdmin) return;
-        if (!confirm('Bu fotoğrafı sergiden kaldırmak istediğinize emin misiniz?')) return;
-        try {
-            await deleteDoc(doc(firestore, 'public_photos', photoId));
-            toast({ title: "Fotoğraf Sergiden Kaldırıldı" });
-        } catch (e) {
-            toast({ variant: 'destructive', title: "Hata" });
-        }
-    };
-
     const handleEditComp = (comp: Competition) => {
         setEditingCompId(comp.id);
         setCompValue('title', comp.title);
@@ -337,14 +313,13 @@ export default function AdminPanel() {
     return (
         <div className="space-y-10 pb-20">
             
-            {/* 1. SEVİYE: TOTAL USERS & GROWTH GOALS (CENTERED REDESIGN) */}
+            {/* 1. SEVİYE: TOTAL USERS & GROWTH GOALS */}
             <Card className="bg-gradient-to-br from-primary/10 via-background to-accent/5 border-primary/20 overflow-hidden relative min-h-[500px] flex items-center justify-center">
                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                     <Rocket className="h-64 w-64 text-primary rotate-12" />
                 </div>
                 <CardContent className="py-16 relative z-10 w-full">
                     <div className="flex flex-col items-center justify-center text-center space-y-8">
-                        {/* Sayı */}
                         <div className="flex items-center justify-center">
                             {isFetchingCount ? (
                                 <Skeleton className="h-40 w-64" />
@@ -355,7 +330,6 @@ export default function AdminPanel() {
                             )}
                         </div>
 
-                        {/* Etiketler ve Başlık */}
                         <div className="space-y-4">
                             <div className="flex flex-col items-center gap-2">
                                 <div className="flex items-center gap-2">
@@ -371,7 +345,6 @@ export default function AdminPanel() {
                             </div>
                         </div>
 
-                        {/* Hedef Barı */}
                         <div className="w-full max-w-2xl mt-12 space-y-6">
                             <div className="flex justify-between items-end px-1">
                                 <div className="text-left space-y-1">
@@ -396,98 +369,61 @@ export default function AdminPanel() {
                                     <span className="text-primary">{nextMilestone}</span>
                                 </div>
                             </div>
-
-                            <p className="text-xs text-muted-foreground leading-relaxed italic max-w-lg mx-auto opacity-80 pt-4">
-                                "{nextMilestone} kullanıcı hedefine ulaşmak için {(nextMilestone - (totalUsers || 0))} yeni sanatçıya ihtiyacımız var. Topluluğu canlandırmak için yeni bir yarışma başlatmayı veya duyuru yapmayı düşünün."
-                            </p>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* 2. SEVİYE: ACTIVE LISTS */}
-            <div className="grid gap-6 lg:grid-cols-2">
-                <Card className="flex flex-col h-[500px]">
-                    <CardHeader className="shrink-0">
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                            <Trophy className="h-5 w-5 text-amber-400" /> Aktif Yarışmalar
-                        </CardTitle>
-                        <CardDescription>Yayında olan tüm yarışmaları buradan yönetin.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-hidden p-0">
-                        <ScrollArea className="h-full">
-                            {compsLoading ? <div className="p-6 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div> : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="pl-6">Başlık</TableHead>
-                                            <TableHead>Seviye</TableHead>
-                                            <TableHead className="text-right pr-6">İşlemler</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {competitions?.map((comp) => {
-                                            const isEnded = new Date() > new Date(comp.endDate);
-                                            return (
-                                                <TableRow key={comp.id}>
-                                                    <TableCell className="pl-6 font-medium">{comp.title}</TableCell>
-                                                    <TableCell><Badge variant="outline" className="text-[10px]">{comp.targetLevel}</Badge></TableCell>
-                                                    <TableCell className="text-right pr-6">
-                                                        <div className="flex justify-end gap-1">
-                                                            {!isEnded && (
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEndComp(comp.id)} title="Bitir">
-                                                                    <StopCircle className="h-4 w-4 text-orange-500" />
-                                                                </Button>
-                                                            )}
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditComp(comp)} title="Düzenle">
-                                                                <Edit className="h-4 w-4 text-blue-500" />
+            {/* 2. SEVİYE: ACTIVE COMPETITIONS */}
+            <Card className="flex flex-col h-[500px]">
+                <CardHeader className="shrink-0">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                        <Trophy className="h-5 w-5 text-amber-400" /> Aktif Yarışmalar
+                    </CardTitle>
+                    <CardDescription>Yayında olan tüm yarışmaları buradan yönetin.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                    <ScrollArea className="h-full">
+                        {compsLoading ? <div className="p-6 space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div> : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="pl-6">Başlık</TableHead>
+                                        <TableHead>Seviye</TableHead>
+                                        <TableHead className="text-right pr-6">İşlemler</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {competitions?.map((comp) => {
+                                        const isEnded = new Date() > new Date(comp.endDate);
+                                        return (
+                                            <TableRow key={comp.id}>
+                                                <TableCell className="pl-6 font-medium">{comp.title}</TableCell>
+                                                <TableCell><Badge variant="outline" className="text-[10px]">{comp.targetLevel}</Badge></TableCell>
+                                                <TableCell className="text-right pr-6">
+                                                    <div className="flex justify-end gap-1">
+                                                        {!isEnded && (
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEndComp(comp.id)} title="Bitir">
+                                                                <StopCircle className="h-4 w-4 text-orange-500" />
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteComp(comp.id)} title="Sil">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-
-                <Card className="flex flex-col h-[500px]">
-                    <CardHeader className="shrink-0">
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                            <Globe className="h-5 w-5 text-cyan-400" /> Sergi Salonu Denetimi
-                        </CardTitle>
-                        <CardDescription>Halka açık sergideki son fotoğrafları kontrol edin.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-hidden p-6">
-                        <ScrollArea className="h-full">
-                            {exhibitionLoading ? <div className="grid grid-cols-3 gap-2">{[...Array(6)].map((_,i) => <Skeleton key={i} className="aspect-square rounded-lg" />)}</div> : (
-                                <div className="grid grid-cols-3 gap-3">
-                                    {exhibitionPhotos?.map((photo) => (
-                                        <div key={photo.id} className="group relative aspect-square rounded-lg overflow-hidden border border-border/50">
-                                            <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover" unoptimized />
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-                                                <p className="text-[8px] text-white font-bold truncate w-full text-center">@{photo.userName}</p>
-                                                <Button size="icon" variant="destructive" className="h-7 w-7 rounded-full" onClick={() => handleDeleteExhibitionPhoto(photo.id)}>
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {(!exhibitionPhotos || exhibitionPhotos.length === 0) && (
-                                        <div className="col-span-3 py-20 text-center text-muted-foreground italic text-sm">Sergide henüz fotoğraf yok.</div>
-                                    )}
-                                </div>
-                            )}
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-            </div>
+                                                        )}
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditComp(comp)} title="Düzenle">
+                                                            <Edit className="h-4 w-4 text-blue-500" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteComp(comp.id)} title="Sil">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </ScrollArea>
+                </CardContent>
+            </Card>
 
             {/* 3. SEVİYE: MANAGEMENT TOOLS */}
             <div className="grid gap-6 md:grid-cols-2">
