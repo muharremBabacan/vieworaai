@@ -679,6 +679,12 @@
         "$ref": "#/backend/entities/UserProfileIndex"
       },
       "description": "Stores the AI-generated photographic profile index for each user. Documents are private and owned by the user matching the '{userId}'."
+    },
+    "public_photos/{photoId}": {
+      "schema": {
+        "$ref": "#/backend/entities/Photo"
+      },
+      "description": "Stores public-facing photos submitted to the general exhibition hall. Readable by all authenticated users."
     }
   }
 }

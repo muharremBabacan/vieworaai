@@ -18,7 +18,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils';
 import type { Competition, ScoringModel, User } from '@/types';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
@@ -80,7 +80,7 @@ export default function AdminPanel() {
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
 
-    const isAdmin = user?.email === 'admin@viewora.ai';
+    const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
 
     const competitionsQuery = useMemoFirebase(() => 
         (firestore && isAdmin) ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null,
@@ -119,11 +119,8 @@ export default function AdminPanel() {
     
     const selectedLevel = lessonWatch('level');
     const selectedJuryIds = compWatch('juryIds');
-    const isCommunityVoteActive = compWatch('isCommunityVoteActive');
-    const isAIAnalysisIncluded = compWatch('isAIAnalysisIncluded');
     const scoringModel = compWatch('scoringModel');
 
-    // Preset logic
     useEffect(() => {
         if (scoringModel === 'community') {
             setCompValue('isCommunityVoteActive', true);
@@ -162,7 +159,12 @@ export default function AdminPanel() {
                 const docRef = doc(collection(firestore, 'academyLessons'));
                 batch.set(docRef, { ...lessonData, id: docRef.id, imageUrl: `https://picsum.photos/seed/${docRef.id}/600/400`, createdAt: new Date().toISOString() });
             });
-            await batch.commit();
+            await batch.commit().catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'academyLessons',
+                    operation: 'create'
+                }));
+            });
             toast({ title: "Başarılı!" });
         } catch (error) {
             toast({ variant: 'destructive', title: "Hata!" });
@@ -201,7 +203,12 @@ export default function AdminPanel() {
                     createdAt: new Date().toISOString(),
                 });
 
-                await batch.commit();
+                await batch.commit().catch(async (error) => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: 'competitions',
+                        operation: 'create'
+                    }));
+                });
                 toast({ title: "Yarışma Oluşturuldu" });
             }
             resetComp();
@@ -229,10 +236,15 @@ export default function AdminPanel() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDeleteComp = async (compId: string) => {
+    const handleDeleteComp = (compId: string) => {
         if (!firestore || !isAdmin) return;
         if (!confirm('Silmek istiyor musunuz?')) return;
-        await deleteDoc(doc(firestore, 'competitions', compId));
+        deleteDoc(doc(firestore, 'competitions', compId)).catch(async (err) => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `competitions/${compId}`,
+                operation: 'delete'
+            }));
+        });
         toast({ title: "Yarışma Silindi" });
     };
 
@@ -245,9 +257,12 @@ export default function AdminPanel() {
     useEffect(() => {
         const fetchCount = async () => {
             if (!firestore || !isAdmin) return;
-            const snapshot = await getCountFromServer(collection(firestore, "users"));
-            setTotalUsers(snapshot.data().count);
-            setIsFetchingCount(false);
+            try {
+                const snapshot = await getCountFromServer(collection(firestore, "users"));
+                setTotalUsers(snapshot.data().count);
+            } catch (e) {} finally {
+                setIsFetchingCount(false);
+            }
         };
         fetchCount();
     }, [firestore, isAdmin]);

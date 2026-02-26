@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
@@ -19,7 +20,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { Badge } from '@/shared/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -136,14 +137,11 @@ function ExploreHub({ exhibitionCount, activeCompCount, onSelect }: { exhibition
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-                {/* EXHIBITION CARD */}
                 <Card 
                     className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/10 active:scale-[0.98]"
                     onClick={() => onSelect('gallery')}
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute -right-12 -top-12 h-48 w-48 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors" />
-                    
                     <CardContent className="p-8 relative z-10">
                         <div className="flex justify-between items-start mb-12">
                             <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -153,26 +151,21 @@ function ExploreHub({ exhibitionCount, activeCompCount, onSelect }: { exhibition
                                 {exhibitionCount} Eser Yayında
                             </Badge>
                         </div>
-                        
                         <div className="space-y-2">
                             <h3 className="text-3xl font-bold tracking-tight">Sergi Salonu</h3>
-                            <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px]">Türkiyenin dört bir yanından seçkin fotoğraf karelerini inceleyin.</p>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px]">Türkiye'nin dört bir yanından seçkin fotoğraf karelerini inceleyin.</p>
                         </div>
-
                         <div className="mt-8 flex items-center gap-2 text-primary font-bold text-sm group-hover:gap-3 transition-all">
                             İçeri Gir <ChevronRight className="h-4 w-4" />
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* COMPETITIONS CARD */}
                 <Card 
                     className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-amber-500/10 active:scale-[0.98]"
                     onClick={() => onSelect('competitions')}
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute -right-12 -top-12 h-48 w-48 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-colors" />
-                    
                     <CardContent className="p-8 relative z-10">
                         <div className="flex justify-between items-start mb-12">
                             <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
@@ -182,12 +175,10 @@ function ExploreHub({ exhibitionCount, activeCompCount, onSelect }: { exhibition
                                 {activeCompCount} Aktif Yarışma
                             </Badge>
                         </div>
-                        
                         <div className="space-y-2">
                             <h3 className="text-3xl font-bold tracking-tight">Yarışmalar</h3>
                             <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px]">Resmi ödüllü yarışmalara katılın, yeteneklerinizi tescilleyin.</p>
                         </div>
-
                         <div className="mt-8 flex items-center gap-2 text-amber-500 font-bold text-sm group-hover:gap-3 transition-all">
                             Yarışmaları Gör <ChevronRight className="h-4 w-4" />
                         </div>
@@ -198,7 +189,6 @@ function ExploreHub({ exhibitionCount, activeCompCount, onSelect }: { exhibition
     );
 }
 
-// --- MAIN PAGE ---
 export default function ExplorePage() {
   const [view, setView] = useState<'hub' | 'gallery'>('hub');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -209,19 +199,18 @@ export default function ExplorePage() {
   const { user } = useUser();
   const router = useRouter();
 
-  // Fetch counts for Hub
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     const fetchCounts = async () => {
         try {
             const exhibitionSnap = await getCountFromServer(collection(firestore, 'public_photos'));
             const compQuery = query(collection(firestore, 'competitions'), where('endDate', '>', new Date().toISOString()));
             const compSnap = await getCountFromServer(compQuery);
             setCounts({ exhibition: exhibitionSnap.data().count, competitions: compSnap.data().count });
-        } catch (e) { console.error(e); }
+        } catch (e) {}
     };
     fetchCounts();
-  }, [firestore]);
+  }, [firestore, user]);
 
   const publicPhotosQuery = useMemoFirebase(() => {
     if (!firestore || !user || view !== 'gallery') return null;
