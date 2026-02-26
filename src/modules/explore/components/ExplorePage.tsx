@@ -1,10 +1,9 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Photo, PublicUserProfile } from '@/types';
-import { Card } from '@/shared/ui/card';
+import { Card, CardContent } from '@/shared/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +12,9 @@ import {
   DialogClose,
   DialogDescription,
 } from '@/shared/ui/dialog';
-import { Star, Heart, Loader2, X, Trophy, Sparkles } from 'lucide-react';
+import { Star, Heart, Loader2, X, Trophy, Sparkles, LayoutGrid, ChevronRight, ArrowLeft, Filter, Layers, Camera } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, updateDocumentNonBlocking } from '@/lib/firebase';
-import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, orderBy, doc, where, arrayUnion, arrayRemove, getCountFromServer } from 'firebase/firestore';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Badge } from '@/shared/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -29,22 +28,16 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
+// --- PHOTO DETAIL DIALOG ---
 function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: Photo | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const firestore = useFirestore();
   const { user } = useUser();
-  const { toast } = useToast();
-
   const [photo, setPhoto] = useState(photoProp);
   const [isLiking, setIsLiking] = useState(false);
 
-  useEffect(() => {
-    setPhoto(photoProp);
-  }, [photoProp]);
+  useEffect(() => { setPhoto(photoProp); }, [photoProp]);
 
-  const ownerProfileRef = useMemoFirebase(() => 
-    (photo && firestore) ? doc(firestore, 'public_profiles', photo.userId) : null, 
-    [photo, firestore]
-  );
+  const ownerProfileRef = useMemoFirebase(() => (photo && firestore) ? doc(firestore, 'public_profiles', photo.userId) : null, [photo, firestore]);
   const { data: ownerProfile } = useDoc<PublicUserProfile>(ownerProfileRef);
 
   const overallScore = useMemo(() => {
@@ -61,10 +54,7 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
       level_name: ownerProfile?.level_name || photo?.userLevelName || "Neuner"
   };
 
-  const hasLiked = useMemo(() => {
-    if (!user || !photo?.likes) return false;
-    return photo.likes.includes(user.uid);
-  }, [photo?.likes, user]);
+  const hasLiked = useMemo(() => (user && photo?.likes) ? photo.likes.includes(user.uid) : false, [photo?.likes, user]);
 
   const toggleLike = async () => {
     if (!user || !photo || !firestore || isLiking) return;
@@ -85,19 +75,13 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden border-none shadow-2xl">
-        <DialogHeader className="sr-only">
-            <DialogTitle>Fotoğraf Detayı</DialogTitle>
-            <DialogDescription>{profileInfo.name} kullanıcısının paylaştığı fotoğrafın teknik analizi ve beğenileri.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[95vh] p-0 gap-0 overflow-hidden border-none shadow-2xl bg-background">
+        <DialogHeader className="sr-only"><DialogTitle>Fotoğraf Detayı</DialogTitle></DialogHeader>
         <div className="absolute right-4 top-4 z-20">
             <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 border border-white/10">
-                    <X className="h-6 w-6" />
-                </Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 border border-white/10"><X className="h-6 w-6" /></Button>
             </DialogClose>
         </div>
-        
         <ScrollArea className="max-h-[95vh] w-full">
             <div className="flex flex-col md:flex-row">
                 <div className="md:w-3/5 w-full relative aspect-square md:aspect-auto bg-black shrink-0">
@@ -114,7 +98,6 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
                         <Badge variant="outline" className="mt-1 bg-primary/5 text-primary border-primary/20 text-[11px] px-2 py-0.5">{profileInfo.level_name}</Badge>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-8">
                         <div className="flex items-center gap-3">
                             <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl" onClick={toggleLike} disabled={!user || isLiking}>
@@ -129,21 +112,12 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
                             </div>
                         )}
                     </div>
-
                     {photo.aiFeedback?.short_neutral_analysis && (
                         <div className="space-y-3">
-                            <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <Sparkles className="h-3 w-3" /> Analiz Özeti
-                            </h4>
+                            <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Sparkles className="h-3 w-3 text-purple-400" /> Analiz Özeti</h4>
                             <p className="text-sm text-foreground/90 italic leading-relaxed bg-muted/20 p-4 rounded-2xl border border-border/50">"{photo.aiFeedback.short_neutral_analysis}"</p>
                         </div>
                     )}
-
-                    <div className="pt-4 border-t border-border/50">
-                        <Button asChild variant="secondary" className="w-full h-12 rounded-xl font-bold">
-                            <Link href={`/explore?user=${photo.userId}`}>Tüm Eserlerini Gör</Link>
-                        </Button>
-                    </div>
                 </div>
             </div>
         </ScrollArea>
@@ -152,55 +126,201 @@ function PublicPhotoDialog({ photo: photoProp, isOpen, onOpenChange }: { photo: 
   );
 }
 
+// --- EXPLORE HUB (DASHBOARD) ---
+function ExploreHub({ exhibitionCount, activeCompCount, onSelect }: { exhibitionCount: number, activeCompCount: number, onSelect: (view: 'gallery' | 'competitions') => void }) {
+    return (
+        <div className="space-y-10 animate-in fade-in duration-500">
+            <div className="max-w-2xl">
+                <h1 className="text-5xl font-extrabold tracking-tight mb-4 bg-gradient-to-r from-white to-muted-foreground bg-clip-text text-transparent">Keşfet</h1>
+                <p className="text-lg text-muted-foreground leading-relaxed">Topluluğun yeteneklerini keşfedin, en iyi kareleri inceleyin veya resmi yarışmalarda yerinizi alın.</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+                {/* EXHIBITION CARD */}
+                <Card 
+                    className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/10 active:scale-[0.98]"
+                    onClick={() => onSelect('gallery')}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute -right-12 -top-12 h-48 w-48 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors" />
+                    
+                    <CardContent className="p-8 relative z-10">
+                        <div className="flex justify-between items-start mb-12">
+                            <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                <LayoutGrid className="h-7 w-7 text-primary" />
+                            </div>
+                            <Badge variant="secondary" className="h-7 px-3 bg-secondary/80 backdrop-blur-md border-border/50 text-xs font-bold uppercase tracking-wider">
+                                {exhibitionCount} Eser Yayında
+                            </Badge>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h3 className="text-3xl font-bold tracking-tight">Sergi Salonu</h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px]">Türkiyenin dört bir yanından seçkin fotoğraf karelerini inceleyin.</p>
+                        </div>
+
+                        <div className="mt-8 flex items-center gap-2 text-primary font-bold text-sm group-hover:gap-3 transition-all">
+                            İçeri Gir <ChevronRight className="h-4 w-4" />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* COMPETITIONS CARD */}
+                <Card 
+                    className="group relative overflow-hidden border-border/40 bg-card/50 rounded-[32px] cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-amber-500/10 active:scale-[0.98]"
+                    onClick={() => onSelect('competitions')}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute -right-12 -top-12 h-48 w-48 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-colors" />
+                    
+                    <CardContent className="p-8 relative z-10">
+                        <div className="flex justify-between items-start mb-12">
+                            <div className="h-14 w-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                                <Trophy className="h-7 w-7 text-amber-500" />
+                            </div>
+                            <Badge className="h-7 px-3 bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs font-bold uppercase tracking-wider">
+                                {activeCompCount} Aktif Yarışma
+                            </Badge>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h3 className="text-3xl font-bold tracking-tight">Yarışmalar</h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-[240px]">Resmi ödüllü yarışmalara katılın, yeteneklerinizi tescilleyin.</p>
+                        </div>
+
+                        <div className="mt-8 flex items-center gap-2 text-amber-500 font-bold text-sm group-hover:gap-3 transition-all">
+                            Yarışmaları Gör <ChevronRight className="h-4 w-4" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
+// --- MAIN PAGE ---
 export default function ExplorePage() {
+  const [view, setView] = useState<'hub' | 'gallery'>('hub');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [counts, setCounts] = useState({ exhibition: 0, competitions: 0 });
+  const [activeFilter, setActiveFilter] = useState('all');
+  
   const firestore = useFirestore();
   const { user } = useUser();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const filterUserId = searchParams.get('user');
+
+  // Fetch counts for Hub
+  useEffect(() => {
+    if (!firestore) return;
+    const fetchCounts = async () => {
+        try {
+            const exhibitionSnap = await getCountFromServer(collection(firestore, 'public_photos'));
+            const compQuery = query(collection(firestore, 'competitions'), where('endDate', '>', new Date().toISOString()));
+            const compSnap = await getCountFromServer(compQuery);
+            setCounts({ exhibition: exhibitionSnap.data().count, competitions: compSnap.data().count });
+        } catch (e) { console.error(e); }
+    };
+    fetchCounts();
+  }, [firestore]);
 
   const publicPhotosQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || view !== 'gallery') return null;
     let q = query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc'));
-    if (filterUserId) q = query(q, where('userId', '==', filterUserId));
+    if (activeFilter !== 'all') q = query(q, where('userLevelName', '==', activeFilter));
     return q;
-  }, [firestore, user, filterUserId]);
+  }, [firestore, user, view, activeFilter]);
   
   const { data: photos, isLoading } = useCollection<Photo>(publicPhotosQuery);
 
+  const filters = [
+      { id: 'all', label: 'Tümü', icon: LayoutGrid },
+      { id: 'Neuner', label: 'Yeni Başlayan (Neuner)', icon: Camera },
+      { id: 'Vexer', label: 'Mentorlar (Vexer)', icon: Star },
+      { id: 'Omner', label: 'İleri Seviye (Omner)', icon: Layers },
+  ];
+
+  if (view === 'hub') {
+      return (
+          <div className="container mx-auto px-4 pt-8">
+              <ExploreHub 
+                exhibitionCount={counts.exhibition} 
+                activeCompCount={counts.competitions} 
+                onSelect={(v) => v === 'competitions' ? router.push('/competitions') : setView('gallery')} 
+              />
+          </div>
+      );
+  }
+
   return (
-    <div className="container mx-auto px-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Sergi Salonu</h1>
-                <p className="text-muted-foreground text-sm">Topluluğun en ilham verici kareleri burada buluşuyor.</p>
-            </div>
-            <Button variant="secondary" onClick={() => router.push('/competitions')} className="w-full sm:w-auto">
-                <Trophy className="mr-2 h-4 w-4 text-amber-400" /> Yarışmaları Gör
+    <div className="container mx-auto px-4 pt-8 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col gap-8 mb-10">
+            <Button variant="ghost" onClick={() => setView('hub')} className="w-fit -ml-4 text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Keşfet Merkezine Dön
             </Button>
+            
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+                <div>
+                    <h1 className="text-4xl font-bold tracking-tight mb-2">Sergi Salonu</h1>
+                    <p className="text-muted-foreground">Topluluğun en ilham verici kareleri burada buluşuyor.</p>
+                </div>
+                
+                <div className="flex items-center gap-2 p-1 bg-secondary/30 border border-border/50 rounded-2xl backdrop-blur-sm overflow-x-auto max-w-full no-scrollbar">
+                    {filters.map(f => (
+                        <Button 
+                            key={f.id} 
+                            variant={activeFilter === f.id ? 'default' : 'ghost'} 
+                            size="sm"
+                            className={cn("h-9 rounded-xl px-4 text-xs font-bold transition-all", activeFilter === f.id ? "shadow-lg shadow-primary/20" : "text-muted-foreground")}
+                            onClick={() => setActiveFilter(f.id)}
+                        >
+                            <f.icon className="mr-2 h-3.5 w-3.5" /> {f.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
         </div>
 
-        {filterUserId && (
-            <div className="mb-6 flex items-center justify-between rounded-lg border p-3 bg-secondary/50">
-                <span className="text-sm font-medium italic">Seçili kullanıcının fotoğrafları gösteriliyor</span>
-                <Button variant="ghost" size="sm" onClick={() => router.push('/explore')}><X className="mr-2 h-4 w-4" /> Temizle</Button>
+        {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {Array.from({ length: 15 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-[24px]" />)}
+            </div>
+        ) : photos && photos.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {photos.map((photo) => (
+                    <Card 
+                        key={photo.id} 
+                        className="group relative aspect-square overflow-hidden cursor-pointer rounded-[24px] border-none shadow-sm hover:shadow-2xl transition-all hover:-translate-y-1" 
+                        onClick={() => setSelectedPhoto(photo)}
+                    >
+                        <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Avatar className="h-6 w-6 border border-white/20">
+                                    <AvatarImage src={photo.userPhotoURL || ''} className="object-cover" />
+                                    <AvatarFallback className="text-[8px]">{photo.userName?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-[11px] text-white font-bold truncate">@{photo.userName}</span>
+                            </div>
+                            {photo.aiFeedback && (
+                                <Badge className="bg-primary text-white text-[10px] h-6 px-2 rounded-lg border-none">
+                                    <Star className="h-2.5 w-2.5 text-white mr-1 fill-current" /> {normalizeScore(photo.aiFeedback.light_score).toFixed(1)}
+                                </Badge>
+                            )}
+                        </div>
+                    </Card>
+                ))}
+            </div>
+        ) : (
+            <div className="text-center py-32 rounded-[32px] border-2 border-dashed border-border/40 bg-muted/5 animate-in fade-in zoom-in duration-500">
+                <div className="h-20 w-20 rounded-3xl bg-secondary/50 flex items-center justify-center mx-auto mb-6">
+                    <Filter className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">Eser Bulunamadı</h3>
+                <p className="text-muted-foreground max-w-xs mx-auto">Bu kategori veya seviyede henüz paylaşılan bir eser bulunmuyor.</p>
+                <Button variant="outline" className="mt-8 rounded-xl" onClick={() => setActiveFilter('all')}>Tüm Eserleri Göster</Button>
             </div>
         )}
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {isLoading ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-lg" />) : 
-             photos?.map((photo) => (
-                <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer rounded-xl" onClick={() => setSelectedPhoto(photo)}>
-                    <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent" />
-                    <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] text-white font-medium truncate">@{photo.userName}</span>
-                        {photo.aiFeedback && <Badge className="bg-black/50 text-[10px] h-5 px-1"><Star className="h-2 w-2 text-amber-400 mr-1" /> {normalizeScore(photo.aiFeedback.light_score).toFixed(1)}</Badge>}
-                    </div>
-                </Card>
-            ))}
-        </div>
 
         <PublicPhotoDialog photo={selectedPhoto} isOpen={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)} />
     </div>
