@@ -50,9 +50,12 @@ export function useCollection<T = any>(query: any): {
         // Zengin içerikli izin hatası oluşturulur ve yayılır
         let path = 'unknown';
         try {
-            // Firestore Query nesnesinden path bilgisini güvenli bir şekilde almaya çalış
-            if (query.path) path = query.path;
-            else if (query._query && query._query.path) path = query._query.path.toString();
+            // Path bilgisini Query nesnesinden ayıkla
+            if (query.path) {
+                path = query.path;
+            } else if (query._query && query._query.path) {
+                path = query._query.path.segments.join('/');
+            }
         } catch (e) {}
 
         const contextualError = new FirestorePermissionError({

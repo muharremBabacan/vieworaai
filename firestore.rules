@@ -18,6 +18,8 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
+    // Admin kontrolü: Hem e-posta hem de UID üzerinden doğrulama yapar.
+    // Bu sayede Custom Claims (admin: true) olmasa bile yetki verilir.
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'admin@viewora.ai' ||
