@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -10,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit, increment } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit, setDoc, increment } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { 
     Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, 
@@ -83,7 +82,6 @@ export default function AdminPanel() {
     const firestore = useFirestore();
     const { user } = useUser();
     
-    const [timeFilter, setTimeFilter] = useState<'hourly' | 'daily' | 'weekly' | 'monthly' | 'all'>('daily');
     const [isGenerating, setIsGenerating] = useState(false);
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
@@ -141,11 +139,10 @@ export default function AdminPanel() {
 
     const metrics = useMemo(() => {
         if (!globalStats || !recentLogs) return null;
-        const today = globalStats[0] || { dau: 0, photoUploads: 0 };
         const totalAuroSpent = recentLogs.reduce((acc, log) => acc + (log.auroSpent || 0), 0);
         
         return {
-            today,
+            today: globalStats[0] || { dau: 0, photoUploads: 0, technicalAnalyses: 0, mentorAnalyses: 0 },
             totalAuroSpent,
             technicalAuro: recentLogs.filter(l => l.type === 'technical').reduce((acc, l) => acc + l.auroSpent, 0),
             mentorAuro: recentLogs.filter(l => l.type === 'mentor').reduce((acc, l) => acc + l.auroSpent, 0),
@@ -161,7 +158,9 @@ export default function AdminPanel() {
             try {
                 const snapshot = await getCountFromServer(collection(firestore, "users"));
                 setTotalUsers(snapshot.data().count);
-            } catch (e) {} finally { setIsFetchingCount(false); }
+            } catch (e) {
+                console.error("User count fetch error", e);
+            } finally { setIsFetchingCount(false); }
         };
         fetchCount();
     }, [firestore, isAdmin]);
@@ -226,7 +225,7 @@ export default function AdminPanel() {
         } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
     };
 
-    if (!isAdmin && user) return <div className="p-8 text-center"><Alert variant="destructive"><AlertTitle>Erişim Engellendi</AlertTitle></Alert></div>;
+    if (!isAdmin && user) return <div className="p-8 text-center"><Badge variant="destructive" className="px-4 py-2">Erişim Engellendi</Badge></div>;
 
     return (
         <div className="space-y-10 pb-32">
@@ -345,7 +344,7 @@ export default function AdminPanel() {
                                     <Label className="text-xs font-black uppercase text-muted-foreground">Müfredat</Label>
                                     <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel}>
                                         <SelectTrigger><SelectValue placeholder="Seç..." /></SelectTrigger>
-                                        <SelectContent>{selectedLevel && curriculum[selectedLevel as any].map(c => <SelectItem key={c.id} value={c.label}>{c.label}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{selectedLevel && curriculum[selectedLevel as keyof typeof curriculum].map(c => <SelectItem key={c.id} value={c.label}>{c.label}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                             </div>
