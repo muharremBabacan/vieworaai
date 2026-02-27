@@ -112,7 +112,8 @@ const strategicFeedbackFlow = ai.defineFlow(
     outputSchema: StrategicFeedbackOutputSchema,
   },
   async (input) => {
-    const { output } = await strategicFeedbackFlow(input);
+    // CORRECTED: Call the prompt object, not the flow itself recursively
+    const { output } = await generationPrompt(input);
 
     if (!output) {
       throw new Error('AI strategic feedback generation failed.');

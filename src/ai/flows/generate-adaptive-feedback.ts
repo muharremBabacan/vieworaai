@@ -111,6 +111,7 @@ const feedbackFlow = ai.defineFlow(
     outputSchema: AdaptiveFeedbackOutputSchema,
   },
   async (input) => {
+    // CORRECTED: Call the prompt object, not the flow itself recursively
     const { output } = await feedbackPrompt(input);
 
     if (!output) {

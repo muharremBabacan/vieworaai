@@ -135,7 +135,8 @@ export default function LumaMentorPage() {
             setStrategicFeedback(result);
             toast({ title: "Analiz Hazır", description: "Luma derin mentorluk planını hazırladı." });
         } catch (error) {
-            toast({ variant: 'destructive', title: "Hata" });
+            console.error("Mentor analysis error:", error);
+            toast({ variant: 'destructive', title: "Analiz Başarısız", description: "Bir hata oluştu, lütfen tekrar deneyin." });
         } finally {
             setIsAnalyzing(false);
         }
@@ -241,7 +242,9 @@ export default function LumaMentorPage() {
                                     <Sparkles className="h-5 w-5 text-purple-400" />
                                     <h4 className="text-lg font-black uppercase tracking-widest">Luma'nın Stratejisi</h4>
                                 </div>
-                                <p className="text-lg leading-relaxed text-foreground/90 italic">"{strategicFeedback.feedback}"</p>
+                                <div className="prose prose-sm dark:prose-invert">
+                                    <p className="text-lg leading-relaxed text-foreground/90 italic">"{strategicFeedback.feedback}"</p>
+                                </div>
                                 
                                 <div className="pt-8 border-t border-primary/10">
                                     <h5 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
