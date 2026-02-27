@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -10,14 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import {
-  collection, doc, updateDoc, deleteDoc, query, orderBy, where,
+  collection, doc, updateDoc, query, orderBy,
   addDoc, serverTimestamp, increment
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import {
-  Loader2, Users, Trophy, Trash2, Sparkles, Globe, Activity, TrendingUp, Gem, Camera, UserCheck
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Gem, Target
 } from 'lucide-react';
-import type { Competition, Exhibition, AnalysisLog } from '@/types';
+import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
@@ -25,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const exhibitionSchema = z.object({
   title: z.string().min(3),
@@ -73,10 +73,15 @@ export default function AdminPanel() {
     firestore && isAdmin ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
     [firestore, isAdmin]
   );
+  const usersQuery = useMemoFirebase(() =>
+    firestore && isAdmin ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null,
+    [firestore, isAdmin]
+  );
 
   const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
   const { data: competitions } = useCollection<Competition>(competitionsQuery);
   const { data: logs } = useCollection<AnalysisLog>(logsQuery);
+  const { data: users } = useCollection<User>(usersQuery);
 
   const metrics = useMemo(() => {
     if (!logs) return null;
@@ -116,7 +121,7 @@ export default function AdminPanel() {
     try {
       const docRef = await addDoc(collection(firestore, 'exhibitions'), {
         ...values,
-        imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s/g, '')}/1200/800`,
+        imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s+/g, '')}/1200/800`,
         isActive: true,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -133,7 +138,7 @@ export default function AdminPanel() {
     try {
       const docRef = await addDoc(collection(firestore, 'competitions'), {
         ...values,
-        imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s/g, '')}/1200/800`,
+        imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s+/g, '')}/1200/800`,
         scoringModel: 'hybrid', juryWeight: 40, aiWeight: 40, communityWeight: 20,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -148,21 +153,25 @@ export default function AdminPanel() {
 
   return (
     <div className="container mx-auto px-4 pb-20">
-      <Tabs defaultValue="accounting" className="space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <TabsList className="bg-secondary/30 p-1 rounded-xl">
-            <TabsTrigger value="accounting">Muhasebe</TabsTrigger>
-            <TabsTrigger value="content">İçerik Yönetimi</TabsTrigger>
-          </TabsList>
-          
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar w-full md:w-auto">
-            {['all', 'hourly', 'daily', 'weekly'].map(f => (
-              <Button key={f} variant={timeFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setTimeFilter(f)} className="rounded-full text-[10px] font-black uppercase h-7 px-4">
-                {f === 'all' ? 'Tümü' : f === 'hourly' ? 'Saatlik' : f === 'daily' ? 'Günlük' : 'Haftalık'}
-              </Button>
-            ))}
-          </div>
+      <header className="mb-10 flex flex-col sm:flex-row justify-between items-center gap-6">
+        <div className="flex items-center gap-4 bg-primary/10 px-6 py-3 rounded-full border border-primary/20">
+          <Activity className="h-5 w-5 text-primary" />
+          <p className="text-sm font-bold text-primary">TOPLAM {users?.length || 0} VİZYONER KAYITLI</p>
         </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          {['all', 'hourly', 'daily', 'weekly'].map(f => (
+            <Button key={f} variant={timeFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setTimeFilter(f)} className="rounded-full text-[10px] font-black uppercase h-8 px-5">
+              {f === 'all' ? 'Tümü' : f === 'hourly' ? 'Saatlik' : f === 'daily' ? 'Günlük' : 'Haftalık'}
+            </Button>
+          ))}
+        </div>
+      </header>
+
+      <Tabs defaultValue="accounting" className="space-y-8">
+        <TabsList className="bg-secondary/30 p-1 rounded-xl">
+          <TabsTrigger value="accounting">Muhasebe</TabsTrigger>
+          <TabsTrigger value="content">İçerik Yönetimi</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="accounting" className="space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

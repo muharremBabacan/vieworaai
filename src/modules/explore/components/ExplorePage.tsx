@@ -1,11 +1,10 @@
-
 'use client';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/lib/firebase';
-import { collection, query, orderBy, where, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import type { Exhibition, Photo } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,7 +37,7 @@ export default function ExplorePage() {
   if (view === 'halls') {
     return (
       <div className="container mx-auto px-4 pb-20 animate-in fade-in duration-500">
-        <header className="mb-12 space-y-2">
+        <header className="mb-12 space-y-2 text-center md:text-left">
           <h1 className="text-4xl font-extrabold tracking-tight">Sergi Salonu</h1>
           <p className="text-muted-foreground">Topluluğun en ilham verici kareleri bu salonlarda buluşuyor.</p>
         </header>

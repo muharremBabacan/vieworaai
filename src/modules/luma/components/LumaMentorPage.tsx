@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +7,7 @@ import type { User, Photo, StrategicFeedback, AnalysisLog, UserProfileIndex } fr
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Camera, Zap, ChevronRight, Target, BadgeCheck, Star, Info } from 'lucide-react';
+import { Loader2, Sparkles, Camera, Zap, Target, BadgeCheck } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
