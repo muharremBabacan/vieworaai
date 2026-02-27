@@ -3,10 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    //-------------------------------------------------------------------------
-    // Helper Functions
-    //-------------------------------------------------------------------------
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -25,134 +21,70 @@ service cloud.firestore {
       );
     }
     
-    //-------------------------------------------------------------------------
-    // Collection Group Rules
-    //-------------------------------------------------------------------------
-    
-    match /{path=**}/entries/{entryId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (isAdmin() || (request.resource.data.votes != null && resource.data.votes != null && request.resource.data.votes.size() > resource.data.votes.size()));
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-    }
-
-    match /{path=**}/photos/{photoId} {
-      allow read: if isSignedIn();
-    }
-
-    //-------------------------------------------------------------------------
-    // Individual Collection Rules
-    //-------------------------------------------------------------------------
-
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
-
-       match /transactions/{transactionId} {
-         allow read, write: if isOwner(userId) || isAdmin();
-       }
-       
-       match /lessonProgress/{progressId} {
-         allow read, write: if isOwner(userId) || isAdmin();
-       }
-
-       match /photos/{photoId} {
-         allow read, write: if isOwner(userId) || isAdmin();
-       }
-    }
-    
-    match /analysis_logs/{logId} {
-      allow read: if isSignedIn(); 
-      allow create: if isSignedIn();
-    }
-
-    match /global_stats/{statId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    match /public_profiles/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
-    }
-    
-    match /groups/{groupId} {
-      function isMember() {
-        return isSignedIn() && (request.auth.uid in resource.data.memberIds || request.auth.uid == resource.data.ownerId);
-      }
-    
-      function isGroupOwner() {
-        return isSignedIn() && (request.auth.uid == resource.data.ownerId || isAdmin());
-      }
-    
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerId;
-      allow get, list: if isSignedIn();
-    
-      allow update: if isGroupOwner() || (
-        isSignedIn() &&
-        !(request.auth.uid in request.resource.data.memberIds) &&
-        request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1 &&
-        request.auth.uid in request.resource.data.memberIds &&
-        request.resource.data.memberIds.size() <= resource.data.maxMembers
-      );
-    
-      allow delete: if isGroupOwner();
-
+      
       match /photos/{photoId} {
-        allow read, write: if isMember() || isAdmin();
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+      match /lessonProgress/{lessonId} {
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
     
-    match /group_invites/{inviteId} {
-      allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
-      allow read, list: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == resource.data.toUserId || isAdmin());
-      allow delete: if isAdmin();
-    }
-
-    match /academyLessons/{lessonId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /competitions/{competitionId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-
-      match /entries/{entryId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn();
-      }
-    }
-
     match /exhibitions/{exhibitionId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
     
-    match /global_notifications/{notifId} {
+    match /public_photos/{photoId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
     
-    match /public_photos/{photoId} {
-      allow read: if isSignedIn(); 
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow delete: if (isSignedIn() && (resource == null || request.auth.uid == resource.data.userId)) || isAdmin();
-      allow update: if isSignedIn();
+    match /competitions/{competitionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      
+      match /entries/{entryId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      }
+    }
+    
+    match /analysis_logs/{logId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn();
+    }
+    
+    match /global_stats/{statId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
-    match /settings/{settingId} {
+    match /groups/{groupId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin() || (request.resource.data.memberIds.size() > resource.data.memberIds.size()));
+      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /public_profiles/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    match /group_invites/{inviteId} {
+      allow read: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
     
-    // Explicitly redeploy rules by changing this comment to ensure latest access policies are active.
-    // Latest update: Fixing read access for public photos and exhibitions to resolve persistent permission errors.
+    // Explicitly redeploying to fix all persistent permission issues across the app.
   }
 }
