@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Globe, ArrowLeft, Camera, LayoutGrid, Clock, Users, ChevronRight, Star } from 'lucide-react';
+import { Globe, ArrowLeft, Camera, Clock, Users, ChevronRight, Star } from 'lucide-react';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
 

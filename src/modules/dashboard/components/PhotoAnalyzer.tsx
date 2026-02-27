@@ -1,9 +1,10 @@
+
 'use client';
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, increment, collection, writeBatch, query, limit, setDoc } from 'firebase/firestore';
+import { doc, increment, collection, writeBatch, query, limit, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
@@ -116,8 +117,6 @@ export default function PhotoAnalyzer() {
     const firestore = useFirestore();
     const userDocRef = useMemoFirebase(() => (user && firestore ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-    const photosQuery = useMemoFirebase(() => (user ? query(collection(firestore, 'users', user.uid, 'photos'), limit(1)) : null), [user, firestore]);
-    const { data: photos } = useCollection<Photo>(photosQuery);
 
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
@@ -136,6 +135,19 @@ export default function PhotoAnalyzer() {
 
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
+        
+        // DUPLICATE CHECK: Fingerprint calculation
+        const fingerprint = `${file.name}-${file.size}`;
+        const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
+        const dupSnap = await getDocs(dupQuery);
+        
+        if (!dupSnap.empty) {
+            toast({ variant: 'destructive', title: "Hata", description: "Bu fotoğraf zaten galerinizde mevcut." });
+            setFile(null);
+            setPreview(null);
+            return;
+        }
+
         if (analyze && userProfile.auro_balance < ANALYSIS_COST) { toast({ variant: 'destructive', title: "Yetersiz Auro" }); return; }
         setIsLoading(true);
         setLoadingState('uploading');
@@ -151,7 +163,7 @@ export default function PhotoAnalyzer() {
             const today = new Date().toISOString().split('T')[0];
             const statRef = doc(firestore, 'global_stats', `daily_${today}`);
             
-            let photoData: Photo = { id: photoDocRef.id, userId: user.uid, imageUrl, filePath, createdAt: new Date().toISOString(), aiFeedback: null, tags: [] };
+            let photoData: Photo = { id: photoDocRef.id, userId: user.uid, imageUrl, filePath, createdAt: new Date().toISOString(), aiFeedback: null, tags: [], fingerprint };
             let xpGained = UPLOAD_XP_GAIN;
             
             batch.set(statRef, { photoUploads: increment(1), date: today }, { merge: true });

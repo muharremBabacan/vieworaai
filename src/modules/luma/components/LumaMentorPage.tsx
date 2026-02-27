@@ -102,10 +102,10 @@ export default function LumaMentorPage() {
                 strengths: stats.avgLight > 7.5 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
                 weaknesses: stats.avgComp < 7 ? ["Kompozisyon Dengesi"] : ["Teknik Detaylar"],
                 dominant_technical_level: levelMapping[userProfile.level_name] || 'beginner',
-                trend: { direction: stats.avgLight > 7 || stats.avgComp > 7 ? 'improving' : 'stagnant', percentage: 12 },
+                trend: { direction: (stats.avgLight > 7 || stats.avgComp > 7) ? 'improving' : 'stagnant', percentage: 12 },
                 consistency_gap: stats.avgFocus > 8 ? 10 : 20,
                 metrics: { composition: Math.round(stats.avgComp * 10), light: Math.round(stats.avgLight * 10), storytelling: Math.round(stats.avgCreativity * 8), technical_clarity: Math.round((stats.avgFocus + stats.avgColor) / 2 * 10), boldness: Math.round(stats.avgCreativity * 10) },
-                communication_profile: { tone: userProfile.level_name === 'Neuner' ? 'supportive' : 'direct', explanation_depth: 'medium', challenge_level: 3 },
+                communication_profile: { tone: 'direct', explanation_depth: 'medium', challenge_level: 3 },
                 profile_index_score: Math.round((stats.avgLight + stats.avgComp + stats.avgFocus) / 3 * 10)
             };
             const result = await generateStrategicFeedback({

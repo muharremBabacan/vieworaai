@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -10,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Trash2, Loader2, Crown } from 'lucide-react';
+import { ArrowLeft, Trash2, Loader2, Crown, Users } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -52,9 +53,9 @@ export default function GroupDetailPage() {
   const groupRef = useMemoFirebase(() => doc(firestore, 'groups', groupId as string), [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading, error } = useDoc<Group>(groupRef);
 
-  // Kurucunun ismini her zaman çekmek için bağımsız profil sorgusu
-  const ownerProfileRef = useMemoFirebase(() => (group?.ownerId && firestore) ? doc(firestore, 'public_profiles', group.ownerId) : null, [group?.ownerId, firestore]);
-  const { data: ownerProfile } = useDoc<PublicUserProfile>(ownerProfileRef);
+  // FETCH FOUNDER NAME INDEPENDENTLY
+  const founderRef = useMemoFirebase(() => (group?.ownerId && firestore) ? doc(firestore, 'public_profiles', group.ownerId) : null, [group?.ownerId, firestore]);
+  const { data: founderProfile } = useDoc<PublicUserProfile>(founderRef);
 
   const isCurrentUserOwner = group?.ownerId === user?.uid;
   
@@ -103,7 +104,7 @@ export default function GroupDetailPage() {
                 <div className="space-y-1.5">
                     <h1 className="text-4xl font-black tracking-tighter">{group.name}</h1>
                     <div className="flex items-center gap-2 text-xs font-black text-amber-500 uppercase tracking-[0.15em]">
-                        <Users className="h-3.5 w-3.5" /> KURUCU: {ownerProfile?.name || 'Yükleniyor...'}
+                        <Users className="h-3.5 w-3.5" /> KURUCU: {founderProfile?.name || 'Yükleniyor...'}
                     </div>
                     <p className="text-muted-foreground text-sm font-medium leading-relaxed max-w-lg">{group.description}</p>
                 </div>

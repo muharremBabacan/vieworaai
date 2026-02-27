@@ -93,11 +93,12 @@ export type Photo = {
   adaptiveFeedback?: string | null;
   createdAt: string;
   isSubmittedToExhibition?: boolean;
-  exhibitionId?: string;
+  exhibitionId?: string | null;
   likes?: string[];
   userName?: string;
   userPhotoURL?: string | null;
   userLevelName?: string;
+  fingerprint?: string; // Duplicate check key (name + size)
 };
 
 export type Competition = {

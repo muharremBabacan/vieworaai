@@ -3,11 +3,9 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, writeBatch, increment, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, getDocs } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
-import { errorEmitter } from '@/lib/firebase/error-emitter';
-import { FirestorePermissionError } from '@/lib/firebase/errors';
 
 import type { Photo, User, Exhibition, AnalysisLog } from '@/types';
 import { levels as gamificationLevels } from '@/lib/gamification';
@@ -17,13 +15,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Globe, ArrowLeftRight, Star, ListFilter } from 'lucide-react';
+import { Sparkles, Trash2, ArrowLeftRight, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const ANALYSIS_COST = 1;
 const SUBMIT_TO_EXHIBITION_COST = 1;
@@ -69,6 +68,7 @@ export default function GalleryPage() {
         let result = [...photos];
         if (activeFilter === 'unanalyzed') result = result.filter(p => !p.aiFeedback);
         else if (activeFilter === 'best_overall') result = result.filter(p => p.aiFeedback).sort((a,b) => getOverallScore(b) - getOverallScore(a));
+        else if (activeFilter === 'exhibition') result = result.filter(p => p.isSubmittedToExhibition);
         return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [photos, activeFilter]);
 
@@ -128,12 +128,22 @@ export default function GalleryPage() {
               batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: false, exhibitionId: null });
               await batch.commit();
               toast({ title: "Sergiden çekildi" });
-              setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false, exhibitionId: undefined } : null);
+              setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false, exhibitionId: null } : null);
           } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsProcessing(false); }
           return;
       }
 
       if (!targetExhibitionId) { toast({ title: "Sergi Seçin", description: "Lütfen bir sergi teması seçin." }); return; }
+      
+      // EXHIBITION LIMIT CHECK: One photo per user per exhibition
+      const existingQuery = query(collection(firestore, 'public_photos'), where('userId', '==', user.uid), where('exhibitionId', '==', targetExhibitionId));
+      const existingSnap = await getDocs(existingQuery);
+      
+      if (!existingSnap.empty) {
+          toast({ variant: 'destructive', title: "Katılım Reddedildi", description: "Bu sergi salonuna zaten bir eserinizle katılmışsınız. Yeni bir tane göndermek için eskisini geri çekmelisiniz." });
+          return;
+      }
+
       const selectedEx = activeExhibitions?.find(e => e.id === targetExhibitionId);
       if (!selectedEx) return;
 
