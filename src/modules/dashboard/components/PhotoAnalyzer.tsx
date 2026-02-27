@@ -8,7 +8,6 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 
 import type { User, Photo, PhotoAnalysis, AnalysisLog } from '@/types';
 
@@ -86,7 +85,7 @@ const AnalysisResult = ({ analysis, adaptiveFeedback, onNewAnalysis }: { analysi
     );
 };
 
-const Uploader = ({ onFileSelect, userProfile, hasPhotos }: { onFileSelect: (file: File) => void, userProfile: User, hasPhotos: boolean }) => {
+const Uploader = ({ onFileSelect }: { onFileSelect: (file: File) => void }) => {
     const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
         onDrop: (acceptedFiles) => acceptedFiles.length > 0 && onFileSelect(acceptedFiles[0]),
         noClick: true, noKeyboard: true, accept: { 'image/*': ['.jpeg', '.png', '.jpg', '.heic', '.webp'] }
@@ -119,7 +118,6 @@ export default function PhotoAnalyzer() {
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
     const photosQuery = useMemoFirebase(() => (user ? query(collection(firestore, 'users', user.uid, 'photos'), limit(1)) : null), [user, firestore]);
     const { data: photos } = useCollection<Photo>(photosQuery);
-    const hasPhotos = useMemo(() => (photos ? photos.length > 0 : false), [photos]);
 
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
@@ -197,7 +195,7 @@ export default function PhotoAnalyzer() {
     
     return (
         <div className="container mx-auto px-4"><div className="mx-auto max-w-4xl">
-            {!file ? (<Uploader onFileSelect= {handleFileSelect} userProfile={userProfile} hasPhotos={hasPhotos} />) : isLoading ? (
+            {!file ? (<Uploader onFileSelect= {handleFileSelect} />) : isLoading ? (
                 <div className="analysis-wrapper"><div className="image-wrapper"><Image src={preview!} alt="Process" width={512} height={512} className="rounded-[24px] object-contain aspect-video" unoptimized /></div><div className="analysis-text-container"><p className="analysis-text font-bold tracking-tight">{loadingState === 'uploading' ? "Fotoğraf Hazırlanıyor..." : "Luma Analiz Ediyor..."}</p><div className="analysis-progress-bar"><div className="analysis-progress-bar-fill"></div></div></div></div>
             ) : analysisResult ? (<AnalysisResult analysis={analysisResult} adaptiveFeedback={adaptiveFeedback} onNewAnalysis={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} />) : (
                 <Card className="text-center p-10 bg-card/50 rounded-[40px] border-border/40 overflow-hidden shadow-2xl animate-in zoom-in duration-500">

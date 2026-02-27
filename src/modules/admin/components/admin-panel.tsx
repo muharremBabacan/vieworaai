@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Gem, Target
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Gem
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -60,7 +60,6 @@ export default function AdminPanel() {
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);
 
-  // Queries
   const exhibitionsQuery = useMemoFirebase(() =>
     firestore && isAdmin ? query(collection(firestore, 'exhibitions'), orderBy('createdAt', 'desc')) : null,
     [firestore, isAdmin]
@@ -91,7 +90,6 @@ export default function AdminPanel() {
       mentorAuro: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
       exhibitionAuro: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
       competitionAuro: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      totalActions: logs.length
     };
   }, [logs]);
 
@@ -226,7 +224,7 @@ export default function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="content" className="grid md:grid-cols-2 gap-8">
-          <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
+          <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden">
             <CardHeader className="bg-primary/5 border-b border-border/40 p-6"><CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Yeni Sergi Salonu</CardTitle></CardHeader>
             <CardContent className="p-6">
               <Form {...exhibitionForm}>
@@ -251,7 +249,7 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm">
+          <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden">
             <CardHeader className="bg-amber-500/5 border-b border-border/40 p-6"><CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-400" /> Yeni Yarışma</CardTitle></CardHeader>
             <CardContent className="p-6">
               <Form {...competitionForm}>

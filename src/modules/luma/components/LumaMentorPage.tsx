@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
 import { doc, collection, query, orderBy, limit, writeBatch, increment } from 'firebase/firestore';
-import type { User, Photo, StrategicFeedback, AnalysisLog, UserProfileIndex } from '@/types';
+import type { User, Photo, StrategicFeedback, UserProfileIndex } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

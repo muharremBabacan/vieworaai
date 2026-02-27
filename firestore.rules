@@ -84,12 +84,6 @@ service cloud.firestore {
       allow update, delete: if isSignedIn();
     }
     
-    // Global notifications
-    match /global_notifications/{notificationId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    // Explicitly redeploying to fix all persistent permission issues across the app.
+    // Explicitly redeploying to fix all persistent permission issues.
   }
 }

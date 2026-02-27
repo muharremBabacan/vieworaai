@@ -9,8 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Globe, ArrowLeft, Camera, LayoutGrid, Clock, Users, ChevronRight, Star } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 export default function ExplorePage() {
@@ -18,7 +17,6 @@ export default function ExplorePage() {
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   
   const firestore = useFirestore();
-  const router = useRouter();
 
   // Active Exhibitions Query
   const exhibitionsQuery = useMemoFirebase(() => 
@@ -33,6 +31,13 @@ export default function ExplorePage() {
     return query(collection(firestore, 'public_photos'), where('exhibitionId', '==', selectedExhibition.id), orderBy('createdAt', 'desc'));
   }, [firestore, selectedExhibition, view]);
   const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
+
+  const safeFormatDistance = (dateStr: string | undefined) => {
+    if (!dateStr) return 'Süresiz';
+    const date = new Date(dateStr);
+    if (!isValid(date)) return 'Yakında';
+    return formatDistanceToNow(date, { locale: tr });
+  };
 
   if (view === 'halls') {
     return (
@@ -60,7 +65,10 @@ export default function ExplorePage() {
                   <h2 className="text-3xl font-black text-white leading-tight">{ex.title}</h2>
                   <p className="text-white/70 text-sm line-clamp-2 max-w-md">{ex.description}</p>
                   <div className="flex items-center gap-4 pt-2">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-primary"><Clock className="h-3.5 w-3.5" /> {formatDistanceToNow(new Date(ex.endDate), { locale: tr })} kaldı</div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                      <Clock className="h-3.5 w-3.5" /> 
+                      {safeFormatDistance(ex.endDate)} kaldı
+                    </div>
                     <Button size="sm" className="rounded-full px-6 h-9 font-black uppercase text-[10px] tracking-widest bg-white text-black hover:bg-white/90 ml-auto">Salona Gir <ChevronRight className="ml-1 h-3 w-3" /></Button>
                   </div>
                 </div>
@@ -78,7 +86,6 @@ export default function ExplorePage() {
     );
   }
 
-  // Gallery View
   return (
     <div className="container mx-auto px-4 pb-20 animate-in slide-in-from-right-4 duration-500">
       <Button variant="ghost" onClick={() => setView('halls')} className="mb-8 hover:bg-primary/5 rounded-xl font-bold text-muted-foreground hover:text-primary transition-all">
@@ -121,8 +128,7 @@ export default function ExplorePage() {
         <div className="text-center py-32 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5">
           <Camera className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" />
           <h3 className="text-2xl font-bold">İlk Eseri Sen Paylaş!</h3>
-          <p className="text-muted-foreground max-w-sm mx-auto mt-2 mb-8">Bu sergi henüz boş. Galerinden bir fotoğrafı sergiye göndererek burayı canlandırabilirsin.</p>
-          <Button onClick={() => router.push('/gallery')} className="rounded-xl h-12 px-8 font-bold"><LayoutGrid className="mr-2 h-4 w-4" /> Galerime Git</Button>
+          <p className="text-muted-foreground max-w-sm mx-auto mt-2">Bu sergi henüz boş. Galerinden bir fotoğrafı sergiye göndererek burayı canlandırabilirsin.</p>
         </div>
       )}
     </div>
