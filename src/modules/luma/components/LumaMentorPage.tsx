@@ -1,17 +1,13 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit, where, collectionGroup, writeBatch, increment, setDoc } from 'firebase/firestore';
-import type { User, Photo, StrategicFeedback, CompetitionEntry, AnalysisLog } from '@/types';
+import { doc, collection, query, orderBy, limit, where, writeBatch, increment } from 'firebase/firestore';
+import type { User, Photo, StrategicFeedback, AnalysisLog } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, Camera, Zap, ArrowUpRight, Loader2, Award, History, Trophy, Globe, Users, Star, Medal, Shield, ChevronRight, Target } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2, Sparkles, Camera, Zap, ChevronRight, Target } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -108,6 +104,7 @@ export default function LumaMentorPage() {
 
             const result = await generateStrategicFeedback({
                 userPrompt: "Genel gelişimimi değerlendir ve bana bu hafta için stratejik bir yol haritası çıkar.",
+                language: "tr",
                 userProfileIndex: {
                     dominant_style: "Karma",
                     strengths: stats.avgLight > 7.5 ? ["Işık"] : ["Vizyon"],
@@ -115,7 +112,7 @@ export default function LumaMentorPage() {
                     dominant_technical_level: levelMapping[userProfile.level_name] || 'beginner',
                     trend: { direction: 'improving', percentage: 10 },
                     consistency_gap: 15,
-                    communication_profile: { tone: 'supportive', explanation_depth: 'medium', challenge_level: 3 }
+                    communication_profile: { tone: 'direct', explanation_depth: 'medium', challenge_level: 3 }
                 }
             });
 
@@ -129,14 +126,22 @@ export default function LumaMentorPage() {
               total_auro_spent: increment(MENTOR_COST),
               total_analyses_count: increment(1)
             });
-            // Use set with merge: true to ensure daily stats doc exists
+            
             batch.set(statRef, { 
               mentorAnalyses: increment(1), 
               auroSpent: increment(MENTOR_COST),
               date: today
             }, { merge: true });
             
-            batch.set(logRef, { id: logRef.id, userId: user.uid, userName: userProfile.name, type: 'mentor', auroSpent: MENTOR_COST, timestamp: new Date().toISOString(), status: 'success' });
+            batch.set(logRef, { 
+              id: logRef.id, 
+              userId: user.uid, 
+              userName: userProfile.name || 'Sanatçı', 
+              type: 'mentor', 
+              auroSpent: MENTOR_COST, 
+              timestamp: new Date().toISOString(), 
+              status: 'success' 
+            });
 
             await batch.commit();
             setStrategicFeedback(result);

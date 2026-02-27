@@ -30,6 +30,7 @@ const UserProfileIndexSchema = z.object({
 const StrategicFeedbackInputSchema = z.object({
     userPrompt: z.string(),
     userProfileIndex: UserProfileIndexSchema,
+    language: z.string().describe('The language for the response (e.g., "tr", "en").'),
 });
 export type StrategicFeedbackInput = z.infer<
   typeof StrategicFeedbackInputSchema
@@ -96,6 +97,8 @@ USER_PROFILE_INDEX:
 USER_REQUEST:
 "{{{userPrompt}}}"
 
+Respond in language: {{{language}}}
+
 Generate strategic guidance and one measurable action task. 
 Make the artist realize their path to mastery.
 `,
@@ -112,7 +115,6 @@ const strategicFeedbackFlow = ai.defineFlow(
     outputSchema: StrategicFeedbackOutputSchema,
   },
   async (input) => {
-    // CORRECTED: Call the prompt object, not the flow itself recursively
     const { output } = await generationPrompt(input);
 
     if (!output) {
