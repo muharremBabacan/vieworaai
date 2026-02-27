@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   onSnapshot,
   DocumentData,
@@ -9,6 +9,8 @@ import {
   QuerySnapshot,
 } from 'firebase/firestore';
 import { useAuth } from '@/lib/firebase/provider';
+import { FirestorePermissionError } from '@/lib/firebase/errors';
+import { errorEmitter } from '@/lib/firebase/error-emitter';
 
 export type WithId<T> = T & { id: string };
 
@@ -25,26 +27,37 @@ export function useCollection<T = any>(
   error: Error | null;
 } {
   const { requireAuth = false } = options;
-  const { currentUser } = useAuth();
+  const { user } = useAuth(); // Consistent naming
 
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  
+  // Track the current listener to avoid assertion errors during cleanup/setup
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // 1️⃣ Query yoksa çık
+    // 1️⃣ Cleanup previous listener if any
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+
+    // 2️⃣ Query yoksa çık
     if (!query) {
       setIsLoading(false);
+      setData(null);
       return;
     }
 
-    // 2️⃣ Auth gerekiyorsa ama yoksa bekle
-    if (requireAuth && !currentUser?.uid) {
+    // 3️⃣ Auth gerekiyorsa ama yoksa bekle
+    if (requireAuth && !user?.uid) {
       setIsLoading(false);
+      setData(null);
       return;
     }
 
-    // 3️⃣ Dev memo check
+    // 4️⃣ Dev memo check
     if (
       process.env.NODE_ENV === 'development' &&
       (query as any)?.__memo !== true
@@ -70,10 +83,7 @@ export function useCollection<T = any>(
       },
       (err: FirestoreError) => {
         console.error("🔥 RAW FIRESTORE ERROR:", err);
-        console.error("🔥 Error Code:", err.code);
-        console.error("🔥 Error Message:", err.message);
 
-        // Path bilgisi ayıklamaya çalış
         let path = 'unknown';
         try {
           if ((query as any)?.path) {
@@ -83,15 +93,28 @@ export function useCollection<T = any>(
           }
         } catch {}
 
-        console.error("🔥 Query Path:", path);
+        const contextualError = new FirestorePermissionError({
+          operation: 'list',
+          path: path,
+        });
 
-        setError(err);
+        setError(contextualError);
         setIsLoading(false);
+        
+        // Emit error for standard handler
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
-    return () => unsubscribe();
-  }, [query, requireAuth, currentUser?.uid]);
+    unsubscribeRef.current = unsubscribe;
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [query, requireAuth, user?.uid]);
 
   return { data, isLoading, error };
 }

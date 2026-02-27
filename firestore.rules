@@ -14,7 +14,7 @@ service cloud.firestore {
       return isSignedIn() && (
         request.auth.token.email == 'admin@viewora.ai' ||
         request.auth.token.email == 'babacan.muharrem@gmail.com' ||
-        request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
+        request.auth.uid == '01DT86bQwWUVrewnEb8c6bd8H43' ||
         request.auth.uid == 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1' ||
         request.auth.token.admin == true
       );
@@ -82,6 +82,12 @@ service cloud.firestore {
       allow read: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn();
+    }
+    
+    // Global notifications
+    match /global_notifications/{notificationId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
     
     // Explicitly redeploying to fix all persistent permission issues across the app.

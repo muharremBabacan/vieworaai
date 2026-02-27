@@ -56,7 +56,7 @@ export default function AdminPanel() {
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
-    const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
+    const adminUids = ['01DT86bQwWUVrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);
 
