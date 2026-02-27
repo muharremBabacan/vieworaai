@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit, setDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { 
     Loader2, Users, BookOpen, Trophy, Trash2, 

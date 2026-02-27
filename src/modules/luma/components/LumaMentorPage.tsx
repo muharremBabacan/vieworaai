@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit, where, writeBatch, increment } from 'firebase/firestore';
+import { doc, collection, query, orderBy, limit, where, writeBatch, increment, setDoc } from 'firebase/firestore';
 import type { User, Photo, StrategicFeedback, AnalysisLog, UserProfileIndex } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
