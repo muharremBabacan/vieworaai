@@ -3,16 +3,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
-import { collection, query, orderBy, doc, addDoc, where, writeBatch, increment, getDocs, collectionGroup } from 'firebase/firestore';
-import type { Competition, User, Photo, CompetitionEntry, ScoringModel } from '@/types';
+import { collection, query, orderBy, doc, where, writeBatch, increment } from 'firebase/firestore';
+import type { Competition, User, Photo, CompetitionEntry, ScoringModel, AnalysisLog } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Calendar, Sparkles, AlertCircle, Info, ScrollText, X, Clock, Camera, Upload, Loader2, CheckCircle2, LayoutGrid, Star, Users, Scale, Cpu, Medal, Shield } from 'lucide-react';
-import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
+import { Trophy, Clock, CheckCircle2, LayoutGrid, Star, Users, Scale, Cpu, Medal, Shield, Loader2, X } from 'lucide-react';
+import { differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -99,8 +99,6 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange }: { compe
                             {entries.map(e => (
                                 <div key={e.id} className="group relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-muted/20">
                                     <Image src={e.photoUrl} alt="Eser" fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
-                                    
-                                    {/* Award Badge Overlay */}
                                     {e.award && (
                                         <div className="absolute top-2 left-2 z-10">
                                             {e.award === 'winner' && (
@@ -120,7 +118,6 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange }: { compe
                                             )}
                                         </div>
                                     )}
-
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
                                         <p className="text-[10px] font-bold text-white truncate drop-shadow-md">@{e.userName}</p>
@@ -155,8 +152,14 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
         if (!photo) return;
         setIsSubmitting(true);
         try {
-            // Automatically assign participation shield award
-            await addDoc(collection(firestore, 'competitions', competition.id, 'entries'), {
+            const batch = writeBatch(firestore);
+            const entryRef = doc(collection(firestore, 'competitions', competition.id, 'entries'));
+            const logRef = doc(collection(firestore, 'analysis_logs'));
+            const today = new Date().toISOString().split('T')[0];
+            const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+
+            batch.set(entryRef, {
+                id: entryRef.id,
                 competitionId: competition.id,
                 userId: userProfile.id,
                 userName: userProfile.name || 'İsimsiz Sanatçı',
@@ -164,8 +167,22 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 filePath: photo.filePath || '',
                 submittedAt: new Date().toISOString(),
                 votes: [],
-                award: 'participant' // Default award for participation
+                award: 'participant'
             });
+
+            const log: AnalysisLog = {
+                id: logRef.id,
+                userId: userProfile.id,
+                userName: userProfile.name || 'Sanatçı',
+                type: 'competition',
+                auroSpent: 0,
+                timestamp: new Date().toISOString(),
+                status: 'success'
+            };
+            batch.set(logRef, log);
+            batch.set(statRef, { date: today }, { merge: true });
+
+            await batch.commit();
             toast({ title: "Tebrikler!", description: "Yarışmaya katıldınız ve Katılım Şilti kazandınız!" });
             setSelectedPhotoId(null);
             onOpenChange(false);
@@ -199,7 +216,6 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                 <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md">{competition.title}</h2>
                             </div>
                         </div>
-
                         <div className="p-6 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                 <div className="md:col-span-7 space-y-6">
@@ -207,10 +223,9 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                         <h3 className="text-xs font-bold mb-2 uppercase tracking-widest text-muted-foreground">Yarışma Hakkında</h3>
                                         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
                                     </div>
-
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="p-3 rounded-xl bg-card border border-border/40 flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0"><Sparkles className="h-4 w-4 text-purple-400" /></div>
+                                            <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0"><Star className="h-4 w-4 text-purple-400" /></div>
                                             <div className="min-w-0"><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight">Tema</p><p className="text-xs font-bold truncate">{competition.theme}</p></div>
                                         </div>
                                         <div className="p-3 rounded-xl bg-card border border-border/40 flex items-center gap-3">
@@ -218,7 +233,6 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                             <div className="min-w-0"><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight">Ödül</p><p className="text-xs font-bold truncate">{competition.prize}</p></div>
                                         </div>
                                     </div>
-
                                     <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
                                         <h4 className="text-[10px] text-primary uppercase font-bold tracking-widest flex items-center gap-2"><Scale className="h-3 w-3" /> Değerlendirme Stratejisi</h4>
                                         <div className="flex justify-between items-center text-xs">
@@ -228,7 +242,6 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                         </div>
                                     </div>
                                 </div>
-
                                 <div className="md:col-span-5 space-y-4">
                                     {status === 'active' && isEligible && (
                                         <div className="space-y-3">

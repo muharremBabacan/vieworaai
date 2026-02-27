@@ -58,7 +58,7 @@ export type AnalysisLog = {
   id: string;
   userId: string;
   userName: string;
-  type: 'technical' | 'mentor';
+  type: 'technical' | 'mentor' | 'exhibition' | 'competition' | 'gift' | 'package';
   auroSpent: number;
   timestamp: string;
   status: 'success' | 'failed';

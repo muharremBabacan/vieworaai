@@ -1,24 +1,23 @@
 
 'use client';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, updateDoc, writeBatch, increment, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 
-import type { Photo, User, Exhibition } from '@/types';
+import type { Photo, User, Exhibition, AnalysisLog } from '@/types';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertDialogTitleComponent, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Globe, Loader2, ArrowLeftRight, Star } from 'lucide-react';
+import { Sparkles, Trash2, Globe, ArrowLeftRight, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -89,8 +88,28 @@ export default function GalleryPage() {
         try {
             const analysis = await generatePhotoAnalysis({ photoUrl: photo.imageUrl, language: 'tr' });
             const batch = writeBatch(firestore);
+            const today = new Date().toISOString().split('T')[0];
+            const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+            const logRef = doc(collection(firestore, 'analysis_logs'));
+
             batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { aiFeedback: analysis, tags: analysis.tags || [] });
-            batch.update(doc(firestore, 'users', user.uid), { auro_balance: increment(-ANALYSIS_COST) });
+            batch.update(doc(firestore, 'users', user.uid), { 
+                auro_balance: increment(-ANALYSIS_COST),
+                total_auro_spent: increment(ANALYSIS_COST)
+            });
+            batch.set(statRef, { auroSpent: increment(ANALYSIS_COST), technicalAnalyses: increment(1), date: today }, { merge: true });
+            
+            const log: AnalysisLog = {
+                id: logRef.id,
+                userId: user.uid,
+                userName: userProfile.name || 'Sanatçı',
+                type: 'technical',
+                auroSpent: ANALYSIS_COST,
+                timestamp: new Date().toISOString(),
+                status: 'success'
+            };
+            batch.set(logRef, log);
+
             await batch.commit();
             toast({ title: "Analiz tamamlandı" });
             setSelectedPhoto({ ...photo, aiFeedback: analysis, tags: analysis.tags || [] });
@@ -140,9 +159,29 @@ export default function GalleryPage() {
               userPhotoURL: userProfile.photoURL || null, 
               userLevelName: userProfile.level_name 
           };
+          const today = new Date().toISOString().split('T')[0];
+          const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+          const logRef = doc(collection(firestore, 'analysis_logs'));
+
           batch.set(doc(firestore, 'public_photos', photo.id), publicData);
           batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: selectedEx.id });
-          batch.update(doc(firestore, 'users', user.uid), { auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST) });
+          batch.update(doc(firestore, 'users', user.uid), { 
+              auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST),
+              total_auro_spent: increment(SUBMIT_TO_EXHIBITION_COST)
+          });
+          batch.set(statRef, { auroSpent: increment(SUBMIT_TO_EXHIBITION_COST), date: today }, { merge: true });
+
+          const log: AnalysisLog = {
+              id: logRef.id,
+              userId: user.uid,
+              userName: userProfile.name || 'Sanatçı',
+              type: 'exhibition',
+              auroSpent: SUBMIT_TO_EXHIBITION_COST,
+              timestamp: new Date().toISOString(),
+              status: 'success'
+          };
+          batch.set(logRef, log);
+
           await batch.commit();
           toast({ title: "Sergiye gönderildi!" });
           setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true, exhibitionId: selectedEx.id } : null);
@@ -244,4 +283,3 @@ export default function GalleryPage() {
       </div>
     );
 }
-    

@@ -1,7 +1,7 @@
 
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit, increment, setDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit, increment } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { 
     Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, 
@@ -18,12 +18,9 @@ import {
     Rocket, Calendar, Flag, Zap, TrendingUp, DollarSign, 
     Activity, Camera, Filter, PieChart, Coins, Gift, ShoppingCart, Plus, Scale, Cpu, Star
 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -143,15 +140,18 @@ export default function AdminPanel() {
     });
 
     const metrics = useMemo(() => {
-        if (!globalStats || globalStats.length === 0 || !recentLogs) return null;
-        const today = globalStats[0];
+        if (!globalStats || !recentLogs) return null;
+        const today = globalStats[0] || { dau: 0, photoUploads: 0 };
         const totalAuroSpent = recentLogs.reduce((acc, log) => acc + (log.auroSpent || 0), 0);
+        
         return {
             today,
             totalAuroSpent,
             technicalAuro: recentLogs.filter(l => l.type === 'technical').reduce((acc, l) => acc + l.auroSpent, 0),
             mentorAuro: recentLogs.filter(l => l.type === 'mentor').reduce((acc, l) => acc + l.auroSpent, 0),
-            totalAnalyses: recentLogs.length
+            exhibitionAuro: recentLogs.filter(l => l.type === 'exhibition').reduce((acc, l) => acc + l.auroSpent, 0),
+            competitionAuro: recentLogs.filter(l => l.type === 'competition').reduce((acc, l) => acc + l.auroSpent, 0),
+            totalAnalyses: recentLogs.filter(l => l.type === 'technical' || l.type === 'mentor').length
         };
     }, [globalStats, recentLogs]);
 
@@ -279,12 +279,33 @@ export default function AdminPanel() {
                 </TabsContent>
 
                 <TabsContent value="accounting" className="space-y-8">
-                    <div className="grid gap-6 md:grid-cols-3">
-                        <Card className="bg-green-500/5 border-green-500/20 rounded-[24px]">
-                            <CardHeader><CardDescription className="text-xs font-bold uppercase text-green-400">Harcanan Toplam Auro</CardDescription></CardHeader>
-                            <CardContent><p className="text-5xl font-black text-green-400">{metrics?.totalAuroSpent || 0}</p></CardContent>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+                        <Card className="bg-green-500/10 border-green-500/20 rounded-[24px] lg:col-span-1 shadow-lg shadow-green-500/5">
+                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase text-green-400 tracking-widest">Harcanan Toplam</CardDescription></CardHeader>
+                            <CardContent><p className="text-5xl font-black text-green-400 drop-shadow-sm">{metrics?.totalAuroSpent || 0}</p></CardContent>
+                        </Card>
+                        
+                        <Card className="bg-blue-500/5 border-blue-500/20 rounded-[24px]">
+                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase text-blue-400/70">Teknik Analiz</CardDescription></CardHeader>
+                            <CardContent><p className="text-2xl font-black">{metrics?.technicalAuro || 0}</p></CardContent>
+                        </Card>
+
+                        <Card className="bg-purple-500/5 border-purple-500/20 rounded-[24px]">
+                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase text-purple-400/70">Mentorluk</CardDescription></CardHeader>
+                            <CardContent><p className="text-2xl font-black">{metrics?.mentorAuro || 0}</p></CardContent>
+                        </Card>
+
+                        <Card className="bg-cyan-500/5 border-cyan-500/20 rounded-[24px]">
+                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase text-cyan-400/70">Sergi</CardDescription></CardHeader>
+                            <CardContent><p className="text-2xl font-black">{metrics?.exhibitionAuro || 0}</p></CardContent>
+                        </Card>
+
+                        <Card className="bg-amber-500/5 border-amber-500/20 rounded-[24px]">
+                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase text-amber-400/70">Yarışma</CardDescription></CardHeader>
+                            <CardContent><p className="text-2xl font-black">{metrics?.competitionAuro || 0}</p></CardContent>
                         </Card>
                     </div>
+
                     <Card className="rounded-[24px]">
                         <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Son İşlemler</CardTitle></CardHeader>
                         <CardContent className="p-0">
@@ -295,7 +316,7 @@ export default function AdminPanel() {
                                         {recentLogs?.map(log => (
                                             <TableRow key={log.id}>
                                                 <TableCell className="pl-6 font-bold">{log.userName}</TableCell>
-                                                <TableCell><Badge variant={log.type === 'mentor' ? 'default' : 'secondary'} className="text-[10px] uppercase">{log.type}</Badge></TableCell>
+                                                <TableCell><Badge variant="secondary" className="text-[10px] uppercase font-bold">{log.type}</Badge></TableCell>
                                                 <TableCell className="font-black text-red-400">-{log.auroSpent}</TableCell>
                                                 <TableCell className="text-right pr-6 text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleString('tr-TR')}</TableCell>
                                             </TableRow>
@@ -418,7 +439,15 @@ export default function AdminPanel() {
                                             <FormField control={exhibitionForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Sergi Adı</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                                             <FormField control={exhibitionForm.control} name="description" render={({ field }) => (<FormItem><FormLabel>Açıklama</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
                                             <div className="grid grid-cols-2 gap-4">
-                                                <FormField control={exhibitionForm.control} name="minLevel" render={({ field }) => (<FormItem><FormLabel>Min. Seviye</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                <FormField control={exhibitionForm.control} name="minLevel" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Min. Seviye</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
                                                 <FormField control={exhibitionForm.control} name="imageHint" render={({ field }) => (<FormItem><FormLabel>Görsel İpucu</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
