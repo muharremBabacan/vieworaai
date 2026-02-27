@@ -10,8 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
-import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
-import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit, increment } from 'firebase/firestore';
+import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit, increment, setDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { 
     Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, 
@@ -88,14 +87,11 @@ export default function AdminPanel() {
     const { user } = useUser();
     
     const [timeFilter, setTimeFilter] = useState<'hourly' | 'daily' | 'weekly' | 'monthly' | 'all'>('daily');
-    const [categoryFilter, setCategoryFilter] = useState<'all' | 'analysis' | 'social' | 'auro'>('all');
     const [isGenerating, setIsGenerating] = useState(false);
     const [totalUsers, setTotalUsers] = useState<number | null>(null);
     const [isFetchingCount, setIsFetchingCount] = useState(true);
     const [selectedLevel, setSelectedLevel] = useState<string>('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
-    const [testFeedback, setTestFeedback] = useState<any>(null);
-    const [isTestingCoach, setIsTestingCoach] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com' || user?.uid === 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1';
@@ -149,7 +145,6 @@ export default function AdminPanel() {
     const metrics = useMemo(() => {
         if (!globalStats || globalStats.length === 0 || !recentLogs) return null;
         const today = globalStats[0];
-        const last7Days = globalStats.slice(0, 7);
         const totalAuroSpent = recentLogs.reduce((acc, log) => acc + (log.auroSpent || 0), 0);
         return {
             today,
@@ -354,8 +349,28 @@ export default function AdminPanel() {
                                             <FormField control={competitionForm.control} name="description" render={({ field }) => (<FormItem><FormLabel>Açıklama</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                                             <div className="grid grid-cols-3 gap-4">
                                                 <FormField control={competitionForm.control} name="prize" render={({ field }) => (<FormItem><FormLabel>Ödül</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                <FormField control={competitionForm.control} name="targetLevel" render={({ field }) => (<FormItem><FormLabel>Seviye</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                <FormField control={competitionForm.control} name="scoringModel" render={({ field }) => (<FormItem><FormLabel>Model</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="hybrid">Hibrit</SelectItem><SelectItem value="ai_only">Sadece AI</SelectItem><SelectItem value="community">Topluluk</SelectItem></Select></FormItem>)} />
+                                                <FormField control={competitionForm.control} name="targetLevel" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Seviye</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={competitionForm.control} name="scoringModel" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Model</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="hybrid">Hibrit</SelectItem>
+                                                                <SelectItem value="ai_only">Sadece AI</SelectItem>
+                                                                <SelectItem value="community">Topluluk</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
                                             </div>
                                             <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-xl">
                                                 <FormField control={competitionForm.control} name="juryWeight" render={({ field }) => (<FormItem><FormLabel>Jüri %</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl></FormItem>)} />
@@ -393,7 +408,7 @@ export default function AdminPanel() {
                     {/* Exhibition Management */}
                     <Card className="rounded-[24px]">
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <div><CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5 text-cyan-500" /> Sergi Yönetimi</CardTitle><CardDescription>Sergi salonlarını açın ve temaları düzenleyin.</CardDescription></div>
+                            <div><CardTitle className="flex items-center gap-3"><Globe className="h-5 w-5 text-cyan-500" /> Sergi Yönetimi</CardTitle><CardDescription>Sergi salonlarını açın ve temaları düzenleyin.</CardDescription></div>
                             <Dialog>
                                 <DialogTrigger asChild><Button size="sm" variant="outline" className="rounded-xl"><Plus className="mr-2 h-4 w-4" /> Yeni Sergi</Button></DialogTrigger>
                                 <DialogContent>
