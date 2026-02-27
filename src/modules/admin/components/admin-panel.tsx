@@ -298,11 +298,11 @@ export default function AdminPanel() {
                             <CardContent><div className="flex items-center justify-between"><p className="text-4xl font-black">{metrics?.totalAnalyses || 0}</p><Sparkles className="h-6 w-6 text-purple-400 opacity-40" /></div></CardContent>
                         </Card>
                         <Card className="bg-cyan-500/5 border-cyan-500/20 rounded-[24px]">
-                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-cyan-400/70">Fotoğraf Trafiği</CardDescription></CardHeader>
+                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase text-cyan-400/70">Fotoğraf Trafiği</CardDescription></CardHeader>
                             <CardContent><div className="flex items-center justify-between"><p className="text-4xl font-black">{metrics?.today.photoUploads || 0}</p><Camera className="h-6 w-6 text-cyan-400 opacity-40" /></div></CardContent>
                         </Card>
                         <Card className="bg-amber-500/5 border-amber-500/20 rounded-[24px]">
-                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-400/70">Yarışma & Sergi</CardDescription></CardHeader>
+                            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase text-amber-400/70">Yarışma & Sergi</CardDescription></CardHeader>
                             <CardContent><div className="flex items-center justify-between"><p className="text-4xl font-black">{(competitions?.length || 0) + (exhibitions?.length || 0)}</p><Globe className="h-6 w-6 text-amber-400 opacity-40" /></div></CardContent>
                         </Card>
                     </div>
@@ -359,7 +359,6 @@ export default function AdminPanel() {
                 </TabsContent>
 
                 <TabsContent value="operations" className="space-y-12">
-                    {/* Lesson Generation */}
                     <Card className="rounded-[24px]">
                         <CardHeader><CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Akademi Ders Üretimi</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
@@ -383,7 +382,6 @@ export default function AdminPanel() {
                         </CardContent>
                     </Card>
 
-                    {/* Competition Management */}
                     <Card className="rounded-[24px]">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div><CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-amber-500" /> Yarışma Yönetimi</CardTitle><CardDescription>Yarışmaları oluşturun ve katılımları takip edin.</CardDescription></div>
@@ -456,7 +454,6 @@ export default function AdminPanel() {
                         </CardContent>
                     </Card>
 
-                    {/* Exhibition Management */}
                     <Card className="rounded-[24px]">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div><CardTitle className="flex items-center gap-3"><Globe className="h-5 w-5 text-cyan-500" /> Sergi Yönetimi</CardTitle><CardDescription>Sergi salonlarını açın ve temaları düzenleyin.</CardDescription></div>

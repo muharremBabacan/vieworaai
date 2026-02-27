@@ -123,7 +123,7 @@ export default function LumaMentorPage() {
                 metrics: {
                     composition: Math.round(stats.avgComp * 10),
                     light: Math.round(stats.avgLight * 10),
-                    storytelling: Math.round(stats.avgCreativity * 8), // Proxy for storytelling
+                    storytelling: Math.round(stats.avgCreativity * 8), 
                     technical_clarity: Math.round((stats.avgFocus + stats.avgColor) / 2 * 10),
                     boldness: Math.round(stats.avgCreativity * 10)
                 },
