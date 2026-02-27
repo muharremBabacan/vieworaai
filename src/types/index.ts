@@ -15,6 +15,13 @@ export type UserProfileIndex = {
     percentage: number;
   };
   consistency_gap: number;
+  metrics?: {
+    composition: number;
+    light: number;
+    storytelling: number;
+    technical_clarity: number;
+    boldness: number;
+  };
   communication_profile: {
     tone: 'supportive' | 'direct' | 'analytical';
     explanation_depth: 'low' | 'medium' | 'high';

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -8,7 +7,7 @@ import type { User, Photo, StrategicFeedback, AnalysisLog, UserProfileIndex } fr
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Camera, Zap, ChevronRight, Target, BadgeCheck } from 'lucide-react';
+import { Loader2, Sparkles, Camera, Zap, ChevronRight, Target, BadgeCheck, Star, Info } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -32,8 +31,8 @@ export default function LumaMentorPage() {
     const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userRef);
 
-    // Fetch Recent Photos for Context
-    const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'), limit(5)) : null, [user, firestore]);
+    // Fetch Recent Photos for Context - Increased to 12 for deeper analysis
+    const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'), limit(12)) : null, [user, firestore]);
     const { data: recentPhotos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
 
     const lastPhoto = useMemo(() => recentPhotos?.[0] || null, [recentPhotos]);
@@ -48,7 +47,9 @@ export default function LumaMentorPage() {
             light: acc.light + normalizeScore(p.aiFeedback?.light_score),
             composition: acc.composition + normalizeScore(p.aiFeedback?.composition_score),
             focus: acc.focus + normalizeScore(p.aiFeedback?.focus_score),
-        }), { light: 0, composition: 0, focus: 0 });
+            color: acc.color + normalizeScore(p.aiFeedback?.color_control_score),
+            creativity: acc.creativity + normalizeScore(p.aiFeedback?.creativity_risk_score),
+        }), { light: 0, composition: 0, focus: 0, color: 0, creativity: 0 });
 
         const genres = analyzed.map(p => p.aiFeedback?.genre).filter(Boolean);
         const dominantGenre = genres.length > 0 ? genres.sort((a, b) => genres.filter(v => v === a).length - genres.filter(v => v === b).length).pop() : 'Karma';
@@ -57,6 +58,8 @@ export default function LumaMentorPage() {
             avgLight: sum.light / analyzed.length,
             avgComp: sum.composition / analyzed.length,
             avgFocus: sum.focus / analyzed.length,
+            avgColor: sum.color / analyzed.length,
+            avgCreativity: sum.creativity / analyzed.length,
             totalAnalyzed: analyzed.length,
             lastUploadDate: new Date(recentPhotos[0].createdAt),
             dominantGenre: dominantGenre as string
@@ -107,7 +110,7 @@ export default function LumaMentorPage() {
                 'Neuner': 'beginner', 'Viewner': 'beginner', 'Sytner': 'intermediate', 'Omner': 'intermediate', 'Vexer': 'advanced'
             };
 
-            const profileIndex: UserProfileIndex = userProfile.profile_index || {
+            const profileIndex: UserProfileIndex = {
                 dominant_style: stats.dominantGenre,
                 strengths: stats.avgLight > 7.5 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
                 weaknesses: stats.avgComp < 7 ? ["Kompozisyon Dengesi"] : ["Teknik Detaylar"],
@@ -117,9 +120,16 @@ export default function LumaMentorPage() {
                     percentage: 12 
                 },
                 consistency_gap: stats.avgFocus > 8 ? 10 : 20,
+                metrics: {
+                    composition: Math.round(stats.avgComp * 10),
+                    light: Math.round(stats.avgLight * 10),
+                    storytelling: Math.round(stats.avgCreativity * 8), // Proxy for storytelling
+                    technical_clarity: Math.round((stats.avgFocus + stats.avgColor) / 2 * 10),
+                    boldness: Math.round(stats.avgCreativity * 10)
+                },
                 communication_profile: { 
-                    tone: 'direct', 
-                    explanation_depth: userProfile.level_name === 'Neuner' ? 'low' : 'medium', 
+                    tone: userProfile.level_name === 'Neuner' ? 'supportive' : 'direct', 
+                    explanation_depth: 'medium', 
                     challenge_level: 3 
                 },
                 profile_index_score: Math.round((stats.avgLight + stats.avgComp + stats.avgFocus) / 3 * 10)
@@ -250,7 +260,7 @@ export default function LumaMentorPage() {
                                 <div className="max-w-sm mx-auto space-y-3">
                                     <h4 className="text-xl font-bold">Detaylı gelişim planını görmek ister misin?</h4>
                                     <p className="text-sm text-muted-foreground leading-relaxed">
-                                        Tüm geçmişini tarayıp, vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlayabilirim.
+                                        Son 12 fotoğrafını tarayıp, vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlayabilirim.
                                     </p>
                                 </div>
                                 <Button 
@@ -264,45 +274,85 @@ export default function LumaMentorPage() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 animate-in slide-in-from-bottom-4 duration-500 shadow-xl">
-                            <CardContent className="p-8 space-y-8">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <Sparkles className="h-5 w-5 text-purple-400" />
-                                    <h4 className="text-lg font-black uppercase tracking-widest">Luma'nın Stratejisi</h4>
-                                </div>
-                                <div className="prose prose-sm dark:prose-invert">
-                                    <p className="text-lg leading-relaxed text-foreground/90 italic">"{strategicFeedback.feedback}"</p>
+                        <Card className="rounded-[32px] border-primary/20 bg-card overflow-hidden animate-in slide-in-from-bottom-4 duration-500 shadow-xl">
+                            <CardContent className="p-0">
+                                {/* Header / Summary Area */}
+                                <div className="p-8 bg-secondary/20 border-b border-border/40">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <Sparkles className="h-5 w-5 text-purple-400" />
+                                        <h4 className="text-lg font-black uppercase tracking-widest">Luma Analizi – Kişisel Strateji</h4>
+                                    </div>
+                                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                                        <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed font-medium">
+                                            {strategicFeedback.feedback}
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <div className="pt-8 border-t border-primary/10">
-                                    <h5 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
-                                        <BadgeCheck className="h-4 w-4" /> Haftalık Fotoğraf Görevi
-                                    </h5>
-                                    <div className="bg-background/50 rounded-2xl p-6 border border-primary/10">
-                                        <h6 className="text-lg font-bold mb-3">{strategicFeedback.actionTask.title}</h6>
-                                        <ul className="space-y-2">
-                                            {strategicFeedback.actionTask.steps.map((step, i) => (
-                                                <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground leading-relaxed">
-                                                    <div className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold">{i+1}</div>
-                                                    {step}
+                                {/* Weekly Task Area */}
+                                <div className="p-8 space-y-8">
+                                    <div>
+                                        <h5 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-2">
+                                            <BadgeCheck className="h-4 w-4" /> Haftalık Görev – {strategicFeedback.actionTask.title}
+                                        </h5>
+                                        
+                                        <div className="space-y-6">
+                                            <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10">
+                                                <h6 className="text-sm font-black uppercase tracking-tight text-primary/80 mb-2">Amaç</h6>
+                                                <p className="text-sm text-foreground/80">{strategicFeedback.actionTask.purpose}</p>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {strategicFeedback.actionTask.steps.map((step, i) => (
+                                                    <div key={i} className="flex items-start gap-4">
+                                                        <div className="h-6 w-6 rounded-full bg-secondary text-primary border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 text-xs font-black">{i+1}</div>
+                                                        <p className="text-sm text-foreground/90 leading-relaxed">{step}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Self-Evaluation Section */}
+                                    <div className="pt-8 border-t border-border/40">
+                                        <h6 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Değerlendirme</h6>
+                                        <ul className="grid gap-2">
+                                            {strategicFeedback.actionTask.evaluationQuestions.map((q, i) => (
+                                                <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground italic">
+                                                    <ChevronRight className="h-3 w-3 text-primary" /> {q}
                                                 </li>
                                             ))}
                                         </ul>
                                     </div>
-                                </div>
 
-                                {/* 📚 Glossary / Explanations Section */}
-                                {strategicFeedback.explanations && strategicFeedback.explanations.length > 0 && (
-                                    <div className="pt-6 border-t border-primary/5 space-y-3">
-                                        {strategicFeedback.explanations.map((exp, i) => (
-                                            <p key={i} className="text-[10px] text-muted-foreground/80 leading-relaxed italic">
-                                                <span className="font-black text-primary/60 mr-1">* {exp.term.toUpperCase()}:</span> {exp.definition}
-                                            </p>
+                                    {/* Weekly Targets Badge list */}
+                                    <div className="pt-6 flex flex-wrap gap-2">
+                                        {strategicFeedback.actionTask.weeklyTarget.map((target, i) => (
+                                            <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[10px] font-bold uppercase tracking-tight">
+                                                <Star className="h-3 w-3 fill-current" /> {target}
+                                            </div>
                                         ))}
                                     </div>
-                                )}
 
-                                <Button variant="ghost" className="w-full text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary" onClick={() => setStrategicFeedback(null)}>Yeni bir analiz ister misin?</Button>
+                                    {/* 📚 Glossary / Explanations Section */}
+                                    {strategicFeedback.explanations && strategicFeedback.explanations.length > 0 && (
+                                        <div className="pt-8 border-t border-border/40">
+                                            <div className="flex items-center gap-2 mb-4 opacity-60">
+                                                <Info className="h-3 w-3" />
+                                                <span className="text-[9px] font-black uppercase tracking-widest">Sözlük</span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {strategicFeedback.explanations.map((exp, i) => (
+                                                    <p key={i} className="text-[10px] text-muted-foreground/80 leading-relaxed">
+                                                        <span className="font-black text-primary/60 mr-1">* {exp.term.toUpperCase()}:</span> {exp.definition}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <Button variant="ghost" className="w-full text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary pt-4" onClick={() => setStrategicFeedback(null)}>Yeni bir analiz ister misin?</Button>
+                                </div>
                             </CardContent>
                         </Card>
                     )}
