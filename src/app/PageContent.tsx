@@ -1,4 +1,3 @@
-
 'use client';
 import {
   GoogleAuthProvider,
@@ -151,11 +150,17 @@ export default function PageContent() {
       router.push(onboarded ? '/dashboard' : '/onboarding');
 
     } catch (error: any) {
-      console.error('Popup login error:', error);
+      console.error('Login error:', error);
+      
+      let errorMessage = "Google ile giriş yapılamadı.";
+      if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Giriş penceresi tarayıcı tarafından engellendi. Lütfen pop-up engelleyiciyi kapatın veya izin verin.";
+      }
+
       toast({
         variant: 'destructive',
         title: "Giriş Başarısız",
-        description: "Google ile giriş yapılamadı.",
+        description: errorMessage,
       });
       setIsLoading(false);
     }

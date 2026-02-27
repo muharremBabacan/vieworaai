@@ -89,7 +89,12 @@ export default function AdminPanel() {
     const [timeFilter, setTimeFilter] = useState<'hourly' | 'daily' | 'weekly' | 'monthly' | 'all'>('daily');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'analysis' | 'exhibition' | 'competition'>('all');
 
-    const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com' || user?.uid === 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1';
+    const isAdmin = useMemo(() => {
+        if (!user) return false;
+        const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
+        const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
+        return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
+    }, [user]);
 
     // Data Fetching
     const statsQuery = useMemoFirebase(() => 
@@ -403,7 +408,9 @@ export default function AdminPanel() {
                                                         <FormLabel>Seviye</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                            <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
+                                                            <SelectContent>
+                                                                {gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}
+                                                            </SelectContent>
                                                         </Select>
                                                     </FormItem>
                                                 )} />
