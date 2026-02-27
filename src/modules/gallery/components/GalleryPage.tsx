@@ -17,12 +17,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Globe, ArrowLeftRight, Star } from 'lucide-react';
+import { Sparkles, Trash2, Globe, ArrowLeftRight, Star, ListFilter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ANALYSIS_COST = 1;
 const SUBMIT_TO_EXHIBITION_COST = 1;
@@ -204,75 +205,125 @@ export default function GalleryPage() {
 
     if (isLoading) return <div className="container mx-auto px-4"><Skeleton className="h-8 w-48 mb-8" /><div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[...Array(8)].map((_,i)=><Skeleton key={i} className="aspect-square rounded-lg" />)}</div></div>;
 
+    const filters = [
+        { id: 'all', label: 'Tümü' },
+        { id: 'unanalyzed', label: 'Analiz Bekleyenler' },
+        { id: 'best_overall', label: 'En İyilerim' },
+        { id: 'exhibition', label: 'Sergilenenler' },
+    ];
+
     return (
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold tracking-tight mb-8">Galerim</h1>
+      <div className="container mx-auto px-4 pb-20">
+        <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-black tracking-tight">Galerim</h1>
+            <Button size="sm" onClick={() => router.push('/dashboard')} className="rounded-full h-10 px-6 font-bold shadow-lg shadow-primary/20"><Sparkles className="mr-2 h-4 w-4" /> Yeni Analiz</Button>
+        </div>
+
         {photos && photos.length > 0 ? (
           <>
-            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-                {['all', 'unanalyzed', 'best_overall'].map(f => (
-                    <Button key={f} variant={activeFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter(f)} className="capitalize">{f === 'all' ? 'Tümü' : f.replace('_', ' ')}</Button>
-                ))}
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <ScrollArea className="w-full whitespace-nowrap mb-8 pb-4">
+                <div className="flex w-max gap-3 px-1">
+                    {filters.map(f => (
+                        <Button 
+                            key={f.id} 
+                            variant={activeFilter === f.id ? 'default' : 'secondary'} 
+                            size="sm" 
+                            onClick={() => setActiveFilter(f.id)} 
+                            className={cn(
+                                "rounded-full h-10 px-6 font-bold transition-all",
+                                activeFilter === f.id ? "shadow-md shadow-primary/20 scale-105" : "hover:bg-muted"
+                            )}
+                        >
+                            {f.label}
+                        </Button>
+                    ))}
+                </div>
+                <ScrollBar orientation="horizontal" className="hidden" />
+            </ScrollArea>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
               {filteredPhotos.map((photo) => (
-                <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
-                    <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover" unoptimized />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    {photo.aiFeedback && <Badge className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm"><Star className="h-3 w-3 text-yellow-400 mr-1" /> {getOverallScore(photo).toFixed(1)}</Badge>}
-                    {photo.isSubmittedToExhibition && <div className="absolute top-2 left-2 p-1 bg-primary rounded-full"><Globe className="h-3 w-3 text-white" /></div>}
+                <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer rounded-[24px] border-none shadow-md transition-all hover:scale-[1.02] active:scale-95" onClick={() => setSelectedPhoto(photo)}>
+                    <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover transition-transform duration-500 group-hover:scale-110" unoptimized />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {photo.aiFeedback && (
+                        <div className="absolute top-3 right-3 animate-in zoom-in duration-300">
+                            <Badge className="bg-black/50 backdrop-blur-md border-white/10 px-2 h-7 font-black">
+                                <Star className="h-3 w-3 text-yellow-400 mr-1 fill-current" /> {getOverallScore(photo).toFixed(1)}
+                            </Badge>
+                        </div>
+                    )}
+                    {photo.isSubmittedToExhibition && (
+                        <div className="absolute bottom-3 left-3 animate-in slide-in-from-bottom-2">
+                            <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 px-2 h-6 text-[9px] font-black uppercase tracking-wider">SERGİDE</Badge>
+                        </div>
+                    )}
                 </Card>
               ))}
             </div>
           </>
-        ) : <div className="text-center py-20 border-2 border-dashed rounded-2xl"><Button onClick={() => router.push('/dashboard')}>Fotoğraf Yükle</Button></div>}
+        ) : (
+            <div className="text-center py-32 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 animate-in zoom-in duration-500">
+                <Camera className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" />
+                <h3 className="text-2xl font-bold mb-2">Galeriniz Boş</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto mb-8">Henüz fotoğraf yüklemediniz. Luma ile ilk teknik analizinizi yaparak galeriyi doldurmaya başlayın.</p>
+                <Button onClick={() => router.push('/dashboard')} size="lg" className="rounded-2xl h-14 px-10 font-bold">Hemen Fotoğraf Yükle</Button>
+            </div>
+        )}
 
         <Dialog open={!!selectedPhoto} onOpenChange={o => !o && setSelectedPhoto(null)}>
             {selectedPhoto && (
-                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden">
-                    <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black"><Image src={selectedPhoto.imageUrl} alt="Fotoğraf" fill className="object-contain" unoptimized /></div>
-                    <div className="md:w-2/5 w-full flex flex-col p-6 space-y-6 overflow-y-auto">
-                        <DialogTitle>Detaylar</DialogTitle>
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl">
+                    <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40"><Image src={selectedPhoto.imageUrl} alt="Fotoğraf" fill className="object-contain" unoptimized /></div>
+                    <div className="md:w-2/5 w-full flex flex-col p-8 space-y-8 overflow-y-auto">
+                        <DialogTitle className="text-2xl font-black tracking-tight">Eser Detayları</DialogTitle>
                         {selectedPhoto.aiFeedback ? (
-                            <div className="space-y-4">
-                                <Card className="p-4 border-primary/20 bg-primary/5">
-                                    <div className="flex justify-between items-baseline mb-4">
-                                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Genel Puan</span>
-                                        <p className="text-2xl font-black text-primary">{getOverallScore(selectedPhoto).toFixed(1)}</p>
+                            <div className="space-y-6">
+                                <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px]">
+                                    <div className="flex justify-between items-baseline mb-6">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Teknik Skor</span>
+                                        <p className="text-4xl font-black text-primary">{getOverallScore(selectedPhoto).toFixed(1)}</p>
                                     </div>
-                                    <div className="space-y-3">
+                                    <div className="space-y-5">
                                         <RatingBar label="Işık" score={normalizeScore(selectedPhoto.aiFeedback.light_score)} />
                                         <RatingBar label="Kompozisyon" score={normalizeScore(selectedPhoto.aiFeedback.composition_score)} />
                                     </div>
                                 </Card>
-                                <div className="prose prose-sm dark:prose-invert">
-                                    <p className="text-sm italic text-foreground/80 leading-relaxed">
-                                        {selectedPhoto.adaptiveFeedback || selectedPhoto.aiFeedback.short_neutral_analysis}
+                                <div className="space-y-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Luma Notu</span>
+                                    <p className="text-sm italic text-foreground/90 leading-relaxed font-medium bg-muted/30 p-4 rounded-xl border border-border/40">
+                                        "{selectedPhoto.adaptiveFeedback || selectedPhoto.aiFeedback.short_neutral_analysis}"
                                     </p>
                                 </div>
                                 {selectedPhoto.tags && (
-                                    <div className="flex flex-wrap gap-1.5 pt-2">
-                                        {selectedPhoto.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-[10px] bg-secondary/50 uppercase font-bold">{t}</Badge>)}
+                                    <div className="flex flex-wrap gap-2 pt-2">
+                                        {selectedPhoto.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-[9px] bg-secondary/50 uppercase font-black px-3 h-6 border-none">{t}</Badge>)}
                                     </div>
                                 )}
                             </div>
-                        ) : <Button onClick={() => handleAnalyze(selectedPhoto)} disabled={isProcessing} className="w-full h-11"><Sparkles className="mr-2 h-4 w-4" /> Analiz Et ({ANALYSIS_COST} Auro)</Button>}
+                        ) : (
+                            <div className="space-y-4 py-10 text-center">
+                                <Sparkles className="h-12 w-12 text-primary mx-auto mb-2 opacity-50" />
+                                <p className="text-sm text-muted-foreground font-medium">Bu fotoğraf henüz teknik olarak analiz edilmedi.</p>
+                                <Button onClick={() => handleAnalyze(selectedPhoto)} disabled={isProcessing} className="w-full h-12 rounded-xl font-bold">Analiz Et ({ANALYSIS_COST} Auro)</Button>
+                            </div>
+                        )}
                         
-                        <div className="pt-6 border-t space-y-4">
+                        <div className="pt-8 border-t border-border/40 space-y-4 mt-auto">
                             {!selectedPhoto.isSubmittedToExhibition && activeExhibitions && activeExhibitions.length > 0 && (
                                 <div className="space-y-2">
-                                    <Label className="text-xs uppercase font-black text-muted-foreground ml-1">Sergi Salonu Seçin</Label>
+                                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Sergi Salonu Seçin</Label>
                                     <Select onValueChange={setTargetExhibitionId} value={targetExhibitionId}>
-                                        <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Sergi teması seç..." /></SelectTrigger>
+                                        <SelectTrigger className="h-11 rounded-xl bg-muted/30 border-border/40"><SelectValue placeholder="Sergi teması seç..." /></SelectTrigger>
                                         <SelectContent>{activeExhibitions.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                             )}
-                            <Button onClick={() => handleToggleExhibition(selectedPhoto)} variant="outline" className="w-full h-11 rounded-xl font-bold" disabled={isProcessing}>
+                            <Button onClick={() => handleToggleExhibition(selectedPhoto)} variant="outline" className="w-full h-12 rounded-xl font-bold border-border/60" disabled={isProcessing}>
                                 <ArrowLeftRight className="mr-2 h-4 w-4" />
-                                {selectedPhoto.isSubmittedToExhibition ? "Sergiden Geri Çek" : "Sergiye Gönder"}
+                                {selectedPhoto.isSubmittedToExhibition ? "Sergiden Geri Çek" : "Sergiye Gönder (1 Auro)"}
                             </Button>
-                            <Button variant="ghost" className="w-full h-11 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" onClick={() => handleDelete(selectedPhoto)} disabled={isProcessing}>
+                            <Button variant="ghost" className="w-full h-12 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" onClick={() => handleDelete(selectedPhoto)} disabled={isProcessing}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Kalıcı Olarak Sil
                             </Button>
                         </div>

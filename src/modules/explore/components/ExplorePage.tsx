@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -18,14 +19,12 @@ export default function ExplorePage() {
   
   const firestore = useFirestore();
 
-  // Active Exhibitions Query
   const exhibitionsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
     [firestore]
   );
   const { data: exhibitions, isLoading: isHallsLoading } = useCollection<Exhibition>(exhibitionsQuery);
 
-  // Photos for selected exhibition
   const photosQuery = useMemoFirebase(() => {
     if (!firestore || !selectedExhibition || view !== 'gallery') return null;
     return query(collection(firestore, 'public_photos'), where('exhibitionId', '==', selectedExhibition.id), orderBy('createdAt', 'desc'));

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -63,7 +64,7 @@ service cloud.firestore {
     
     match /global_stats/{statId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() || isSignedIn();
     }
 
     match /groups/{groupId} {
@@ -89,6 +90,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // Explicitly redeploying to fix all persistent permission issues and global_notifications access.
+    match /academyLessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }
