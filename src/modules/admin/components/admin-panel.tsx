@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -87,6 +86,8 @@ export default function AdminPanel() {
     const [selectedLevel, setSelectedLevel] = useState<string>('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [timeFilter, setTimeFilter] = useState<'hourly' | 'daily' | 'weekly' | 'monthly' | 'all'>('daily');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'analysis' | 'exhibition' | 'competition'>('all');
 
     const isAdmin = user?.email === 'admin@viewora.ai' || user?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43' || user?.email === 'babacan.muharrem@gmail.com' || user?.uid === 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1';
 
@@ -228,7 +229,7 @@ export default function AdminPanel() {
 
     return (
         <div className="space-y-10 pb-32">
-            {/* HERO: TOTAL USER COUNT */}
+            {/* HERO: TOTAL USER COUNT - FIXED AT TOP */}
             <div className="relative overflow-hidden rounded-[40px] border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-accent/5 p-12 text-center shadow-2xl">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.08),transparent_70%)] pointer-events-none" />
                 <div className="relative z-10 space-y-4">
@@ -245,6 +246,37 @@ export default function AdminPanel() {
                         )}
                     </div>
                     <p className="text-sm text-muted-foreground font-medium tracking-wide opacity-60">Viewora ekosistemi büyümeye devam ediyor.</p>
+                </div>
+            </div>
+
+            {/* ROLLING FILTERS */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary/20 p-2 rounded-[24px] border border-border/40 backdrop-blur-md sticky top-20 z-40">
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                    {['hourly', 'daily', 'weekly', 'monthly', 'all'].map((f) => (
+                        <Button 
+                            key={f} 
+                            variant={timeFilter === f ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            className="rounded-xl text-[10px] font-bold uppercase tracking-widest px-4 h-9"
+                            onClick={() => setTimeFilter(f as any)}
+                        >
+                            {f === 'hourly' ? 'Saatlik' : f === 'daily' ? 'Günlük' : f === 'weekly' ? 'Haftalık' : f === 'monthly' ? 'Aylık' : 'Tümü'}
+                        </Button>
+                    ))}
+                </div>
+                <div className="hidden sm:block h-6 w-px bg-border/50 mx-2" />
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                    {['all', 'analysis', 'exhibition', 'competition'].map((c) => (
+                        <Button 
+                            key={c} 
+                            variant={categoryFilter === c ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            className="rounded-xl text-[10px] font-bold uppercase tracking-widest px-4 h-9"
+                            onClick={() => setCategoryFilter(c as any)}
+                        >
+                            {c === 'all' ? 'Hepsi' : c === 'analysis' ? 'Analiz' : c === 'exhibition' ? 'Sergi' : 'Yarışma'}
+                        </Button>
+                    ))}
                 </div>
             </div>
 

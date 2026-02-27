@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
 import { doc, collection, query, orderBy, limit, where, writeBatch, increment, setDoc } from 'firebase/firestore';
 import type { User, Photo, StrategicFeedback, AnalysisLog, UserProfileIndex } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
@@ -94,7 +93,7 @@ export default function LumaMentorPage() {
         return metrics.sort((a, b) => a.score - b.score)[0];
     }, [stats]);
 
-    const handleAsk Luma = async () => {
+    const handleAskLuma = async () => {
         if (!user || !userProfile || !stats || !firestore) {
             toast({ variant: 'destructive', title: "Eksik Veri", description: "Analiz yapabilmem için önce birkaç fotoğrafını analiz etmelisin." });
             return;

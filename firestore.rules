@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -19,7 +18,7 @@ service cloud.firestore {
       return isSignedIn() && (
         request.auth.token.email == 'admin@viewora.ai' ||
         request.auth.token.email == 'babacan.muharrem@gmail.com' ||
-        request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
+        request.auth.uid == '01DT86bQwWUVrewnEb8c6bd8H43' ||
         request.auth.uid == 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1' ||
         request.auth.token.admin == true
       );
@@ -66,17 +65,17 @@ service cloud.firestore {
     }
     
     match /analysis_logs/{logId} {
-      allow get, list: if isSignedIn(); 
+      allow read: if isSignedIn(); 
       allow create: if isSignedIn();
     }
 
     match /global_stats/{statId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /public_profiles/{userId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
@@ -116,46 +115,43 @@ service cloud.firestore {
     }
 
     match /academyLessons/{lessonId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
     
     match /competitions/{competitionId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
 
       match /entries/{entryId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow write: if isSignedIn();
       }
     }
 
     match /exhibitions/{exhibitionId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
     
     match /global_notifications/{notifId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
     
     match /public_photos/{photoId} {
-      allow get, list: if isSignedIn(); 
+      allow read: if isSignedIn(); 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow delete: if (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid)) || isAdmin();
+      allow delete: if (isSignedIn() && (resource == null || request.auth.uid == resource.data.userId)) || isAdmin();
       allow update: if isSignedIn();
     }
 
     match /settings/{settingId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
     
-    // Explicitly allow reading exhibitions at collection level
-    // This comment ensures a rules redeploy.
-    match /exhibitions {
-      allow list: if isSignedIn();
-    }
+    // Explicitly redeploy rules by changing this comment to ensure latest access policies are active.
+    // Latest update: Fixing read access for public photos and exhibitions to resolve persistent permission errors.
   }
 }
