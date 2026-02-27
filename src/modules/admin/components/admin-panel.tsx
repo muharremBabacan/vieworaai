@@ -94,15 +94,13 @@ export default function AdminPanel() {
         const today = globalStats[0];
         const last7Days = globalStats.slice(0, 7);
         
-        // Accounting Specifics
         const totalAuroSpent = recentLogs.reduce((acc, log) => acc + (log.auroSpent || 0), 0);
         const technicalAuro = recentLogs.filter(l => l.type === 'technical').reduce((acc, l) => acc + l.auroSpent, 0);
         const mentorAuro = recentLogs.filter(l => l.type === 'mentor').reduce((acc, l) => acc + l.auroSpent, 0);
         
-        // Mock data for new categories (to be replaced by actual logs later)
         const exhibitionSubmissions = 42; 
         const competitionEntries = 128;
-        const giftedAuro = 500; // onboarding + refill mock
+        const giftedAuro = 500;
 
         return {
             today,
@@ -128,7 +126,6 @@ export default function AdminPanel() {
         fetchCount();
     }, [firestore, isAdmin]);
 
-    // --- Actions ---
     const handleGenerateLessons = async () => {
         if (!selectedLevel || !selectedCategory) {
             toast({ variant: 'destructive', title: "Seçim Eksik", description: "Lütfen seviye ve kategori seçin." });
@@ -172,6 +169,35 @@ export default function AdminPanel() {
 
     return (
         <div className="space-y-10 pb-32">
+            {/* --- HERO: TOTAL USER COUNT (STATIC & EXCITING) --- */}
+            <div className="relative overflow-hidden rounded-[40px] border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-accent/5 p-12 text-center shadow-2xl">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.08),transparent_70%)] pointer-events-none" />
+                <div className="relative z-10 space-y-4">
+                    <Badge variant="outline" className="text-[10px] font-black tracking-[0.3em] border-primary/30 text-primary px-6 py-1.5 uppercase bg-primary/5 rounded-full animate-in fade-in zoom-in duration-700">
+                        Kayıtlı Vizyoner Topluluğu
+                    </Badge>
+                    
+                    <div className="flex flex-col items-center justify-center min-h-[120px]">
+                        {isFetchingCount ? (
+                            <div className="flex items-center gap-3 text-muted-foreground/30">
+                                <Loader2 className="h-12 w-12 animate-spin" />
+                                <span className="text-4xl font-black animate-pulse">Tarama yapılıyor...</span>
+                            </div>
+                        ) : (
+                            <div className="animate-in slide-in-from-bottom-8 duration-1000 ease-out">
+                                <p className="text-9xl font-black tracking-tighter leading-none bg-gradient-to-b from-white via-white to-muted-foreground/50 bg-clip-text text-transparent drop-shadow-sm">
+                                    {totalUsers?.toLocaleString('tr-TR') || '0'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground font-medium tracking-wide opacity-60">
+                        Viewora ekosistemi büyümeye devam ediyor.
+                    </p>
+                </div>
+            </div>
+
             {/* --- ADVANCED TOP FILTER BAR --- */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-secondary/30 border border-border/50 rounded-[24px] backdrop-blur-md sticky top-20 z-40">
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
@@ -219,7 +245,7 @@ export default function AdminPanel() {
                 {/* --- DASHBOARD TAB --- */}
                 <TabsContent value="dashboard" className="space-y-8 animate-in fade-in duration-500">
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                        <Card className="bg-primary/5 border-primary/20">
+                        <Card className="bg-primary/5 border-primary/20 rounded-[24px]">
                             <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/70">Aktif Sanatçılar (DAU)</CardDescription></CardHeader>
                             <CardContent>
                                 <div className="flex items-center justify-between">
@@ -230,7 +256,7 @@ export default function AdminPanel() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-purple-500/5 border-purple-500/20">
+                        <Card className="bg-purple-500/5 border-purple-500/20 rounded-[24px]">
                             <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-400/70">Toplam Analiz</CardDescription></CardHeader>
                             <CardContent>
                                 <div className="flex items-center justify-between">
@@ -244,7 +270,7 @@ export default function AdminPanel() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-cyan-500/5 border-cyan-500/20">
+                        <Card className="bg-cyan-500/5 border-cyan-500/20 rounded-[24px]">
                             <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-cyan-400/70">Fotoğraf Trafiği</CardDescription></CardHeader>
                             <CardContent>
                                 <div className="flex items-center justify-between">
@@ -255,7 +281,7 @@ export default function AdminPanel() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-amber-500/5 border-amber-500/20">
+                        <Card className="bg-amber-500/5 border-amber-500/20 rounded-[24px]">
                             <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-400/70">Etkileşim (Sosyal)</CardDescription></CardHeader>
                             <CardContent>
                                 <div className="flex items-center justify-between">
@@ -269,22 +295,12 @@ export default function AdminPanel() {
                             </CardContent>
                         </Card>
                     </div>
-
-                    {/* Total User Growth Visual */}
-                    <Card className="bg-gradient-to-br from-primary/10 via-background to-accent/5 border-primary/20 overflow-hidden relative">
-                        <CardContent className="py-16 text-center space-y-6">
-                            <div className="flex flex-col items-center">
-                                {isFetchingCount ? <Skeleton className="h-20 w-48" /> : <p className="text-9xl font-black tracking-tighter leading-none bg-gradient-to-b from-white to-muted-foreground bg-clip-text text-transparent">{totalUsers || '0'}</p>}
-                                <Badge variant="outline" className="mt-6 text-xs font-black tracking-[0.3em] border-primary/30 text-primary px-6 py-1.5 uppercase bg-primary/5 rounded-full">Kayıtlı Vizyoner Sayısı</Badge>
-                            </div>
-                        </CardContent>
-                    </Card>
                 </TabsContent>
 
                 {/* --- ACCOUNTING (MUHASEBE) TAB --- */}
                 <TabsContent value="accounting" className="space-y-8 animate-in fade-in duration-500">
                     <div className="grid gap-6 md:grid-cols-3">
-                        <Card className="bg-green-500/5 border-green-500/20 relative overflow-hidden">
+                        <Card className="bg-green-500/5 border-green-500/20 rounded-[24px] relative overflow-hidden">
                             <div className="absolute -right-4 -bottom-4 opacity-10"><Coins className="h-32 w-32" /></div>
                             <CardHeader><CardDescription className="text-xs font-bold uppercase text-green-400">Harcanan Toplam Auro</CardDescription></CardHeader>
                             <CardContent>
@@ -298,7 +314,7 @@ export default function AdminPanel() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-blue-500/5 border-blue-500/20">
+                        <Card className="bg-blue-500/5 border-blue-500/20 rounded-[24px]">
                             <CardHeader><CardDescription className="text-xs font-bold uppercase text-blue-400">Hediye / Ücretsiz Kaynaklar</CardDescription></CardHeader>
                             <CardContent>
                                 <p className="text-5xl font-black text-blue-400">{metrics?.giftedAuro || 0}</p>
@@ -307,7 +323,7 @@ export default function AdminPanel() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-purple-500/5 border-purple-500/20">
+                        <Card className="bg-purple-500/5 border-purple-500/20 rounded-[24px]">
                             <CardHeader><CardDescription className="text-xs font-bold uppercase text-purple-400">Satın Alınan Paketler</CardDescription></CardHeader>
                             <CardContent>
                                 <p className="text-5xl font-black text-purple-400">0</p>
@@ -317,7 +333,7 @@ export default function AdminPanel() {
                         </Card>
                     </div>
 
-                    <Card>
+                    <Card className="rounded-[24px]">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Mali Hareketler</CardTitle>
                             <CardDescription>Auro harcanan ve kazanılan tüm işlemlerin detaylı dökümü.</CardDescription>
@@ -380,7 +396,7 @@ export default function AdminPanel() {
                                         <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedLevel}>
                                             <SelectTrigger><SelectValue placeholder="Seç..." /></SelectTrigger>
                                             <SelectContent>
-                                                {selectedLevel && curriculum[selectedLevel as Level].map(c => (
+                                                {selectedLevel && curriculum[selectedLevel as any].map(c => (
                                                     <SelectItem key={c.id} value={c.label}>{c.label}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -397,7 +413,10 @@ export default function AdminPanel() {
                         {/* Coach Tester */}
                         <Card className="rounded-[24px]">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5 text-purple-400" /> Stratejik Koçluk Testi</CardTitle>
+                                <CardTitle className="flex items-center gap-3">
+                                    <Target className="h-5 w-5 text-purple-400" />
+                                    Stratejik Koçluk Testi
+                                </CardTitle>
                                 <CardDescription>Luma'nın kişisel gelişim planlarını test edin.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -415,19 +434,19 @@ export default function AdminPanel() {
 
                     {/* Content Management Quick Access */}
                     <div className="grid gap-6 md:grid-cols-3">
-                        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => router.push('/competitions')}>
+                        <Card className="rounded-[24px] cursor-pointer hover:bg-accent/50 transition-colors border-border/40" onClick={() => router.push('/competitions')}>
                             <CardContent className="p-6 flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center"><Trophy className="h-6 w-6 text-amber-500" /></div>
                                 <div><h4 className="font-bold">Yarışma Yönetimi</h4><p className="text-[10px] text-muted-foreground uppercase">Aktif Yarışmaları Düzenle</p></div>
                             </CardContent>
                         </Card>
-                        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => router.push('/explore')}>
+                        <Card className="rounded-[24px] cursor-pointer hover:bg-accent/50 transition-colors border-border/40" onClick={() => router.push('/explore')}>
                             <CardContent className="p-6 flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-cyan-500/10 flex items-center justify-center"><Globe className="h-6 w-6 text-cyan-500" /></div>
                                 <div><h4 className="font-bold">Sergi Salonları</h4><p className="text-[10px] text-muted-foreground uppercase">Genel Sergileri Yönet</p></div>
                             </CardContent>
                         </Card>
-                        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => router.push('/academy')}>
+                        <Card className="rounded-[24px] cursor-pointer hover:bg-accent/50 transition-colors border-border/40" onClick={() => router.push('/academy')}>
                             <CardContent className="p-6 flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center"><BookOpen className="h-6 w-6 text-primary" /></div>
                                 <div><h4 className="font-bold">Müfredat Paneli</h4><p className="text-[10px] text-muted-foreground uppercase">Ders İçeriklerini İncele</p></div>
