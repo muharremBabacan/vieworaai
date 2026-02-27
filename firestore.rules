@@ -65,7 +65,8 @@ service cloud.firestore {
     }
     
     match /analysis_logs/{logId} {
-      allow get, list: if isSignedIn(); // Allow reading logs for personal history or admin dash
+      // Allow reading logs for personal history or admin dashboard
+      allow get, list: if isSignedIn(); 
       allow create: if isSignedIn();
     }
 
