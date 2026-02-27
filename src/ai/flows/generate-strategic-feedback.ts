@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * Strategic AI Photography Coach - Production Ready Version
@@ -25,6 +26,7 @@ const UserProfileIndexSchema = z.object({
     explanation_depth: z.enum(['low', 'medium', 'high']),
     challenge_level: z.number(),
   }),
+  profile_index_score: z.number().optional(),
 });
 
 const StrategicFeedbackInputSchema = z.object({
@@ -99,7 +101,7 @@ USER_REQUEST:
 
 Respond in language: {{{language}}}
 
-Generate strategic guidance and one measurable action task. 
+Generate strategic guidance and one measurable action task in Turkish. 
 Make the artist realize their path to mastery.
 `,
 });

@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
 import { doc, collection, query, orderBy, limit, where, writeBatch, increment } from 'firebase/firestore';
-import type { User, Photo, StrategicFeedback, AnalysisLog } from '@/types';
+import type { User, Photo, StrategicFeedback, AnalysisLog, UserProfileIndex } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,12 +50,17 @@ export default function LumaMentorPage() {
             focus: acc.focus + normalizeScore(p.aiFeedback?.focus_score),
         }), { light: 0, composition: 0, focus: 0 });
 
+        // Simple dominant style logic: just pick the most common genre
+        const genres = analyzed.map(p => p.aiFeedback?.genre).filter(Boolean);
+        const dominantGenre = genres.length > 0 ? genres.sort((a, b) => genres.filter(v => v === a).length - genres.filter(v => v === b).length).pop() : 'Karma';
+
         return {
             avgLight: sum.light / analyzed.length,
             avgComp: sum.composition / analyzed.length,
             avgFocus: sum.focus / analyzed.length,
             totalAnalyzed: analyzed.length,
-            lastUploadDate: new Date(recentPhotos[0].createdAt)
+            lastUploadDate: new Date(recentPhotos[0].createdAt),
+            dominantGenre: dominantGenre as string
         };
     }, [recentPhotos]);
 
@@ -102,18 +108,29 @@ export default function LumaMentorPage() {
                 'Neuner': 'beginner', 'Viewner': 'beginner', 'Sytner': 'intermediate', 'Omner': 'intermediate', 'Vexer': 'advanced'
             };
 
+            // Derive Profile Index if not exists, or use existing one
+            const profileIndex: UserProfileIndex = userProfile.profile_index || {
+                dominant_style: stats.dominantGenre,
+                strengths: stats.avgLight > 7.5 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
+                weaknesses: stats.avgComp < 7 ? ["Kompozisyon Dengesi"] : ["Teknik Detaylar"],
+                dominant_technical_level: levelMapping[userProfile.level_name] || 'beginner',
+                trend: { 
+                    direction: stats.avgLight > 7 || stats.avgComp > 7 ? 'improving' : 'stagnant', 
+                    percentage: 12 
+                },
+                consistency_gap: stats.avgFocus > 8 ? 10 : 20,
+                communication_profile: { 
+                    tone: 'direct', 
+                    explanation_depth: userProfile.level_name === 'Neuner' ? 'low' : 'medium', 
+                    challenge_level: 3 
+                },
+                profile_index_score: Math.round((stats.avgLight + stats.avgComp + stats.avgFocus) / 3 * 10)
+            };
+
             const result = await generateStrategicFeedback({
                 userPrompt: "Genel gelişimimi değerlendir ve bana bu hafta için stratejik bir yol haritası çıkar.",
                 language: "tr",
-                userProfileIndex: {
-                    dominant_style: "Karma",
-                    strengths: stats.avgLight > 7.5 ? ["Işık"] : ["Vizyon"],
-                    weaknesses: stats.avgComp < 7 ? ["Kompozisyon"] : ["Teknik"],
-                    dominant_technical_level: levelMapping[userProfile.level_name] || 'beginner',
-                    trend: { direction: 'improving', percentage: 10 },
-                    consistency_gap: 15,
-                    communication_profile: { tone: 'direct', explanation_depth: 'medium', challenge_level: 3 }
-                }
+                userProfileIndex: profileIndex
             });
 
             const batch = writeBatch(firestore);
@@ -124,7 +141,8 @@ export default function LumaMentorPage() {
             batch.update(doc(firestore, 'users', user.uid), { 
               auro_balance: increment(-MENTOR_COST),
               total_auro_spent: increment(MENTOR_COST),
-              total_analyses_count: increment(1)
+              total_analyses_count: increment(1),
+              profile_index: profileIndex // Persist the derived index
             });
             
             batch.set(statRef, { 

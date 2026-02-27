@@ -5,6 +5,24 @@ import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feed
 export type PhotoAnalysis = PhotoAnalysisOutput;
 export type StrategicFeedback = StrategicFeedbackOutput;
 
+export type UserProfileIndex = {
+  dominant_style: string;
+  strengths: string[];
+  weaknesses: string[];
+  dominant_technical_level: 'beginner' | 'intermediate' | 'advanced';
+  trend: {
+    direction: 'improving' | 'stagnant' | 'declining';
+    percentage: number;
+  };
+  consistency_gap: number;
+  communication_profile: {
+    tone: 'supportive' | 'direct' | 'analytical';
+    explanation_depth: 'low' | 'medium' | 'high';
+    challenge_level: number;
+  };
+  profile_index_score: number;
+};
+
 export type User = {
   id: string;
   name: string | null;
@@ -26,6 +44,7 @@ export type User = {
   lastNotificationsViewedAt?: string;
   communication_style?: 'soft' | 'balanced' | 'technical';
   score_history?: { score: number; date: string }[];
+  profile_index?: UserProfileIndex;
 };
 
 export type AnalysisLog = {
