@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit, where, collectionGroup, writeBatch, increment } from 'firebase/firestore';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
+import { doc, collection, query, orderBy, limit, where, collectionGroup, writeBatch, increment, setDoc } from 'firebase/firestore';
 import type { User, Photo, StrategicFeedback, CompetitionEntry, AnalysisLog } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
@@ -128,7 +129,13 @@ export default function LumaMentorPage() {
               total_auro_spent: increment(MENTOR_COST),
               total_analyses_count: increment(1)
             });
-            batch.update(statRef, { mentorAnalyses: increment(1), auroSpent: increment(MENTOR_COST) });
+            // Use set with merge: true to ensure daily stats doc exists
+            batch.set(statRef, { 
+              mentorAnalyses: increment(1), 
+              auroSpent: increment(MENTOR_COST),
+              date: today
+            }, { merge: true });
+            
             batch.set(logRef, { id: logRef.id, userId: user.uid, userName: userProfile.name, type: 'mentor', auroSpent: MENTOR_COST, timestamp: new Date().toISOString(), status: 'success' });
 
             await batch.commit();

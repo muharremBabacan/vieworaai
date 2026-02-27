@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, updateDoc, increment, collection, writeBatch, query, limit } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, writeBatch, query, limit, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
@@ -272,7 +272,8 @@ export default function PhotoAnalyzer() {
             };
 
             let xpGained = UPLOAD_XP_GAIN;
-            batch.update(statRef, { photoUploads: increment(1) });
+            // Use set with merge: true to ensure daily stats doc exists
+            batch.set(statRef, { photoUploads: increment(1), date: today }, { merge: true });
 
             if (analyze) {
                 setLoadingState('analyzing');
@@ -300,10 +301,11 @@ export default function PhotoAnalyzer() {
                   total_analyses_count: increment(1)
                 });
 
-                batch.update(statRef, { 
+                // Use set with merge: true to ensure daily stats doc exists
+                batch.set(statRef, { 
                   technicalAnalyses: increment(1),
                   auroSpent: increment(ANALYSIS_COST)
-                });
+                }, { merge: true });
 
                 // Log entry
                 const logRef = doc(collection(firestore, 'analysis_logs'));
