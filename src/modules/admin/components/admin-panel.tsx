@@ -12,7 +12,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { generateDailyLessons } from '@/ai/flows/generate-daily-lessons';
 import { collection, doc, writeBatch, getCountFromServer, updateDoc, deleteDoc, query, orderBy, where, addDoc, limit } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Bell, Send, Globe, LayoutGrid, Sparkles, Target, Rocket, Calendar, Flag, Zap, TrendingUp, DollarSign, Activity } from 'lucide-react';
+import { Loader2, Users, BookOpen, Trophy, Trash2, Edit, StopCircle, Check, Bell, Send, Globe, LayoutGrid, Sparkles, Target, Rocket, Calendar, Flag, Zap, TrendingUp, DollarSign, Activity, Camera } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { levels as gamificationLevels } from '@/lib/gamification';
