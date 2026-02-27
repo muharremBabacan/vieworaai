@@ -8,7 +8,7 @@ import type { User, Photo, StrategicFeedback, AnalysisLog, UserProfileIndex } fr
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Camera, Zap, ChevronRight, Target } from 'lucide-react';
+import { Loader2, Sparkles, Camera, Zap, ChevronRight, Target, BadgeCheck } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -50,7 +50,6 @@ export default function LumaMentorPage() {
             focus: acc.focus + normalizeScore(p.aiFeedback?.focus_score),
         }), { light: 0, composition: 0, focus: 0 });
 
-        // Simple dominant style logic: just pick the most common genre
         const genres = analyzed.map(p => p.aiFeedback?.genre).filter(Boolean);
         const dominantGenre = genres.length > 0 ? genres.sort((a, b) => genres.filter(v => v === a).length - genres.filter(v => v === b).length).pop() : 'Karma';
 
@@ -108,7 +107,6 @@ export default function LumaMentorPage() {
                 'Neuner': 'beginner', 'Viewner': 'beginner', 'Sytner': 'intermediate', 'Omner': 'intermediate', 'Vexer': 'advanced'
             };
 
-            // Derive Profile Index if not exists, or use existing one
             const profileIndex: UserProfileIndex = userProfile.profile_index || {
                 dominant_style: stats.dominantGenre,
                 strengths: stats.avgLight > 7.5 ? ["Işık Kullanımı"] : ["Görsel Farkındalık"],
@@ -142,7 +140,7 @@ export default function LumaMentorPage() {
               auro_balance: increment(-MENTOR_COST),
               total_auro_spent: increment(MENTOR_COST),
               total_analyses_count: increment(1),
-              profile_index: profileIndex // Persist the derived index
+              profile_index: profileIndex
             });
             
             batch.set(statRef, { 
@@ -243,7 +241,7 @@ export default function LumaMentorPage() {
                     </section>
                 )}
 
-                {/* 🔒 Strategic Analysis Area (Premium Upsell) */}
+                {/* 🔒 Strategic Analysis Area */}
                 <section className="space-y-4">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 ml-1">Derinlik</h3>
                     {!strategicFeedback ? (
@@ -278,7 +276,7 @@ export default function LumaMentorPage() {
                                 
                                 <div className="pt-8 border-t border-primary/10">
                                     <h5 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
-                                        <Zap className="h-4 w-4" /> Haftalık Gelişim Görevi
+                                        <BadgeCheck className="h-4 w-4" /> Haftalık Fotoğraf Görevi
                                     </h5>
                                     <div className="bg-background/50 rounded-2xl p-6 border border-primary/10">
                                         <h6 className="text-lg font-bold mb-3">{strategicFeedback.actionTask.title}</h6>
@@ -292,6 +290,18 @@ export default function LumaMentorPage() {
                                         </ul>
                                     </div>
                                 </div>
+
+                                {/* 📚 Glossary / Explanations Section */}
+                                {strategicFeedback.explanations && strategicFeedback.explanations.length > 0 && (
+                                    <div className="pt-6 border-t border-primary/5 space-y-3">
+                                        {strategicFeedback.explanations.map((exp, i) => (
+                                            <p key={i} className="text-[10px] text-muted-foreground/80 leading-relaxed italic">
+                                                <span className="font-black text-primary/60 mr-1">* {exp.term.toUpperCase()}:</span> {exp.definition}
+                                            </p>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <Button variant="ghost" className="w-full text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary" onClick={() => setStrategicFeedback(null)}>Yeni bir analiz ister misin?</Button>
                             </CardContent>
                         </Card>
