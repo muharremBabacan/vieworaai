@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -93,7 +94,7 @@ export default function LumaMentorPage() {
         return metrics.sort((a, b) => a.score - b.score)[0];
     }, [stats]);
 
-    const handleAskLuma = async () => {
+    const handleAsk Luma = async () => {
         if (!user || !userProfile || !stats || !firestore) {
             toast({ variant: 'destructive', title: "Eksik Veri", description: "Analiz yapabilmem için önce birkaç fotoğrafını analiz etmelisin." });
             return;
