@@ -1,7 +1,4 @@
-
-import { FirebaseClientProvider } from '@/lib/firebase/client-provider';
-import { Toaster } from '@/components/ui/toaster';
-import { ClientLayout } from './client-layout';
+import { ClientProviders } from '@/components/ClientProviders';
 import { Metadata } from 'next';
 import './globals.css';
 
@@ -18,10 +15,9 @@ export default function RootLayout({
   return (
     <html lang="tr" className="dark">
       <body className="antialiased bg-background text-foreground">
-        <FirebaseClientProvider>
-          <ClientLayout>{children}</ClientLayout>
-          <Toaster />
-        </FirebaseClientProvider>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );
