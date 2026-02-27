@@ -19,7 +19,7 @@ import { getLevelFromXp } from '@/lib/gamification';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, Sparkles, Loader2, Award, Camera } from 'lucide-react';
+import { Award, Camera, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -160,26 +160,20 @@ const Uploader = ({ onFileSelect, userProfile, hasPhotos }: { onFileSelect: (fil
     });
 
     return (
-        <div className="text-center max-w-xl mx-auto">
-            <div className="inline-flex items-center gap-2.5 mb-4">
-                <Sparkles className="h-6 w-6 text-purple-400" />
-                <h1 className="text-5xl font-bold tracking-tighter">Luma</h1>
-                <Sparkles className="h-6 w-6 text-cyan-400" />
-            </div>
-            
-            <p className="text-lg text-muted-foreground">Ben Luma. Fotoğraf yolculuğunda sana eşlik ediyorum.</p>
-            
-             <p className="text-xl font-medium mt-6">
+        <div className="text-center max-w-xl mx-auto pt-8">
+             <p className="text-2xl font-bold tracking-tight">
                 {hasPhotos ? "Analizini merak ettiğin fotoğrafı yükle." : `Merhaba ${userProfile.name}. Hazırsan ilk fotoğrafını yükle.`}
             </p>
 
-            <div {...getRootProps()} className={cn("relative mt-6 p-10 border-2 border-dashed rounded-xl transition-colors", isDragActive ? "border-primary bg-primary/10" : "border-border")}>
+            <div {...getRootProps()} className={cn("relative mt-8 p-12 border-2 border-dashed rounded-[32px] transition-all", isDragActive ? "border-primary bg-primary/10 scale-[1.02]" : "border-border hover:border-primary/40 bg-card/30")}>
                 <input {...getInputProps()} />
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <Camera className="h-12 w-12" />
-                    <p className="text-lg font-semibold text-foreground mt-4">Fotoğrafını sürükle veya yükle</p>
-                    <p className="text-sm">JPG, PNG, HEIC desteklenir</p>
-                    <Button onClick={open} size="lg" className="mt-6">
+                    <div className="h-20 w-20 rounded-3xl bg-secondary/50 flex items-center justify-center mb-4">
+                        <Camera className="h-10 w-10 text-muted-foreground/60" />
+                    </div>
+                    <p className="text-xl font-bold text-foreground">Fotoğrafını sürükle veya yükle</p>
+                    <p className="text-sm font-medium">JPG, PNG, HEIC desteklenir</p>
+                    <Button onClick={open} size="lg" className="mt-8 px-8 rounded-2xl font-bold shadow-xl shadow-primary/20">
                         Fotoğraf Seç
                     </Button>
                 </div>
@@ -412,15 +406,15 @@ export default function PhotoAnalyzer() {
                         onNewAnalysis={() => { setFile(null); setPreview(null); setAnalysisResult(null); }}
                     />
                 ) : (
-                    <Card className="text-center p-8">
-                        <div className="max-w-lg mx-auto">
-                            <Image src={preview!} alt="Preview" width={512} height={512} className="rounded-lg object-contain aspect-video" unoptimized />
+                    <Card className="text-center p-8 bg-card/50 rounded-[32px] border-border/40 overflow-hidden shadow-2xl">
+                        <div className="max-w-lg mx-auto relative rounded-2xl overflow-hidden shadow-inner">
+                            <Image src={preview!} alt="Preview" width={512} height={512} className="rounded-2xl object-contain aspect-video" unoptimized />
                         </div>
-                        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <Button onClick={() => handleUploadAndOptionalAnalysis(true)} size="lg">
+                        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <Button onClick={() => handleUploadAndOptionalAnalysis(true)} size="lg" className="h-14 px-8 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 transition-all active:scale-95">
                                 <Sparkles className="mr-2" /> Analiz Et ({ANALYSIS_COST} Auro)
                             </Button>
-                             <Button onClick={() => handleUploadAndOptionalAnalysis(false)} size="lg" variant="secondary">
+                             <Button onClick={() => handleUploadAndOptionalAnalysis(false)} size="lg" variant="secondary" className="h-14 px-8 rounded-2xl font-bold text-lg transition-all active:scale-95">
                                 Sadece Yükle (Ücretsiz)
                             </Button>
                         </div>

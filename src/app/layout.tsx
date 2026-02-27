@@ -1,3 +1,4 @@
+
 import { ClientProviders } from '@/components/ClientProviders';
 import { Metadata } from 'next';
 import './globals.css';
