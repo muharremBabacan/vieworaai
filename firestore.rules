@@ -18,7 +18,7 @@ service cloud.firestore {
       return isSignedIn() && (
         request.auth.token.email == 'admin@viewora.ai' ||
         request.auth.token.email == 'babacan.muharrem@gmail.com' ||
-        request.auth.uid == '01DT86bQwWUVrewnEb8c6bd8H43' ||
+        request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
         request.auth.uid == 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1' ||
         request.auth.token.admin == true
       );

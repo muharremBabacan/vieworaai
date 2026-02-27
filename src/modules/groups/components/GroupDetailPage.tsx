@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -104,10 +103,13 @@ export default function GroupDetailPage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
+  // Fetch Owner's Public Profile separately to guarantee we have their name
+  const ownerPublicProfileRef = useMemoFirebase(() => (group?.ownerId && firestore) ? doc(firestore, 'public_profiles', group.ownerId) : null, [group?.ownerId, firestore]);
+  const { data: ownerPublicProfile } = useDoc<PublicUserProfile>(ownerPublicProfileRef);
+
   const isCurrentUserOwner = group?.ownerId === user?.uid;
   const groupLimits = getGroupLimits(userProfile?.level_name);
   
-  // Üye profillerini getir
   const membersQuery = useMemoFirebase(() => {
     if (!group?.memberIds || group.memberIds.length === 0) return null;
     const ids = group.memberIds.slice(0, 30);
@@ -119,13 +121,10 @@ export default function GroupDetailPage() {
   const allMembers = useMemo(() => {
     if (!group?.memberIds) return [];
     
-    // Profiller yüklenirken fallback kullan, ancak loading durumunu areMembersLoading ile yönetiyoruz
     return group.memberIds.map(uid => {
         const foundProfile = profiles?.find(p => p.id === uid);
         if (foundProfile) return foundProfile;
         
-        // Eğer kullanıcı kendisiyse ve profil henüz profiles listesinde yoksa (snapshot gecikmesi),
-        // mevcut userProfile veya auth user bilgisini kullan
         if (uid === user?.uid && userProfile) {
             return {
                 id: uid,
@@ -136,24 +135,24 @@ export default function GroupDetailPage() {
             } as PublicUserProfile;
         }
 
+        if (uid === group.ownerId && ownerPublicProfile) {
+            return ownerPublicProfile;
+        }
+
         return { 
             id: uid, 
             name: areMembersLoading ? 'Yükleniyor...' : (uid === group.ownerId ? 'Grup Sahibi' : 'Bilinmeyen Üye'), 
             level_name: 'Neuner' 
         } as PublicUserProfile;
     });
-  }, [group?.memberIds, group?.ownerId, profiles, areMembersLoading, user, userProfile]);
-
-  const founderMember = useMemo(() => {
-    return allMembers.find(m => m.id === group?.ownerId);
-  }, [allMembers, group?.ownerId]);
+  }, [group?.memberIds, group?.ownerId, profiles, areMembersLoading, user, userProfile, ownerPublicProfile]);
 
   const founderName = useMemo(() => {
-    if (areMembersLoading && !founderMember?.name) return "Yükleniyor...";
-    if (founderMember?.name && founderMember.name !== 'Grup Sahibi') return founderMember.name;
-    if (group?.ownerId === user?.uid) return userProfile?.name || user?.displayName || "Siz";
+    if (ownerPublicProfile?.name) return ownerPublicProfile.name;
+    if (group?.ownerId === user?.uid && userProfile?.name) return userProfile.name;
+    if (areMembersLoading) return "Yükleniyor...";
     return "Grup Sahibi";
-  }, [founderMember, areMembersLoading, group?.ownerId, user, userProfile]);
+  }, [ownerPublicProfile, group?.ownerId, user?.uid, userProfile?.name, areMembersLoading]);
 
   const inviteFormSchema = z.object({ email: z.string().email("Geçerli bir e-posta adresi girin.") });
   const inviteForm = useForm({ resolver: zodResolver(inviteFormSchema), defaultValues: { email: '' } });
@@ -314,7 +313,7 @@ export default function GroupDetailPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight">{group.name}</h1>
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 uppercase tracking-wider">
-                        <span>Kurucu: {founderName}</span>
+                        <span>KURUCU: {founderName}</span>
                       </div>
                       <p className="text-muted-foreground text-sm line-clamp-1">{group.description}</p>
                     </div>

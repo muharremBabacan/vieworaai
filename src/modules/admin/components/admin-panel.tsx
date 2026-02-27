@@ -96,7 +96,6 @@ export default function AdminPanel() {
         return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
     }, [user]);
 
-    // Data Fetching
     const statsQuery = useMemoFirebase(() => 
         (firestore && isAdmin) ? query(collection(firestore, 'global_stats'), orderBy('date', 'desc'), limit(30)) : null,
         [firestore, isAdmin]
@@ -234,7 +233,7 @@ export default function AdminPanel() {
 
     return (
         <div className="space-y-10 pb-32">
-            {/* HERO: TOTAL USER COUNT - FIXED AT TOP */}
+            {/* HERO: TOTAL USER COUNT */}
             <div className="relative overflow-hidden rounded-[40px] border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-accent/5 p-12 text-center shadow-2xl">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.08),transparent_70%)] pointer-events-none" />
                 <div className="relative z-10 space-y-4">
@@ -254,7 +253,7 @@ export default function AdminPanel() {
                 </div>
             </div>
 
-            {/* ROLLING FILTERS */}
+            {/* FILTERS */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-secondary/20 p-2 rounded-[24px] border border-border/40 backdrop-blur-md sticky top-20 z-40">
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full sm:w-auto">
                     {['hourly', 'daily', 'weekly', 'monthly', 'all'].map((f) => (
@@ -408,9 +407,7 @@ export default function AdminPanel() {
                                                         <FormLabel>Seviye</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                            <SelectContent>
-                                                                {gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}
-                                                            </SelectContent>
+                                                            <SelectContent>{gamificationLevels.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
                                                         </Select>
                                                     </FormItem>
                                                 )} />
