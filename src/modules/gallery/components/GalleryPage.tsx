@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -135,7 +134,7 @@ export default function GalleryPage() {
 
       if (!targetExhibitionId) { toast({ title: "Sergi Seçin", description: "Lütfen bir sergi teması seçin." }); return; }
       
-      // EXHIBITION LIMIT CHECK: One photo per user per exhibition
+      // SERGİ SINIRI KONTROLÜ: Bir sergi salonuna sadece bir fotoğraf gönderilebilir
       const existingQuery = query(collection(firestore, 'public_photos'), where('userId', '==', user.uid), where('exhibitionId', '==', targetExhibitionId));
       const existingSnap = await getDocs(existingQuery);
       

@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
@@ -77,7 +76,7 @@ const AnalysisResult = ({ analysis, adaptiveFeedback, onNewAnalysis }: { analysi
             </div>
             <div className="space-y-6">
                 <Card className="p-8 rounded-[32px] border-border/40 bg-card/50">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-6">Analiz Geri Bildirimi</h3>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-6">Luma Geri Bildirimi</h3>
                     <div className="prose prose-sm dark:prose-invert leading-relaxed italic text-foreground/90" dangerouslySetInnerHTML={{ __html: (adaptiveFeedback || analysis.short_neutral_analysis).replace(/\n/g, '<br />') }} />
                 </Card>
                 <Button onClick={onNewAnalysis} size="lg" className="w-full h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/10">Yeni Analiz Başlat</Button>
@@ -136,7 +135,7 @@ export default function PhotoAnalyzer() {
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
         
-        // DUPLICATE CHECK: Fingerprint calculation
+        // MÜKERRER YÜKLEME KONTROLÜ (FINGERPRINT)
         const fingerprint = `${file.name}-${file.size}`;
         const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
         const dupSnap = await getDocs(dupQuery);
