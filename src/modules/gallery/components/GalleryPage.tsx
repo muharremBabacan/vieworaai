@@ -134,12 +134,11 @@ export default function GalleryPage() {
 
       if (!targetExhibitionId) { toast({ title: "Sergi Seçin", description: "Lütfen bir sergi teması seçin." }); return; }
       
-      // SERGİ SINIRI KONTROLÜ: Bir sergi salonuna sadece bir fotoğraf gönderilebilir
       const existingQuery = query(collection(firestore, 'public_photos'), where('userId', '==', user.uid), where('exhibitionId', '==', targetExhibitionId));
       const existingSnap = await getDocs(existingQuery);
       
       if (!existingSnap.empty) {
-          toast({ variant: 'destructive', title: "Katılım Reddedildi", description: "Bu sergi salonuna zaten bir eserinizle katılmışsınız. Yeni bir tane göndermek için eskisini geri çekmelisiniz." });
+          toast({ variant: 'destructive', title: "Katılım Reddedildi", description: "Bu sergi salonuna zaten bir eserinizle katılmışsınız." });
           return;
       }
 

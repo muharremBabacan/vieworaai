@@ -93,7 +93,7 @@ const Uploader = ({ onFileSelect }: { onFileSelect: (file: File) => void }) => {
     return (
         <div className="text-center max-w-xl mx-auto pt-8 animate-in zoom-in duration-500">
             <p className="text-3xl font-black tracking-tight mb-2">Analizini merak ettiğin fotoğrafı yükle.</p>
-            <p className="text-muted-foreground text-sm font-medium mb-10">Vizyonunu geliştirmek için teknik detayları keşfedelim.</p>
+            <p className="text-muted-foreground text-sm font-medium mb-10 text-balance">Vizyonunu geliştirmek için teknik detayları keşfedelim.</p>
             
             <div {...getRootProps()} className={cn("relative p-12 border-2 border-dashed rounded-[40px] transition-all duration-500", isDragActive ? "border-primary bg-primary/10 scale-[1.02]" : "border-border/60 hover:border-primary/40 bg-card/30 shadow-inner")}>
                 <input {...getInputProps()} />
