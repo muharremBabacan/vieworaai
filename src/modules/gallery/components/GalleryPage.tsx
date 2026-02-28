@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -14,7 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, ArrowLeftRight, Star } from 'lucide-react';
+import { Sparkles, Trash2, ArrowLeftRight, Star, Filter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -212,7 +213,7 @@ export default function GalleryPage() {
         } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsProcessing(false); }
     };
 
-    if (isLoading) return <div className="container mx-auto px-4"><Skeleton className="h-8 w-48 mb-8" /><div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[...Array(8)].map((_,i)=><Skeleton key={i} className="aspect-square rounded-lg" />)}</div></div>;
+    if (isLoading) return <div className="container mx-auto px-4 pt-10"><Skeleton className="h-8 w-48 mb-8" /><div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[...Array(8)].map((_,i)=><Skeleton key={i} className="aspect-square rounded-lg" />)}</div></div>;
 
     const filters = [
         { id: 'all', label: 'Tümü' },
@@ -222,7 +223,7 @@ export default function GalleryPage() {
     ];
 
     return (
-      <div className="container mx-auto px-4 pb-20">
+      <div className="container mx-auto px-4 pb-20 pt-10">
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-black tracking-tight">Galerim</h1>
             <Button size="sm" onClick={() => router.push('/dashboard')} className="rounded-full h-10 px-6 font-bold shadow-lg shadow-primary/20"><Sparkles className="mr-2 h-4 w-4" /> Yeni Analiz</Button>
@@ -232,6 +233,7 @@ export default function GalleryPage() {
           <>
             <ScrollArea className="w-full whitespace-nowrap mb-8 pb-4">
                 <div className="flex w-max gap-3 px-1">
+                    <div className="flex items-center gap-2 mr-2 text-muted-foreground"><Filter className="h-4 w-4" /> <span className="text-xs font-bold uppercase tracking-wider">Filtrele:</span></div>
                     {filters.map(f => (
                         <Button 
                             key={f.id} 
@@ -275,7 +277,7 @@ export default function GalleryPage() {
             <div className="text-center py-32 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 animate-in zoom-in duration-500">
                 <Camera className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" />
                 <h3 className="text-2xl font-bold mb-2">Galeriniz Boş</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto mb-8">Henüz fotoğraf yüklemediniz. Luma ile ilk teknik analizinizi yaparak galeriyi doldurmaya başlayın.</p>
+                <p className="text-muted-foreground max-sm mx-auto mb-8">Henüz fotoğraf yüklemediniz. Luma ile ilk teknik analizinizi yaparak galeriyi doldurmaya başlayın.</p>
                 <Button onClick={() => router.push('/dashboard')} size="lg" className="rounded-2xl h-14 px-10 font-bold">Hemen Fotoğraf Yükle</Button>
             </div>
         )}

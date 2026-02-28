@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -33,8 +34,12 @@ export default function ExplorePage() {
   const safeFormatDistance = (dateStr: string | undefined) => {
     if (!dateStr) return 'Süresiz';
     const date = new Date(dateStr);
-    if (!isValid(date)) return 'Yakında';
-    return formatDistanceToNow(date, { locale: tr });
+    if (!isValid(date)) return 'Süresiz';
+    try {
+        return formatDistanceToNow(date, { addSuffix: true, locale: tr });
+    } catch (e) {
+        return 'Süresiz';
+    }
   };
 
   if (view === 'halls') {
@@ -53,7 +58,7 @@ export default function ExplorePage() {
           <div className="grid md:grid-cols-2 gap-8">
             {exhibitions.map((ex) => (
               <Card key={ex.id} className="group relative h-80 rounded-[32px] overflow-hidden border-none cursor-pointer shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]" onClick={() => { setSelectedExhibition(ex); setView('gallery'); }}>
-                <Image src={ex.imageUrl} alt={ex.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+                <Image src={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/800/600`} alt={ex.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                 <div className="absolute top-6 left-6 flex gap-2">
                   <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 text-[10px] font-black uppercase px-3 h-6">AKTİF</Badge>
@@ -65,7 +70,7 @@ export default function ExplorePage() {
                   <div className="flex items-center gap-4 pt-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
                       <Clock className="h-3.5 w-3.5" /> 
-                      {safeFormatDistance(ex.endDate)} kaldı
+                      {safeFormatDistance(ex.endDate)}
                     </div>
                     <Button size="sm" className="rounded-full px-6 h-9 font-black uppercase text-[10px] tracking-widest bg-white text-black hover:bg-white/90 ml-auto">Salona Gir <ChevronRight className="ml-1 h-3 w-3" /></Button>
                   </div>
@@ -116,7 +121,7 @@ export default function ExplorePage() {
                   <Badge variant="secondary" className="bg-black/50 backdrop-blur-md text-[10px] h-6">@{photo.userName || 'Sanatçı'}</Badge>
                 </div>
                 {photo.aiFeedback && (
-                  <Badge className="bg-primary text-[10px] h-6 font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {(photo.aiFeedback.light_score * 10).toFixed(0)}</Badge>
+                  <Badge className="bg-primary text-[10px] h-6 font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {((photo.aiFeedback.light_score + photo.aiFeedback.composition_score) / 2 * 10).toFixed(0)}</Badge>
                 )}
               </div>
             </Card>

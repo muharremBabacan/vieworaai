@@ -1,9 +1,10 @@
+
 'use client';
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, increment, collection, writeBatch, query, limit, where, getDocs } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { doc, increment, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
@@ -205,7 +206,7 @@ export default function PhotoAnalyzer() {
     if (!user || !userProfile) return null;
     
     return (
-        <div className="container mx-auto px-4"><div className="mx-auto max-w-4xl">
+        <div className="container mx-auto px-4 pt-10"><div className="mx-auto max-w-4xl">
             {!file ? (<Uploader onFileSelect= {handleFileSelect} />) : isLoading ? (
                 <div className="analysis-wrapper"><div className="image-wrapper"><Image src={preview!} alt="Process" width={512} height={512} className="rounded-[24px] object-contain aspect-video" unoptimized /></div><div className="analysis-text-container"><p className="analysis-text font-bold tracking-tight">{loadingState === 'uploading' ? "Fotoğraf Hazırlanıyor..." : "Luma Analiz Ediyor..."}</p><div className="analysis-progress-bar"><div className="analysis-progress-bar-fill"></div></div></div></div>
             ) : analysisResult ? (<AnalysisResult analysis={analysisResult} adaptiveFeedback={adaptiveFeedback} onNewAnalysis={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} />) : (
