@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
@@ -135,13 +136,17 @@ export default function PhotoAnalyzer() {
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
         
-        // 🚫 DUPLICATE CHECK
+        // 🚫 DUPLICATE CHECK (Fingerprint: Name + Size)
         const fingerprint = `${file.name}-${file.size}`;
         const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
         const dupSnap = await getDocs(dupQuery);
         
         if (!dupSnap.empty) {
-            toast({ variant: 'destructive', title: "Mükerrer Yükleme", description: "Bu fotoğraf zaten galerinizde mevcut." });
+            toast({ 
+                variant: 'destructive', 
+                title: "Mükerrer Yükleme", 
+                description: "Bu fotoğraf zaten galerinizde mevcut. Lütfen yeni bir kare yükleyin." 
+            });
             setFile(null);
             setPreview(null);
             return;

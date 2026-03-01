@@ -1,3 +1,4 @@
+
 {
   "indexes": [
     {
@@ -53,20 +54,6 @@
         {
           "fieldPath": "createdAt",
           "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "academyLessons",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "level",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "category",
-          "order": "ASCENDING"
         }
       ]
     }

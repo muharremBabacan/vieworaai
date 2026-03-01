@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -81,9 +82,9 @@ export function useCollection<T = any>(
           errorEmitter.emit('permission-error', contextualError);
         } 
         else if (err.code === 'failed-precondition') {
-          // 🔥 Handle Missing Index
+          // 🔥 Handle Missing Index - Professional Level
           const indexError = new Error(
-            'Firestore composite index eksik. Firebase Console’dan oluşturulmalı.'
+            'Firestore composite index eksik. Firebase projesine dağıtılıyor, lütfen bekleyin.'
           );
           
           if (process.env.NODE_ENV === 'development') {

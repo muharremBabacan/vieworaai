@@ -1,10 +1,11 @@
+
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/lib/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
 import type { Exhibition, Competition, Group, Photo } from '@/types';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +26,11 @@ const safeFormatDistance = (dateStr: string | undefined) => {
   }
 };
 
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
+
 export default function ExplorePage() {
   const router = useRouter();
   const { user } = useUser();
@@ -32,7 +38,6 @@ export default function ExplorePage() {
   const [view, setView] = useState<'hub' | 'exhibitions' | 'exhibition-detail'>('hub');
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
 
-  // Index required: isActive ASC, createdAt DESC
   const exhibitionsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
     [firestore]
@@ -60,56 +65,68 @@ export default function ExplorePage() {
   if (view === 'hub') {
     return (
       <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
-        <header className="mb-16 text-center space-y-4 pt-6">
-          <Badge variant="outline" className="px-5 py-1.5 border-primary/30 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.3em] rounded-full">Viewora Keşif Merkezi</Badge>
-          <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">İlhamı Keşfet.</h1>
-          <p className="text-muted-foreground text-lg font-medium max-w-xl mx-auto text-balance">Topluluğun en iyi eserleri, küresel yarışmalar ve aktif topluluklar tek bir noktada.</p>
+        <header className="mb-12 text-center space-y-4 pt-6">
+          <Badge variant="outline" className="px-5 py-1.5 border-primary/30 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.3em] rounded-full">Keşif Merkezi</Badge>
+          <h1 className="text-5xl font-black tracking-tighter">İlhamı Keşfet.</h1>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto text-balance">Topluluğun en iyi eserleri ve küresel etkinlikler.</p>
         </header>
 
-        <div className="grid md:grid-cols-3 gap-10">
-          <Card className="group relative h-[520px] rounded-[48px] overflow-hidden border-none shadow-2xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] ring-1 ring-white/5" onClick={() => setView('exhibitions')}>
-            <Image src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=1000" alt="Exhibition" fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
-              <div className="h-14 w-14 mx-auto rounded-[20px] bg-primary flex items-center justify-center shadow-2xl shadow-primary/40"><Globe className="h-7 w-7 text-white" /></div>
-              <div className="space-y-2">
-                <h2 className="text-4xl font-black text-white tracking-tighter leading-none">Sergi<br/>Salonları</h2>
-                <p className="text-white/70 text-sm font-bold uppercase tracking-wide">{exhibitions?.length || 0} AKTİF SALON</p>
-              </div>
-              <Button className="rounded-full w-full h-14 bg-white text-black hover:bg-white/90 font-black uppercase text-[11px] tracking-widest shadow-xl">
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* SERGİ SALONLARI */}
+          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-primary/30 transition-all duration-300 group shadow-lg">
+            <div className="relative aspect-[4/3] overflow-hidden">
+              <Image src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=1000" alt="Exhibition" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute top-4 left-4 h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Globe className="h-5 w-5 text-white" /></div>
+            </div>
+            <CardHeader>
+              <CardTitle className="text-2xl font-black tracking-tight">Sergi Salonları</CardTitle>
+              <CardDescription className="text-sm font-bold text-primary uppercase">{exhibitions?.length || 0} Aktif Salon</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-sm text-muted-foreground leading-relaxed">Tematik salonları gez, vizyonunu toplulukla paylaş.</p>
+              <Button onClick={() => setView('exhibitions')} className="mt-8 w-full h-11 rounded-xl font-bold transition-all active:scale-95">
                 Salonları Gez <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="group relative h-[520px] rounded-[48px] overflow-hidden border-none shadow-2xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] ring-1 ring-white/5" onClick={() => router.push('/competitions')}>
-            <Image src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000" alt="Competitions" fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
-              <div className="h-14 w-14 mx-auto rounded-[20px] bg-amber-500 flex items-center justify-center shadow-2xl shadow-amber-500/40"><Trophy className="h-7 w-7 text-white" /></div>
-              <div className="space-y-2">
-                <h2 className="text-4xl font-black text-white tracking-tighter leading-none">Global<br/>Yarışmalar</h2>
-                <p className="text-white/70 text-sm font-bold uppercase tracking-wide">{competitions?.length || 0} BÜYÜK ÖDÜL</p>
-              </div>
-              <Button className="rounded-full w-full h-14 bg-amber-500 text-black hover:bg-amber-600 font-black uppercase text-[11px] tracking-widest shadow-xl">
+          {/* YARIŞMALAR */}
+          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-amber-500/30 transition-all duration-300 group shadow-lg">
+            <div className="relative aspect-[4/3] overflow-hidden">
+              <Image src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000" alt="Competitions" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute top-4 left-4 h-10 w-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg"><Trophy className="h-5 w-5 text-white" /></div>
+            </div>
+            <CardHeader>
+              <CardTitle className="text-2xl font-black tracking-tight">Global Yarışmalar</CardTitle>
+              <CardDescription className="text-sm font-bold text-amber-500 uppercase">{competitions?.length || 0} Büyük Ödül</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-sm text-muted-foreground leading-relaxed">Limitlerini zorla, jüri ve topluluk karşısında yarış.</p>
+              <Button onClick={() => router.push('/competitions')} variant="secondary" className="mt-8 w-full h-11 rounded-xl font-bold bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-all active:scale-95">
                 Yarışmaya Katıl <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="group relative h-[520px] rounded-[48px] overflow-hidden border-none shadow-2xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] ring-1 ring-white/5" onClick={() => router.push('/groups')}>
-            <Image src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000" alt="Groups" fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
-              <div className="h-14 w-14 mx-auto rounded-[20px] bg-blue-500 flex items-center justify-center shadow-2xl shadow-blue-500/40"><Users className="h-7 w-7 text-white" /></div>
-              <div className="space-y-2">
-                <h2 className="text-4xl font-black text-white tracking-tighter leading-none">Aktif<br/>Gruplarım</h2>
-                <p className="text-white/70 text-sm font-bold uppercase tracking-wide">{myGroups?.length || 0} TOPLULUK ÜYESİ</p>
-              </div>
-              <Button className="rounded-full w-full h-14 bg-blue-500 text-white hover:bg-blue-600 font-black uppercase text-[11px] tracking-widest shadow-xl">
+          {/* GRUPLARIM */}
+          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-blue-500/30 transition-all duration-300 group shadow-lg">
+            <div className="relative aspect-[4/3] overflow-hidden">
+              <Image src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000" alt="Groups" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute top-4 left-4 h-10 w-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg"><Users className="h-5 w-5 text-white" /></div>
+            </div>
+            <CardHeader>
+              <CardTitle className="text-2xl font-black tracking-tight">Aktif Gruplarım</CardTitle>
+              <CardDescription className="text-sm font-bold text-blue-500 uppercase">{myGroups?.length || 0} Topluluk Üyesi</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-sm text-muted-foreground leading-relaxed">Özel topluluklara katıl veya kendi ekibini kur.</p>
+              <Button onClick={() => router.push('/groups')} variant="secondary" className="mt-8 w-full h-11 rounded-xl font-bold bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all active:scale-95">
                 Topluluğa Git <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
-            </div>
+            </CardContent>
           </Card>
         </div>
       </div>
@@ -139,16 +156,16 @@ export default function ExplorePage() {
                   <Badge className="bg-primary/20 backdrop-blur-xl text-primary border-primary/20 text-[10px] font-black uppercase px-4 h-7 rounded-full">AÇIK</Badge>
                   <Badge variant="outline" className="bg-black/40 backdrop-blur-xl text-white border-white/10 text-[10px] font-black uppercase px-4 h-7 rounded-full">EN AZ {ex.minLevel}</Badge>
                 </div>
-                <div className="absolute bottom-10 left-10 right-10 space-y-4">
-                  <h2 className="text-4xl font-black text-white leading-tight tracking-tighter">{ex.title}</h2>
-                  <div className="flex items-center gap-6 pt-2">
+                <div className="absolute bottom-10 left-10 right-10 flex justify-between items-end">
+                  <div className="space-y-2">
+                    <h2 className="text-4xl font-black text-white leading-tight tracking-tighter">{ex.title}</h2>
                     <div className="flex items-center gap-2 text-xs font-black text-primary uppercase tracking-wider">
                       <Clock className="h-4 w-4" /> {safeFormatDistance(ex.endDate)}
                     </div>
-                    <Button className="rounded-full px-8 h-11 font-black uppercase text-[10px] tracking-widest bg-white text-black hover:bg-white/90 ml-auto shadow-lg">
-                      Salona Gir <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
                   </div>
+                  <Button className="rounded-xl px-8 h-11 font-black uppercase text-[10px] tracking-widest bg-white text-black hover:bg-white/90 shadow-lg">
+                    Salona Gir <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
               </Card>
             ))}
@@ -218,8 +235,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-
-const normalizeScore = (score: number | undefined | null): number => {
-    if (score === undefined || score === null || !isFinite(score)) return 0;
-    return score > 1 ? score : score * 10;
-};

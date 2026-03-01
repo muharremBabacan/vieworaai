@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -14,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, Search, List
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
