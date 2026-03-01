@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -73,7 +72,7 @@ export default function ExplorePage() {
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* SERGİ SALONLARI */}
-          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-primary/30 transition-all duration-300 group shadow-lg">
+          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-primary/30 transition-all duration-300 group shadow-lg bg-card/50">
             <div className="relative aspect-[4/3] overflow-hidden">
               <Image src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=1000" alt="Exhibition" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -85,14 +84,14 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Tematik salonları gez, vizyonunu toplulukla paylaş.</p>
-              <Button onClick={() => setView('exhibitions')} className="mt-6 w-full" variant="default">
+              <Button onClick={() => setView('exhibitions')} className="mt-6 w-full h-11 font-bold shadow-lg shadow-primary/10 transition-all active:scale-95" variant="default">
                 Salonları Gez
               </Button>
             </CardContent>
           </Card>
 
           {/* YARIŞMALAR */}
-          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-amber-500/30 transition-all duration-300 group shadow-lg">
+          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-amber-500/30 transition-all duration-300 group shadow-lg bg-card/50">
             <div className="relative aspect-[4/3] overflow-hidden">
               <Image src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000" alt="Competitions" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -104,14 +103,14 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Limitlerini zorla, jüri ve topluluk karşısında yarış.</p>
-              <Button onClick={() => router.push('/competitions')} className="mt-6 w-full" variant="default">
+              <Button onClick={() => router.push('/competitions')} className="mt-6 w-full h-11 font-bold shadow-lg shadow-amber-500/10 transition-all active:scale-95" variant="default">
                 Yarışmaya Katıl
               </Button>
             </CardContent>
           </Card>
 
           {/* GRUPLARIM */}
-          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-blue-500/30 transition-all duration-300 group shadow-lg">
+          <Card className="flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 hover:border-blue-500/30 transition-all duration-300 group shadow-lg bg-card/50">
             <div className="relative aspect-[4/3] overflow-hidden">
               <Image src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000" alt="Groups" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -123,7 +122,7 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Özel topluluklara katıl veya kendi ekibini kur.</p>
-              <Button onClick={() => router.push('/groups')} className="mt-6 w-full" variant="default">
+              <Button onClick={() => router.push('/groups')} className="mt-6 w-full h-11 font-bold shadow-lg shadow-blue-500/10 transition-all active:scale-95" variant="default">
                 Topluluğa Git
               </Button>
             </CardContent>
@@ -215,7 +214,7 @@ export default function ExplorePage() {
                 <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white border-white/10 text-[10px] h-8 px-4 rounded-full font-bold">@{photo.userName || 'Sanatçı'}</Badge>
                 {photo.aiFeedback && (
                   <Badge className="bg-primary text-white text-[10px] h-8 px-4 rounded-full font-black border-none shadow-lg">
-                    <Star className="h-3 w-3 mr-1.5 fill-current" /> {((normalizeScore(photo.aiFeedback.light_score) + normalizeScore(photo.aiFeedback.composition_score)) / 2).toFixed(0)}
+                    <Star className="h-3 w-3 mr-1.5 fill-current" /> {getOverallScore(photo).toFixed(0)}
                   </Badge>
                 )}
               </div>
