@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Clock, CheckCircle2, LayoutGrid, Star, Users, Scale, Cpu, Medal, Shield, Loader2, X } from 'lucide-react';
+import { Trophy, Clock, CheckCircle2, LayoutGrid, Star, Users, Scale, Cpu, Medal, Shield, Loader2, X, Gem } from 'lucide-react';
 import { differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
@@ -17,6 +17,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+// Yarışma katılım ücreti: 2 Auro
+const COMPETITION_JOIN_COST = 2;
 
 const getCompetitionStatus = (startDate: string, endDate: string) => {
     const now = new Date();
@@ -148,13 +151,26 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
 
     const handleConfirmJoin = async () => {
         if (!selectedPhotoId || !competition || !userProfile || !firestore) return;
+        
+        // Auro Check
+        if (userProfile.auro_balance < COMPETITION_JOIN_COST) {
+            toast({
+                variant: 'destructive',
+                title: "Yetersiz Auro",
+                description: `Yarışmaya katılmak için ${COMPETITION_JOIN_COST} Auro gereklidir.`,
+            });
+            return;
+        }
+
         const photo = analyzedPhotos.find(p => p.id === selectedPhotoId);
         if (!photo) return;
+
         setIsSubmitting(true);
         try {
             const batch = writeBatch(firestore);
             const entryRef = doc(collection(firestore, 'competitions', competition.id, 'entries'));
             const logRef = doc(collection(firestore, 'analysis_logs'));
+            const userRef = doc(firestore, 'users', userProfile.id);
             const today = new Date().toISOString().split('T')[0];
             const statRef = doc(firestore, 'global_stats', `daily_${today}`);
 
@@ -170,20 +186,31 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 award: 'participant'
             });
 
+            // Update user balance
+            batch.update(userRef, {
+                auro_balance: increment(-COMPETITION_JOIN_COST),
+                total_auro_spent: increment(COMPETITION_JOIN_COST)
+            });
+
             const log: AnalysisLog = {
                 id: logRef.id,
                 userId: userProfile.id,
                 userName: userProfile.name || 'Sanatçı',
                 type: 'competition',
-                auroSpent: 0,
+                auroSpent: COMPETITION_JOIN_COST,
                 timestamp: new Date().toISOString(),
                 status: 'success'
             };
             batch.set(logRef, log);
-            batch.set(statRef, { date: today }, { merge: true });
+            
+            // Update stats
+            batch.set(statRef, { 
+                date: today,
+                auroSpent: increment(COMPETITION_JOIN_COST)
+            }, { merge: true });
 
             await batch.commit();
-            toast({ title: "Tebrikler!", description: "Yarışmaya katıldınız ve Katılım Şilti kazandınız!" });
+            toast({ title: "Tebrikler!", description: `Yarışmaya katıldınız ve ${COMPETITION_JOIN_COST} Auro karşılığında Katılım Şilti kazandınız!` });
             setSelectedPhotoId(null);
             onOpenChange(false);
         } catch (error) {
@@ -265,7 +292,13 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                                 </p>
                                                 <p className="text-[11px] text-foreground/80 mt-1">Yarışmaya katıldığın an profilin için "Katılım Şilti" kazanırsın.</p>
                                             </div>
-                                            <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Katılımı Tamamla"}</Button>
+                                            <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">
+                                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                                                    <div className="flex items-center gap-2">
+                                                        <Gem className="h-4 w-4" /> Katılımı Tamamla ({COMPETITION_JOIN_COST} Auro)
+                                                    </div>
+                                                )}
+                                            </Button>
                                         </div>
                                     )}
                                     {!isEligible && status === 'active' && <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase border border-amber-500/20">Bu kategori için seviyeniz uygun değil.</div>}
