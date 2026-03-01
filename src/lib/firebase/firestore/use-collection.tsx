@@ -61,8 +61,6 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        console.error("🔥 FIRESTORE ERROR:", err.code, err.message);
-
         if (err.code === 'permission-denied') {
           let path = 'unknown';
           try {

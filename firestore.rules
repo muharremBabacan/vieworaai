@@ -32,6 +32,9 @@ service cloud.firestore {
       match /lessonProgress/{lessonId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
+      match /strategic_feedbacks/{feedbackId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
     
     match /exhibitions/{exhibitionId} {
