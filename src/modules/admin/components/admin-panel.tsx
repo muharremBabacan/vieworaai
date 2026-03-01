@@ -14,12 +14,12 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, Image as ImageIcon
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,23 +29,23 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const exhibitionSchema = z.object({
-  title: z.string().min(3),
-  description: z.string().min(10),
+  title: z.string().min(3, 'En az 3 karakter'),
+  description: z.string().min(10, 'En az 10 karakter'),
   minLevel: z.string(),
   startDate: z.string(),
   endDate: z.string(),
-  imageHint: z.string().min(2)
+  imageHint: z.string().min(2, 'Görsel ipucu gerekli')
 });
 
 const competitionSchema = z.object({
-  title: z.string().min(3),
-  description: z.string().min(10),
-  theme: z.string().min(3),
-  prize: z.string().min(3),
+  title: z.string().min(3, 'En az 3 karakter'),
+  description: z.string().min(10, 'En az 10 karakter'),
+  theme: z.string().min(3, 'En az 3 karakter'),
+  prize: z.string().min(3, 'Ödül belirtilmeli'),
   targetLevel: z.string(),
   startDate: z.string(),
   endDate: z.string(),
-  imageHint: z.string().min(2)
+  imageHint: z.string().min(2, 'Görsel ipucu gerekli')
 });
 
 export default function AdminPanel() {
@@ -140,7 +140,10 @@ export default function AdminPanel() {
       await updateDoc(docRef, { id: docRef.id });
       toast({ title: "Sergi Salonu Açıldı" });
       exhibitionForm.reset();
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsSubmitting(false); }
+    } catch (e) { 
+      console.error(e);
+      toast({ variant: 'destructive', title: "Hata", description: "Sergi oluşturulamadı." }); 
+    } finally { setIsSubmitting(false); }
   };
 
   const onCreateCompetition = async (values: z.infer<typeof competitionSchema>) => {
@@ -157,7 +160,10 @@ export default function AdminPanel() {
       await updateDoc(docRef, { id: docRef.id });
       toast({ title: "Yarışma Oluşturuldu" });
       competitionForm.reset();
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsSubmitting(false); }
+    } catch (e) { 
+      console.error(e);
+      toast({ variant: 'destructive', title: "Hata", description: "Yarışma oluşturulamadı." }); 
+    } finally { setIsSubmitting(false); }
   };
 
   const handleDeleteExhibition = async (id: string) => {
@@ -180,14 +186,13 @@ export default function AdminPanel() {
 
   return (
     <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
-      <header className="mb-16 text-center space-y-4 pt-6">
-        <h1 className="text-6xl font-black tracking-tighter uppercase">Yönetici Paneli</h1>
-        <div className="inline-flex items-center gap-3 bg-primary/10 px-8 py-3 rounded-full border border-primary/20 shadow-lg shadow-primary/5">
-          <Users className="h-5 w-5 text-primary" />
-          <p className="text-lg font-black text-primary uppercase tracking-widest">
-            {isUsersLoading ? 'YÜKLENİYOR...' : `${users?.length || 0} VİZYONER KAYITLI`}
-          </p>
-        </div>
+      <header className="mb-16 text-center space-y-2 pt-6">
+        <h1 className="text-7xl font-black tracking-tighter uppercase leading-none">
+          {isUsersLoading ? '...' : users?.length || 0} VİZYONER
+        </h1>
+        <p className="text-sm font-black text-primary uppercase tracking-[0.4em] opacity-70">
+          Yönetici Paneli
+        </p>
       </header>
 
       <Tabs defaultValue="accounting" onValueChange={setActiveTab} className="space-y-8">
@@ -259,11 +264,25 @@ export default function AdminPanel() {
                 <Form {...exhibitionForm}>
                   <form onSubmit={exhibitionForm.handleSubmit(onCreateExhibition)} className="space-y-6">
                     <FormField control={exhibitionForm.control} name="title" render={({ field }) => (
-                      <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Salon Adı</FormLabel><FormControl><Input {...field} placeholder="Örn: Siyah & Beyaz Vizyon" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                      <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Salon Adı</FormLabel><FormControl><Input {...field} placeholder="Örn: Siyah & Beyaz Vizyon" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={exhibitionForm.control} name="description" render={({ field }) => (
-                      <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Açıklama</FormLabel><FormControl><Textarea {...field} placeholder="Salonun teması ve vizyonu..." className="rounded-2xl min-h-[120px] bg-muted/30 border-border/60" /></FormControl></FormItem>
+                      <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Açıklama</FormLabel><FormControl><Textarea {...field} placeholder="Salonun teması ve vizyonu..." className="rounded-2xl min-h-[120px] bg-muted/30 border-border/60" /></FormControl><FormMessage /></FormItem>
                     )} />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={exhibitionForm.control} name="minLevel" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Min. Seviye</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger className="rounded-2xl h-12 bg-muted/30 border-border/60"><SelectValue placeholder="Seç..." /></SelectTrigger></FormControl>
+                            <SelectContent><SelectItem value="Neuner">Neuner</SelectItem><SelectItem value="Viewner">Viewner</SelectItem><SelectItem value="Sytner">Sytner</SelectItem><SelectItem value="Vexer">Vexer</SelectItem></SelectContent>
+                          </Select>
+                        </FormItem>
+                      )} />
+                      <FormField control={exhibitionForm.control} name="imageHint" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Görsel İpucu</FormLabel><FormControl><Input {...field} placeholder="landscape art" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                      )} />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <FormField control={exhibitionForm.control} name="startDate" render={({ field }) => (
                         <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
@@ -284,30 +303,41 @@ export default function AdminPanel() {
                 <Form {...competitionForm}>
                   <form onSubmit={competitionForm.handleSubmit(onCreateCompetition)} className="space-y-6">
                     <FormField control={competitionForm.control} name="title" render={({ field }) => (
-                      <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Yarışma Adı</FormLabel><FormControl><Input {...field} placeholder="Örn: Altın Saat Portreleri" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                      <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Yarışma Adı</FormLabel><FormControl><Input {...field} placeholder="Örn: Altın Saat Portreleri" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={competitionForm.control} name="description" render={({ field }) => (
+                      <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Detaylı Kurallar</FormLabel><FormControl><Textarea {...field} placeholder="Katılım şartları ve vizyon..." className="rounded-2xl min-h-[80px] bg-muted/30 border-border/60" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <div className="grid grid-cols-2 gap-4">
                       <FormField control={competitionForm.control} name="theme" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Tema</FormLabel><FormControl><Input {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Tema</FormLabel><FormControl><Input {...field} placeholder="Minimalizm" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                       <FormField control={competitionForm.control} name="prize" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Ödül</FormLabel><FormControl><Input {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Ödül</FormLabel><FormControl><Input {...field} placeholder="100 Auro" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                     </div>
-                    <FormField control={competitionForm.control} name="targetLevel" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Hedef Seviye</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger className="rounded-2xl h-12 bg-muted/30 border-border/60"><SelectValue placeholder="Seviye seç..." /></SelectTrigger></FormControl>
-                          <SelectContent className="rounded-xl border-border/40">
-                            <SelectItem value="Neuner">Neuner</SelectItem>
-                            <SelectItem value="Viewner">Viewner</SelectItem>
-                            <SelectItem value="Sytner">Sytner</SelectItem>
-                            <SelectItem value="Vexer">Vexer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )} />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={competitionForm.control} name="targetLevel" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Hedef Seviye</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger className="rounded-2xl h-12 bg-muted/30 border-border/60"><SelectValue placeholder="Seviye seç..." /></SelectTrigger></FormControl>
+                            <SelectContent><SelectItem value="Neuner">Neuner</SelectItem><SelectItem value="Viewner">Viewner</SelectItem><SelectItem value="Sytner">Sytner</SelectItem><SelectItem value="Vexer">Vexer</SelectItem></SelectContent>
+                          </Select>
+                        </FormItem>
+                      )} />
+                      <FormField control={competitionForm.control} name="imageHint" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Görsel İpucu</FormLabel><FormControl><Input {...field} placeholder="camera macro" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                      )} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={competitionForm.control} name="startDate" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                      )} />
+                      <FormField control={competitionForm.control} name="endDate" render={({ field }) => (
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                      )} />
+                    </div>
                     <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest bg-amber-500 text-black hover:bg-amber-600 shadow-xl shadow-amber-500/20">{isSubmitting ? <Loader2 className="animate-spin" /> : "Yarışmayı Başlat"}</Button>
                   </form>
                 </Form>

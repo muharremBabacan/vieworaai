@@ -111,6 +111,7 @@ export type Competition = {
   startDate: string;
   endDate: string;
   createdAt: string;
+  updatedAt: string;
   imageUrl: string;
   imageHint: string;
   scoringModel: 'community' | 'jury_ai' | 'hybrid' | 'ai_only' | 'custom';
