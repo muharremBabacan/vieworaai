@@ -1,8 +1,9 @@
+
 'use client';
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, increment, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
