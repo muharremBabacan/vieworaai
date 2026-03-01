@@ -5,6 +5,11 @@ import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feed
 export type PhotoAnalysis = PhotoAnalysisOutput;
 export type StrategicFeedback = StrategicFeedbackOutput;
 
+export type StoredStrategicFeedback = StrategicFeedback & {
+  id: string;
+  createdAt: string;
+};
+
 export type UserProfileIndex = {
   dominant_style: string;
   strengths: string[];

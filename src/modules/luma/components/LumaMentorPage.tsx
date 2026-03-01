@@ -3,15 +3,17 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
-import { doc, collection, query, orderBy, limit, writeBatch, increment } from 'firebase/firestore';
-import type { User, Photo, StrategicFeedback, UserProfileIndex } from '@/types';
+import { doc, collection, query, orderBy, limit, writeBatch, increment, addDoc } from 'firebase/firestore';
+import type { User, Photo, StrategicFeedback, UserProfileIndex, StoredStrategicFeedback } from '@/types';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Camera, Zap, Target, BadgeCheck } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Loader2, Sparkles, Camera, Zap, Target, BadgeCheck, History } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const MENTOR_COST = 2;
 
@@ -20,6 +22,42 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
+function FeedbackDisplay({ feedback }: { feedback: StrategicFeedback }) {
+    return (
+        <div className="space-y-6">
+            <div className="p-6 bg-secondary/20 border-b border-border/40 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                    <Sparkles className="h-5 w-5 text-purple-400" />
+                    <h4 className="text-sm font-black uppercase tracking-widest">Luma Analizi</h4>
+                </div>
+                <div className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed font-medium">
+                    {feedback.feedback}
+                </div>
+            </div>
+            
+            <div className="space-y-6">
+                <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                    <BadgeCheck className="h-4 w-4" /> Haftalık Görev – {feedback.actionTask.title}
+                </h5>
+                <div className="space-y-4">
+                    <div className="bg-primary/5 rounded-2xl p-5 border border-primary/10">
+                        <h6 className="text-xs font-black uppercase tracking-tight text-primary/80 mb-1">Amaç</h6>
+                        <p className="text-sm text-foreground/80">{feedback.actionTask.purpose}</p>
+                    </div>
+                    <div className="space-y-3">
+                        {feedback.actionTask.steps.map((step, i) => (
+                            <div key={i} className="flex items-start gap-4">
+                                <div className="h-6 w-6 rounded-full bg-secondary text-primary border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-black">{i+1}</div>
+                                <p className="text-sm text-foreground/90 leading-relaxed">{step}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function LumaMentorPage() {
     const { user } = useUser();
     const firestore = useFirestore();
@@ -27,6 +65,7 @@ export default function LumaMentorPage() {
     const { toast } = useToast();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [strategicFeedback, setStrategicFeedback] = useState<StrategicFeedback | null>(null);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userRef);
@@ -34,6 +73,10 @@ export default function LumaMentorPage() {
     const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'), limit(12)) : null, [user, firestore]);
     const { data: recentPhotos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
 
+    const feedbacksQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'strategic_feedbacks'), orderBy('createdAt', 'desc'), limit(1)) : null, [user, firestore]);
+    const { data: pastFeedbacks } = useCollection<StoredStrategicFeedback>(feedbacksQuery);
+
+    const lastPastFeedback = useMemo(() => pastFeedbacks?.[0] || null, [pastFeedbacks]);
     const lastPhoto = useMemo(() => recentPhotos?.[0] || null, [recentPhotos]);
 
     const stats = useMemo(() => {
@@ -113,18 +156,26 @@ export default function LumaMentorPage() {
                 language: "tr",
                 userProfileIndex: profileIndex
             });
+            
             const batch = writeBatch(firestore);
             const today = new Date().toISOString().split('T')[0];
             const statRef = doc(firestore, 'global_stats', `daily_${today}`);
             const logRef = doc(collection(firestore, 'analysis_logs'));
+            const historyRef = doc(collection(firestore, 'users', user.uid, 'strategic_feedbacks'));
+
             batch.update(doc(firestore, 'users', user.uid), { 
               auro_balance: increment(-MENTOR_COST),
               total_auro_spent: increment(MENTOR_COST),
               total_analyses_count: increment(1),
               profile_index: profileIndex
             });
+            batch.set(historyRef, { 
+                ...result, 
+                createdAt: new Date().toISOString() 
+            });
             batch.set(statRef, { mentorAnalyses: increment(1), auroSpent: increment(MENTOR_COST), date: today }, { merge: true });
             batch.set(logRef, { id: logRef.id, userId: user.uid, userName: userProfile.name || 'Sanatçı', type: 'mentor', auroSpent: MENTOR_COST, timestamp: new Date().toISOString(), status: 'success' });
+            
             await batch.commit();
             setStrategicFeedback(result);
             toast({ title: "Analiz Hazır" });
@@ -136,7 +187,31 @@ export default function LumaMentorPage() {
     return (
         <div className="container mx-auto px-4 pt-10 pb-24 max-w-2xl animate-in fade-in duration-1000">
             <header className="mb-12 space-y-4">
-                <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20"><Sparkles className="h-6 w-6 text-primary" /></div><span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Luma Mentor</span></div>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20"><Sparkles className="h-6 w-6 text-primary" /></div>
+                        <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Luma Mentor</span>
+                    </div>
+                    {lastPastFeedback && (
+                        <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="rounded-full h-9 px-4 border-primary/30 text-primary hover:bg-primary/5 font-bold transition-all">
+                                    <History className="mr-2 h-4 w-4" /> Son Stratejik Plana Ulaş
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-xl max-h-[80vh] overflow-hidden flex flex-col p-0 border-border/40 bg-background/95 backdrop-blur-xl">
+                                <DialogHeader className="p-6 border-b shrink-0">
+                                    <DialogTitle className="flex items-center gap-2">
+                                        <History className="h-5 w-5 text-primary" /> Kayıtlı Son Plan
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <ScrollArea className="flex-1 p-6">
+                                    <FeedbackDisplay feedback={lastPastFeedback} />
+                                </ScrollArea>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                </div>
                 <h1 className="text-3xl font-bold leading-tight tracking-tight">{dynamicGreeting}</h1>
             </header>
 
@@ -176,13 +251,8 @@ export default function LumaMentorPage() {
                     ) : (
                         <Card className="rounded-[32px] border-primary/20 bg-card overflow-hidden animate-in slide-in-from-bottom-4 duration-500 shadow-xl">
                             <CardContent className="p-0">
-                                <div className="p-8 bg-secondary/20 border-b border-border/40"><div className="flex items-center gap-3 mb-6"><Sparkles className="h-5 w-5 text-purple-400" /><h4 className="text-lg font-black uppercase tracking-widest">Luma Analizi</h4></div><div className="text-foreground/90 whitespace-pre-wrap leading-relaxed font-medium">{strategicFeedback.feedback}</div></div>
-                                <div className="p-8 space-y-8">
-                                    <div><h5 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-2"><BadgeCheck className="h-4 w-4" /> Haftalık Görev – {strategicFeedback.actionTask.title}</h5>
-                                        <div className="space-y-6"><div className="bg-primary/5 rounded-2xl p-6 border border-primary/10"><h6 className="text-sm font-black uppercase tracking-tight text-primary/80 mb-2">Amaç</h6><p className="text-sm text-foreground/80">{strategicFeedback.actionTask.purpose}</p></div>
-                                            <div className="space-y-4">{strategicFeedback.actionTask.steps.map((step, i) => (<div key={i} className="flex items-start gap-4"><div className="h-6 w-6 rounded-full bg-secondary text-primary border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 text-xs font-black">{i+1}</div><p className="text-sm text-foreground/90 leading-relaxed">{step}</p></div>))}</div>
-                                        </div>
-                                    </div>
+                                <FeedbackDisplay feedback={strategicFeedback} />
+                                <div className="p-8 pt-0">
                                     <Button variant="ghost" className="w-full text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary pt-4" onClick={() => setStrategicFeedback(null)}>Yeni bir analiz ister misin?</Button>
                                 </div>
                             </CardContent>
