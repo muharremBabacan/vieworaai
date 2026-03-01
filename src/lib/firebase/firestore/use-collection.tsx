@@ -81,6 +81,7 @@ export function useCollection<T = any>(
           errorEmitter.emit('permission-error', contextualError);
         } 
         else if (err.code === 'failed-precondition') {
+          // 🔥 Handle Missing Index
           const indexError = new Error(
             'Firestore composite index eksik. Firebase Console’dan oluşturulmalı.'
           );

@@ -134,6 +134,7 @@ export default function GalleryPage() {
 
       if (!targetExhibitionId) { toast({ title: "Sergi Seçin", description: "Lütfen bir sergi teması seçin." }); return; }
       
+      // 🛡️ ONE ENTRY PER HALL CHECK
       const existingQuery = query(collection(firestore, 'public_photos'), where('userId', '==', user.uid), where('exhibitionId', '==', targetExhibitionId));
       const existingSnap = await getDocs(existingQuery);
       

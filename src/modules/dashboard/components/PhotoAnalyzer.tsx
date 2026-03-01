@@ -135,6 +135,7 @@ export default function PhotoAnalyzer() {
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
         
+        // 🚫 DUPLICATE CHECK
         const fingerprint = `${file.name}-${file.size}`;
         const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
         const dupSnap = await getDocs(dupQuery);
@@ -147,6 +148,7 @@ export default function PhotoAnalyzer() {
         }
 
         if (analyze && userProfile.auro_balance < ANALYSIS_COST) { toast({ variant: 'destructive', title: "Yetersiz Auro" }); return; }
+        
         setIsLoading(true);
         setLoadingState('uploading');
         try {
@@ -155,6 +157,7 @@ export default function PhotoAnalyzer() {
             const storageRef = ref(storage, filePath);
             const uploadTask = await uploadBytes(storageRef, file);
             const imageUrl = await getDownloadURL(uploadTask.ref);
+            
             const batch = writeBatch(firestore);
             const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'));
             const userRef = doc(firestore, 'users', user.uid);
@@ -206,7 +209,13 @@ export default function PhotoAnalyzer() {
             batch.update(userRef, { current_xp: increment(xpGained) });
             await batch.commit();
             toast({ title: analyze ? "Analiz Tamamlandı" : "Fotoğraf Yüklendi" });
-        } catch (error) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsLoading(false); setLoadingState(''); }
+        } catch (error) { 
+            console.error(error);
+            toast({ variant: 'destructive', title: "Hata" }); 
+        } finally { 
+            setIsLoading(false); 
+            setLoadingState(''); 
+        }
     };
 
     if (isUserLoading || isProfileLoading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;

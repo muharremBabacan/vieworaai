@@ -32,6 +32,7 @@ export default function ExplorePage() {
   const [view, setView] = useState<'hub' | 'exhibitions' | 'exhibition-detail'>('hub');
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
 
+  // Index required: isActive ASC, createdAt DESC
   const exhibitionsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
     [firestore]
@@ -197,7 +198,7 @@ export default function ExplorePage() {
                 <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white border-white/10 text-[10px] h-8 px-4 rounded-full font-bold">@{photo.userName || 'Sanatçı'}</Badge>
                 {photo.aiFeedback && (
                   <Badge className="bg-primary text-white text-[10px] h-8 px-4 rounded-full font-black border-none shadow-lg">
-                    <Star className="h-3 w-3 mr-1.5 fill-current" /> {((photo.aiFeedback.light_score + photo.aiFeedback.composition_score) / 2 * 10).toFixed(0)}
+                    <Star className="h-3 w-3 mr-1.5 fill-current" /> {((normalizeScore(photo.aiFeedback.light_score) + normalizeScore(photo.aiFeedback.composition_score)) / 2).toFixed(0)}
                   </Badge>
                 )}
               </div>
@@ -217,3 +218,8 @@ export default function ExplorePage() {
     </div>
   );
 }
+
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
