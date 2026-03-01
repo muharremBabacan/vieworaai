@@ -42,7 +42,7 @@ export default function PhotoAnalyzer() {
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     if (selectedFile.size > 10 * 1024 * 1024) {
-      toast({ variant: 'destructive', title: 'Dosya Çok Büyük' });
+      toast({ variant: 'destructive', title: 'Dosya Çok Büyük', description: 'Lütfen 10MB\'dan küçük bir dosya seçin.' });
       return;
     }
 
@@ -67,7 +67,7 @@ export default function PhotoAnalyzer() {
     try {
       const hash = await generateImageHash(file);
 
-      // 🔎 Duplicate check
+      // 🧬 1. SHA-256 Duplicate Check
       const q = query(
         collection(firestore, 'users', user.uid, 'photos'),
         where('imageHash', '==', hash)
@@ -86,6 +86,7 @@ export default function PhotoAnalyzer() {
         return;
       }
 
+      // 📦 2. Hash-based Storage Path
       const storage = getStorage();
       const filePath = `users/${user.uid}/photos/${hash}.jpg`;
       const storageRef = ref(storage, filePath);
@@ -111,7 +112,7 @@ export default function PhotoAnalyzer() {
 
       if (analyze) {
         if (userProfile.auro_balance < ANALYSIS_COST) {
-          toast({ variant: 'destructive', title: 'Yetersiz Auro' });
+          toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Analiz için ${ANALYSIS_COST} Auro gereklidir.` });
           setIsLoading(false);
           return;
         }
@@ -121,13 +122,13 @@ export default function PhotoAnalyzer() {
         photoData.tags = analysis.tags || [];
         setAnalysisResult(analysis);
 
-        // Update user balances
+        // 💰 3. Update Balances
         batch.update(userRef, {
           auro_balance: increment(-ANALYSIS_COST),
           total_auro_spent: increment(ANALYSIS_COST)
         });
 
-        // Create Analysis Log
+        // 📝 4. Create Analysis Log (CRITICAL FOR ACCOUNTING)
         const logRef = doc(collection(firestore, 'analysis_logs'));
         const log: AnalysisLog = {
           id: logRef.id,
@@ -140,7 +141,7 @@ export default function PhotoAnalyzer() {
         };
         batch.set(logRef, log);
 
-        // Update Daily Stats
+        // 📈 5. Update Daily Stats
         const today = new Date().toISOString().split('T')[0];
         const statRef = doc(firestore, 'global_stats', `daily_${today}`);
         batch.set(statRef, { 
@@ -157,11 +158,15 @@ export default function PhotoAnalyzer() {
 
       await batch.commit();
 
-      toast({ title: analyze ? 'Analiz Tamamlandı' : 'Fotoğraf Yüklendi' });
+      toast({ title: analyze ? 'Analiz Tamamlandı' : 'Fotoğraf Yüklendi', description: analyze ? 'Teknik geri bildirimlerin galerine eklendi.' : 'Fotoğrafın başarıyla saklandı.' });
+      
+      // Reset after success
+      setFile(null);
+      setPreview(null);
 
     } catch (error) {
       console.error('Upload error:', error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'Bir sorun oluştu.' });
+      toast({ variant: 'destructive', title: 'Hata', description: 'İşlem sırasında bir sorun oluştu.' });
     } finally {
       setIsLoading(false);
     }
@@ -170,61 +175,68 @@ export default function PhotoAnalyzer() {
   if (isUserLoading || isProfileLoading)
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
 
   if (!user || !userProfile) return null;
 
   return (
-    <div className="container mx-auto px-4 pt-10">
+    <div className="container mx-auto px-4 pt-10 pb-20 animate-in fade-in duration-700">
       {!file ? (
-        <div {...getRootProps()} className="text-center p-16 border-2 border-dashed rounded-3xl cursor-pointer bg-card/30 hover:bg-card/50 transition-colors">
+        <div {...getRootProps()} className="text-center p-20 border-2 border-dashed rounded-[40px] cursor-pointer bg-card/30 hover:bg-card/50 hover:border-primary/30 transition-all group shadow-inner">
           <input {...getInputProps()} />
-          <Camera className="mx-auto mb-4 text-muted-foreground" size={48} />
-          <p className="font-bold text-xl">Vizyonunu Paylaş</p>
-          <p className="text-muted-foreground mt-2">Analiz etmek veya galerine eklemek için bir fotoğraf seç.</p>
-          <Button onClick={open} className="mt-8 px-10 h-12 rounded-2xl font-bold">Fotoğraf Seç</Button>
+          <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-500 shadow-lg">
+            <Camera className="text-primary" size={40} />
+          </div>
+          <p className="font-black text-3xl tracking-tighter">VİZYONUNU PAYLAŞ</p>
+          <p className="text-muted-foreground mt-3 text-lg font-medium">Analiz etmek veya galerine eklemek için bir fotoğraf seç.</p>
+          <Button onClick={open} className="mt-10 px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 active:scale-95 transition-all">Fotoğraf Seç</Button>
         </div>
       ) : isLoading ? (
-        <div className="text-center py-20">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
-          <p className="font-bold text-lg">Luma İşlem Yapıyor...</p>
-          <p className="text-muted-foreground mt-2">Lütfen bekleyin.</p>
+        <div className="text-center py-32 space-y-6">
+          <div className="relative mx-auto h-24 w-24">
+            <Loader2 className="absolute inset-0 h-24 w-24 animate-spin text-primary opacity-20" />
+            <Sparkles className="absolute inset-0 h-12 w-12 m-auto text-primary animate-pulse" />
+          </div>
+          <div>
+            <p className="font-black text-2xl tracking-tighter uppercase">Luma İşlem Yapıyor...</p>
+            <p className="text-muted-foreground font-bold uppercase text-xs tracking-widest mt-2">Lütfen pencereyi kapatmayın.</p>
+          </div>
         </div>
       ) : (
-        <Card className="p-10 text-center rounded-[40px] border-border/40 shadow-2xl overflow-hidden bg-card/50 backdrop-blur-sm">
-          <div className="relative max-w-lg mx-auto aspect-square rounded-3xl overflow-hidden border-4 border-primary/10 shadow-xl mb-10">
-            <Image src={preview!} alt="Preview" fill className="object-cover" unoptimized />
+        <Card className="p-12 text-center rounded-[48px] border-border/40 shadow-2xl overflow-hidden bg-card/50 backdrop-blur-sm animate-in zoom-in-95 duration-500">
+          <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12 group">
+            <Image src={preview!} alt="Preview" fill className="object-cover transition-transform duration-700 group-hover:scale-105" unoptimized />
           </div>
 
           {isDuplicate && (
-            <div className="mb-8 p-4 bg-destructive/10 rounded-2xl border border-destructive/20 animate-in zoom-in duration-300">
-              <p className="text-destructive font-bold text-sm">
-                Bu kare zaten galerinizde yer alıyor.
+            <div className="mb-10 p-6 bg-destructive/10 rounded-[24px] border border-destructive/20 animate-in slide-in-from-top-4 duration-500">
+              <p className="text-destructive font-black text-sm uppercase tracking-widest">
+                BU KARE ZATEN GALERİNİZDE MEVCUT.
               </p>
               <Button
                 variant="link"
-                className="mt-1 h-auto p-0 text-xs font-black uppercase text-destructive/70"
+                className="mt-2 h-auto p-0 text-xs font-black uppercase text-destructive/70 underline underline-offset-4"
                 onClick={() => {
                   setFile(null);
                   setPreview(null);
                   setIsDuplicate(false);
                 }}
               >
-                Farklı bir fotoğraf seç
+                FARKLI BİR FOTOĞRAF SEÇ
               </Button>
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-5">
             <Button
               onClick={() => handleUploadAndOptionalAnalysis(true)}
               disabled={isDuplicate}
               size="lg"
-              className="h-14 px-10 rounded-2xl font-bold shadow-lg shadow-primary/20"
+              className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 active:scale-95 transition-all group"
             >
-              <Sparkles className="mr-2 h-5 w-5" /> Teknik Analiz Et ({ANALYSIS_COST} Auro)
+              <Sparkles className="mr-3 h-6 w-6 text-yellow-400 group-hover:rotate-12 transition-transform" /> Teknik Analiz Et ({ANALYSIS_COST} Auro)
             </Button>
 
             <Button
@@ -232,7 +244,7 @@ export default function PhotoAnalyzer() {
               variant="secondary"
               disabled={isDuplicate}
               size="lg"
-              className="h-14 px-10 rounded-2xl font-bold"
+              className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest border border-border/60 hover:bg-background transition-all active:scale-95"
             >
               Sadece Galeriye Yükle
             </Button>
@@ -240,10 +252,10 @@ export default function PhotoAnalyzer() {
           
           <Button 
             variant="ghost" 
-            className="mt-6 text-muted-foreground hover:text-primary font-bold"
+            className="mt-8 text-muted-foreground hover:text-destructive font-black uppercase tracking-widest text-[10px] transition-colors"
             onClick={() => { setFile(null); setPreview(null); setIsDuplicate(false); }}
           >
-            İptal Et
+            İşlemi İptal Et
           </Button>
         </Card>
       )}
