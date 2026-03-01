@@ -79,21 +79,24 @@ export default function LumaMentorPage() {
     const lastPastFeedback = useMemo(() => pastFeedbacks?.[0] || null, [pastFeedbacks]);
     const lastPhoto = useMemo(() => recentPhotos?.[0] || null, [recentPhotos]);
 
-    const stats = useMemo(() => {
-        if (!recentPhotos || recentPhotos.length === 0) return null;
-        const analyzed = recentPhotos.filter(p => !!p.aiFeedback);
-        if (analyzed.length === 0) return null;
+    // stats hesaplamasındaki güvenli dönüş:
+const stats = useMemo(() => {
+    if (!recentPhotos || recentPhotos.length === 0) return null;
+    const analyzed = recentPhotos.filter(p => !!p.aiFeedback);
+    if (analyzed.length === 0) return null;
 
-        const sum = analyzed.reduce((acc, p) => ({
-            light: acc.light + normalizeScore(p.aiFeedback?.light_score),
-            composition: acc.composition + normalizeScore(p.aiFeedback?.composition_score),
-            focus: acc.focus + normalizeScore(p.aiFeedback?.focus_score),
-            color: acc.color + normalizeScore(p.aiFeedback?.color_control_score),
-            creativity: acc.creativity + normalizeScore(p.aiFeedback?.creativity_risk_score),
-        }), { light: 0, composition: 0, focus: 0, color: 0, creativity: 0 });
+    const sum = analyzed.reduce((acc, p) => ({
+        light: acc.light + normalizeScore(p.aiFeedback?.light_score),
+        composition: acc.composition + normalizeScore(p.aiFeedback?.composition_score),
+        focus: acc.focus + normalizeScore(p.aiFeedback?.focus_score),
+        color: acc.color + normalizeScore(p.aiFeedback?.color_control_score),
+        creativity: acc.creativity + normalizeScore(p.aiFeedback?.creativity_risk_score),
+    }), { light: 0, composition: 0, focus: 0, color: 0, creativity: 0 });
 
-        const genres = analyzed.map(p => p.aiFeedback?.genre).filter(Boolean);
-        const dominantGenre = genres.length > 0 ? genres.sort((a, b) => genres.filter(v => v === a).length - genres.filter(v => v === b).length).pop() : 'Karma';
+    const genres = analyzed.map(p => p.aiFeedback?.genre).filter(Boolean);
+    const dominantGenre = genres.length > 0 
+        ? [...genres].sort((a, b) => genres.filter(v => v === a).length - genres.filter(v => v === b).length).pop() 
+        : 'Karma';
 
         return {
             avgLight: sum.light / analyzed.length,
@@ -102,7 +105,8 @@ export default function LumaMentorPage() {
             avgColor: sum.color / analyzed.length,
             avgCreativity: sum.creativity / analyzed.length,
             totalAnalyzed: analyzed.length,
-            lastUploadDate: new Date(recentPhotos[0].createdAt),
+            // Hata düzeltme: Opsiyonel chaining eklendi
+            lastUploadDate: recentPhotos[0]?.createdAt ? new Date(recentPhotos[0].createdAt) : new Date(),
             dominantGenre: dominantGenre as string
         };
     }, [recentPhotos]);
