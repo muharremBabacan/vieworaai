@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/lib/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
 import type { Exhibition, Competition, Group, Photo } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,10 +29,9 @@ export default function ExplorePage() {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
-  const [view, setView] = useState<'hub' | 'exhibitions' | 'exhibition-detail' | 'competitions'>('hub');
+  const [view, setView] = useState<'hub' | 'exhibitions' | 'exhibition-detail'>('hub');
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
 
-  // Queries
   const exhibitionsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
     [firestore]
@@ -43,13 +42,13 @@ export default function ExplorePage() {
     firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null,
     [firestore]
   );
-  const { data: competitions, isLoading: isCompLoading } = useCollection<Competition>(competitionsQuery);
+  const { data: competitions } = useCollection<Competition>(competitionsQuery);
 
   const groupsQuery = useMemoFirebase(() => 
     (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null,
     [user, firestore]
   );
-  const { data: myGroups, isLoading: isGroupsLoading } = useCollection<Group>(groupsQuery);
+  const { data: myGroups } = useCollection<Group>(groupsQuery);
 
   const photosQuery = useMemoFirebase(() => {
     if (!firestore || !selectedExhibition || view !== 'exhibition-detail') return null;
@@ -57,7 +56,6 @@ export default function ExplorePage() {
   }, [firestore, selectedExhibition, view]);
   const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
 
-  // 1. PREMIUM HUB VIEW
   if (view === 'hub') {
     return (
       <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
@@ -78,8 +76,8 @@ export default function ExplorePage() {
               unoptimized 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute bottom-12 left-10 right-10 space-y-6">
-              <div className="h-14 w-14 rounded-[20px] bg-primary flex items-center justify-center shadow-2xl shadow-primary/40"><Globe className="h-7 w-7 text-white" /></div>
+            <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
+              <div className="h-14 w-14 mx-auto rounded-[20px] bg-primary flex items-center justify-center shadow-2xl shadow-primary/40"><Globe className="h-7 w-7 text-white" /></div>
               <div className="space-y-2">
                 <h2 className="text-4xl font-black text-white tracking-tighter leading-none">Sergi<br/>Salonları</h2>
                 <p className="text-white/70 text-sm font-bold uppercase tracking-wide">{exhibitions?.length || 0} AKTİF SALON</p>
@@ -100,8 +98,8 @@ export default function ExplorePage() {
               unoptimized 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute bottom-12 left-10 right-10 space-y-6">
-              <div className="h-14 w-14 rounded-[20px] bg-amber-500 flex items-center justify-center shadow-2xl shadow-amber-500/40"><Trophy className="h-7 w-7 text-white" /></div>
+            <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
+              <div className="h-14 w-14 mx-auto rounded-[20px] bg-amber-500 flex items-center justify-center shadow-2xl shadow-amber-500/40"><Trophy className="h-7 w-7 text-white" /></div>
               <div className="space-y-2">
                 <h2 className="text-4xl font-black text-white tracking-tighter leading-none">Global<br/>Yarışmalar</h2>
                 <p className="text-white/70 text-sm font-bold uppercase tracking-wide">{competitions?.length || 0} BÜYÜK ÖDÜL</p>
@@ -122,8 +120,8 @@ export default function ExplorePage() {
               unoptimized 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute bottom-12 left-10 right-10 space-y-6">
-              <div className="h-14 w-14 rounded-[20px] bg-blue-500 flex items-center justify-center shadow-2xl shadow-blue-500/40"><Users className="h-7 w-7 text-white" /></div>
+            <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
+              <div className="h-14 w-14 mx-auto rounded-[20px] bg-blue-500 flex items-center justify-center shadow-2xl shadow-blue-500/40"><Users className="h-7 w-7 text-white" /></div>
               <div className="space-y-2">
                 <h2 className="text-4xl font-black text-white tracking-tighter leading-none">Aktif<br/>Gruplarım</h2>
                 <p className="text-white/70 text-sm font-bold uppercase tracking-wide">{myGroups?.length || 0} TOPLULUK ÜYESİ</p>
@@ -138,7 +136,6 @@ export default function ExplorePage() {
     );
   }
 
-  // 2. EXHIBITIONS LIST VIEW
   if (view === 'exhibitions') {
     return (
       <div className="container mx-auto px-4 pb-24 animate-in slide-in-from-bottom-10 duration-700">
@@ -187,7 +184,6 @@ export default function ExplorePage() {
     );
   }
 
-  // 3. EXHIBITION DETAIL VIEW
   return (
     <div className="container mx-auto px-4 pb-24 animate-in slide-in-from-right-10 duration-700">
       <Button variant="ghost" onClick={() => setView('exhibitions')} className="mb-8 hover:bg-primary/5 rounded-2xl font-bold text-muted-foreground hover:text-primary transition-all">

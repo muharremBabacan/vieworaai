@@ -53,7 +53,6 @@ export default function AdminPanel() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [timeFilter, setTimeFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('accounting');
 
   const isAdmin = useMemo(() => {
@@ -174,13 +173,6 @@ export default function AdminPanel() {
         <div className="flex items-center gap-4 bg-primary/10 px-6 py-3 rounded-full border border-primary/20">
           <Activity className="h-5 w-5 text-primary" />
           <p className="text-sm font-bold text-primary">TOPLAM {users?.length || 0} VİZYONER KAYITLI</p>
-        </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-          {['all', 'hourly', 'daily', 'weekly'].map(f => (
-            <Button key={f} variant={timeFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setTimeFilter(f)} className="rounded-full text-[10px] font-black uppercase h-8 px-5">
-              {f === 'all' ? 'Tümü' : f === 'hourly' ? 'Saatlik' : f === 'daily' ? 'Günlük' : f === 'weekly' ? 'Haftalık' : f}
-            </Button>
-          ))}
         </div>
       </header>
 

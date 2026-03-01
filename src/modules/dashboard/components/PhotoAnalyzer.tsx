@@ -135,13 +135,13 @@ export default function PhotoAnalyzer() {
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
         
-        // MÜKERRER YÜKLEME KONTROLÜ (FINGERPRINT)
+        // FINGERPRINT CHECK FOR DUPLICATES
         const fingerprint = `${file.name}-${file.size}`;
         const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
         const dupSnap = await getDocs(dupQuery);
         
         if (!dupSnap.empty) {
-            toast({ variant: 'destructive', title: "Hata", description: "Bu fotoğraf zaten galerinizde mevcut." });
+            toast({ variant: 'destructive', title: "Mükerrer Yükleme", description: "Bu fotoğraf zaten galerinizde mevcut." });
             setFile(null);
             setPreview(null);
             return;
@@ -162,7 +162,16 @@ export default function PhotoAnalyzer() {
             const today = new Date().toISOString().split('T')[0];
             const statRef = doc(firestore, 'global_stats', `daily_${today}`);
             
-            let photoData: Photo = { id: photoDocRef.id, userId: user.uid, imageUrl, filePath, createdAt: new Date().toISOString(), aiFeedback: null, tags: [], fingerprint };
+            let photoData: Photo = { 
+                id: photoDocRef.id, 
+                userId: user.uid, 
+                imageUrl, 
+                filePath, 
+                createdAt: new Date().toISOString(), 
+                aiFeedback: null, 
+                tags: [], 
+                fingerprint // Save fingerprint
+            };
             let xpGained = UPLOAD_XP_GAIN;
             
             batch.set(statRef, { photoUploads: increment(1), date: today }, { merge: true });
@@ -206,13 +215,19 @@ export default function PhotoAnalyzer() {
     
     return (
         <div className="container mx-auto px-4 pt-10"><div className="mx-auto max-w-4xl">
-            {!file ? (<Uploader onFileSelect= {handleFileSelect} />) : isLoading ? (
-                <div className="analysis-wrapper"><div className="image-wrapper"><Image src={preview!} alt="Process" width={512} height={512} className="rounded-[24px] object-contain aspect-video" unoptimized /></div><div className="analysis-text-container"><p className="analysis-text font-bold tracking-tight">{loadingState === 'uploading' ? "Fotoğraf Hazırlanıyor..." : "Luma Analiz Ediyor..."}</p><div className="analysis-progress-bar"><div className="analysis-progress-bar-fill"></div></div></div></div>
+            {!file ? (<Uploader onFileSelect={handleFileSelect} />) : isLoading ? (
+                <div className="analysis-wrapper">
+                    <div className="image-wrapper"><Image src={preview!} alt="Process" width={512} height={512} className="rounded-[24px] object-contain aspect-video" unoptimized /></div>
+                    <div className="analysis-text-container">
+                        <p className="analysis-text font-bold tracking-tight">{loadingState === 'uploading' ? "Fotoğraf Hazırlanıyor..." : "Luma Analiz Ediyor..."}</p>
+                        <div className="analysis-progress-bar"><div className="analysis-progress-bar-fill"></div></div>
+                    </div>
+                </div>
             ) : analysisResult ? (<AnalysisResult analysis={analysisResult} adaptiveFeedback={adaptiveFeedback} onNewAnalysis={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} />) : (
                 <Card className="text-center p-10 bg-card/50 rounded-[40px] border-border/40 overflow-hidden shadow-2xl animate-in zoom-in duration-500">
                     <div className="max-w-lg mx-auto relative rounded-3xl overflow-hidden shadow-2xl border border-white/5"><Image src={preview!} alt="Preview" width={512} height={512} className="object-contain aspect-video" unoptimized /></div>
                     <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Button onClick={() => handleUploadAndOptionalAnalysis(true)} size="lg" className="h-14 px-10 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 transition-all active:scale-95 group">
+                        <Button onClick={() => handleUploadAndOptionalAnalysis(true)} size="lg" className="h-14 px-10 rounded-2xl font-bold text-lg shadow-xl shadow-primary/10 transition-all active:scale-95 group">
                             <Sparkles className="mr-2 group-hover:animate-pulse" /> Analiz Et ({ANALYSIS_COST} Auro)
                         </Button>
                         <Button onClick={() => handleUploadAndOptionalAnalysis(false)} size="lg" variant="secondary" className="h-14 px-10 rounded-2xl font-bold text-lg transition-all active:scale-95">Sadece Yükle</Button>
