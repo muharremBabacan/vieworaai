@@ -76,7 +76,7 @@ export default function AdminPanel() {
     [firestore, isAdmin]
   );
   const usersQuery = useMemoFirebase(() =>
-    firestore && isAdmin ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null,
+    firestore && isAdmin ? collection(firestore, 'users') : null,
     [firestore, isAdmin]
   );
 
@@ -393,7 +393,9 @@ export default function AdminPanel() {
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">Kullanıcı bulunamadı.</TableCell>
+                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                        {isUsersLoading ? 'Kullanıcılar yükleniyor...' : 'Kullanıcı bulunamadı.'}
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
