@@ -8,7 +8,7 @@ import { doc, increment, collection, writeBatch, query, where, getDocs } from 'f
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { useToast } from '@/shared/hooks/use-toast';
-import type { User, Photo, PhotoAnalysis } from '@/types';
+import type { User, Photo, PhotoAnalysis, AnalysisLog } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Camera, Loader2, Sparkles } from 'lucide-react';
@@ -121,10 +121,33 @@ export default function PhotoAnalyzer() {
         photoData.tags = analysis.tags || [];
         setAnalysisResult(analysis);
 
+        // Update user balances
         batch.update(userRef, {
           auro_balance: increment(-ANALYSIS_COST),
           total_auro_spent: increment(ANALYSIS_COST)
         });
+
+        // Create Analysis Log
+        const logRef = doc(collection(firestore, 'analysis_logs'));
+        const log: AnalysisLog = {
+          id: logRef.id,
+          userId: user.uid,
+          userName: userProfile.name || 'Sanatçı',
+          type: 'technical',
+          auroSpent: ANALYSIS_COST,
+          timestamp: new Date().toISOString(),
+          status: 'success'
+        };
+        batch.set(logRef, log);
+
+        // Update Daily Stats
+        const today = new Date().toISOString().split('T')[0];
+        const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+        batch.set(statRef, { 
+          date: today,
+          auroSpent: increment(ANALYSIS_COST),
+          technicalAnalyses: increment(1)
+        }, { merge: true });
 
         xpGained += 15;
       }

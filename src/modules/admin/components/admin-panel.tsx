@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -55,6 +54,7 @@ export default function AdminPanel() {
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('accounting');
+  const [userSearch, setUserSearch] = useState('');
 
   const isAdmin = useMemo(() => {
     if (!user) return false;
@@ -83,7 +83,7 @@ export default function AdminPanel() {
   const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
   const { data: competitions } = useCollection<Competition>(competitionsQuery);
   const { data: logs } = useCollection<AnalysisLog>(logsQuery);
-  const { data: users } = useCollection<User>(usersQuery);
+  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 
   const metrics = useMemo(() => {
     if (!logs) return null;
@@ -95,6 +95,16 @@ export default function AdminPanel() {
       competitionAuro: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
     };
   }, [logs]);
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (!userSearch) return users;
+    const term = userSearch.toLowerCase();
+    return users.filter(u => 
+      u.name?.toLowerCase().includes(term) || 
+      u.email?.toLowerCase().includes(term)
+    );
+  }, [users, userSearch]);
 
   const exhibitionForm = useForm({
     resolver: zodResolver(exhibitionSchema),
@@ -173,7 +183,9 @@ export default function AdminPanel() {
       <header className="mb-10 flex flex-col sm:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4 bg-primary/10 px-6 py-3 rounded-full border border-primary/20">
           <Activity className="h-5 w-5 text-primary" />
-          <p className="text-sm font-bold text-primary">TOPLAM {users?.length || 0} VİZYONER KAYITLI</p>
+          <p className="text-sm font-bold text-primary uppercase">
+            {isUsersLoading ? 'YÜKLENİYOR...' : `TOPLAM ${users?.length || 0} VİZYONER KAYITLI`}
+          </p>
         </div>
       </header>
 
@@ -213,7 +225,7 @@ export default function AdminPanel() {
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">
                 <div className="divide-y divide-border/40">
-                  {logs?.map(log => (
+                  {logs && logs.length > 0 ? logs.map(log => (
                     <div key={log.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className={cn("p-2 rounded-lg", log.type === 'technical' ? "bg-blue-500/10 text-blue-400" : log.type === 'mentor' ? "bg-purple-500/10 text-purple-400" : "bg-cyan-500/10 text-cyan-400")}>
@@ -229,7 +241,9 @@ export default function AdminPanel() {
                         <p className="text-[10px] text-muted-foreground">{log.timestamp ? formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: tr }) : 'Az önce'}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="p-20 text-center text-muted-foreground">Henüz bir işlem kaydı bulunmuyor.</div>
+                  )}
                 </div>
               </ScrollArea>
             </CardContent>
@@ -346,7 +360,12 @@ export default function AdminPanel() {
                 <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Kullanıcı Listesi</CardTitle>
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="İsim veya e-posta..." className="pl-9 h-9 rounded-full bg-muted/50 text-xs" />
+                  <Input 
+                    placeholder="İsim veya e-posta..." 
+                    className="pl-9 h-9 rounded-full bg-muted/50 text-xs" 
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                  />
                 </div>
               </div>
             </CardHeader>
@@ -362,7 +381,7 @@ export default function AdminPanel() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users?.map(u => (
+                  {filteredUsers.length > 0 ? filteredUsers.map(u => (
                     <TableRow key={u.id}>
                       <TableCell className="font-medium">{u.name}</TableCell>
                       <TableCell><Badge variant="outline" className="text-[10px] uppercase font-black">{u.level_name}</Badge></TableCell>
@@ -372,7 +391,11 @@ export default function AdminPanel() {
                         <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold uppercase">Yönet</Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">Kullanıcı bulunamadı.</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
