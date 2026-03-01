@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/lib/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
@@ -66,15 +66,8 @@ export default function ExplorePage() {
         </header>
 
         <div className="grid md:grid-cols-3 gap-10">
-          {/* Sergi Salonları Kartı */}
           <Card className="group relative h-[520px] rounded-[48px] overflow-hidden border-none shadow-2xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] ring-1 ring-white/5" onClick={() => setView('exhibitions')}>
-            <Image 
-              src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=1000" 
-              alt="Exhibition" 
-              fill 
-              className="object-cover transition-transform duration-1000 group-hover:scale-110" 
-              unoptimized 
-            />
+            <Image src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=1000" alt="Exhibition" fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
               <div className="h-14 w-14 mx-auto rounded-[20px] bg-primary flex items-center justify-center shadow-2xl shadow-primary/40"><Globe className="h-7 w-7 text-white" /></div>
@@ -88,15 +81,8 @@ export default function ExplorePage() {
             </div>
           </Card>
 
-          {/* Yarışmalar Kartı */}
           <Card className="group relative h-[520px] rounded-[48px] overflow-hidden border-none shadow-2xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] ring-1 ring-white/5" onClick={() => router.push('/competitions')}>
-            <Image 
-              src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000" 
-              alt="Competitions" 
-              fill 
-              className="object-cover transition-transform duration-1000 group-hover:scale-110" 
-              unoptimized 
-            />
+            <Image src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000" alt="Competitions" fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
               <div className="h-14 w-14 mx-auto rounded-[20px] bg-amber-500 flex items-center justify-center shadow-2xl shadow-amber-500/40"><Trophy className="h-7 w-7 text-white" /></div>
@@ -110,15 +96,8 @@ export default function ExplorePage() {
             </div>
           </Card>
 
-          {/* Gruplarım Kartı */}
           <Card className="group relative h-[520px] rounded-[48px] overflow-hidden border-none shadow-2xl cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98] ring-1 ring-white/5" onClick={() => router.push('/groups')}>
-            <Image 
-              src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000" 
-              alt="Groups" 
-              fill 
-              className="object-cover transition-transform duration-1000 group-hover:scale-110" 
-              unoptimized 
-            />
+            <Image src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000" alt="Groups" fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute bottom-12 left-10 right-10 space-y-6 text-center">
               <div className="h-14 w-14 mx-auto rounded-[20px] bg-blue-500 flex items-center justify-center shadow-2xl shadow-blue-500/40"><Users className="h-7 w-7 text-white" /></div>

@@ -36,7 +36,7 @@ export function useCollection<T = any>(
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // Synchronous cleanup of previous listener
+    // Synchronous cleanup of previous listener to avoid internal assertion errors
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
@@ -59,7 +59,7 @@ export function useCollection<T = any>(
       (query as any)?.__memo !== true
     ) {
       console.warn(
-        '⚠ Firebase query is not memoized! Use useMemoFirebase to avoid redundant listeners and potential internal assertion errors.'
+        '⚠ Firebase query is not memoized! Use useMemoFirebase to avoid redundant listeners.'
       );
     }
 
