@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   onSnapshot,
   DocumentData,
@@ -32,62 +32,49 @@ export function useCollection<T = any>(
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  
-  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // Synchronous cleanup of previous listener to avoid internal assertion errors
-    if (unsubscribeRef.current) {
-      unsubscribeRef.current();
-      unsubscribeRef.current = null;
-    }
-
-    if (!query) {
+    // 1. Query yoksa veya Auth gerekliyse ama kullanıcı yoksa dur
+    if (!query || (requireAuth && !user?.uid)) {
       setIsLoading(false);
       setData(null);
       return;
     }
 
-    if (requireAuth && !user?.uid) {
-      setIsLoading(false);
-      setData(null);
-      return;
-    }
-
+    // Geliştirme aşamasında memoization uyarısı
     if (
       process.env.NODE_ENV === 'development' &&
       (query as any)?.__memo !== true
     ) {
       console.warn(
-        '⚠ Firebase query is not memoized! Use useMemoFirebase to avoid redundant listeners.'
+        '⚠ Firebase query is not memoized! Use useMemoFirebase to avoid redundant listeners and internal assertion errors.'
       );
     }
 
     setIsLoading(true);
 
-    try {
-      const unsubscribe = onSnapshot(
-        query,
-        (snapshot: QuerySnapshot<DocumentData>) => {
-          const results = snapshot.docs.map((doc) => ({
-            ...(doc.data() as T),
-            id: doc.id,
-          }));
+    // 2. onSnapshot dinleyicisini başlat
+    const unsubscribe = onSnapshot(
+      query,
+      (snapshot: QuerySnapshot<DocumentData>) => {
+        const results = snapshot.docs.map((doc) => ({
+          ...(doc.data() as T),
+          id: doc.id,
+        }));
 
-          setData(results);
-          setError(null);
-          setIsLoading(false);
-        },
-        (err: FirestoreError) => {
-          console.error("🔥 FIRESTORE ERROR:", err.code, err.message);
+        setData(results);
+        setError(null);
+        setIsLoading(false);
+      },
+      (err: FirestoreError) => {
+        console.error("🔥 FIRESTORE ERROR:", err.code, err.message);
 
+        // --- PROFESYONEL ERROR HANDLING ---
+        
+        if (err.code === 'permission-denied') {
           let path = 'unknown';
           try {
-            if ((query as any)?.path) {
-              path = (query as any).path;
-            } else if ((query as any)?._query?.path) {
-              path = (query as any)._query.path.segments.join('/');
-            }
+            path = (query as any)._query?.path?.segments?.join('/') || (query as any).path || 'unknown';
           } catch {}
 
           const contextualError = new FirestorePermissionError({
@@ -96,22 +83,35 @@ export function useCollection<T = any>(
           });
 
           setError(contextualError);
-          setIsLoading(false);
           errorEmitter.emit('permission-error', contextualError);
+        } 
+        else if (err.code === 'failed-precondition') {
+          // 🔥 Index eksik durumu (Composite Index Required)
+          const indexError = new Error(
+            'Firestore composite index eksik. Firebase Console’dan oluşturulmalı.'
+          );
+          
+          // Dev ortamında doğrudan linki bas (Hayat kurtarıcı)
+          if (process.env.NODE_ENV === 'development') {
+            const match = err.message.match(/https:\/\/console\.firebase\.google\.com\S+/);
+            if (match) {
+              console.warn('👉 BU SORGUNUN ÇALIŞMASI İÇİN INDEX OLUŞTURUN:', match[0]);
+            }
+          }
+
+          setError(indexError);
+        } 
+        else {
+          setError(err);
         }
-      );
-
-      unsubscribeRef.current = unsubscribe;
-    } catch (e) {
-      console.error("🔥 Snapshot setup failed:", e);
-      setIsLoading(false);
-    }
-
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-        unsubscribeRef.current = null;
+        
+        setIsLoading(false);
       }
+    );
+
+    // 3. Cleanup
+    return () => {
+      unsubscribe();
     };
   }, [query, requireAuth, user?.uid]);
 
