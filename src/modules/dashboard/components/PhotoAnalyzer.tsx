@@ -7,15 +7,11 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, increment, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
-import { generateAdaptiveFeedback } from '@/ai/flows/generate-adaptive-feedback';
 import { useToast } from '@/shared/hooks/use-toast';
 import type { User, Photo, PhotoAnalysis } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Camera, Loader2, Sparkles } from 'lucide-react';
-
-const ANALYSIS_COST = 1;
-const UPLOAD_XP_GAIN = 5;
 
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -23,6 +19,9 @@ async function generateImageHash(file: File): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+const ANALYSIS_COST = 1;
+const UPLOAD_XP_GAIN = 5;
 
 export default function PhotoAnalyzer() {
   const { toast } = useToast();

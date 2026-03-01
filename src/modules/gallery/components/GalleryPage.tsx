@@ -26,7 +26,6 @@ import { cn } from '@/lib/utils';
 const ANALYSIS_COST = 1;
 const SUBMIT_TO_EXHIBITION_COST = 1;
 
-// Helper functions moved outside component to fix initialization reference errors
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
     return score > 1 ? score : score * 10;

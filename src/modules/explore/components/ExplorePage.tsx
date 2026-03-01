@@ -14,6 +14,24 @@ import { tr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
+
+const getOverallScore = (photo: Photo): number => {
+    if (!photo.aiFeedback) return 0;
+    const lScore = normalizeScore(photo.aiFeedback.light_score);
+    const cScore = normalizeScore(photo.aiFeedback.composition_score);
+    const technicalSubScores = [
+        normalizeScore(photo.aiFeedback.focus_score),
+        normalizeScore(photo.aiFeedback.color_control_score),
+        normalizeScore(photo.aiFeedback.background_control_score)
+    ];
+    const tScore = technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
+    return (lScore + cScore + tScore) / 3;
+};
+
 const safeFormatDistance = (dateStr: string | undefined) => {
   if (!dateStr) return 'Süresiz';
   const date = new Date(dateStr);
@@ -23,11 +41,6 @@ const safeFormatDistance = (dateStr: string | undefined) => {
   } catch (e) {
     return 'Süresiz';
   }
-};
-
-const normalizeScore = (score: number | undefined | null): number => {
-    if (score === undefined || score === null || !isFinite(score)) return 0;
-    return score > 1 ? score : score * 10;
 };
 
 export default function ExplorePage() {
