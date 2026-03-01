@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -236,8 +235,7 @@ export default function LumaMentorPage() {
                                 <div className="relative h-24 w-24 rounded-2xl overflow-hidden shrink-0 border border-border/50"><Image src={lastPhoto.imageUrl} alt="Son Kare" fill className="object-cover" unoptimized /></div>
                                 <div className="flex-1 space-y-2"><p className="text-sm italic text-foreground/90 leading-relaxed font-medium">{lastPhoto.aiFeedback ? `"${lastPhoto.aiFeedback.short_neutral_analysis}"` : "Henüz analiz edilmemiş bir kare."}</p></div>
                             </CardContent>
-                        </Card>
-                    </section>
+                        </section>
                 )}
 
                 <section className="space-y-4">
