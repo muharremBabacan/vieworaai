@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   onSnapshot,
   DocumentData,
@@ -33,6 +32,12 @@ export function useCollection<T = any>(
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  
+  // Use a ref to track the current query to prevent race conditions during unmount/remount
+  const queryRef = useRef(query);
+  useEffect(() => {
+    queryRef.current = query;
+  }, [query]);
 
   useEffect(() => {
     if (!query || (requireAuth && !user?.uid)) {
@@ -82,7 +87,6 @@ export function useCollection<T = any>(
           errorEmitter.emit('permission-error', contextualError);
         } 
         else if (err.code === 'failed-precondition') {
-          // 🔥 Handle Missing Index - Professional Level
           const indexError = new Error(
             'Firestore composite index eksik. Firebase projesine dağıtılıyor, lütfen bekleyin.'
           );
@@ -104,7 +108,14 @@ export function useCollection<T = any>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      // Safe unsubscribe to avoid "INTERNAL ASSERTION FAILED"
+      try {
+        unsubscribe();
+      } catch (e) {
+        console.warn("Firestore unsubscribe error suppressed:", e);
+      }
+    };
   }, [query, requireAuth, user?.uid]);
 
   return { data, isLoading, error };

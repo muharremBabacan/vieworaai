@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -83,10 +82,10 @@ export default function ExplorePage() {
               <CardTitle className="text-2xl font-black tracking-tight">Sergi Salonları</CardTitle>
               <CardDescription className="text-sm font-bold text-primary uppercase">{exhibitions?.length || 0} Aktif Salon</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow">
-              <p className="text-sm text-muted-foreground leading-relaxed">Tematik salonları gez, vizyonunu toplulukla paylaş.</p>
-              <Button onClick={() => setView('exhibitions')} className="mt-8 w-full h-11 rounded-xl font-bold transition-all active:scale-95">
-                Salonları Gez <ChevronRight className="ml-2 h-4 w-4" />
+            <CardContent className="flex-grow flex flex-col">
+              <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Tematik salonları gez, vizyonunu toplulukla paylaş.</p>
+              <Button onClick={() => setView('exhibitions')} className="mt-6 w-full h-11 transition-all active:scale-95">
+                Salonları Gez
               </Button>
             </CardContent>
           </Card>
@@ -102,10 +101,10 @@ export default function ExplorePage() {
               <CardTitle className="text-2xl font-black tracking-tight">Global Yarışmalar</CardTitle>
               <CardDescription className="text-sm font-bold text-amber-500 uppercase">{competitions?.length || 0} Büyük Ödül</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow">
-              <p className="text-sm text-muted-foreground leading-relaxed">Limitlerini zorla, jüri ve topluluk karşısında yarış.</p>
-              <Button onClick={() => router.push('/competitions')} variant="secondary" className="mt-8 w-full h-11 rounded-xl font-bold bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-all active:scale-95">
-                Yarışmaya Katıl <ChevronRight className="ml-2 h-4 w-4" />
+            <CardContent className="flex-grow flex flex-col">
+              <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Limitlerini zorla, jüri ve topluluk karşısında yarış.</p>
+              <Button onClick={() => router.push('/competitions')} variant="secondary" className="mt-6 w-full h-11 transition-all active:scale-95">
+                Yarışmaya Katıl
               </Button>
             </CardContent>
           </Card>
@@ -121,10 +120,10 @@ export default function ExplorePage() {
               <CardTitle className="text-2xl font-black tracking-tight">Aktif Gruplarım</CardTitle>
               <CardDescription className="text-sm font-bold text-blue-500 uppercase">{myGroups?.length || 0} Topluluk Üyesi</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow">
-              <p className="text-sm text-muted-foreground leading-relaxed">Özel topluluklara katıl veya kendi ekibini kur.</p>
-              <Button onClick={() => router.push('/groups')} variant="secondary" className="mt-8 w-full h-11 rounded-xl font-bold bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all active:scale-95">
-                Topluluğa Git <ChevronRight className="ml-2 h-4 w-4" />
+            <CardContent className="flex-grow flex flex-col">
+              <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Özel topluluklara katıl veya kendi ekibini kur.</p>
+              <Button onClick={() => router.push('/groups')} variant="secondary" className="mt-6 w-full h-11 transition-all active:scale-95">
+                Topluluğa Git
               </Button>
             </CardContent>
           </Card>
