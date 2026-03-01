@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, increment, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
@@ -27,7 +27,7 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
-// 🛡️ SHA-256 Hash Generator
+// 🛡️ SHA-256 Hash Generator (Digital Fingerprint)
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
@@ -148,10 +148,10 @@ export default function PhotoAnalyzer() {
         setLoadingState('uploading');
 
         try {
-            // 🔎 1. SHA-256 Hash Üretimi (Digital Fingerprint)
+            // 🧬 1. SHA-256 Hash Üretimi (Digital Fingerprint)
             const hash = await generateImageHash(file);
 
-            // 🔎 2. Duplicate Kontrolü
+            // 🔎 2. Mükerrer Kontrolü
             const q = query(
                 collection(firestore, 'users', user.uid, 'photos'), 
                 where('imageHash', '==', hash)
@@ -162,7 +162,7 @@ export default function PhotoAnalyzer() {
                 toast({ 
                     variant: 'destructive', 
                     title: "Mükerrer Yükleme", 
-                    description: "Bu fotoğraf zaten galerinizde mevcut. Lütfen yeni bir kare yükleyin." 
+                    description: "Bu fotoğrafı daha önce galerinize yüklemişsiniz. Lütfen yeni bir kare seçin." 
                 });
                 setIsLoading(false);
                 setLoadingState('');
@@ -178,9 +178,9 @@ export default function PhotoAnalyzer() {
                 return; 
             }
             
-            // 📦 3. Storage Yüklemesi
+            // 📦 3. Storage Yüklemesi (Hash tabanlı dosya adı)
             const storage = getStorage();
-            const filePath = `users/${user.uid}/photos/${hash}.jpg`; // Hash tabanlı dosya yolu
+            const filePath = `users/${user.uid}/photos/${hash}.jpg`;
             const storageRef = ref(storage, filePath);
             const uploadTask = await uploadBytes(storageRef, file);
             const imageUrl = await getDownloadURL(uploadTask.ref);
@@ -237,8 +237,8 @@ export default function PhotoAnalyzer() {
             await batch.commit();
             toast({ title: analyze ? "Analiz Tamamlandı" : "Fotoğraf Yüklendi" });
         } catch (error) { 
-            console.error(error);
-            toast({ variant: 'destructive', title: "Hata" }); 
+            console.error("Upload error:", error);
+            toast({ variant: 'destructive', title: "Hata", description: "Bir sorun oluştu." }); 
         } finally { 
             setIsLoading(false); 
             setLoadingState(''); 

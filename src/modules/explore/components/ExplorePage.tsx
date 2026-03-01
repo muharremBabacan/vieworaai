@@ -85,7 +85,7 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Tematik salonları gez, vizyonunu toplulukla paylaş.</p>
-              <Button onClick={() => setView('exhibitions')} className="mt-6 w-full h-11" variant="default">
+              <Button onClick={() => setView('exhibitions')} className="mt-6 w-full" variant="default">
                 Salonları Gez
               </Button>
             </CardContent>
@@ -104,7 +104,7 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Limitlerini zorla, jüri ve topluluk karşısında yarış.</p>
-              <Button onClick={() => router.push('/competitions')} className="mt-6 w-full h-11" variant="default">
+              <Button onClick={() => router.push('/competitions')} className="mt-6 w-full" variant="default">
                 Yarışmaya Katıl
               </Button>
             </CardContent>
@@ -123,7 +123,7 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Özel topluluklara katıl veya kendi ekibini kur.</p>
-              <Button onClick={() => router.push('/groups')} className="mt-6 w-full h-11" variant="default">
+              <Button onClick={() => router.push('/groups')} className="mt-6 w-full" variant="default">
                 Topluluğa Git
               </Button>
             </CardContent>

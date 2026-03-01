@@ -34,7 +34,6 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   
-  // Prevents multiple subscriptions if query changes rapidly
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -44,18 +43,8 @@ export function useCollection<T = any>(
       return;
     }
 
-    if (
-      process.env.NODE_ENV === 'development' &&
-      (query as any)?.__memo !== true
-    ) {
-      console.warn(
-        '⚠ Firebase query is not memoized! Use useMemoFirebase to avoid redundant listeners.'
-      );
-    }
-
     setIsLoading(true);
 
-    // Clean up previous listener
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
     }
@@ -91,7 +80,7 @@ export function useCollection<T = any>(
         } 
         else if (err.code === 'failed-precondition') {
           const indexError = new Error(
-            'Firestore composite index eksik. Firebase projesine dağıtılıyor, lütfen bekleyin.'
+            'Firestore composite index eksik. Arka planda dağıtılıyor, lütfen bekleyin.'
           );
           
           if (process.env.NODE_ENV === 'development') {
