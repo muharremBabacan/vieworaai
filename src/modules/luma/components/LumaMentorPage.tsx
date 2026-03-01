@@ -245,7 +245,7 @@ export default function LumaMentorPage() {
                     {!strategicFeedback ? (
                         <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 overflow-hidden shadow-md">
                             <CardContent className="p-10 text-center space-y-6">
-                                <div className="max-w-sm mx-auto space-y-3"><h4 className="text-xl font-bold">Detaylı gelişim planını görmek ister misin?</h4><p className="text-sm text-muted-foreground leading-relaxed">Son 12 fotoğrafını tarayıp, vizyonunu ustalığay taşıyacak stratejik bir yol haritası hazırlayabilirim.</p></div>
+                                <div className="max-w-sm mx-auto space-y-3"><h4 className="text-xl font-bold">Detaylı gelişim planını görmek ister misin?</h4><p className="text-sm text-muted-foreground leading-relaxed">Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlayabilirim.</p></div>
                                 <Button onClick={handleAskLuma} disabled={isAnalyzing || !stats} className="h-12 px-10 rounded-2xl font-bold bg-foreground text-background hover:bg-foreground/90 transition-all active:scale-95">{isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />} Analizi Başlat ({MENTOR_COST} Auro)</Button>
                             </CardContent>
                         </Card>

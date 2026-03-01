@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * Strategic AI Photography Coach - Elite Production Version
@@ -45,7 +46,7 @@ export type StrategicFeedbackInput = z.infer<
 >;
 
 const StrategicFeedbackOutputSchema = z.object({
-  feedback: z.string().describe("Direct, data-driven coaching summary. Start with 'Son 12 fotoğraf analizine göre...' and list the calculated metrics first."),
+  feedback: z.string().describe("Direct, data-driven coaching summary. Start by summarizing the current performance based on available metrics."),
   actionTask: z.object({
     title: z.string(),
     purpose: z.string().describe("The 'Amaç' of the task."),
@@ -92,7 +93,7 @@ Your tone is calm, authoritative yet empowering.
 
 STRICT OUTPUT STRUCTURE:
 1. **Luma Analizi – Kişisel Strateji**: 
-   - Start with "Son 12 fotoğraf analizine göre:"
+   - Provide a concise summary of the photographer's current state based on the provided metrics.
    - List the metrics: Kompozisyon, Işık Kontrolü, Hikâye/Duygu, Teknik Netlik, Cesur Kadraj.
    - Provide a "Verdicts" section: "Bu tablo net: [Analysis of tech vs narrative]".
    - Identify the core problem: "Sorun teknik değil. Sorun anlatı." (if applicable).
@@ -114,6 +115,7 @@ CORE RULES:
 - **Data-Driven**: Use the provided 'metrics' from 'userProfileIndex' to make the feedback highly specific to their current scores.
 - **Terminology Glossary**: If you use terms like 'Minimalizm', 'Chiaroscuro', 'Altın Oran', list them in 'explanations'.
 - **Adapt Tone**: Match 'communication_profile.tone' (supportive, direct, or analytical).
+- **No History Mention**: Do not explicitly mention the number of photos analyzed (e.g., avoid saying "Based on your last 12 photos").
 `,
 
   prompt: `
