@@ -233,7 +233,7 @@ export default function ExplorePage() {
         <div className="text-center py-40 rounded-[64px] border-2 border-dashed border-border/40 bg-muted/5">
           <Camera className="h-20 w-20 mx-auto mb-8 text-muted-foreground/20" />
           <h3 className="text-3xl font-black tracking-tight">İlk Eseri Sen Paylaş!</h3>
-          <p className="text-muted-foreground max-w-sm mx-auto mt-4 text-lg">Galerinden en iyi fotoğrafını seçip sergiye göndererek bu salonu onurlandırabilirsin.</p>
+          <p className="text-muted-foreground max-sm mx-auto mt-4 text-lg">Galerinden en iyi fotoğrafını seçip sergiye göndererek bu salonu onurlandırabilirsin.</p>
           <Button onClick={() => router.push('/gallery')} size="lg" className="mt-10 h-14 px-12 rounded-2xl font-bold shadow-2xl shadow-primary/30 active:scale-95 transition-all">
             <Sparkles className="mr-2 h-5 w-5" /> Galerime Git
           </Button>
