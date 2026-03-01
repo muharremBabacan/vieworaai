@@ -34,10 +34,8 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   
-  const queryRef = useRef(query);
-  useEffect(() => {
-    queryRef.current = query;
-  }, [query]);
+  // Prevents multiple subscriptions if query changes rapidly
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!query || (requireAuth && !user?.uid)) {
@@ -56,6 +54,11 @@ export function useCollection<T = any>(
     }
 
     setIsLoading(true);
+
+    // Clean up previous listener
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
 
     const unsubscribe = onSnapshot(
       query,
@@ -108,11 +111,12 @@ export function useCollection<T = any>(
       }
     );
 
+    unsubscribeRef.current = unsubscribe;
+
     return () => {
-      try {
-        unsubscribe();
-      } catch (e) {
-        console.warn("Firestore unsubscribe error suppressed:", e);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
       }
     };
   }, [query, requireAuth, user?.uid]);

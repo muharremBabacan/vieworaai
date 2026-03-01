@@ -2,7 +2,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/lib/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
 import type { Exhibition, Competition, Group, Photo } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

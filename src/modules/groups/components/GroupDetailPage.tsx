@@ -1,5 +1,6 @@
+
 'use client';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc } from 'firebase/firestore';

@@ -98,7 +98,7 @@ export type Photo = {
   userName?: string;
   userPhotoURL?: string | null;
   userLevelName?: string;
-  fingerprint?: string; // Duplicate check key (name + size)
+  imageHash?: string; // New: SHA-256 Hash for duplicate detection
 };
 
 export type Competition = {

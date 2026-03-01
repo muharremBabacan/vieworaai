@@ -27,6 +27,14 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
+// 🛡️ SHA-256 Hash Generator
+async function generateImageHash(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 const RatingBar = ({ label, score }: { label: string, score: number | undefined }) => (
     <div>
         <div className="flex justify-between items-center mb-1">
@@ -136,28 +144,43 @@ export default function PhotoAnalyzer() {
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
         
-        const fingerprint = `${file.name}-${file.size}`;
-        const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
-        const dupSnap = await getDocs(dupQuery);
-        
-        if (!dupSnap.empty) {
-            toast({ 
-                variant: 'destructive', 
-                title: "Mükerrer Yükleme", 
-                description: "Bu fotoğraf zaten galerinizde mevcut. Lütfen yeni bir kare yükleyin." 
-            });
-            setFile(null);
-            setPreview(null);
-            return;
-        }
-
-        if (analyze && userProfile.auro_balance < ANALYSIS_COST) { toast({ variant: 'destructive', title: "Yetersiz Auro" }); return; }
-        
         setIsLoading(true);
         setLoadingState('uploading');
+
         try {
+            // 🔎 1. SHA-256 Hash Üretimi (Digital Fingerprint)
+            const hash = await generateImageHash(file);
+
+            // 🔎 2. Duplicate Kontrolü
+            const q = query(
+                collection(firestore, 'users', user.uid, 'photos'), 
+                where('imageHash', '==', hash)
+            );
+            const dupSnap = await getDocs(q);
+            
+            if (!dupSnap.empty) {
+                toast({ 
+                    variant: 'destructive', 
+                    title: "Mükerrer Yükleme", 
+                    description: "Bu fotoğraf zaten galerinizde mevcut. Lütfen yeni bir kare yükleyin." 
+                });
+                setIsLoading(false);
+                setLoadingState('');
+                setFile(null);
+                setPreview(null);
+                return;
+            }
+
+            if (analyze && userProfile.auro_balance < ANALYSIS_COST) { 
+                toast({ variant: 'destructive', title: "Yetersiz Auro" }); 
+                setIsLoading(false);
+                setLoadingState('');
+                return; 
+            }
+            
+            // 📦 3. Storage Yüklemesi
             const storage = getStorage();
-            const filePath = `users/${user.uid}/photos/${Date.now()}-${file.name}`;
+            const filePath = `users/${user.uid}/photos/${hash}.jpg`; // Hash tabanlı dosya yolu
             const storageRef = ref(storage, filePath);
             const uploadTask = await uploadBytes(storageRef, file);
             const imageUrl = await getDownloadURL(uploadTask.ref);
@@ -173,10 +196,10 @@ export default function PhotoAnalyzer() {
                 userId: user.uid, 
                 imageUrl, 
                 filePath, 
+                imageHash: hash,
                 createdAt: new Date().toISOString(), 
                 aiFeedback: null, 
-                tags: [], 
-                fingerprint 
+                tags: [] 
             };
             let xpGained = UPLOAD_XP_GAIN;
             
