@@ -123,6 +123,7 @@ export type Competition = {
   juryWeight: number;
   aiWeight: number;
   communityWeight: number;
+  participantCount?: number; // New: Katılımcı sayısı takibi
 };
 
 export type CompetitionEntry = {

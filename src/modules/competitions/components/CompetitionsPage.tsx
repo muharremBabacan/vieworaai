@@ -21,6 +21,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 // Yarışma katılım ücreti: 2 Auro
 const COMPETITION_JOIN_COST = 2;
 
+// Seviye bazlı ödül havuzu yüzdesi
+const getPrizePercentage = (level: string) => {
+    switch (level) {
+        case 'Vexer': return 0.75;
+        case 'Omner': return 0.60;
+        case 'Sytner': return 0.50;
+        case 'Viewner': return 0.40;
+        case 'Neuner': 
+        default: return 0.30;
+    }
+};
+
 const getCompetitionStatus = (startDate: string, endDate: string) => {
     const now = new Date();
     const start = new Date(startDate);
@@ -169,6 +181,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
         try {
             const batch = writeBatch(firestore);
             const entryRef = doc(collection(firestore, 'competitions', competition.id, 'entries'));
+            const compRef = doc(firestore, 'competitions', competition.id);
             const logRef = doc(collection(firestore, 'analysis_logs'));
             const userRef = doc(firestore, 'users', userProfile.id);
             const today = new Date().toISOString().split('T')[0];
@@ -184,6 +197,11 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 submittedAt: new Date().toISOString(),
                 votes: [],
                 award: 'participant'
+            });
+
+            // Update competition participant count
+            batch.update(compRef, {
+                participantCount: increment(1)
             });
 
             // Update user balance
@@ -222,6 +240,12 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     const status = getCompetitionStatus(competition.startDate, competition.endDate);
     const isEligible = userProfile?.level_name === competition.targetLevel || competition.targetLevel === 'Neuner';
 
+    // Dinamik Ödül Hesaplama
+    const currentParticipants = competition.participantCount || 0;
+    const poolPercentage = getPrizePercentage(competition.targetLevel);
+    const totalCollected = currentParticipants * COMPETITION_JOIN_COST;
+    const estimatedPrizePool = Math.floor(totalCollected * poolPercentage);
+
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[95vh] p-0 overflow-hidden border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl">
@@ -255,9 +279,12 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                             <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0"><Star className="h-4 w-4 text-purple-400" /></div>
                                             <div className="min-w-0"><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight">Tema</p><p className="text-xs font-bold truncate">{competition.theme}</p></div>
                                         </div>
-                                        <div className="p-3 rounded-xl bg-card border border-border/40 flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0"><Trophy className="h-4 w-4 text-amber-400" /></div>
-                                            <div className="min-w-0"><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight">Ödül</p><p className="text-xs font-bold truncate">{competition.prize}</p></div>
+                                        <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
+                                            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0"><Trophy className="h-4 w-4 text-primary" /></div>
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] text-primary uppercase font-black tracking-tight">Dinamik Ödül</p>
+                                                <p className="text-xs font-black truncate text-primary">{estimatedPrizePool} Auro</p>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
@@ -332,6 +359,9 @@ export default function CompetitionsPage() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {competitions.map(comp => {
                         const status = getCompetitionStatus(comp.startDate, comp.endDate);
+                        const poolPercentage = getPrizePercentage(comp.targetLevel);
+                        const estimatedPrize = Math.floor((comp.participantCount || 0) * COMPETITION_JOIN_COST * poolPercentage);
+
                         return (
                             <Card key={comp.id} className="overflow-hidden flex flex-col group border-border/50 rounded-3xl bg-card/50">
                                 <div className="relative h-52 w-full overflow-hidden">
@@ -346,8 +376,14 @@ export default function CompetitionsPage() {
                                 <CardContent className="p-6 flex flex-col flex-grow">
                                     <p className="text-sm text-muted-foreground line-clamp-2 mb-6 h-10">{comp.description}</p>
                                     <div className="flex items-center justify-between mb-6">
-                                        <div className="space-y-1"><span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Ağırlıklar</span><p className="text-xs font-mono">J:%{comp.juryWeight} A:%{comp.aiWeight} T:%{comp.communityWeight}</p></div>
-                                        <div className="space-y-1 text-right"><span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Seviye</span><Badge variant="secondary" className="block text-[10px] font-bold">{comp.targetLevel}</Badge></div>
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Güncel Ödül</span>
+                                            <p className="text-lg font-black text-primary">{estimatedPrize} <span className="text-xs">Auro</span></p>
+                                        </div>
+                                        <div className="space-y-1 text-right">
+                                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Katılım</span>
+                                            <p className="text-sm font-bold">{comp.participantCount || 0} Kişi</p>
+                                        </div>
                                     </div>
                                     <div className="mt-auto space-y-3">
                                         <Button className="w-full rounded-xl h-11 font-bold" variant={status === 'active' ? 'default' : 'secondary'} onClick={() => { setSelectedCompetition(comp); setIsDetailOpen(true); }}>{status === 'active' ? 'Hemen Katıl' : 'Detayları Gör'}</Button>

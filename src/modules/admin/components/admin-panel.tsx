@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -154,6 +155,7 @@ export default function AdminPanel() {
         ...values,
         imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s+/g, '')}/1200/800`,
         scoringModel: 'hybrid', juryWeight: 40, aiWeight: 40, communityWeight: 20,
+        participantCount: 0, // Yeni: Başlangıçta 0 katılımcı
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -313,7 +315,7 @@ export default function AdminPanel() {
                         <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Tema</FormLabel><FormControl><Input {...field} placeholder="Minimalizm" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                       <FormField control={competitionForm.control} name="prize" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Ödül</FormLabel><FormControl><Input {...field} placeholder="100 Auro" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Ödül Notu</FormLabel><FormControl><Input {...field} placeholder="Dinamik Havuz" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -371,7 +373,7 @@ export default function AdminPanel() {
                       <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20"><Trophy className="h-7 w-7 text-amber-400" /></div>
                       <div>
                         <p className="text-lg font-black tracking-tight">{comp.title}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">YARIŞMA • {comp.targetLevel}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">YARIŞMA • {comp.targetLevel} • {comp.participantCount || 0} Katılımcı</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
