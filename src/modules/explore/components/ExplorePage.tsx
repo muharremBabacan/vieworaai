@@ -50,7 +50,7 @@ export default function ExplorePage() {
   const { data: competitions } = useCollection<Competition>(competitionsQuery);
 
   const groupsQuery = useMemoFirebase(() => 
-    (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null,
+    (user && firestore) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid), orderBy('createdAt', 'desc')) : null,
     [user, firestore]
   );
   const { data: myGroups } = useCollection<Group>(groupsQuery);
@@ -84,7 +84,7 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Tematik salonları gez, vizyonunu toplulukla paylaş.</p>
-              <Button onClick={() => setView('exhibitions')} className="mt-6 w-full h-11 transition-all active:scale-95">
+              <Button onClick={() => setView('exhibitions')} className="mt-6 w-full h-11">
                 Salonları Gez
               </Button>
             </CardContent>
@@ -103,7 +103,7 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Limitlerini zorla, jüri ve topluluk karşısında yarış.</p>
-              <Button onClick={() => router.push('/competitions')} variant="secondary" className="mt-6 w-full h-11 transition-all active:scale-95">
+              <Button onClick={() => router.push('/competitions')} className="mt-6 w-full h-11" variant="secondary">
                 Yarışmaya Katıl
               </Button>
             </CardContent>
@@ -122,7 +122,7 @@ export default function ExplorePage() {
             </CardHeader>
             <CardContent className="flex-grow flex flex-col">
               <p className="text-sm text-muted-foreground leading-relaxed flex-grow">Özel topluluklara katıl veya kendi ekibini kur.</p>
-              <Button onClick={() => router.push('/groups')} variant="secondary" className="mt-6 w-full h-11 transition-all active:scale-95">
+              <Button onClick={() => router.push('/groups')} className="mt-6 w-full h-11" variant="secondary">
                 Topluluğa Git
               </Button>
             </CardContent>

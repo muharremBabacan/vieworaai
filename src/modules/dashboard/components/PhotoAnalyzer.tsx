@@ -135,7 +135,6 @@ export default function PhotoAnalyzer() {
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
         
-        // 🚫 DUPLICATE CHECK (Fingerprint: Name + Size)
         const fingerprint = `${file.name}-${file.size}`;
         const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
         const dupSnap = await getDocs(dupQuery);

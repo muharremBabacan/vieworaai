@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, writeBatch, increment, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, getDocs, orderBy } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 
@@ -56,7 +56,7 @@ export default function GalleryPage() {
     const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile } = useDoc<User>(userDocRef);
 
-    const photosQuery = useMemoFirebase(() => user ? query(collection(firestore, 'users', user.uid, 'photos')) : null, [user, firestore]);
+    const photosQuery = useMemoFirebase(() => user ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc')) : null, [user, firestore]);
     const { data: photos, isLoading } = useCollection<Photo>(photosQuery);
 
     const exhibitionsQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true)) : null, [firestore]);
@@ -68,7 +68,7 @@ export default function GalleryPage() {
         if (activeFilter === 'unanalyzed') result = result.filter(p => !p.aiFeedback);
         else if (activeFilter === 'best_overall') result = result.filter(p => p.aiFeedback).sort((a,b) => getOverallScore(b) - getOverallScore(a));
         else if (activeFilter === 'exhibition') result = result.filter(p => p.isSubmittedToExhibition);
-        return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return result;
     }, [photos, activeFilter]);
 
     const getOverallScore = (photo: Photo): number => {
@@ -139,12 +139,11 @@ export default function GalleryPage() {
 
       if (!targetExhibitionId) { toast({ title: "Sergi Seçin", description: "Lütfen bir sergi teması seçin." }); return; }
       
-      // 🛡️ ONE ENTRY PER HALL CHECK
       const existingQuery = query(collection(firestore, 'public_photos'), where('userId', '==', user.uid), where('exhibitionId', '==', targetExhibitionId));
       const existingSnap = await getDocs(existingQuery);
       
       if (!existingSnap.empty) {
-          toast({ variant: 'destructive', title: "Katılım Reddedildi", description: "Bu sergi salonuna zaten bir eserinizle katılmışsınız. Kaliteyi korumak için her salona 1 eser gönderebilirsiniz." });
+          toast({ variant: 'destructive', title: "Katılım Reddedildi", description: "Bu sergi salonuna zaten bir eserinizle katılmışsınız. Her salona 1 eser gönderebilirsiniz." });
           return;
       }
 

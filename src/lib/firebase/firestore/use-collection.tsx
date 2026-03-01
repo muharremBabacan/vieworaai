@@ -33,7 +33,6 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   
-  // Use a ref to track the current query to prevent race conditions during unmount/remount
   const queryRef = useRef(query);
   useEffect(() => {
     queryRef.current = query;
@@ -109,7 +108,6 @@ export function useCollection<T = any>(
     );
 
     return () => {
-      // Safe unsubscribe to avoid "INTERNAL ASSERTION FAILED"
       try {
         unsubscribe();
       } catch (e) {
