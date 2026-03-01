@@ -34,26 +34,23 @@ export function useCollection<T = any>(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // 1. Query yoksa veya Auth gerekliyse ama kullanıcı yoksa dur
     if (!query || (requireAuth && !user?.uid)) {
       setIsLoading(false);
       setData(null);
       return;
     }
 
-    // Geliştirme aşamasında memoization uyarısı
     if (
       process.env.NODE_ENV === 'development' &&
       (query as any)?.__memo !== true
     ) {
       console.warn(
-        '⚠ Firebase query is not memoized! Use useMemoFirebase to avoid redundant listeners and internal assertion errors.'
+        '⚠ Firebase query is not memoized! Use useMemoFirebase to avoid redundant listeners.'
       );
     }
 
     setIsLoading(true);
 
-    // 2. onSnapshot dinleyicisini başlat
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -69,8 +66,6 @@ export function useCollection<T = any>(
       (err: FirestoreError) => {
         console.error("🔥 FIRESTORE ERROR:", err.code, err.message);
 
-        // --- PROFESYONEL ERROR HANDLING ---
-        
         if (err.code === 'permission-denied') {
           let path = 'unknown';
           try {
@@ -86,12 +81,10 @@ export function useCollection<T = any>(
           errorEmitter.emit('permission-error', contextualError);
         } 
         else if (err.code === 'failed-precondition') {
-          // 🔥 Index eksik durumu (Composite Index Required)
           const indexError = new Error(
             'Firestore composite index eksik. Firebase Console’dan oluşturulmalı.'
           );
           
-          // Dev ortamında doğrudan linki bas (Hayat kurtarıcı)
           if (process.env.NODE_ENV === 'development') {
             const match = err.message.match(/https:\/\/console\.firebase\.google\.com\S+/);
             if (match) {
@@ -109,10 +102,7 @@ export function useCollection<T = any>(
       }
     );
 
-    // 3. Cleanup
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [query, requireAuth, user?.uid]);
 
   return { data, isLoading, error };

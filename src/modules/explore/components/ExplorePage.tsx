@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Globe, Trophy, Users, ArrowLeft, ChevronRight, Camera, Clock, Star, Sparkles } from 'lucide-react';
+import { Globe, Trophy, Users, ArrowLeft, ChevronRight, Camera, Clock, Star } from 'lucide-react';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -210,7 +210,7 @@ export default function ExplorePage() {
           <h3 className="text-3xl font-black tracking-tight">İlk Eseri Sen Paylaş!</h3>
           <p className="text-muted-foreground max-sm mx-auto mt-4 text-lg">Galerinden en iyi fotoğrafını seçip sergiye göndererek bu salonu onurlandırabilirsin.</p>
           <Button onClick={() => router.push('/gallery')} size="lg" className="mt-10 h-14 px-12 rounded-2xl font-bold shadow-2xl shadow-primary/30 active:scale-95 transition-all">
-            <Sparkles className="mr-2 h-5 w-5" /> Galerime Git
+            <ChevronRight className="mr-2 h-5 w-5" /> Galerime Git
           </Button>
         </div>
       )}

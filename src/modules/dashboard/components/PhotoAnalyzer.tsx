@@ -135,7 +135,6 @@ export default function PhotoAnalyzer() {
     const handleUploadAndOptionalAnalysis = async (analyze = false) => {
         if (!file || !user || !firestore || !userProfile) return;
         
-        // FINGERPRINT CHECK FOR DUPLICATES
         const fingerprint = `${file.name}-${file.size}`;
         const dupQuery = query(collection(firestore, 'users', user.uid, 'photos'), where('fingerprint', '==', fingerprint));
         const dupSnap = await getDocs(dupQuery);
@@ -170,7 +169,7 @@ export default function PhotoAnalyzer() {
                 createdAt: new Date().toISOString(), 
                 aiFeedback: null, 
                 tags: [], 
-                fingerprint // Save fingerprint
+                fingerprint 
             };
             let xpGained = UPLOAD_XP_GAIN;
             
