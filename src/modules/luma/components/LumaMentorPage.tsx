@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, orderBy, limit, doc, writeBatch, increment, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, writeBatch, increment } from 'firebase/firestore';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
 import type { User, Photo, StoredStrategicFeedback, AnalysisLog } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, AlertCircle } from 'lucide-react';
+import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -217,7 +217,7 @@ export default function LumaMentorPage() {
       toast({ 
         variant: 'destructive', 
         title: "Analiz Yapılamadı",
-        description: errorMessage
+        description: `Yapay zeka servisine ulaşılamadı: ${errorMessage}`
       });
     } finally {
       setIsAnalyzing(false);
