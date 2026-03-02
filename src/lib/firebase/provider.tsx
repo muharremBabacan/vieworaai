@@ -65,11 +65,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   useEffect(() => {
     if (!auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
+      setUserAuthState({ user: null, isUserLoading: false, userError: null });
       return;
     }
-
-    setUserAuthState({ user: null, isUserLoading: true, userError: null });
 
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -108,7 +106,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 export const useFirebase = (): FirebaseServicesAndUser => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
+    // SSR fallback to prevent hard crashes
+    return {
+      firebaseApp: null,
+      firestore: null,
+      auth: null,
+      storage: null,
+      user: null,
+      isUserLoading: true,
+      userError: null
+    };
   }
   return {
     firebaseApp: context.firebaseApp,
@@ -124,8 +131,8 @@ export const useFirebase = (): FirebaseServicesAndUser => {
 export const useAuth = (): Auth => {
   const { auth } = useFirebase();
   if (!auth) {
-    if (typeof window === 'undefined') return null as unknown as Auth;
-    throw new Error("Auth service not available. Check FirebaseProvider props.");
+    // Safely return null during SSR
+    return null as unknown as Auth;
   }
   return auth;
 };
@@ -133,8 +140,7 @@ export const useAuth = (): Auth => {
 export const useFirestore = (): Firestore => {
   const { firestore } = useFirebase();
   if (!firestore) {
-    if (typeof window === 'undefined') return null as unknown as Firestore;
-    throw new Error("Firestore service not available. Check FirebaseProvider props.");
+    return null as unknown as Firestore;
   }
   return firestore;
 };
@@ -142,8 +148,7 @@ export const useFirestore = (): Firestore => {
 export const useStorage = (): FirebaseStorage => {
   const { storage } = useFirebase();
   if (!storage) {
-    if (typeof window === 'undefined') return null as unknown as FirebaseStorage;
-    throw new Error("Storage service not available. Check FirebaseProvider props.");
+    return null as unknown as FirebaseStorage;
   }
   return storage;
 };
@@ -151,14 +156,18 @@ export const useStorage = (): FirebaseStorage => {
 export const useFirebaseApp = (): FirebaseApp => {
   const { firebaseApp } = useFirebase();
   if (!firebaseApp) {
-    if (typeof window === 'undefined') return null as unknown as FirebaseApp;
-    throw new Error("FirebaseApp not available. Check FirebaseProvider props.");
+    return null as unknown as FirebaseApp;
   }
   return firebaseApp;
 };
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | null {
-  return useMemo(factory, deps);
+  // Check if we are in browser environment
+  const isBrowser = typeof window !== 'undefined';
+  return useMemo(() => {
+    if (!isBrowser) return null;
+    return factory();
+  }, [isBrowser, ...deps]);
 }
 
 export const useUser = (): UserHookResult => {
