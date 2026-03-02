@@ -311,7 +311,7 @@ export default function LumaMentorPage() {
                           <ChevronRight className="h-6 w-6" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[40px] p-0">
+                      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[40px] p-0 border-border/40 bg-background/95 backdrop-blur-xl">
                         <div className="p-8"><FeedbackDisplay analysis={item} /></div>
                       </DialogContent>
                     </Dialog>
