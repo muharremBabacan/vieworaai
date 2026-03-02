@@ -90,8 +90,7 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
               ))}
             </div>
           </CardContent>
-        </Card>
-      )}
+        )}
     </div>
   );
 }
@@ -211,9 +210,14 @@ export default function LumaMentorPage() {
       setCurrentAnalysis({ ...feedbackData, id: feedbackRef.id });
       toast({ title: "Stratejik Plan Hazır!", description: "Luma sizin için özel bir yol haritası çıkardı." });
 
-    } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: "Analiz Yapılamadı" });
+    } catch (error: any) {
+      console.error('Strategic Analysis error:', error);
+      const errorMessage = error?.message || 'Luma şu an yanıt veremiyor. Lütfen daha sonra tekrar deneyin.';
+      toast({ 
+        variant: 'destructive', 
+        title: "Analiz Yapılamadı",
+        description: errorMessage
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -269,7 +273,7 @@ export default function LumaMentorPage() {
               <>
                 <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
                 <Sparkles className="mr-2 h-5 w-5 text-yellow-400 relative z-10" /> 
-                <span className="relative z-10">Stratejik Analiz Başlat ({STRATEGIC_ANALYSIS_COST} Auro)</span>
+                <span className="relative z-10">Stratejik Analiz Başlat (10 Auro)</span>
               </>
             )}
           </Button>

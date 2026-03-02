@@ -84,6 +84,9 @@ const analysisFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await analysisPrompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('Yapay zeka fotoğraf analiz çıktısı üretemedi. Lütfen görselin erişilebilir olduğundan emin olun.');
+    }
+    return output;
   }
 );

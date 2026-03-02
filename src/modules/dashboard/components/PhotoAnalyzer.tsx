@@ -128,7 +128,7 @@ export default function PhotoAnalyzer() {
           total_auro_spent: increment(ANALYSIS_COST)
         });
 
-        // 📝 4. Create Analysis Log (CRITICAL FOR ACCOUNTING)
+        // 📝 4. Create Analysis Log
         const logRef = doc(collection(firestore, 'analysis_logs'));
         const log: AnalysisLog = {
           id: logRef.id,
@@ -158,15 +158,22 @@ export default function PhotoAnalyzer() {
 
       await batch.commit();
 
-      toast({ title: analyze ? 'Analiz Tamamlandı' : 'Fotoğraf Yüklendi', description: analyze ? 'Teknik geri bildirimlerin galerine eklendi.' : 'Fotoğrafın başarıyla saklandı.' });
+      toast({ 
+        title: analyze ? 'Analiz Tamamlandı' : 'Fotoğraf Yüklendi', 
+        description: analyze ? 'Teknik geri bildirimlerin galerine eklendi.' : 'Fotoğrafın başarıyla saklandı.' 
+      });
       
-      // Reset after success
       setFile(null);
       setPreview(null);
 
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'İşlem sırasında bir sorun oluştu.' });
+    } catch (error: any) {
+      console.error('Upload or Analysis error:', error);
+      const errorMessage = error?.message || 'Yapay zeka servisine ulaşılamadı veya bir hata oluştu.';
+      toast({ 
+        variant: 'destructive', 
+        title: 'İşlem Başarısız', 
+        description: errorMessage 
+      });
     } finally {
       setIsLoading(false);
     }
