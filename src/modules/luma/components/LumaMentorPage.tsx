@@ -90,7 +90,8 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
               ))}
             </div>
           </CardContent>
-        )}
+        </Card>
+      )}
     </div>
   );
 }
