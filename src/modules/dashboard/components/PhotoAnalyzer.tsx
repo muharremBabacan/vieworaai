@@ -117,40 +117,45 @@ export default function PhotoAnalyzer() {
           return;
         }
 
-        const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr' });
-        photoData.aiFeedback = analysis;
-        photoData.tags = analysis.tags || [];
-        setAnalysisResult(analysis);
+        try {
+          const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr' });
+          photoData.aiFeedback = analysis;
+          photoData.tags = analysis.tags || [];
+          setAnalysisResult(analysis);
 
-        // 💰 3. Update Balances
-        batch.update(userRef, {
-          auro_balance: increment(-ANALYSIS_COST),
-          total_auro_spent: increment(ANALYSIS_COST)
-        });
+          // 💰 3. Update Balances
+          batch.update(userRef, {
+            auro_balance: increment(-ANALYSIS_COST),
+            total_auro_spent: increment(ANALYSIS_COST)
+          });
 
-        // 📝 4. Create Analysis Log
-        const logRef = doc(collection(firestore, 'analysis_logs'));
-        const log: AnalysisLog = {
-          id: logRef.id,
-          userId: user.uid,
-          userName: userProfile.name || 'Sanatçı',
-          type: 'technical',
-          auroSpent: ANALYSIS_COST,
-          timestamp: new Date().toISOString(),
-          status: 'success'
-        };
-        batch.set(logRef, log);
+          // 📝 4. Create Analysis Log
+          const logRef = doc(collection(firestore, 'analysis_logs'));
+          const log: AnalysisLog = {
+            id: logRef.id,
+            userId: user.uid,
+            userName: userProfile.name || 'Sanatçı',
+            type: 'technical',
+            auroSpent: ANALYSIS_COST,
+            timestamp: new Date().toISOString(),
+            status: 'success'
+          };
+          batch.set(logRef, log);
 
-        // 📈 5. Update Daily Stats
-        const today = new Date().toISOString().split('T')[0];
-        const statRef = doc(firestore, 'global_stats', `daily_${today}`);
-        batch.set(statRef, { 
-          date: today,
-          auroSpent: increment(ANALYSIS_COST),
-          technicalAnalyses: increment(1)
-        }, { merge: true });
+          // 📈 5. Update Daily Stats
+          const today = new Date().toISOString().split('T')[0];
+          const statRef = doc(firestore, 'global_stats', `daily_${today}`);
+          batch.set(statRef, { 
+            date: today,
+            auroSpent: increment(ANALYSIS_COST),
+            technicalAnalyses: increment(1)
+          }, { merge: true });
 
-        xpGained += 15;
+          xpGained += 15;
+        } catch (aiError: any) {
+          console.error('AI Analysis sub-error:', aiError);
+          throw new Error(`Yapay zeka servisine ulaşılamadı: ${aiError?.message || 'Bilinmeyen hata'}`);
+        }
       }
 
       batch.set(photoDocRef, photoData);
@@ -168,7 +173,7 @@ export default function PhotoAnalyzer() {
 
     } catch (error: any) {
       console.error('Upload or Analysis error:', error);
-      const errorMessage = error?.message || 'Yapay zeka servisine ulaşılamadı veya bir hata oluştu.';
+      const errorMessage = error?.message || 'Bir hata oluştu.';
       toast({ 
         variant: 'destructive', 
         title: 'İşlem Başarısız', 

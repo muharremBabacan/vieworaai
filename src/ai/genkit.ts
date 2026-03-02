@@ -1,14 +1,10 @@
 import 'server-only';
 import { genkit } from 'genkit';
-import { vertexAI } from '@genkit-ai/vertexai';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const ai = genkit({
   plugins: [
-    vertexAI({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT,
-      location: 'us-central1',
-    }),
+    googleAI(),
   ],
-  // 'gemini-1.5-flash' görsel analizler için en hızlı ve kararlı modeldir.
-  model: 'vertexai/gemini-1.5-flash',
+  model: 'googleai/gemini-1.5-flash',
 });
