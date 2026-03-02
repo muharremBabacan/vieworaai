@@ -1,4 +1,3 @@
-
 'use client';
 import {
   GoogleAuthProvider,
@@ -15,7 +14,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { useAuth, useFirestore, useUser } from '@/lib/firebase';
+import { useFirebase } from '@/lib/firebase';
 import type { User as UserProfile, PublicUserProfile } from '@/types';
 
 const GoogleIcon = () => (
@@ -28,9 +27,7 @@ const GoogleIcon = () => (
 );
 
 export default function PageContent() {
-  const auth = useAuth();
-  const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { auth, firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -74,7 +71,10 @@ export default function PageContent() {
   };
 
   const handleSignIn = async () => {
-    if (!auth || !firestore) return;
+    if (!auth || !firestore) {
+      toast({ variant: 'destructive', title: "Sistem Hazır Değil", description: "Firebase servisleri henüz yüklenmedi." });
+      return;
+    }
     if (isLoading) return;
 
     setIsLoading(true);

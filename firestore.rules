@@ -35,6 +35,9 @@ service cloud.firestore {
       match /strategic_feedbacks/{feedbackId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
+      match /strategic_feedbacks/{feedbackId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
     
     match /exhibitions/{exhibitionId} {
