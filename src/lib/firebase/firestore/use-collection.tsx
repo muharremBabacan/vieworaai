@@ -8,7 +8,7 @@ import {
   Query,
   QuerySnapshot,
 } from 'firebase/firestore';
-import { useAuth } from '@/lib/firebase/provider';
+import { useUser } from '@/lib/firebase/provider';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 
@@ -27,7 +27,7 @@ export function useCollection<T = any>(
   error: Error | null;
 } {
   const { requireAuth = false } = options;
-  const { user } = useAuth();
+  const { user } = useUser();
 
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);

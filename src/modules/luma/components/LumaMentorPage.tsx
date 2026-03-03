@@ -327,7 +327,7 @@ export default function LumaMentorPage() {
             <Target className="h-10 w-10 text-muted-foreground/30" />
           </div>
           <h3 className="text-3xl font-black tracking-tight mb-4">Henüz Stratejik Planın Yok</h3>
-          <p className="text-muted-foreground max-w-sm mx-auto text-lg leading-relaxed mb-10">Fotoğraflarını tarayıp senin için özel bir gelişim rotası oluşturmamı ister misin?</p>
+          <p className="text-muted-foreground max-sm mx-auto text-lg leading-relaxed mb-10">Fotoğraflarını tarayıp senin için özel bir gelişim rotası oluşturmamı ister misin?</p>
           <div className="flex flex-col items-center gap-4">
             <div className="flex items-center gap-6 px-8 py-4 bg-background rounded-full border border-border/60 shadow-lg">
               <div className="flex items-center gap-2"><Award className="h-4 w-4 text-amber-400" /> <span className="text-xs font-bold uppercase">+50 XP</span></div>
