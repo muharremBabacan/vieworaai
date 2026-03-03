@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { Link } from '@/navigation';
 import Logo from '@/core/components/logo';
 import { Button } from '@/components/ui/button';

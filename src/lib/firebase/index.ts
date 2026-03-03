@@ -1,6 +1,5 @@
-'use client';
-
 import { firebaseConfig } from '@/lib/firebase/config';
+
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
@@ -13,13 +12,13 @@ export function initializeFirebase(): {
   firestore: Firestore | null;
   storage: FirebaseStorage | null;
 } {
-  // 🚫 Build / SSR sırasında Firebase initialize ETME
+  // 🚫 SSR / Build sırasında Firebase initialize ETME
   if (typeof window === 'undefined') {
     return {
       firebaseApp: null,
       auth: null,
       firestore: null,
-      storage: null
+      storage: null,
     };
   }
 
@@ -31,13 +30,14 @@ export function initializeFirebase(): {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp)
+    storage: getStorage(firebaseApp),
   };
 }
 
-export * from './provider';
+// Diğer exportlar
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
+export * from './provider';

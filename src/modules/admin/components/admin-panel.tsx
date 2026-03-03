@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, Image as ImageIcon
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, Image as ImageIcon, Gem
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -155,7 +154,7 @@ export default function AdminPanel() {
         ...values,
         imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s+/g, '')}/1200/800`,
         scoringModel: 'hybrid', juryWeight: 40, aiWeight: 40, communityWeight: 20,
-        participantCount: 0, // Yeni: Başlangıçta 0 katılımcı
+        participantCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -234,19 +233,35 @@ export default function AdminPanel() {
               <ScrollArea className="h-[500px]">
                 <div className="divide-y divide-border/40">
                   {logs && logs.length > 0 ? logs.map(log => (
-                    <div key={log.id} className="p-6 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                    <div key={log.id} className="p-6 flex items-center justify-between hover:bg-muted/30 transition-colors group">
                       <div className="flex items-center gap-4">
-                        <div className={cn("p-3 rounded-2xl border", log.type === 'technical' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : log.type === 'mentor' ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20")}>
-                          {log.type === 'technical' ? <Camera className="h-5 w-5" /> : log.type === 'mentor' ? <Sparkles className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+                        <div className={cn("p-3 rounded-2xl border transition-all group-hover:scale-110", 
+                          log.type === 'technical' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : 
+                          log.type === 'mentor' ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : 
+                          log.type === 'competition' ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                          "bg-cyan-500/10 text-cyan-400 border-cyan-500/20")}>
+                          {log.type === 'technical' ? <Camera className="h-5 w-5" /> : 
+                           log.type === 'mentor' ? <Sparkles className="h-5 w-5" /> : 
+                           log.type === 'competition' ? <Trophy className="h-5 w-5" /> :
+                           <Globe className="h-5 w-5" />}
                         </div>
                         <div>
                           <p className="text-lg font-black tracking-tight">{log.userName}</p>
-                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{log.type} ANALİZİ</p>
+                          <div className="flex items-center gap-2">
+                            <p className={cn("text-[10px] font-black uppercase tracking-widest",
+                              log.type === 'technical' ? "text-blue-400" :
+                              log.type === 'mentor' ? "text-purple-400" :
+                              log.type === 'competition' ? "text-amber-400" :
+                              "text-cyan-400"
+                            )}>{log.type} İŞLEMİ</p>
+                            <span className="h-1 w-1 rounded-full bg-border" />
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{log.timestamp ? formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: tr }) : 'Az önce'}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black text-primary">-{log.auroSpent} AURO</p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{log.timestamp ? formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: tr }) : 'Az önce'}</p>
+                      <div className="flex items-center gap-2 px-4 py-2 bg-secondary/30 rounded-xl border border-border/40">
+                        <Gem className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-sm font-black text-primary">-{log.auroSpent}</span>
                       </div>
                     </div>
                   )) : (
