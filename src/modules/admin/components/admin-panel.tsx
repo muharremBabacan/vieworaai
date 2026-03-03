@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, Image as ImageIcon, Gem, Gift
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, GraduationCap, Layout
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -199,9 +198,10 @@ export default function AdminPanel() {
       </header>
 
       <Tabs defaultValue="accounting" onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40">
+        <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 flex-wrap overflow-x-auto justify-start">
           <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Muhasebe</TabsTrigger>
           <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">İçerik Yönetimi</TabsTrigger>
+          <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Akademi</TabsTrigger>
           <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Kullanıcılar</TabsTrigger>
         </TabsList>
 
@@ -410,6 +410,56 @@ export default function AdminPanel() {
               ))}
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="academy" className="space-y-8 animate-in fade-in duration-500">
+          <header className="flex items-center justify-between bg-primary/5 p-8 rounded-[40px] border border-primary/10">
+            <div className="space-y-1">
+              <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                <GraduationCap className="h-7 w-7 text-primary" /> Akademi Yönetimi
+              </h3>
+              <p className="text-sm text-muted-foreground font-medium italic">Ders içerikleri, yapay zeka ile müfredat üretimi ve sınıflandırma planlama alanı.</p>
+            </div>
+            <Button className="rounded-2xl h-12 px-8 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/10">
+              Ders Planı Hazırla
+            </Button>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="rounded-[32px] border-border/40 bg-card/30 hover:border-primary/20 transition-all cursor-pointer group">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Layout className="h-6 w-6 text-blue-400" />
+                </div>
+                <CardTitle className="text-lg font-black tracking-tight">Müfredat Taslağı</CardTitle>
+                <CardDescription>Seviyelere göre ders başlıklarını ve hedeflerini belirleyin.</CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="rounded-[32px] border-border/40 bg-card/30 hover:border-purple-500/20 transition-all cursor-pointer group">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-2xl bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Sparkles className="h-6 w-6 text-purple-400" />
+                </div>
+                <CardTitle className="text-lg font-black tracking-tight">AI Ders Üretimi</CardTitle>
+                <CardDescription>Luma'nın otomatik teknik dersler ve pratik görevler üretmesini sağlayın.</CardDescription>
+              </CardHeader>
+            </Card>
+            <Card className="rounded-[32px] border-border/40 bg-card/30 hover:border-amber-500/20 transition-all cursor-pointer group">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <List className="h-6 w-6 text-amber-400" />
+                </div>
+                <CardTitle className="text-lg font-black tracking-tight">Ders Listesi</CardTitle>
+                <CardDescription>Yayındaki tüm dersleri görüntüleyin ve düzenleyin.</CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <Card className="rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 p-20 text-center">
+            <GraduationCap className="h-16 w-16 mx-auto mb-6 text-muted-foreground/20" />
+            <h4 className="text-xl font-black text-muted-foreground uppercase tracking-widest">Akademi Planlama Yayında Değil</h4>
+            <p className="text-muted-foreground mt-2 max-w-sm mx-auto font-medium">Bu bölüm yarınki müfredat ve içerik üretim planlaması için ayrılmıştır. Yarın detayları konuşup aktif edeceğiz.</p>
+          </Card>
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6 animate-in fade-in duration-500">
