@@ -1,4 +1,3 @@
-
 'use client';
 import {
   GoogleAuthProvider,
@@ -14,7 +13,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase';
 import type { User as UserProfile, PublicUserProfile, AnalysisLog } from '@/types';
 
@@ -27,12 +26,43 @@ const GoogleIcon = () => (
   </svg>
 );
 
+function MilkyWayEffect() {
+  const [stars, setStars] = useState<{ id: number; tx: number; ty: number; delay: number }[]>([]);
+
+  useEffect(() => {
+    const newStars = Array.from({ length: 30 }).map((_, i) => ({
+      id: i,
+      tx: 200 + Math.random() * 200, // Move towards right
+      ty: -200 - Math.random() * 200, // Move towards top
+      delay: Math.random() * 0.8,
+    }));
+    setStars(newStars);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[9999] flex items-center justify-center">
+      {stars.map((star) => (
+        <div
+          key={star.id}
+          className="absolute h-1.5 w-1.5 bg-yellow-400 rounded-full blur-[1px] animate-star-trail"
+          style={{
+            '--tw-translate-x': `${star.tx}px`,
+            '--tw-translate-y': `${star.ty}px`,
+            animationDelay: `${star.delay}s`,
+          } as any}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function PageContent() {
   const { auth, firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showStars, setShowStars] = useState(false);
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -85,13 +115,27 @@ export default function PageContent() {
             status: 'success'
           };
           batch.set(logRef, log);
+
+          // Bildirim oluştur (Kişisel)
+          const notifRef = doc(collection(firestore, 'users', userId, 'notifications'));
+          batch.set(notifRef, {
+            id: notifRef.id,
+            title: "Haftalık Hediye!",
+            message: `Luma senin için ${giftAmount} Auro bıraktı. Vizyonun hiç bitmesin!`,
+            type: 'reward',
+            createdAt: now.toISOString()
+          });
+
           needsUpdate = true;
           
+          // Efekti tetikle
           setTimeout(() => {
+            setShowStars(true);
             toast({
               title: "Haftalık Auro Hediyesi!",
               description: `${giftAmount} Auro hesabınıza eklendi.`,
             });
+            setTimeout(() => setShowStars(false), 3000);
           }, 2000);
         }
       } else {
@@ -250,7 +294,8 @@ export default function PageContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background p-4">
+    <div className="flex min-h-screen flex-col bg-background p-4 relative overflow-hidden">
+      {showStars && <MilkyWayEffect />}
       <main className="flex flex-grow items-center justify-center">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col items-center space-y-2 text-center">
