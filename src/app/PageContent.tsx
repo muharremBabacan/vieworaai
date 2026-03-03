@@ -1,3 +1,4 @@
+
 'use client';
 import {
   GoogleAuthProvider,
@@ -8,14 +9,14 @@ import {
 import { Button } from '@/components/ui/button';
 import Logo from '@/core/components/logo';
 
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, increment, writeBatch, collection } from 'firebase/firestore';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase';
-import type { User as UserProfile, PublicUserProfile } from '@/types';
+import type { User as UserProfile, PublicUserProfile, AnalysisLog } from '@/types';
 
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
@@ -38,6 +39,72 @@ export default function PageContent() {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
+
+  const processAuroRefillAndTestAdjustment = async (userId: string, existingProfile: UserProfile) => {
+    if (!firestore) return;
+    const batch = writeBatch(firestore);
+    const userRef = doc(firestore, 'users', userId);
+    let needsUpdate = false;
+    let finalAuro = existingProfile.auro_balance;
+
+    // 1. TEK SEFERLİK TEST SIFIRLAMASI (10-20 arasına indir)
+    if (!existingProfile.test_balance_reset) {
+      const testAuro = Math.floor(Math.random() * 11) + 10; // 10-20 arası
+      finalAuro = testAuro;
+      batch.update(userRef, { 
+        auro_balance: testAuro, 
+        test_balance_reset: true 
+      });
+      needsUpdate = true;
+    }
+
+    // 2. HAFTALIK AURO HEDİYESİ
+    const now = new Date();
+    const lastRefillDate = existingProfile.weekly_free_refill_date ? new Date(existingProfile.weekly_free_refill_date) : new Date(0);
+    const msInWeek = 7 * 24 * 60 * 60 * 1000;
+
+    if (now.getTime() - lastRefillDate.getTime() >= msInWeek) {
+      // Sadece 20'nin altındaysa
+      if (finalAuro < 20) {
+        const giftAmount = Math.min(5, 20 - finalAuro);
+        if (giftAmount > 0) {
+          batch.update(userRef, {
+            auro_balance: increment(giftAmount),
+            weekly_free_refill_date: now.toISOString()
+          });
+
+          // Log oluştur
+          const logRef = doc(collection(firestore, 'analysis_logs'));
+          const log: AnalysisLog = {
+            id: logRef.id,
+            userId: userId,
+            userName: existingProfile.name || 'Vizyoner',
+            type: 'gift',
+            auroSpent: -giftAmount, // Hediye olduğu için negatif (ekleme)
+            timestamp: now.toISOString(),
+            status: 'success'
+          };
+          batch.set(logRef, log);
+          needsUpdate = true;
+          
+          setTimeout(() => {
+            toast({
+              title: "Haftalık Auro Hediyesi!",
+              description: `${giftAmount} Auro hesabınıza eklendi.`,
+            });
+          }, 2000);
+        }
+      } else {
+        // 20 ve üzeriyse sadece tarihi güncelle ki bir sonraki hafta tekrar baksın
+        batch.update(userRef, { weekly_free_refill_date: now.toISOString() });
+        needsUpdate = true;
+      }
+    }
+
+    if (needsUpdate) {
+      await batch.commit();
+    }
+  };
 
   const trackDAU = async (userId: string) => {
     if (!firestore) return;
@@ -85,10 +152,6 @@ export default function PageContent() {
 
       const result: UserCredential = await signInWithPopup(auth, provider);
 
-      toast({
-        title: "Başarıyla giriş yaptınız. Yönlendiriliyorsunuz...",
-      });
-
       const firebaseUser = result.user;
       const userRef = doc(firestore, 'users', firebaseUser.uid);
       const publicProfileRef = doc(firestore, 'public_profiles', firebaseUser.uid);
@@ -111,6 +174,7 @@ export default function PageContent() {
           level_name: 'Neuner',
           is_mentor: false,
           weekly_free_refill_date: now,
+          test_balance_reset: true, // Yeni kullanıcılar zaten 20 ile başlar
           completed_modules: [],
           interests: [],
           onboarded: false,
@@ -145,9 +209,18 @@ export default function PageContent() {
           updateDoc(userRef, { lastLoginAt: now, name: updatedName }),
           updateDoc(publicProfileRef, { name: updatedName, email: firebaseUser.email, photoURL: firebaseUser.photoURL || null, level_name: existing.level_name })
         ]);
+
+        // Auro yenileme ve test ayarlama mantığını çalıştır
+        await processAuroRefillAndTestAdjustment(firebaseUser.uid, existing);
       }
 
       await trackDAU(firebaseUser.uid);
+      
+      toast({
+        title: "Giriş Başarılı",
+        description: "Yönlendiriliyorsunuz...",
+      });
+
       router.push(onboarded ? '/dashboard' : '/onboarding');
 
     } catch (error: any) {

@@ -47,6 +47,7 @@ export type User = {
   level_name: string;
   is_mentor?: boolean;
   weekly_free_refill_date: string;
+  test_balance_reset?: boolean; // Yeni: Test amaçlı bakiye sıfırlama bayrağı
   completed_modules: string[];
   interests: string[];
   onboarded: boolean;

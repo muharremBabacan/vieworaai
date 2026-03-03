@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -14,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, Image as ImageIcon, Gem
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, Image as ImageIcon, Gem, Gift
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -88,11 +89,12 @@ export default function AdminPanel() {
   const metrics = useMemo(() => {
     if (!logs) return null;
     return {
-      totalAuro: logs.reduce((sum, log) => sum + (log.auroSpent || 0), 0),
+      totalAuro: logs.filter(l => l.auroSpent > 0).reduce((sum, log) => sum + (log.auroSpent || 0), 0),
       techAuro: logs.filter(l => l.type === 'technical').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
       mentorAuro: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
       exhibitionAuro: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
       competitionAuro: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
+      totalGifts: Math.abs(logs.filter(l => l.type === 'gift').reduce((sum, log) => sum + (log.auroSpent || 0), 0)),
     };
   }, [logs]);
 
@@ -204,10 +206,10 @@ export default function AdminPanel() {
         </TabsList>
 
         <TabsContent value="accounting" className="space-y-8 animate-in fade-in duration-500">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <Card className="bg-primary/5 border-primary/20 rounded-[32px] shadow-sm">
               <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/70">Harcanan Toplam</CardDescription></CardHeader>
-              <CardContent><p className="text-4xl font-black text-primary">{metrics?.totalAuro || 0} <span className="text-xs">Auro</span></p></CardContent>
+              <CardContent><p className="text-4xl font-black text-primary">{metrics?.totalAuro || 0}</p></CardContent>
             </Card>
             <Card className="bg-blue-500/5 border-blue-500/20 rounded-[32px] shadow-sm">
               <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-400/70">Teknik Analiz</CardDescription></CardHeader>
@@ -225,6 +227,10 @@ export default function AdminPanel() {
               <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-400/70">Yarışma</CardDescription></CardHeader>
               <CardContent><p className="text-3xl font-black">{metrics?.competitionAuro || 0}</p></CardContent>
             </Card>
+            <Card className="bg-green-500/5 border-green-500/20 rounded-[32px] shadow-sm">
+              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-green-400/70">Hediyeler</CardDescription></CardHeader>
+              <CardContent><p className="text-3xl font-black">{metrics?.totalGifts || 0}</p></CardContent>
+            </Card>
           </div>
 
           <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-card/50 backdrop-blur-sm">
@@ -239,10 +245,12 @@ export default function AdminPanel() {
                           log.type === 'technical' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : 
                           log.type === 'mentor' ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : 
                           log.type === 'competition' ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                          log.type === 'gift' ? "bg-green-500/10 text-green-400 border-green-500/20" :
                           "bg-cyan-500/10 text-cyan-400 border-cyan-500/20")}>
                           {log.type === 'technical' ? <Camera className="h-5 w-5" /> : 
                            log.type === 'mentor' ? <Sparkles className="h-5 w-5" /> : 
                            log.type === 'competition' ? <Trophy className="h-5 w-5" /> :
+                           log.type === 'gift' ? <Gift className="h-5 w-5" /> :
                            <Globe className="h-5 w-5" />}
                         </div>
                         <div>
@@ -252,16 +260,19 @@ export default function AdminPanel() {
                               log.type === 'technical' ? "text-blue-400" :
                               log.type === 'mentor' ? "text-purple-400" :
                               log.type === 'competition' ? "text-amber-400" :
+                              log.type === 'gift' ? "text-green-400" :
                               "text-cyan-400"
-                            )}>{log.type} İŞLEMİ</p>
+                            )}>{log.type === 'gift' ? 'Haftalık Hediye' : log.type.toUpperCase() + ' İŞLEMİ'}</p>
                             <span className="h-1 w-1 rounded-full bg-border" />
                             <p className="text-[10px] font-bold text-muted-foreground uppercase">{log.timestamp ? formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: tr }) : 'Az önce'}</p>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 px-4 py-2 bg-secondary/30 rounded-xl border border-border/40">
-                        <Gem className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-sm font-black text-primary">-{log.auroSpent}</span>
+                      <div className={cn("flex items-center gap-2 px-4 py-2 rounded-xl border", log.auroSpent < 0 ? "bg-green-500/10 border-green-500/20" : "bg-secondary/30 border-border/40")}>
+                        <Gem className={cn("h-3.5 w-3.5", log.auroSpent < 0 ? "text-green-400" : "text-primary")} />
+                        <span className={cn("text-sm font-black", log.auroSpent < 0 ? "text-green-400" : "text-primary")}>
+                          {log.auroSpent > 0 ? `-${log.auroSpent}` : `+${Math.abs(log.auroSpent)}`}
+                        </span>
                       </div>
                     </div>
                   )) : (
