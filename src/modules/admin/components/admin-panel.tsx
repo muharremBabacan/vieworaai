@@ -226,16 +226,15 @@ export default function AdminPanel() {
         </p>
       </header>
 
-      <Tabs defaultValue="accounting" onValueChange={setActiveTab} className="space-y-8">
-        {/* Yatayda kaydırılabilir TabsList yapısı */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <div className="w-full relative">
-          <ScrollArea className="w-full whitespace-nowrap pb-2">
-            <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 inline-flex w-max min-w-full">
-              <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Muhasebe</TabsTrigger>
-              <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">İçerik Yönetimi</TabsTrigger>
-              <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Akademi</TabsTrigger>
-              <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Kullanıcılar</TabsTrigger>
-              <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Genel Ayarlar</TabsTrigger>
+          <ScrollArea className="w-full whitespace-nowrap no-scrollbar pb-2">
+            <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 inline-flex w-max min-w-full justify-start">
+              <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Muhasebe</TabsTrigger>
+              <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">İçerik Yönetimi</TabsTrigger>
+              <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Akademi</TabsTrigger>
+              <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Kullanıcılar</TabsTrigger>
+              <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Genel Ayarlar</TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" className="hidden" />
           </ScrollArea>
