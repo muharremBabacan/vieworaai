@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/shared/hooks/use-toast';
-import { Loader2, Smartphone, Camera, Layers, Users, Map, Utensils, Share2, Palette, Zap, Layout, Eye, XCircle, Settings, Sliders, Target, Heart, GraduationCap, Briefcase } from 'lucide-react';
+import { Loader2, Smartphone, Camera, Layers, Users, Map, Utensils, Share2, Palette, Zap, Layout, Eye, XCircle, Settings, Sliders, Target, Heart, GraduationCap, Briefcase, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/core/components/logo';
 
@@ -90,6 +89,15 @@ export default function OnboardingPage() {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
+  useEffect(() => {
+    if (userProfile && !userProfile.onboarded) {
+      toast({
+        title: "Lütfen Anketi Doldurun",
+        description: "Luma'nın size rehberlik edebilmesi için bu analizi tamamlamanız gerekiyor.",
+      });
+    }
+  }, [userProfile, toast]);
+
   const handleSelect = (questionId: keyof OnboardingResults, optionId: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
     
@@ -151,7 +159,11 @@ export default function OnboardingPage() {
         <header className="flex flex-col items-center text-center space-y-6">
           <Logo className="scale-75" />
           <div className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tight">VİZYON ANALİZİ</h1>
+            <div className="flex items-center justify-center gap-2 text-primary font-bold animate-pulse mb-2">
+              <AlertCircle className="h-5 w-5" />
+              <span className="text-xs uppercase tracking-widest">Analiz Bekleniyor</span>
+            </div>
+            <h1 className="text-3xl font-black tracking-tight uppercase">VİZYON ANALİZİ</h1>
             <p className="text-muted-foreground font-medium">Luma'nın sana en iyi koçluğu yapabilmesi için seni tanıması gerekiyor.</p>
           </div>
         </header>

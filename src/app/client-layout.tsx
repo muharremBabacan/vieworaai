@@ -19,7 +19,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   // Bağımsız sayfalar (Navigasyon barındırmazlar)
-  const isStandalonePage = pathname === '/' || pathname === '/onboarding' || pathname === '/terms' || pathname === '/privacy';
+  // Onboarding sayfasında bildirimleri görmesi için Header'ı göstermeliyiz, bu yüzden buradan çıkardık.
+  const isStandalonePage = pathname === '/' || pathname === '/terms' || pathname === '/privacy';
   
   // Yönlendirme Mantığı (Enforcement)
   useEffect(() => {
@@ -68,7 +69,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       <main className={`flex-1 ${showNav ? 'py-8 pb-24' : ''}`}>
         {children}
       </main>
-      {showNav && <BottomNav />}
+      {showNav && pathname !== '/onboarding' && <BottomNav />}
     </div>
   );
 }

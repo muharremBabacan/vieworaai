@@ -246,6 +246,18 @@ export default function PageContent() {
         await processAuroRefillAndTestAdjustment(firebaseUser.uid, existing);
       }
 
+      // Anketi doldurmamışsa bildirim merkezine uyarı gönder
+      if (!onboarded) {
+        const onboardingNotifRef = doc(collection(firestore, 'users', firebaseUser.uid, 'notifications'), 'onboarding_reminder');
+        await setDoc(onboardingNotifRef, {
+          id: 'onboarding_reminder',
+          title: "Vizyon Analizi Bekliyor",
+          message: "Lütfen Anketi doldurun. Luma'nın sizi tanıması için bu analiz çok önemli.",
+          type: 'system',
+          createdAt: now
+        }, { merge: true });
+      }
+
       await trackDAU(firebaseUser.uid);
       
       toast({
@@ -253,7 +265,6 @@ export default function PageContent() {
         description: "Hazırlanıyor...",
       });
 
-      // Yönlendirme artık ClientLayout tarafından merkezi olarak yapılacak
       router.push(onboarded ? '/dashboard' : '/onboarding');
 
     } catch (error: any) {
@@ -273,8 +284,6 @@ export default function PageContent() {
     }
   };
 
-  // Auth durumu kontrol edilirken ClientLayout loader gösterir, 
-  // burada sadece giriş sayfasının kendisini render ediyoruz.
   return (
     <div className="flex min-h-screen flex-col bg-background p-4 relative overflow-hidden">
       {showStars && <MilkyWayEffect />}
