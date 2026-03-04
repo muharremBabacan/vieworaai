@@ -83,12 +83,59 @@ export default function GalleryPage() {
     const exhibitionsQuery = useMemoFirebase(() => (firestore) ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true)) : null, [firestore]);
     const { data: activeExhibitions } = useCollection<Exhibition>(exhibitionsQuery);
 
+    const filters = [
+        { id: 'all', label: 'Tümü' },
+        { id: 'unanalyzed', label: 'Analiz Bekleyenler' },
+        { id: 'best_overall', label: 'En İyilerim' },
+        { id: 'exhibition', label: 'Sergilenenler' },
+        { id: 'portrait', label: 'Portre' },
+        { id: 'landscape', label: 'Manzara' },
+        { id: 'street', label: 'Sokak' },
+        { id: 'city', label: 'Şehir' },
+        { id: 'human', label: 'İnsan' },
+        { id: 'animal', label: 'Hayvan' },
+        { id: 'still_life', label: 'Natürmort' },
+        { id: 'flower', label: 'Çiçek' },
+    ];
+
     const filteredPhotos = useMemo(() => {
         if (!photos) return [];
         let result = [...photos];
-        if (activeFilter === 'unanalyzed') result = result.filter(p => !p.aiFeedback);
-        else if (activeFilter === 'best_overall') result = result.filter(p => p.aiFeedback).sort((a,b) => getOverallScore(b) - getOverallScore(a));
-        else if (activeFilter === 'exhibition') result = result.filter(p => p.isSubmittedToExhibition);
+        
+        if (activeFilter === 'unanalyzed') {
+            result = result.filter(p => !p.aiFeedback);
+        } else if (activeFilter === 'best_overall') {
+            result = result.filter(p => p.aiFeedback).sort((a,b) => getOverallScore(b) - getOverallScore(a));
+        } else if (activeFilter === 'exhibition') {
+            result = result.filter(p => p.isSubmittedToExhibition);
+        } else if (activeFilter !== 'all') {
+            // Genre and Tag based filtering
+            result = result.filter(p => {
+                if (!p.aiFeedback) return false;
+                
+                // Check direct genre match (if AI used that specific keyword)
+                const genreMatch = p.aiFeedback.genre?.toLowerCase() === activeFilter.toLowerCase();
+                
+                // Check tag matches (Luma produces Turkish tags when language is 'tr')
+                const turkishMap: Record<string, string[]> = {
+                    portrait: ['portre', 'yüz', 'insan', 'kişi'],
+                    landscape: ['manzara', 'doğa', 'dağ', 'deniz'],
+                    street: ['sokak', 'cadde', 'yaşam'],
+                    city: ['şehir', 'mimari', 'bina', 'kent'],
+                    human: ['insan', 'kişi', 'portre', 'kalabalık'],
+                    animal: ['hayvan', 'kedi', 'köpek', 'kuş', 'doğa'],
+                    still_life: ['natürmort', 'nesne', 'obje'],
+                    flower: ['çiçek', 'bitki', 'makro', 'doğa']
+                };
+
+                const keywords = turkishMap[activeFilter] || [activeFilter];
+                const tagMatch = p.tags?.some(t => 
+                    keywords.some(k => t.toLowerCase().includes(k.toLowerCase()))
+                );
+
+                return genreMatch || tagMatch;
+            });
+        }
         return result;
     }, [photos, activeFilter]);
 
@@ -195,13 +242,6 @@ export default function GalleryPage() {
 
     if (isLoading) return <div className="container mx-auto px-4 pt-10"><Skeleton className="h-8 w-48 mb-8" /><div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[...Array(8)].map((_,i)=><Skeleton key={i} className="aspect-square rounded-lg" />)}</div></div>;
 
-    const filters = [
-        { id: 'all', label: 'Tümü' },
-        { id: 'unanalyzed', label: 'Analiz Bekleyenler' },
-        { id: 'best_overall', label: 'En İyilerim' },
-        { id: 'exhibition', label: 'Sergilenenler' },
-    ];
-
     return (
       <div className="container mx-auto px-4 pb-20 pt-10">
         <div className="flex justify-between items-center mb-8">
@@ -214,7 +254,18 @@ export default function GalleryPage() {
             <ScrollArea className="w-full whitespace-nowrap mb-8 pb-4">
                 <div className="flex w-max gap-3 px-1">
                     {filters.map(f => (
-                        <Button key={f.id} variant={activeFilter === f.id ? 'default' : 'secondary'} size="sm" onClick={() => setActiveFilter(f.id)} className="rounded-full h-10 px-6 font-bold">{f.label}</Button>
+                        <Button 
+                            key={f.id} 
+                            variant={activeFilter === f.id ? 'default' : 'secondary'} 
+                            size="sm" 
+                            onClick={() => setActiveFilter(f.id)} 
+                            className={cn(
+                                "rounded-full h-10 px-6 font-bold transition-all",
+                                activeFilter === f.id ? "shadow-md shadow-primary/20 scale-105" : "hover:bg-muted"
+                            )}
+                        >
+                            {f.label}
+                        </Button>
                     ))}
                 </div>
                 <ScrollBar orientation="horizontal" className="hidden" />
@@ -226,10 +277,15 @@ export default function GalleryPage() {
                     <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover transition-transform duration-500 group-hover:scale-110" unoptimized />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     {photo.aiFeedback && (
-                        <div className="absolute top-3 right-3">
+                        <div className="absolute top-3 right-3 animate-in zoom-in duration-300">
                             <Badge className="bg-black/50 backdrop-blur-md border-white/10 px-2 h-7 font-black">
                                 <Star className="h-3 w-3 text-yellow-400 mr-1 fill-current" /> {getOverallScore(photo).toFixed(1)}
                             </Badge>
+                        </div>
+                    )}
+                    {photo.isSubmittedToExhibition && (
+                        <div className="absolute bottom-3 left-3 animate-in slide-in-from-bottom-2">
+                            <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 px-2 h-6 text-[9px] font-black uppercase tracking-wider">SERGİDE</Badge>
                         </div>
                     )}
                 </Card>
@@ -237,9 +293,13 @@ export default function GalleryPage() {
             </div>
           </>
         ) : (
-            <div className="text-center py-32 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5">
+            <div className="text-center py-32 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 animate-in zoom-in duration-500">
+                <div className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30">
+                    <Sparkles className="h-full w-full" />
+                </div>
                 <h3 className="text-2xl font-bold mb-2">Galeriniz Boş</h3>
-                <Button onClick={() => router.push('/dashboard')} size="lg" className="rounded-2xl h-14 px-10 font-bold mt-6">Hemen Fotoğraf Yükle</Button>
+                <p className="text-muted-foreground max-sm mx-auto mb-8">Henüz fotoğraf yüklemediniz. Luma ile ilk teknik analizinizi yaparak galeriyi doldurmaya başlayın.</p>
+                <Button onClick={() => router.push('/dashboard')} size="lg" className="rounded-2xl h-14 px-10 font-bold">Hemen Fotoğraf Yükle</Button>
             </div>
         )}
 
@@ -284,9 +344,14 @@ export default function GalleryPage() {
                                 <div className="space-y-2">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Luma Notu</span>
                                     <p className="text-sm italic text-foreground/90 leading-relaxed font-medium bg-muted/30 p-4 rounded-xl border border-border/40">
-                                        "{selectedPhoto.aiFeedback.short_neutral_analysis}"
+                                        "{selectedPhoto.adaptiveFeedback || selectedPhoto.aiFeedback.short_neutral_analysis}"
                                     </p>
                                 </div>
+                                {selectedPhoto.tags && (
+                                    <div className="flex flex-wrap gap-2 pt-2">
+                                        {selectedPhoto.tags.map((t, i) => <Badge key={i} variant="secondary" className="text-[9px] bg-secondary/50 uppercase font-black px-3 h-6 border-none">{t}</Badge>)}
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="space-y-4 py-10 text-center">
