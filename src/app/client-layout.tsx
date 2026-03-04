@@ -19,12 +19,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   // Bağımsız sayfalar (Navigasyon barındırmazlar)
-  // Onboarding sayfasında bildirimleri görmesi için Header'ı göstermeliyiz, bu yüzden buradan çıkardık.
   const isStandalonePage = pathname === '/' || pathname === '/terms' || pathname === '/privacy';
   
-  // Yönlendirme Mantığı (Enforcement)
+  // Yönlendirme Mantığı (Merkezi Kontrol)
   useEffect(() => {
-    // Veriler yüklenene kadar bekle
+    // Veriler veya oturum yüklenirken işlem yapma
     if (isUserLoading || (user && isProfileLoading)) return;
 
     if (user) {
@@ -32,8 +31,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       const onboarded = userProfile?.onboarded ?? false;
       
       if (!onboarded) {
-        // Anketi doldurmamış -> Sadece onboarding ve yasal sayfalara izin ver
-        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/') {
+        // Anketi doldurmamış -> Sadece onboarding, terms, privacy sayfalarına izin ver
+        // Eğer başka bir yerdeyse (Dashboard, Explore vb.), Onboarding'e zorla
+        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy') {
           router.replace('/onboarding');
         }
       } else {
@@ -45,14 +45,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     } else {
       // KULLANICI GİRİŞ YAPMAMIŞ
       // Sadece giriş, şartlar ve gizlilik sayfalarına izin ver
-      if (pathname !== '/' && pathname !== '/terms' && pathname !== '/privacy') {
+      if (!isStandalonePage) {
         router.replace('/');
       }
     }
-  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage]);
 
-  // Kritik veriler yüklenirken global bir loader göster
-  if (isUserLoading || (user && isProfileLoading)) {
+  // Kritik veriler yüklenirken global bir loader göster (Sadece ilk girişte)
+  if (isUserLoading || (user && isProfileLoading && !userProfile)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -60,16 +60,18 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Navigasyonu sadece giriş yapmış ve anket sayfasında olmayan kullanıcıya göster
-  const showNav = user && !isStandalonePage;
+  // Navigasyonu sadece giriş yapmış ve bağımsız bir sayfada olmayan kullanıcıya göster
+  // Onboarding sayfasında Header görünmeli (Bildirimler için), ama BottomNav görünmemeli.
+  const showHeader = user && !isStandalonePage;
+  const showBottomNav = user && !isStandalonePage && pathname !== '/onboarding';
 
   return (
     <div className="relative flex min-h-screen flex-col">
-      {showNav && <AppHeader />}
-      <main className={`flex-1 ${showNav ? 'py-8 pb-24' : ''}`}>
+      {showHeader && <AppHeader />}
+      <main className={`flex-1 ${showHeader ? 'py-8 pb-24' : ''}`}>
         {children}
       </main>
-      {showNav && pathname !== '/onboarding' && <BottomNav />}
+      {showBottomNav && <BottomNav />}
     </div>
   );
 }
