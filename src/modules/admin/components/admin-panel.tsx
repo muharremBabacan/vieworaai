@@ -21,7 +21,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -227,17 +226,14 @@ export default function AdminPanel() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <div className="w-full relative">
-          <ScrollArea className="w-full whitespace-nowrap no-scrollbar pb-2">
-            <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 inline-flex w-max min-w-full justify-start">
-              <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Muhasebe</TabsTrigger>
-              <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">İçerik Yönetimi</TabsTrigger>
-              <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Akademi</TabsTrigger>
-              <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Kullanıcılar</TabsTrigger>
-              <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full">Genel Ayarlar</TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" className="hidden" />
-          </ScrollArea>
+        <div className="w-full overflow-x-auto no-scrollbar pb-2">
+          <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 flex flex-nowrap min-w-max">
+            <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Muhasebe</TabsTrigger>
+            <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">İçerik Yönetimi</TabsTrigger>
+            <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Akademi</TabsTrigger>
+            <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Kullanıcılar</TabsTrigger>
+            <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Genel Ayarlar</TabsTrigger>
+          </TabsList>
         </div>
 
         <TabsContent value="accounting" className="space-y-8 animate-in fade-in duration-500">
@@ -255,7 +251,7 @@ export default function AdminPanel() {
               <CardContent><p className="text-3xl font-black">{metrics?.mentorAuro || 0}</p></CardContent>
             </Card>
             <Card className="bg-cyan-500/5 border-cyan-500/20 rounded-[32px] shadow-sm">
-              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-cyan-400/70">Sergi</CardDescription></CardHeader>
+              <CardHeader className="pb-2"><CardDescription className="text-[10px) font-black uppercase tracking-widest text-cyan-400/70">Sergi</CardDescription></CardHeader>
               <CardContent><p className="text-3xl font-black">{metrics?.exhibitionAuro || 0}</p></CardContent>
             </Card>
             <Card className="bg-amber-500/5 border-amber-500/20 rounded-[32px] shadow-sm">
