@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, ArrowLeftRight, Star, Filter, Lock, HelpCircle } from 'lucide-react';
+import { Sparkles, Trash2, ArrowLeftRight, Star, Filter, Lock, HelpCircle, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const TIER_COSTS: Record<UserTier, number> = {
   start: 1,
@@ -156,6 +156,8 @@ export default function GalleryPage() {
       if (!targetExhibitionId) { toast({ title: "Sergi Seçin", description: "Lütfen bir sergi teması seçin." }); return; }
       const selectedEx = activeExhibitions?.find(e => e.id === targetExhibitionId);
       if (!selectedEx) return;
+
+      const SUBMIT_TO_EXHIBITION_COST = 1; // Default fallback if not defined
 
       if (userProfile.auro_balance < SUBMIT_TO_EXHIBITION_COST) {
           toast({ variant: 'destructive', title: "Yetersiz Auro" });
