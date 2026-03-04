@@ -20,9 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAppConfig } from '@/components/AppConfigProvider';
 
 const TIER_COSTS: Record<UserTier, number> = {
@@ -96,6 +94,7 @@ export default function GalleryPage() {
         { id: 'animal', label: 'Hayvan' },
         { id: 'still_life', label: 'Natürmort' },
         { id: 'flower', label: 'Çiçek' },
+        { id: 'architecture', label: 'Mimari' },
     ];
 
     const filteredPhotos = useMemo(() => {
@@ -121,11 +120,12 @@ export default function GalleryPage() {
                     portrait: ['portre', 'yüz', 'insan', 'kişi'],
                     landscape: ['manzara', 'doğa', 'dağ', 'deniz'],
                     street: ['sokak', 'cadde', 'yaşam'],
-                    city: ['şehir', 'mimari', 'bina', 'kent'],
+                    city: ['şehir', 'kent', 'meydan'],
                     human: ['insan', 'kişi', 'portre', 'kalabalık'],
                     animal: ['hayvan', 'kedi', 'köpek', 'kuş', 'doğa'],
                     still_life: ['natürmort', 'nesne', 'obje'],
-                    flower: ['çiçek', 'bitki', 'makro', 'doğa']
+                    flower: ['çiçek', 'bitki', 'makro', 'doğa'],
+                    architecture: ['mimari', 'bina', 'yapı', 'iç mekan', 'dış mekan']
                 };
 
                 const keywords = turkishMap[activeFilter] || [activeFilter];
@@ -251,7 +251,7 @@ export default function GalleryPage() {
 
         {photos && photos.length > 0 ? (
           <>
-            <ScrollArea className="w-full whitespace-nowrap mb-8 pb-4">
+            <div className="w-full overflow-x-auto no-scrollbar mb-8 py-2">
                 <div className="flex w-max gap-3 px-1">
                     {filters.map(f => (
                         <Button 
@@ -260,7 +260,7 @@ export default function GalleryPage() {
                             size="sm" 
                             onClick={() => setActiveFilter(f.id)} 
                             className={cn(
-                                "rounded-full h-10 px-6 font-bold transition-all",
+                                "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap",
                                 activeFilter === f.id ? "shadow-md shadow-primary/20 scale-105" : "hover:bg-muted"
                             )}
                         >
@@ -268,8 +268,7 @@ export default function GalleryPage() {
                         </Button>
                     ))}
                 </div>
-                <ScrollBar orientation="horizontal" className="hidden" />
-            </ScrollArea>
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
               {filteredPhotos.map((photo) => (
@@ -323,7 +322,6 @@ export default function GalleryPage() {
                                         <RatingBar label="Kompozisyon" score={normalizeScore(selectedPhoto.aiFeedback.composition_score)} />
                                         <RatingBar label="Teknik Netlik" score={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score)} />
                                         
-                                        {/* Tier bazlı metrikler */}
                                         <RatingBar 
                                           label="Hikaye Anlatımı" 
                                           score={normalizeScore(selectedPhoto.aiFeedback.storytelling_score)} 
