@@ -19,16 +19,21 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
-const getOverallScore = (photo: Photo): number => {
+const getTechnicalScore = (photo: Photo): number => {
     if (!photo.aiFeedback) return 0;
-    const lScore = normalizeScore(photo.aiFeedback.light_score);
-    const cScore = normalizeScore(photo.aiFeedback.composition_score);
     const technicalSubScores = [
         normalizeScore(photo.aiFeedback.focus_score),
         normalizeScore(photo.aiFeedback.color_control_score),
         normalizeScore(photo.aiFeedback.background_control_score)
     ];
-    const tScore = technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
+    return technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
+};
+
+const getOverallScore = (photo: Photo): number => {
+    if (!photo.aiFeedback) return 0;
+    const lScore = normalizeScore(photo.aiFeedback.light_score);
+    const cScore = normalizeScore(photo.aiFeedback.composition_score);
+    const tScore = getTechnicalScore(photo);
     return (lScore + cScore + tScore) / 3;
 };
 
@@ -156,7 +161,7 @@ export default function ExplorePage() {
 
         {isExLoading ? (
           <div className="grid md:grid-cols-2 gap-10">
-            {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-80 rounded-[48px]" />)}
+            {[...Array(2)].map((_, i) => <Skeleton className="h-80 rounded-[48px]" />)}
           </div>
         ) : exhibitions && exhibitions.length > 0 ? (
           <div className="grid md:grid-cols-2 gap-10">
