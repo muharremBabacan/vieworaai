@@ -224,6 +224,8 @@ export default function LumaMentorPage() {
     }
   };
 
+  const currentTier = userProfile?.tier || 'start';
+
   if (isProfileLoading || isHistoryLoading) {
     return (
       <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center">
@@ -239,7 +241,9 @@ export default function LumaMentorPage() {
         <div className="text-center md:text-left space-y-2">
           <div className="flex items-center justify-center md:justify-start gap-3">
             <h1 className="text-5xl font-black tracking-tighter">Luma Mentor</h1>
-            <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6">PRO</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6 uppercase tracking-widest">
+              {currentTier}
+            </Badge>
           </div>
           <p className="text-muted-foreground font-medium max-w-md">Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlayabilirim.</p>
         </div>
