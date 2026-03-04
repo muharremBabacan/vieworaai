@@ -11,11 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, BarChart3, Info } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { useRouter } from 'next/navigation';
 
 const MENTOR_COSTS: Record<UserTier, number> = {
   start: 2,
@@ -104,6 +105,7 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
 export default function LumaMentorPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -146,7 +148,12 @@ export default function LumaMentorPage() {
       toast({
         variant: 'destructive',
         title: `Yetersiz ${currencyName}`,
-        description: `Stratejik analiz için ${strategicCost} ${currencyName} gereklidir.`,
+        description: `Stratejik analiz için ${strategicCost} ${currencyName} gereklidir. Mevcut bakiyen: ${userProfile.auro_balance} ${currencyName}.`,
+        action: (
+          <Button variant="outline" size="sm" onClick={() => router.push('/pricing')} className="bg-primary text-primary-foreground border-none">
+            {currencyName} Yükle
+          </Button>
+        )
       });
       return;
     }
@@ -156,7 +163,7 @@ export default function LumaMentorPage() {
       toast({
         variant: 'destructive',
         title: "Veri Yetersiz",
-        description: "En az 3 adet teknik analiz yapılmış fotoğrafınız olmalı.",
+        description: "Luma'nın gelişimini analiz edebilmesi için en az 3 adet teknik analiz yapılmış fotoğrafınız olmalı.",
       });
       return;
     }
@@ -195,7 +202,8 @@ export default function LumaMentorPage() {
       batch.set(feedbackRef, { ...feedbackData, id: feedbackRef.id });
       batch.update(userRef, {
         auro_balance: increment(-strategicCost),
-        total_auro_spent: increment(strategicCost)
+        total_auro_spent: increment(strategicCost),
+        total_mentor_analyses_count: increment(1)
       });
 
       const log: AnalysisLog = {
@@ -233,6 +241,18 @@ export default function LumaMentorPage() {
     }
   };
 
+  const getRecommendation = () => {
+    if (!userProfile) return null;
+    const count = userProfile.total_mentor_analyses_count || 0;
+    if (userProfile.tier === 'start' && count >= 2) {
+      return "Stratejik rotan netleşiyor. Pro pakete geçerek Luma'nın her hafta senin için daha karmaşık görevler hazırlamasını sağlayabilirsin.";
+    }
+    if (userProfile.tier === 'pro' && count >= 5) {
+      return "Üst düzey tekniklere hazırsın. Master paket ile Luma'nın sanatsal kimlik ve stil danışmanlığını tam kapasite açabilirsin.";
+    }
+    return "Luma Mentor, vizyonunu stratejik bir disipline kavuşturmak için burada.";
+  };
+
   if (isProfileLoading || isHistoryLoading) {
     return (
       <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center">
@@ -244,6 +264,27 @@ export default function LumaMentorPage() {
 
   return (
     <div className="container mx-auto px-4 pb-24 pt-6 max-w-4xl animate-in fade-in duration-700">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+        <Card className="p-6 bg-primary/5 border-primary/20 rounded-[24px] flex items-center gap-4 shadow-sm">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <BarChart3 size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Mentorluk Kullanımı</p>
+            <p className="text-xl font-black">{userProfile?.total_mentor_analyses_count || 0} <span className="text-xs font-bold text-muted-foreground uppercase ml-1">Stratejik Plan</span></p>
+          </div>
+        </Card>
+        <Card className="p-6 bg-secondary/20 border-border/40 rounded-[24px] flex items-center gap-4 shadow-sm">
+          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+            <Info size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Luma Tavsiyesi</p>
+            <p className="text-xs font-bold leading-tight">{getRecommendation()}</p>
+          </div>
+        </Card>
+      </div>
+
       <header className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12 border-b border-border/40 pb-10">
         <div className="text-center md:text-left space-y-2">
           <div className="flex items-center justify-center md:justify-start gap-3">

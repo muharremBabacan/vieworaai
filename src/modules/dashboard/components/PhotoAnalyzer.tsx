@@ -8,12 +8,13 @@ import { doc, increment, collection, writeBatch, query, where, getDocs } from 'f
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import { useToast } from '@/shared/hooks/use-toast';
-import type { User, Photo, PhotoAnalysis, AnalysisLog, UserTier } from '@/types';
+import type { User, Photo, AnalysisLog, UserTier } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Camera, Loader2, Sparkles, Gem, Check } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { useRouter } from 'next/navigation';
 
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -32,6 +33,7 @@ export default function PhotoAnalyzer() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const { currencyName } = useAppConfig();
   
   const userDocRef = useMemoFirebase(
@@ -70,7 +72,16 @@ export default function PhotoAnalyzer() {
     if (!file || !user || !firestore || !userProfile) return;
 
     if (analyze && userProfile.auro_balance < analysisCost) {
-      toast({ variant: 'destructive', title: 'Yetersiz Bakiye', description: `Bu analiz derinliği için ${analysisCost} ${currencyName} gereklidir.` });
+      toast({ 
+        variant: 'destructive', 
+        title: `Yetersiz ${currencyName}`, 
+        description: `Bu analiz derinliği için ${analysisCost} ${currencyName} gereklidir. Mevcut bakiyen: ${userProfile.auro_balance} ${currencyName}.`,
+        action: (
+          <Button variant="outline" size="sm" onClick={() => router.push('/pricing')} className="bg-primary text-primary-foreground border-none">
+            {currencyName} Yükle
+          </Button>
+        )
+      });
       return;
     }
 
@@ -121,7 +132,8 @@ export default function PhotoAnalyzer() {
 
         batch.update(userRef, {
           auro_balance: increment(-analysisCost),
-          total_auro_spent: increment(analysisCost)
+          total_auro_spent: increment(analysisCost),
+          total_analyses_count: increment(1)
         });
 
         const logRef = doc(collection(firestore, 'analysis_logs'));
@@ -159,11 +171,44 @@ export default function PhotoAnalyzer() {
     }
   };
 
+  const getRecommendation = () => {
+    if (!userProfile) return null;
+    const count = userProfile.total_analyses_count || 0;
+    if (userProfile.tier === 'start' && count >= 5) {
+      return "Teknik analizlerin güçleniyor! Luma Pro'ya geçerek 'Cesur Kadraj' ve 'Hikayeleştirme' metriklerini açmaya ne dersin?";
+    }
+    if (userProfile.tier === 'pro' && count >= 10) {
+      return "Artık bir usta adayısın. Luma Master ile fotoğraflarındaki objeleri işaretleyip stil analizi yaptırabilirsin.";
+    }
+    return "Luma ile her analiz, vizyonunu bir adım öteye taşır.";
+  };
+
   if (isUserLoading || isProfileLoading)
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
     <div className="container mx-auto px-4 pt-10 pb-20 animate-in fade-in duration-700">
+      <div className="max-w-4xl mx-auto mb-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-6 bg-primary/5 border-primary/20 rounded-[24px] flex items-center gap-4 shadow-sm">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <TrendingUp size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Analiz Serüvenin</p>
+            <p className="text-xl font-black">{userProfile?.total_analyses_count || 0} <span className="text-xs font-bold text-muted-foreground uppercase ml-1">Derin Analiz</span></p>
+          </div>
+        </Card>
+        <Card className="p-6 bg-secondary/20 border-border/40 rounded-[24px] flex items-center gap-4 shadow-sm">
+          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Luma Tavsiyesi</p>
+            <p className="text-xs font-bold leading-tight">{getRecommendation()}</p>
+          </div>
+        </Card>
+      </div>
+
       {!file ? (
         <div {...getRootProps()} className="text-center p-20 border-2 border-dashed rounded-[40px] cursor-pointer bg-card/30 hover:bg-card/50 hover:border-primary/30 transition-all group shadow-inner">
           <input {...getInputProps()} />
@@ -178,6 +223,7 @@ export default function PhotoAnalyzer() {
         <div className="text-center py-32 space-y-6">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
           <p className="font-black text-2xl tracking-tighter uppercase">Luma İşlem Yapıyor...</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Lütfen pencereyi kapatmayın</p>
         </div>
       ) : (
         <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm">

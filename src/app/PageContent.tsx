@@ -115,6 +115,8 @@ export default function PageContent() {
           current_xp: 0,
           level_name: 'Neuner',
           tier: 'start',
+          total_analyses_count: 0,
+          total_mentor_analyses_count: 0,
           weekly_free_refill_date: now,
           onboarded: false,
           completed_modules: [],
