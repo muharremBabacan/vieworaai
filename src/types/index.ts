@@ -1,6 +1,8 @@
 import type { PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 
+export type UserTier = 'start' | 'pro' | 'master';
+
 export type PhotoAnalysis = PhotoAnalysisOutput;
 export type StrategicFeedback = StrategicFeedbackOutput;
 
@@ -52,6 +54,7 @@ export type User = {
   total_analyses_count?: number;
   current_xp: number;
   level_name: string;
+  tier: UserTier;
   is_mentor?: boolean;
   weekly_free_refill_date: string;
   test_balance_reset?: boolean;
@@ -113,6 +116,7 @@ export type Photo = {
   userPhotoURL?: string | null;
   userLevelName?: string;
   imageHash?: string;
+  analysisTier?: UserTier;
 };
 
 export type Competition = {

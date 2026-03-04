@@ -1,53 +1,46 @@
 'use server';
 /**
- * @fileOverview A photo analysis AI agent that provides objective technical and artistic data.
+ * @fileOverview A tiered photo analysis AI agent.
  *
- * - generatePhotoAnalysis - A function that handles the photo analysis process.
- * - PhotoAnalysisInput - The input type for the generatePhotoAnalysis function.
- * - PhotoAnalysisOutput - The return type for the generatePhotoAnalysis function.
+ * - generatePhotoAnalysis - Handles analysis depth based on user tier.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const PhotoAnalysisInputSchema = z.object({
-  photoUrl: z
-    .string()
-    .url()
-    .describe(
-      "A publicly accessible HTTPS URL of the photo to analyze."
-    ),
-  language: z.string().describe('The language for the response (e.g., "tr", "en").'),
+  photoUrl: z.string().url().describe("A publicly accessible HTTPS URL of the photo."),
+  language: z.string().describe('Response language (tr, en).'),
+  tier: z.enum(['start', 'pro', 'master']).describe("The analysis package depth."),
 });
 export type PhotoAnalysisInput = z.infer<typeof PhotoAnalysisInputSchema>;
 
+const VisualMarkerSchema = z.object({
+  type: z.enum(["subject", "distraction", "light_direction"]),
+  box_2d: z.array(z.number()).length(4).describe("[ymin, xmin, ymax, xmax] normalized 0-1000"),
+  label: z.string(),
+});
+
 const PhotoAnalysisOutputSchema = z.object({
-  device_estimation: z.enum(["mobile", "entry_dslr", "mirrorless", "pro_dslr", "unknown"]),
-  genre: z.enum(["portrait", "street", "landscape", "macro", "architecture", "documentary", "other"]),
-  // Core 5 Metrics aligned with Profile Index
-  light_score: z.number().min(0).max(10).describe("Exposure balance, quality and direction of light."),
-  composition_score: z.number().min(0).max(10).describe("Rule of thirds, balance, leading lines and framing."),
-  storytelling_score: z.number().min(0).max(10).describe("Narrative depth, emotion and the story being told."),
-  technical_clarity_score: z.number().min(0).max(10).describe("Focus, sharpness and digital noise control."),
-  boldness_score: z.number().min(0).max(10).describe("Artistic risk-taking, unique perspective and daring choices."),
+  genre: z.string(),
+  // Core Metrics
+  light_score: z.number().min(0).max(10),
+  composition_score: z.number().min(0).max(10),
+  technical_clarity_score: z.number().min(0).max(10),
   
-  // Secondary technical data
-  color_control_score: z.number().min(0).max(10),
-  background_control_score: z.number().min(0).max(10),
+  // Pro/Master Metrics (Optional for Start)
+  storytelling_score: z.number().min(0).max(10).optional(),
+  boldness_score: z.number().min(0).max(10).optional(),
   
-  tags: z.array(z.string()).max(4).describe("Up to 4 descriptive tags about the photo style or subject (e.g., 'Golden Hour', 'Minimalist', 'Sharp Focus')."),
-  error_flags: z.object({
-    overexposed: z.boolean(),
-    underexposed: z.boolean(),
-    cluttered_background: z.boolean(),
-    weak_subject_isolation: z.boolean(),
-    horizon_misalignment: z.boolean(),
-  }),
-  short_neutral_analysis: z.string().describe("maximum 2 short sentences focusing on guidance"),
+  // Master features
+  visual_markers: z.array(VisualMarkerSchema).optional(),
+  style_analysis: z.string().optional(),
+  
+  tags: z.array(z.string()).max(4),
+  short_neutral_analysis: z.string(),
 });
 export type PhotoAnalysisOutput = z.infer<typeof PhotoAnalysisOutputSchema>;
 
-// The main function that the application calls.
 export async function generatePhotoAnalysis(
   input: PhotoAnalysisInput
 ): Promise<PhotoAnalysisOutput> {
@@ -55,49 +48,43 @@ export async function generatePhotoAnalysis(
 }
 
 const analysisPrompt = ai.definePrompt({
-  name: 'photoAnalysisJsonPrompt',
+  name: 'photoAnalysisTieredPrompt',
   input: {schema: PhotoAnalysisInputSchema},
   output: {schema: PhotoAnalysisOutputSchema},
-  config: {
-    temperature: 0.2,
-  },
-  prompt: `You are Luma, a professional photography guide.
+  config: { temperature: 0.2 },
+  prompt: `You are Luma, Viewora's professional photography guide.
 
-CRITICAL TONE RULE: 
-Luma does not criticize; Luma makes the artist realize. 
-You are a guide, not a judge. 
-Instead of saying "The background is bad", say "If the background is simplified, the core feeling becomes more visible."
-Avoid negative labels. Focus on potential and enhancement.
+TIER RULES (Current Tier: {{{tier}}}):
 
-Analyze the uploaded image strictly and objectively for both technical and artistic data.
+1. IF tier is 'start':
+   - Analyze ONLY: Light, Composition, Technical Clarity.
+   - Provide a short comment (max 2 sentences).
+   - Metrics: Set storytelling_score and boldness_score to 0.
 
-METRIC GUIDELINES:
-- light_score: Balance of shadows and highlights.
-- composition_score: Structural harmony.
-- storytelling_score: Does the image evoke a feeling or narrative?
-- technical_clarity_score: Sharpness and technical execution.
-- boldness_score: How much did the artist push the boundaries?
+2. IF tier is 'pro':
+   - Analyze ALL 5 Metrics: Light, Composition, Technical Clarity, Storytelling, Boldness.
+   - Provide a coaching-style comment (3-4 sentences) using the "realization" tone.
 
-Return ONLY valid JSON. Do not write explanations outside JSON.
+3. IF tier is 'master':
+   - Analyze ALL 5 Metrics + Visual Markers + Style Analysis.
+   - visual_markers: Identify the main subject and any distractions using [ymin, xmin, ymax, xmax] coordinates.
+   - style_analysis: Describe the artist's visible style (e.g., "High contrast, centered composition").
 
-Generate exactly 4 tags that best describe the photo's mood, style, or specific content in language: {{{language}}}.
+TONE RULE: Luma does not criticize; Luma makes the artist realize.
 
 Respond in language: {{{language}}}
-
-Analyze the photo provided: {{media url=photoUrl}}`,
+Analyze photo: {{media url=photoUrl}}`,
 });
 
 const analysisFlow = ai.defineFlow(
   {
-    name: 'photoAnalysisJsonFlow',
+    name: 'photoAnalysisTieredFlow',
     inputSchema: PhotoAnalysisInputSchema,
     outputSchema: PhotoAnalysisOutputSchema,
   },
   async (input) => {
     const {output} = await analysisPrompt(input);
-    if (!output) {
-      throw new Error('Yapay zeka fotoğraf analiz çıktısı üretemedi. Lütfen görselin erişilebilir olduğundan emin olun.');
-    }
+    if (!output) throw new Error('AI analysis failed.');
     return output;
   }
 );
