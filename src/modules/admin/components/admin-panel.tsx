@@ -21,7 +21,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -77,10 +77,9 @@ export default function AdminPanel() {
     defaultValues: { currencyName: currentCurrency }
   });
 
-  // Sync config form with actual values
   useEffect(() => {
     if (appConfig) configForm.reset({ currencyName: appConfig.currencyName });
-  }, [appConfig]);
+  }, [appConfig, configForm]);
 
   const onUpdateConfig = async (values: z.infer<typeof configSchema>) => {
     if (!firestore || isSubmitting) return;
@@ -228,13 +227,18 @@ export default function AdminPanel() {
       </header>
 
       <Tabs defaultValue="accounting" onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 flex-wrap overflow-x-auto justify-start">
-          <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Muhasebe</TabsTrigger>
-          <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">İçerik Yönetimi</TabsTrigger>
-          <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Akademi</TabsTrigger>
-          <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Kullanıcılar</TabsTrigger>
-          <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Genel Ayarlar</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-hidden">
+          <ScrollArea className="w-full whitespace-nowrap pb-4">
+            <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 inline-flex w-max">
+              <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Muhasebe</TabsTrigger>
+              <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">İçerik Yönetimi</TabsTrigger>
+              <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Akademi</TabsTrigger>
+              <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Kullanıcılar</TabsTrigger>
+              <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Genel Ayarlar</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" className="hidden" />
+          </ScrollArea>
+        </div>
 
         <TabsContent value="accounting" className="space-y-8 animate-in fade-in duration-500">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
@@ -463,7 +467,7 @@ export default function AdminPanel() {
                   <Layout className="h-6 w-6 text-blue-400" />
                 </div>
                 <CardTitle className="text-lg font-black tracking-tight">Müfredat Taslağı</CardTitle>
-                <CardDescription>Seviyelere göre ders başlıklarını ve hedeflerini belirleyin.</CardDescription>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Seviyelere göre ders başlıklarını belirleyin.</CardTitle>
               </CardHeader>
             </Card>
             <Card className="rounded-[32px] border-border/40 bg-card/30 hover:border-purple-500/20 transition-all cursor-pointer group">
@@ -472,7 +476,7 @@ export default function AdminPanel() {
                   <Sparkles className="h-6 w-6 text-purple-400" />
                 </div>
                 <CardTitle className="text-lg font-black tracking-tight">AI Ders Üretimi</CardTitle>
-                <CardDescription>Luma'nın otomatik teknik dersler ve pratik görevler üretmesini sağlayın.</CardDescription>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Luma'nın otomatik ders üretmesini sağlayın.</CardTitle>
               </CardHeader>
             </Card>
             <Card className="rounded-[32px] border-border/40 bg-card/30 hover:border-amber-500/20 transition-all cursor-pointer group">
@@ -481,7 +485,7 @@ export default function AdminPanel() {
                   <List className="h-6 w-6 text-amber-400" />
                 </div>
                 <CardTitle className="text-lg font-black tracking-tight">Ders Listesi</CardTitle>
-                <CardDescription>Yayındaki tüm dersleri görüntüleyin ve düzenleyin.</CardDescription>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Yayındaki tüm dersleri görüntüleyin.</CardTitle>
               </CardHeader>
             </Card>
           </div>
