@@ -323,7 +323,14 @@ export default function LumaMentorPage() {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[40px] p-0 border-border/40 bg-background/95 backdrop-blur-xl">
-                        <div className="p-8"><FeedbackDisplay analysis={item} /></div>
+                        <div className="p-8">
+                          <DialogHeader className="mb-6">
+                            <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-3">
+                              <Target className="h-6 w-6 text-primary" /> Stratejik Yol Haritası Detayı
+                            </DialogTitle>
+                          </DialogHeader>
+                          <FeedbackDisplay analysis={item} />
+                        </div>
                       </DialogContent>
                     </Dialog>
                   </div>
