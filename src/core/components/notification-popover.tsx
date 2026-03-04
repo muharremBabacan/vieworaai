@@ -14,6 +14,7 @@ import { tr } from 'date-fns/locale';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useDoc } from '@/lib/firebase';
 import { cn } from '@/lib/utils';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 export function NotificationCenter() {
   const { user } = useUser();
@@ -21,6 +22,7 @@ export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { currencyName } = useAppConfig();
 
   // User profile for level-based filtering and read status
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
@@ -195,7 +197,7 @@ export function NotificationCenter() {
                           )}>
                             {item.category === 'invite' ? (
                               <><b>{item.fromUserName}</b> sizi "<b>{item.groupName}</b>" grubuna davet etti.</>
-                            ) : item.message}
+                            ) : item.message.replace(/Auro/g, currencyName)}
                           </p>
                           <p className="text-[10px] text-muted-foreground/70 font-medium">
                             {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}

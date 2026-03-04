@@ -1,4 +1,3 @@
-
 'use client';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
@@ -17,49 +16,51 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) => {
   const displayName = userProfile.name || 'Kullanıcı';
   const displayEmail = userProfile.email || 'email@example.com';
   const fallbackChar = displayName?.charAt(0).toUpperCase() || 'U';
-  
-  // Seçilen nick fotoğrafını (userProfile) öncelikli kullan
   const displayPhotoURL = userProfile.photoURL || user.photoURL || '';
 
   return (
-    <Card>
-      <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6">
-        <Avatar className="h-20 w-20">
-          <AvatarImage src={displayPhotoURL} alt={displayName} />
-          <AvatarFallback className="text-3xl">{fallbackChar}</AvatarFallback>
+    <Card className="rounded-[32px] overflow-hidden">
+      <CardContent className="p-8 flex flex-col sm:flex-row items-center gap-8">
+        <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-xl">
+          <AvatarImage src={displayPhotoURL} alt={displayName} className="object-cover" />
+          <AvatarFallback className="text-3xl font-black bg-secondary">{fallbackChar}</AvatarFallback>
         </Avatar>
-        <div className="flex-1 w-full text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-            <h2 className="text-2xl font-bold">{displayName}</h2>
+        <div className="flex-1 w-full text-center sm:text-left space-y-1">
+          <div className="flex items-center justify-center sm:justify-start gap-3">
+            <h2 className="text-3xl font-black tracking-tight">{displayName}</h2>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                  <UserCircle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary/10 hover:text-primary transition-all">
+                  <UserCircle className="h-6 w-6" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-0 overflow-hidden border-none shadow-2xl">
-                <div className="bg-gradient-to-br from-primary/30 to-accent/30 p-6 flex flex-col items-center">
-                  <Avatar className="h-20 w-20 border-4 border-background shadow-xl mb-3">
-                    <AvatarImage src={displayPhotoURL} alt={displayName} />
-                    <AvatarFallback className="text-2xl">{fallbackChar}</AvatarFallback>
+              <PopoverContent className="w-72 p-0 overflow-hidden border-border/40 shadow-2xl rounded-[32px] bg-background/95 backdrop-blur-xl">
+                <div className="bg-gradient-to-br from-primary/30 to-accent/30 p-8 flex flex-col items-center">
+                  <Avatar className="h-24 w-24 border-4 border-background shadow-2xl mb-4">
+                    <AvatarImage src={displayPhotoURL} alt={displayName} className="object-cover" />
+                    <AvatarFallback className="text-3xl font-black">{fallbackChar}</AvatarFallback>
                   </Avatar>
-                  <h3 className="font-bold text-lg text-foreground">{displayName}</h3>
-                  <Badge variant="secondary" className="mt-2 bg-background/50 backdrop-blur-sm px-4">
+                  <h3 className="font-black text-xl text-foreground tracking-tight">{displayName}</h3>
+                  <Badge className="mt-3 bg-primary text-white border-none px-4 h-7 rounded-full font-black uppercase tracking-widest text-[10px]">
                     {userProfile.level_name}
                   </Badge>
                 </div>
-                <div className="bg-card p-3 border-t text-center">
-                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Viewora Üyesi</p>
+                <div className="bg-card/50 p-4 border-t border-border/40 text-center">
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">Viewora Üyesi</p>
                 </div>
               </PopoverContent>
             </Popover>
           </div>
-          <p className="text-sm text-muted-foreground">{displayEmail}</p>
+          <p className="text-muted-foreground font-medium">{displayEmail}</p>
+          <div className="pt-2">
+            <Badge variant="outline" className="border-border/60 text-[10px] font-black uppercase tracking-widest h-6 px-3">{userProfile.tier} PAKETİ</Badge>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -76,48 +77,59 @@ const LevelProgress = ({ userProfile }: { userProfile: User }) => {
       : 100;
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
+      <Card className="rounded-[32px] overflow-hidden">
+        <CardHeader className="p-8 pb-4">
+          <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight">
               <Award className="h-6 w-6 text-amber-400" />
               Seviye & İlerleme
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-2">
-            <div className="font-semibold">
-              <span>{currentLevel.name}</span>
+        <CardContent className="p-8 pt-0">
+          <div className="flex justify-between items-end mb-4">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mevcut Rütbe</p>
+              <p className="text-2xl font-black tracking-tight text-primary uppercase">{currentLevel.name}</p>
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-right space-y-1">
               {nextLevel ? (
-                <span>Sonraki: {nextLevel.name}</span>
+                <>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hedef</p>
+                  <p className="text-sm font-bold uppercase">{nextLevel.name}</p>
+                </>
               ) : (
-                <span className="font-semibold">Maksimum Seviye</span>
+                <Badge className="bg-amber-500 text-black font-black uppercase h-6">Maksimum Seviye</Badge>
               )}
             </div>
           </div>
-          <Progress value={progress} className="w-full h-2" />
-          <p className="text-right text-xs text-muted-foreground mt-1">
-            {userProfile.current_xp} XP {nextLevel ? `/ ${nextLevel.minXp} XP` : ''}
-          </p>
+          <Progress value={progress} className="w-full h-3 rounded-full bg-secondary" />
+          <div className="flex justify-between mt-3">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{userProfile.current_xp} XP</span>
+            {nextLevel && <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{nextLevel.minXp} XP</span>}
+          </div>
         </CardContent>
       </Card>
     );
 }
 
 const AuroBalance = ({ userProfile, router }: { userProfile: User, router: any }) => {
+    const { currencyName } = useAppConfig();
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
+      <Card className="rounded-[32px] overflow-hidden">
+        <CardHeader className="p-8 pb-4">
+          <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight">
               <Gem className="h-6 w-6 text-cyan-400" />
-              Auro Bakiyesi
+              {currencyName} Bakiyesi
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-8 pt-0">
           <div className="flex items-center justify-between">
-            <p className="text-3xl font-bold">{userProfile.auro_balance}</p>
-            <Button onClick={() => router.push('/pricing')}>Auro Satın Al</Button>
+            <div className="space-y-1">
+              <p className="text-5xl font-black tracking-tighter text-foreground">{userProfile.auro_balance}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400">{currencyName} Mevcut</p>
+            </div>
+            <Button onClick={() => router.push('/pricing')} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+              {currencyName} Yükle
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -134,22 +146,22 @@ export default function ProfilePage() {
 
   if (isUserLoading || isProfileLoading) {
     return (
-      <div className="container mx-auto max-w-2xl space-y-8 px-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-32 w-full" />
+      <div className="container mx-auto max-w-2xl space-y-8 px-4 py-10">
+        <Skeleton className="h-12 w-48 rounded-2xl" />
+        <Skeleton className="h-48 w-full rounded-[32px]" />
+        <Skeleton className="h-48 w-full rounded-[32px]" />
+        <Skeleton className="h-40 w-full rounded-[32px]" />
       </div>
     );
   }
 
   if (!userProfile || !user) {
-    return <div className="container text-center px-4">Kullanıcı bulunamadı.</div>;
+    return <div className="container text-center px-4 py-20 font-bold uppercase tracking-widest">Kullanıcı bulunamadı.</div>;
   }
 
   return (
-    <div className="container mx-auto max-w-2xl space-y-8 px-4">
-      <h1 className="text-3xl font-bold tracking-tight">Profilim</h1>
+    <div className="container mx-auto max-w-2xl space-y-10 px-4 pt-10 pb-24 animate-in fade-in duration-700">
+      <h1 className="text-5xl font-black tracking-tighter uppercase">Profilim</h1>
       
       <UserInfoCard user={user} userProfile={userProfile} />
       <LevelProgress userProfile={userProfile} />

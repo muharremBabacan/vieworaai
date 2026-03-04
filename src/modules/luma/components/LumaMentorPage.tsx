@@ -15,6 +15,7 @@ import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, 
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 const MENTOR_COSTS: Record<UserTier, number> = {
   start: 2,
@@ -104,6 +105,7 @@ export default function LumaMentorPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { currencyName } = useAppConfig();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<StoredStrategicFeedback | null>(null);
 
@@ -143,8 +145,8 @@ export default function LumaMentorPage() {
     if (userProfile.auro_balance < strategicCost) {
       toast({
         variant: 'destructive',
-        title: "Yetersiz Auro",
-        description: `Stratejik analiz için ${strategicCost} Auro gereklidir.`,
+        title: `Yetersiz ${currencyName}`,
+        description: `Stratejik analiz için ${strategicCost} ${currencyName} gereklidir.`,
       });
       return;
     }
@@ -283,7 +285,7 @@ export default function LumaMentorPage() {
               <>
                 <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
                 <Sparkles className="mr-2 h-5 w-5 text-yellow-400 relative z-10" /> 
-                <span className="relative z-10">Stratejik Analiz Başlat ({strategicCost} Auro)</span>
+                <span className="relative z-10">Stratejik Analiz Başlat ({strategicCost} {currencyName})</span>
               </>
             )}
           </Button>
@@ -341,7 +343,7 @@ export default function LumaMentorPage() {
             <div className="flex items-center gap-6 px-8 py-4 bg-background rounded-full border border-border/60 shadow-lg">
               <div className="flex items-center gap-2"><Award className="h-4 w-4 text-amber-400" /> <span className="text-xs font-bold uppercase">+50 XP</span></div>
               <div className="w-px h-4 bg-border" />
-              <div className="flex items-center gap-2"><Gem className="h-4 w-4 text-cyan-400" /> <span className="text-xs font-bold uppercase">{strategicCost} AURO</span></div>
+              <div className="flex items-center gap-2"><Gem className="h-4 w-4 text-cyan-400" /> <span className="text-xs font-bold uppercase">{strategicCost} {currencyName}</span></div>
             </div>
           </div>
         </div>

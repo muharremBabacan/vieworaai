@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { Badge } from '@/shared/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield, User as UserIcon } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -21,12 +21,14 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { NotificationCenter } from '@/core/components/notification-popover';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 export function UserNav() {
   const { user: authUser, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+  const { currencyName } = useAppConfig();
 
   const userDocRef = useMemoFirebase(() => {
       if (!authUser || !firestore) return null;
@@ -58,7 +60,7 @@ export function UserNav() {
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
-  const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
+  const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
   const displayName = userProfile.name || "Kullanıcı";
   const displayEmail = userProfile.email || "E-posta yok";
@@ -70,9 +72,10 @@ export function UserNav() {
     <div className="flex items-center gap-3">
       <NotificationCenter />
       
-      <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary/50 rounded-full border border-border/50">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-full border border-border/50">
         <Gem className="h-4 w-4 text-cyan-400" />
         <span className="text-sm font-bold">{auroBalance}</span>
+        <span className="text-[10px] font-black uppercase tracking-tighter opacity-60 ml-0.5">{currencyName}</span>
       </div>
 
       <DropdownMenu>
@@ -110,7 +113,7 @@ export function UserNav() {
             <DropdownMenuItem asChild>
               <Link href="/pricing">
                 <Coins className="mr-2 h-4 w-4" />
-                <span>Auro Satın Al</span>
+                <span>{currencyName} Satın Al</span>
               </Link>
             </DropdownMenuItem>
             {isAdmin && (
@@ -127,7 +130,7 @@ export function UserNav() {
             <div className="px-2 py-1.5 text-sm flex items-center justify-between">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Gem className="h-4 w-4 text-cyan-400" />
-                <span>Auro</span>
+                <span>{currencyName}</span>
               </div>
               <span className="font-semibold">{auroBalance}</span>
             </div>

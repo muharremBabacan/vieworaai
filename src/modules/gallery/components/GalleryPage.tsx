@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 const TIER_COSTS: Record<UserTier, number> = {
   start: 1,
@@ -66,6 +67,7 @@ export default function GalleryPage() {
     const firestore = useFirestore();
     const storage = getStorage();
     const { toast } = useToast();
+    const { currencyName } = useAppConfig();
 
     const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -95,7 +97,7 @@ export default function GalleryPage() {
         const cost = TIER_COSTS[tier];
 
         if (!user || !userProfile || userProfile.auro_balance < cost) {
-            toast({ variant: 'destructive', title: "Yetersiz Auro" });
+            toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
             return;
         }
         setIsProcessing(true);
@@ -157,10 +159,10 @@ export default function GalleryPage() {
       const selectedEx = activeExhibitions?.find(e => e.id === targetExhibitionId);
       if (!selectedEx) return;
 
-      const SUBMIT_TO_EXHIBITION_COST = 1; // Default fallback if not defined
+      const SUBMIT_TO_EXHIBITION_COST = 1;
 
       if (userProfile.auro_balance < SUBMIT_TO_EXHIBITION_COST) {
-          toast({ variant: 'destructive', title: "Yetersiz Auro" });
+          toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
           return;
       }
 
@@ -288,11 +290,24 @@ export default function GalleryPage() {
                             <div className="space-y-4 py-10 text-center">
                                 <Sparkles className="h-12 w-12 text-primary mx-auto mb-2 opacity-50" />
                                 <p className="text-sm text-muted-foreground font-medium">Bu fotoğraf henüz teknik olarak analiz edilmedi.</p>
-                                <Button onClick={() => handleAnalyze(selectedPhoto)} disabled={isProcessing} className="w-full h-12 rounded-xl font-bold">Analiz Et ({TIER_COSTS[userProfile?.tier || 'start']} Auro)</Button>
+                                <Button onClick={() => handleAnalyze(selectedPhoto)} disabled={isProcessing} className="w-full h-12 rounded-xl font-bold">Analiz Et ({TIER_COSTS[userProfile?.tier || 'start']} {currencyName})</Button>
                             </div>
                         )}
                         
                         <div className="pt-8 border-t border-border/40 space-y-4 mt-auto">
+                            {!selectedPhoto.isSubmittedToExhibition && activeExhibitions && activeExhibitions.length > 0 && (
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-black text-muted-foreground ml-1">Sergi Salonu Seçin</Label>
+                                    <Select onValueChange={setTargetExhibitionId} value={targetExhibitionId}>
+                                        <SelectTrigger className="h-11 rounded-xl bg-muted/30 border-border/40"><SelectValue placeholder="Sergi teması seç..." /></SelectTrigger>
+                                        <SelectContent>{activeExhibitions.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                            <Button onClick={() => handleToggleExhibition(selectedPhoto)} variant="outline" className="w-full h-12 rounded-xl font-bold border-border/60" disabled={isProcessing}>
+                                <ArrowLeftRight className="mr-2 h-4 w-4" />
+                                {selectedPhoto.isSubmittedToExhibition ? "Sergiden Geri Çek" : `Sergiye Gönder (1 ${currencyName})`}
+                            </Button>
                             <Button variant="ghost" className="w-full h-12 text-destructive hover:text-destructive hover:bg-destructive/10 font-bold" onClick={() => handleDelete(selectedPhoto)} disabled={isProcessing}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Kalıcı Olarak Sil
                             </Button>

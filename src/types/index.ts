@@ -11,6 +11,11 @@ export type StoredStrategicFeedback = StrategicFeedback & {
   createdAt: string;
 };
 
+export type AppSettings = {
+  currencyName: string;
+  maintenanceMode?: boolean;
+};
+
 export type OnboardingResults = {
   device_type: 'mobile' | 'camera' | 'hybrid';
   interest: 'portrait' | 'landscape' | 'street' | 'food' | 'social' | 'art';

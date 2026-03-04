@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Camera, Loader2, Sparkles, Gem, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -31,6 +32,8 @@ export default function PhotoAnalyzer() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { currencyName } = useAppConfig();
+  
   const userDocRef = useMemoFirebase(
     () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
     [user, firestore]
@@ -67,7 +70,7 @@ export default function PhotoAnalyzer() {
     if (!file || !user || !firestore || !userProfile) return;
 
     if (analyze && userProfile.auro_balance < analysisCost) {
-      toast({ variant: 'destructive', title: 'Yetersiz Auro', description: `Bu analiz derinliği için ${analysisCost} Auro gereklidir.` });
+      toast({ variant: 'destructive', title: 'Yetersiz Bakiye', description: `Bu analiz derinliği için ${analysisCost} ${currencyName} gereklidir.` });
       return;
     }
 
@@ -167,7 +170,7 @@ export default function PhotoAnalyzer() {
           <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-lg">
             <Camera className="text-primary" size={40} />
           </div>
-          <p className="font-black text-3xl tracking-tighter">VİZYONUNU PAYLAŞ</p>
+          <p className="font-black text-3xl tracking-tighter uppercase">VİZYONUNU PAYLAŞ</p>
           <p className="text-muted-foreground mt-3 text-lg font-medium">Analiz etmek veya galerine eklemek için bir fotoğraf seç.</p>
           <Button onClick={open} className="mt-10 px-12 h-14 rounded-2xl font-black tracking-widest shadow-2xl shadow-primary/20">Fotoğraf Seç</Button>
         </div>
@@ -184,32 +187,32 @@ export default function PhotoAnalyzer() {
 
           <div className="flex flex-col items-center gap-8">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">
-              <Card className={cn("p-6 border-2 transition-all", currentTier === 'start' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
+              <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'start' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
                 <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Start</p>
                 <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
-                  <Gem className="h-4 w-4 text-cyan-400" /> 1
+                  <Gem className="h-4 w-4 text-cyan-400" /> 1 <span className="text-[9px] uppercase">{currencyName}</span>
                 </div>
-                <ul className="text-[10px] text-left space-y-1 mb-4">
+                <ul className="text-[10px] text-left space-y-1 mb-4 font-bold">
                   <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> 3 Temel Metrik</li>
                   <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Kısa Yorum</li>
                 </ul>
               </Card>
-              <Card className={cn("p-6 border-2 transition-all", currentTier === 'pro' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
+              <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'pro' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
                 <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Pro</p>
                 <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
-                  <Gem className="h-4 w-4 text-cyan-400" /> 2
+                  <Gem className="h-4 w-4 text-cyan-400" /> 2 <span className="text-[9px] uppercase">{currencyName}</span>
                 </div>
-                <ul className="text-[10px] text-left space-y-1 mb-4">
+                <ul className="text-[10px] text-left space-y-1 mb-4 font-bold">
                   <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> 5 Derin Metrik</li>
                   <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> AI Stratejik Koç</li>
                 </ul>
               </Card>
-              <Card className={cn("p-6 border-2 transition-all", currentTier === 'master' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
+              <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'master' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
                 <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Master</p>
                 <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
-                  <Gem className="h-4 w-4 text-cyan-400" /> 3
+                  <Gem className="h-4 w-4 text-cyan-400" /> 3 <span className="text-[9px] uppercase">{currencyName}</span>
                 </div>
-                <ul className="text-[10px] text-left space-y-1 mb-4">
+                <ul className="text-[10px] text-left space-y-1 mb-4 font-bold">
                   <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Görsel İşaretleme</li>
                   <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Stil Analizi</li>
                 </ul>
@@ -222,7 +225,7 @@ export default function PhotoAnalyzer() {
                 disabled={isDuplicate}
                 className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30"
               >
-                <Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> Analiz Et ({analysisCost} Auro)
+                <Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> Analiz Et ({analysisCost} {currencyName})
               </Button>
               <Button
                 onClick={() => handleUploadAndOptionalAnalysis(false)}
@@ -234,7 +237,7 @@ export default function PhotoAnalyzer() {
               </Button>
             </div>
             
-            <Button variant="ghost" className="text-muted-foreground hover:text-destructive font-black uppercase text-[10px]" onClick={() => { setFile(null); setPreview(null); }}>İptal Et</Button>
+            <Button variant="ghost" className="text-muted-foreground hover:text-destructive font-black uppercase text-[10px] tracking-widest" onClick={() => { setFile(null); setPreview(null); }}>İptal Et</Button>
           </div>
         </Card>
       )}
