@@ -10,6 +10,14 @@ export type StoredStrategicFeedback = StrategicFeedback & {
   createdAt: string;
 };
 
+export type OnboardingResults = {
+  device_type: 'mobile' | 'camera' | 'hybrid';
+  interest: 'portrait' | 'landscape' | 'street' | 'food' | 'social' | 'art';
+  approach: 'lighting' | 'composition' | 'casual';
+  technical_level: 'beginner' | 'intermediate' | 'advanced';
+  motivation: 'social' | 'hobby' | 'learning' | 'professional';
+};
+
 export type UserProfileIndex = {
   dominant_style: string;
   strengths: string[];
@@ -47,10 +55,11 @@ export type User = {
   level_name: string;
   is_mentor?: boolean;
   weekly_free_refill_date: string;
-  test_balance_reset?: boolean; // Yeni: Test amaçlı bakiye sıfırlama bayrağı
+  test_balance_reset?: boolean;
   completed_modules: string[];
   interests: string[];
   onboarded: boolean;
+  onboarding_results?: OnboardingResults;
   groups?: string[];
   createdAt?: string;
   lastLoginAt?: string;
@@ -104,7 +113,7 @@ export type Photo = {
   userName?: string;
   userPhotoURL?: string | null;
   userLevelName?: string;
-  imageHash?: string; // New: SHA-256 Hash for duplicate detection
+  imageHash?: string;
 };
 
 export type Competition = {
@@ -124,7 +133,7 @@ export type Competition = {
   juryWeight: number;
   aiWeight: number;
   communityWeight: number;
-  participantCount?: number; // New: Katılımcı sayısı takibi
+  participantCount?: number;
 };
 
 export type CompetitionEntry = {
