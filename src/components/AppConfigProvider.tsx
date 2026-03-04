@@ -11,7 +11,7 @@ interface AppConfigContextType {
 }
 
 const AppConfigContext = createContext<AppConfigContextType>({
-  currencyName: 'Piix',
+  currencyName: 'Pix',
   isLoading: true,
 });
 
@@ -23,7 +23,7 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
   const { data: config, isLoading } = useDoc<AppSettings>(configRef);
 
   const value = {
-    currencyName: config?.currencyName || 'Piix',
+    currencyName: config?.currencyName || 'Pix',
     isLoading,
   };
 

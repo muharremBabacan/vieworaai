@@ -227,7 +227,6 @@ export default function AdminPanel() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        {/* Swipeable Tabs Navigation */}
         <div className="w-full overflow-x-auto no-scrollbar pb-2">
           <TabsList className="flex flex-nowrap w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 scroll-smooth">
             <TabsTrigger value="accounting" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Muhasebe</TabsTrigger>
@@ -396,7 +395,7 @@ export default function AdminPanel() {
                         <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                       <FormField control={competitionForm.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px) font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                     </div>
                     <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest bg-amber-500 text-black hover:bg-amber-600 shadow-xl shadow-amber-500/20">{isSubmitting ? <Loader2 className="animate-spin" /> : "Yarışmayı Başlat"}</Button>
@@ -563,7 +562,7 @@ export default function AdminPanel() {
                   <FormField control={configForm.control} name="currencyName" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Para Birimi İsmi</FormLabel>
-                      <FormControl><Input {...field} placeholder="Örn: Piix" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl>
+                      <FormControl><Input {...field} placeholder="Örn: Pix" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl>
                       <FormDescription className="text-xs italic">Uygulama genelindeki tüm birim metinleri bununla değiştirilecektir.</FormDescription>
                       <FormMessage />
                     </FormItem>

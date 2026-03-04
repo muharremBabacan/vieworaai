@@ -56,7 +56,8 @@ export type User = {
   photoURL?: string | null;
   auro_balance: number;
   total_auro_spent?: number;
-  total_analyses_count?: number;
+  total_analyses_count: number;
+  total_mentor_analyses_count: number;
   current_xp: number;
   level_name: string;
   tier: UserTier;
