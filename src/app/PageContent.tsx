@@ -191,7 +191,7 @@ export default function PageContent() {
 
       const userSnap = await getDoc(userRef);
 
-      let onboarded = false;
+      let onboardedStatus = false;
       const now = new Date().toISOString();
 
       if (!userSnap.exists()) {
@@ -229,11 +229,11 @@ export default function PageContent() {
           setDoc(publicProfileRef, newPublicProfile),
         ]);
 
-        onboarded = false;
+        onboardedStatus = false;
 
       } else {
         const existing = userSnap.data() as UserProfile;
-        onboarded = existing.onboarded ?? false;
+        onboardedStatus = existing.onboarded ?? false;
 
         const updatedName =
           firebaseUser.displayName?.split(' ')[0] || existing.name;
@@ -247,7 +247,7 @@ export default function PageContent() {
       }
 
       // Anketi doldurmamışsa bildirim merkezine uyarı gönder
-      if (!onboarded) {
+      if (!onboardedStatus) {
         const onboardingNotifRef = doc(collection(firestore, 'users', firebaseUser.uid, 'notifications'), 'onboarding_reminder');
         await setDoc(onboardingNotifRef, {
           id: 'onboarding_reminder',
@@ -262,10 +262,12 @@ export default function PageContent() {
       
       toast({
         title: "Giriş Başarılı",
-        description: "Hazırlanıyor...",
+        description: "Vizyoner kimliğiniz doğrulanıyor...",
       });
 
-      router.push(onboarded ? '/dashboard' : '/onboarding');
+      // Yönlendirme artık tamamen ClientLayout tarafından otomatik yapılacak.
+      // Burada sadece isLoading'i kapatmak yeterli (ClientLayout doc snapshot bekleyecek).
+      setIsLoading(false);
 
     } catch (error: any) {
       console.error('Login error:', error);
