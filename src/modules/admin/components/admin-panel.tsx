@@ -227,17 +227,14 @@ export default function AdminPanel() {
       </header>
 
       <Tabs defaultValue="accounting" onValueChange={setActiveTab} className="space-y-8">
-        <div className="w-full overflow-hidden">
-          <ScrollArea className="w-full whitespace-nowrap pb-4">
-            <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 inline-flex w-max">
-              <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Muhasebe</TabsTrigger>
-              <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">İçerik Yönetimi</TabsTrigger>
-              <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Akademi</TabsTrigger>
-              <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Kullanıcılar</TabsTrigger>
-              <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Genel Ayarlar</TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" className="hidden" />
-          </ScrollArea>
+        <div className="w-full overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 inline-flex w-max min-w-full sm:min-w-0">
+            <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all whitespace-nowrap">Muhasebe</TabsTrigger>
+            <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all whitespace-nowrap">İçerik Yönetimi</TabsTrigger>
+            <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all whitespace-nowrap">Akademi</TabsTrigger>
+            <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all whitespace-nowrap">Kullanıcılar</TabsTrigger>
+            <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all whitespace-nowrap">Genel Ayarlar</TabsTrigger>
+          </TabsList>
         </div>
 
         <TabsContent value="accounting" className="space-y-8 animate-in fade-in duration-500">
