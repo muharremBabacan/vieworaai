@@ -13,7 +13,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase';
 import type { User as UserProfile, PublicUserProfile, AnalysisLog } from '@/types';
 
@@ -32,8 +32,8 @@ function MilkyWayEffect() {
   useEffect(() => {
     const newStars = Array.from({ length: 30 }).map((_, i) => ({
       id: i,
-      tx: 200 + Math.random() * 200, // Move towards right
-      ty: -200 - Math.random() * 200, // Move towards top
+      tx: 200 + Math.random() * 200,
+      ty: -200 - Math.random() * 200,
       delay: Math.random() * 0.8,
     }));
     setStars(newStars);
@@ -64,12 +64,6 @@ export default function PageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [showStars, setShowStars] = useState(false);
 
-  useEffect(() => {
-    if (user && !isUserLoading) {
-      router.push('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
-
   const processAuroRefillAndTestAdjustment = async (userId: string, existingProfile: UserProfile) => {
     if (!firestore) return;
     const batch = writeBatch(firestore);
@@ -77,9 +71,9 @@ export default function PageContent() {
     let needsUpdate = false;
     let finalAuro = existingProfile.auro_balance;
 
-    // 1. TEK SEFERLİK TEST SIFIRLAMASI (10-20 arasına indir)
+    // 1. TEK SEFERLİK TEST SIFIRLAMASI
     if (!existingProfile.test_balance_reset) {
-      const testAuro = Math.floor(Math.random() * 11) + 10; // 10-20 arası
+      const testAuro = Math.floor(Math.random() * 11) + 10;
       finalAuro = testAuro;
       batch.update(userRef, { 
         auro_balance: testAuro, 
@@ -94,7 +88,6 @@ export default function PageContent() {
     const msInWeek = 7 * 24 * 60 * 60 * 1000;
 
     if (now.getTime() - lastRefillDate.getTime() >= msInWeek) {
-      // Sadece 20'nin altındaysa
       if (finalAuro < 20) {
         const giftAmount = Math.min(5, 20 - finalAuro);
         if (giftAmount > 0) {
@@ -103,20 +96,18 @@ export default function PageContent() {
             weekly_free_refill_date: now.toISOString()
           });
 
-          // Log oluştur
           const logRef = doc(collection(firestore, 'analysis_logs'));
           const log: AnalysisLog = {
             id: logRef.id,
             userId: userId,
             userName: existingProfile.name || 'Vizyoner',
             type: 'gift',
-            auroSpent: -giftAmount, // Hediye olduğu için negatif (ekleme)
+            auroSpent: -giftAmount,
             timestamp: now.toISOString(),
             status: 'success'
           };
           batch.set(logRef, log);
 
-          // Bildirim oluştur (Kişisel)
           const notifRef = doc(collection(firestore, 'users', userId, 'notifications'));
           batch.set(notifRef, {
             id: notifRef.id,
@@ -128,7 +119,6 @@ export default function PageContent() {
 
           needsUpdate = true;
           
-          // Efekti tetikle
           setTimeout(() => {
             setShowStars(true);
             toast({
@@ -139,7 +129,6 @@ export default function PageContent() {
           }, 2000);
         }
       } else {
-        // 20 ve üzeriyse sadece tarihi güncelle ki bir sonraki hafta tekrar baksın
         batch.update(userRef, { weekly_free_refill_date: now.toISOString() });
         needsUpdate = true;
       }
@@ -218,7 +207,7 @@ export default function PageContent() {
           level_name: 'Neuner',
           is_mentor: false,
           weekly_free_refill_date: now,
-          test_balance_reset: true, // Yeni kullanıcılar zaten 20 ile başlar
+          test_balance_reset: true,
           completed_modules: [],
           interests: [],
           onboarded: false,
@@ -254,7 +243,6 @@ export default function PageContent() {
           updateDoc(publicProfileRef, { name: updatedName, email: firebaseUser.email, photoURL: firebaseUser.photoURL || null, level_name: existing.level_name })
         ]);
 
-        // Auro yenileme ve test ayarlama mantığını çalıştır
         await processAuroRefillAndTestAdjustment(firebaseUser.uid, existing);
       }
 
@@ -262,17 +250,19 @@ export default function PageContent() {
       
       toast({
         title: "Giriş Başarılı",
-        description: "Yönlendiriliyorsunuz...",
+        description: "Hazırlanıyor...",
       });
 
+      // Yönlendirme artık ClientLayout tarafından merkezi olarak yapılacak
       router.push(onboarded ? '/dashboard' : '/onboarding');
 
     } catch (error: any) {
       console.error('Login error:', error);
+      setIsLoading(false);
       
       let errorMessage = "Google ile giriş yapılamadı.";
       if (error.code === 'auth/popup-blocked') {
-        errorMessage = "Giriş penceresi tarayıcı tarafından engellendi. Lütfen pop-up engelleyiciyi kapatın veya izin verin.";
+        errorMessage = "Giriş penceresi tarayıcı tarafından engellendi.";
       }
 
       toast({
@@ -280,19 +270,11 @@ export default function PageContent() {
         title: "Giriş Başarısız",
         description: errorMessage,
       });
-      setIsLoading(false);
     }
   };
 
-  if (isUserLoading || user) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Oturum kontrol ediliyor...</p>
-      </div>
-    );
-  }
-
+  // Auth durumu kontrol edilirken ClientLayout loader gösterir, 
+  // burada sadece giriş sayfasının kendisini render ediyoruz.
   return (
     <div className="flex min-h-screen flex-col bg-background p-4 relative overflow-hidden">
       {showStars && <MilkyWayEffect />}

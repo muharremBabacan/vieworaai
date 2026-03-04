@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppHeader } from '@/core/components/app-header';
@@ -8,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/types';
+import { Loader2 } from 'lucide-react';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -16,23 +16,51 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  // Giriş, Onboarding ve yasal sayfalar navigasyon içermeyen bağımsız sayfalardır
+  // Bağımsız sayfalar (Navigasyon barındırmazlar)
   const isStandalonePage = pathname === '/' || pathname === '/onboarding' || pathname === '/terms' || pathname === '/privacy';
   
-  // Sadece kullanıcı giriş yapmışsa ve bağımsız bir sayfada değilse navigasyonu göster
-  const showNav = user && !isStandalonePage;
-
-  // MECBURİ ANKET KONTROLÜ
+  // Yönlendirme Mantığı (Enforcement)
   useEffect(() => {
-    if (!isUserLoading && user && userProfile) {
-      const onboarded = userProfile.onboarded ?? false;
-      if (!onboarded && pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/') {
-        router.replace('/onboarding');
+    // Veriler yüklenene kadar bekle
+    if (isUserLoading || (user && isProfileLoading)) return;
+
+    if (user) {
+      // KULLANICI GİRİŞ YAPMIŞ
+      const onboarded = userProfile?.onboarded ?? false;
+      
+      if (!onboarded) {
+        // Anketi doldurmamış -> Sadece onboarding ve yasal sayfalara izin ver
+        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/') {
+          router.replace('/onboarding');
+        }
+      } else {
+        // Anketi doldurmuş -> Eğer giriş veya onboarding sayfasındaysa dashboard'a gönder
+        if (pathname === '/' || pathname === '/onboarding') {
+          router.replace('/dashboard');
+        }
+      }
+    } else {
+      // KULLANICI GİRİŞ YAPMAMIŞ
+      // Sadece giriş, şartlar ve gizlilik sayfalarına izin ver
+      if (pathname !== '/' && pathname !== '/terms' && pathname !== '/privacy') {
+        router.replace('/');
       }
     }
-  }, [user, userProfile, isUserLoading, pathname, router]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router]);
+
+  // Kritik veriler yüklenirken global bir loader göster
+  if (isUserLoading || (user && isProfileLoading)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Navigasyonu sadece giriş yapmış ve anket sayfasında olmayan kullanıcıya göster
+  const showNav = user && !isStandalonePage;
 
   return (
     <div className="relative flex min-h-screen flex-col">
