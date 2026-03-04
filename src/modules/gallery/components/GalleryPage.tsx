@@ -12,7 +12,7 @@ import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-impr
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Trash2, ArrowLeftRight, Star, Filter, Lock, HelpCircle, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -248,7 +248,9 @@ export default function GalleryPage() {
                 <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col md:flex-row p-0 gap-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl">
                     <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40"><Image src={selectedPhoto.imageUrl} alt="Fotoğraf" fill className="object-contain" unoptimized /></div>
                     <div className="md:w-2/5 w-full flex flex-col p-8 space-y-8 overflow-y-auto">
-                        <DialogTitle className="text-2xl font-black tracking-tight">Eser Detayları</DialogTitle>
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black tracking-tight">Eser Detayları</DialogTitle>
+                        </DialogHeader>
                         {selectedPhoto.aiFeedback ? (
                             <div className="space-y-6">
                                 <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px]">
