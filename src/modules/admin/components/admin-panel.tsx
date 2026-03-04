@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   collection, doc, updateDoc, query, orderBy,
   addDoc, deleteDoc, setDoc
@@ -227,7 +228,7 @@ export default function AdminPanel() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <div className="w-full overflow-x-auto no-scrollbar pb-2">
-          <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 flex flex-nowrap min-w-max">
+          <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 flex flex-nowrap min-w-max scroll-smooth">
             <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Muhasebe</TabsTrigger>
             <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">İçerik Yönetimi</TabsTrigger>
             <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Akademi</TabsTrigger>
@@ -251,7 +252,7 @@ export default function AdminPanel() {
               <CardContent><p className="text-3xl font-black">{metrics?.mentorAuro || 0}</p></CardContent>
             </Card>
             <Card className="bg-cyan-500/5 border-cyan-500/20 rounded-[32px] shadow-sm">
-              <CardHeader className="pb-2"><CardDescription className="text-[10px) font-black uppercase tracking-widest text-cyan-400/70">Sergi</CardDescription></CardHeader>
+              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-cyan-400/70">Sergi</CardDescription></CardHeader>
               <CardContent><p className="text-3xl font-black">{metrics?.exhibitionAuro || 0}</p></CardContent>
             </Card>
             <Card className="bg-amber-500/5 border-amber-500/20 rounded-[32px] shadow-sm">
@@ -347,7 +348,7 @@ export default function AdminPanel() {
                         <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                       <FormField control={exhibitionForm.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px) font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                     </div>
                     <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">{isSubmitting ? <Loader2 className="animate-spin" /> : "Sergiyi Aktif Et"}</Button>
@@ -394,7 +395,7 @@ export default function AdminPanel() {
                         <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                       <FormField control={competitionForm.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px) font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                     </div>
                     <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest bg-amber-500 text-black hover:bg-amber-600 shadow-xl shadow-amber-500/20">{isSubmitting ? <Loader2 className="animate-spin" /> : "Yarışmayı Başlat"}</Button>
@@ -562,7 +563,7 @@ export default function AdminPanel() {
                     <FormItem>
                       <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Para Birimi İsmi</FormLabel>
                       <FormControl><Input {...field} placeholder="Örn: Piix" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl>
-                      <FormDescription className="text-xs italic">Uygulama genelindeki tüm 'Auro' metinleri bununla değiştirilecektir.</FormDescription>
+                      <FormDescription className="text-xs italic">Uygulama genelindeki tüm birim metinleri bununla değiştirilecektir.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )} />
