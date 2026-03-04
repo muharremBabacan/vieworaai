@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, orderBy, limit, doc, writeBatch, increment } from 'firebase/firestore';
 import { generateStrategicFeedback } from '@/ai/flows/generate-strategic-feedback';
-import type { User, Photo, StoredStrategicFeedback, AnalysisLog } from '@/types';
+import type { User, Photo, StoredStrategicFeedback, AnalysisLog, UserTier } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +16,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-const STRATEGIC_ANALYSIS_COST = 10;
+const MENTOR_COSTS: Record<UserTier, number> = {
+  start: 2,
+  pro: 5,
+  master: 10
+};
 
 function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
   return (
@@ -106,6 +110,9 @@ export default function LumaMentorPage() {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
+  const currentTier = userProfile?.tier || 'start';
+  const strategicCost = MENTOR_COSTS[currentTier];
+
   const historyQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -133,11 +140,11 @@ export default function LumaMentorPage() {
   const handleStartAnalysis = async () => {
     if (!user || !userProfile || !firestore || !photos) return;
 
-    if (userProfile.auro_balance < STRATEGIC_ANALYSIS_COST) {
+    if (userProfile.auro_balance < strategicCost) {
       toast({
         variant: 'destructive',
         title: "Yetersiz Auro",
-        description: `Stratejik analiz için ${STRATEGIC_ANALYSIS_COST} Auro gereklidir.`,
+        description: `Stratejik analiz için ${strategicCost} Auro gereklidir.`,
       });
       return;
     }
@@ -185,8 +192,8 @@ export default function LumaMentorPage() {
 
       batch.set(feedbackRef, { ...feedbackData, id: feedbackRef.id });
       batch.update(userRef, {
-        auro_balance: increment(-STRATEGIC_ANALYSIS_COST),
-        total_auro_spent: increment(STRATEGIC_ANALYSIS_COST)
+        auro_balance: increment(-strategicCost),
+        total_auro_spent: increment(strategicCost)
       });
 
       const log: AnalysisLog = {
@@ -194,7 +201,7 @@ export default function LumaMentorPage() {
         userId: user.uid,
         userName: userProfile.name || 'Sanatçı',
         type: 'mentor',
-        auroSpent: STRATEGIC_ANALYSIS_COST,
+        auroSpent: strategicCost,
         timestamp: feedbackData.createdAt,
         status: 'success'
       };
@@ -202,7 +209,7 @@ export default function LumaMentorPage() {
 
       batch.set(statRef, {
         date: today,
-        auroSpent: increment(STRATEGIC_ANALYSIS_COST),
+        auroSpent: increment(strategicCost),
         mentorAnalyses: increment(1)
       }, { merge: true });
 
@@ -223,8 +230,6 @@ export default function LumaMentorPage() {
       setIsAnalyzing(false);
     }
   };
-
-  const currentTier = userProfile?.tier || 'start';
 
   if (isProfileLoading || isHistoryLoading) {
     return (
@@ -278,7 +283,7 @@ export default function LumaMentorPage() {
               <>
                 <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
                 <Sparkles className="mr-2 h-5 w-5 text-yellow-400 relative z-10" /> 
-                <span className="relative z-10">Stratejik Analiz Başlat (10 Auro)</span>
+                <span className="relative z-10">Stratejik Analiz Başlat ({strategicCost} Auro)</span>
               </>
             )}
           </Button>
@@ -336,7 +341,7 @@ export default function LumaMentorPage() {
             <div className="flex items-center gap-6 px-8 py-4 bg-background rounded-full border border-border/60 shadow-lg">
               <div className="flex items-center gap-2"><Award className="h-4 w-4 text-amber-400" /> <span className="text-xs font-bold uppercase">+50 XP</span></div>
               <div className="w-px h-4 bg-border" />
-              <div className="flex items-center gap-2"><Gem className="h-4 w-4 text-cyan-400" /> <span className="text-xs font-bold uppercase">10 AURO</span></div>
+              <div className="flex items-center gap-2"><Gem className="h-4 w-4 text-cyan-400" /> <span className="text-xs font-bold uppercase">{strategicCost} AURO</span></div>
             </div>
           </div>
         </div>
