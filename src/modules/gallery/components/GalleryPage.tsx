@@ -31,31 +31,25 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
-const getTechnicalScore = (photo: Photo): number => {
-    if (!photo.aiFeedback) return 0;
-    const technicalSubScores = [
-        normalizeScore(photo.aiFeedback.focus_score),
-        normalizeScore(photo.aiFeedback.color_control_score),
-        normalizeScore(photo.aiFeedback.background_control_score)
-    ];
-    return technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
-};
-
 const getOverallScore = (photo: Photo): number => {
     if (!photo.aiFeedback) return 0;
-    const lScore = normalizeScore(photo.aiFeedback.light_score);
-    const cScore = normalizeScore(photo.aiFeedback.composition_score);
-    const tScore = getTechnicalScore(photo);
-    return (lScore + cScore + tScore) / 3;
+    const scores = [
+        normalizeScore(photo.aiFeedback.light_score),
+        normalizeScore(photo.aiFeedback.composition_score),
+        normalizeScore(photo.aiFeedback.storytelling_score),
+        normalizeScore(photo.aiFeedback.technical_clarity_score),
+        normalizeScore(photo.aiFeedback.boldness_score)
+    ];
+    return scores.reduce((sum, s) => sum + s, 0) / scores.length;
 };
 
 const RatingBar = ({ label, score }: { label: string; score: number }) => (
     <div>
-        <div className="flex justify-between items-center mb-1 text-sm">
-            <span className="font-medium text-muted-foreground">{label}</span>
-            <span className="font-semibold">{score.toFixed(1)}</span>
+        <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <span>{label}</span>
+            <span className="text-foreground">{score.toFixed(1)}</span>
         </div>
-        <Progress value={score * 10} className="h-2" />
+        <Progress value={score * 10} className="h-1.5" />
     </div>
 );
 
@@ -305,10 +299,12 @@ export default function GalleryPage() {
                                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Genel Puan</span>
                                         <p className="text-4xl font-black text-primary">{getOverallScore(selectedPhoto).toFixed(1)}</p>
                                     </div>
-                                    <div className="space-y-5">
+                                    <div className="space-y-4">
                                         <RatingBar label="Işık" score={normalizeScore(selectedPhoto.aiFeedback.light_score)} />
                                         <RatingBar label="Kompozisyon" score={normalizeScore(selectedPhoto.aiFeedback.composition_score)} />
-                                        <RatingBar label="Teknik" score={getTechnicalScore(selectedPhoto)} />
+                                        <RatingBar label="Hikaye Anlatımı" score={normalizeScore(selectedPhoto.aiFeedback.storytelling_score)} />
+                                        <RatingBar label="Teknik Netlik" score={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score)} />
+                                        <RatingBar label="Cesur Kadraj" score={normalizeScore(selectedPhoto.aiFeedback.boldness_score)} />
                                     </div>
                                 </Card>
                                 <div className="space-y-2">

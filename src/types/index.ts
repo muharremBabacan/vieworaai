@@ -1,4 +1,3 @@
-
 import type { PhotoAnalysisOutput } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 
