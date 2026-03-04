@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A photo analysis AI agent that provides objective technical data.
+ * @fileOverview A photo analysis AI agent that provides objective technical and artistic data.
  *
  * - generatePhotoAnalysis - A function that handles the photo analysis process.
  * - PhotoAnalysisInput - The input type for the generatePhotoAnalysis function.
@@ -24,13 +24,17 @@ export type PhotoAnalysisInput = z.infer<typeof PhotoAnalysisInputSchema>;
 const PhotoAnalysisOutputSchema = z.object({
   device_estimation: z.enum(["mobile", "entry_dslr", "mirrorless", "pro_dslr", "unknown"]),
   genre: z.enum(["portrait", "street", "landscape", "macro", "architecture", "documentary", "other"]),
-  light_score: z.number().min(0).max(10),
-  composition_score: z.number().min(0).max(10),
-  focus_score: z.number().min(0).max(10),
+  // Core 5 Metrics aligned with Profile Index
+  light_score: z.number().min(0).max(10).describe("Exposure balance, quality and direction of light."),
+  composition_score: z.number().min(0).max(10).describe("Rule of thirds, balance, leading lines and framing."),
+  storytelling_score: z.number().min(0).max(10).describe("Narrative depth, emotion and the story being told."),
+  technical_clarity_score: z.number().min(0).max(10).describe("Focus, sharpness and digital noise control."),
+  boldness_score: z.number().min(0).max(10).describe("Artistic risk-taking, unique perspective and daring choices."),
+  
+  // Secondary technical data
   color_control_score: z.number().min(0).max(10),
   background_control_score: z.number().min(0).max(10),
-  creativity_risk_score: z.number().min(0).max(10),
-  technical_level_estimation: z.enum(["beginner", "lower_intermediate", "intermediate", "advanced"]),
+  
   tags: z.array(z.string()).max(4).describe("Up to 4 descriptive tags about the photo style or subject (e.g., 'Golden Hour', 'Minimalist', 'Sharp Focus')."),
   error_flags: z.object({
     overexposed: z.boolean(),
@@ -65,7 +69,14 @@ You are a guide, not a judge.
 Instead of saying "The background is bad", say "If the background is simplified, the core feeling becomes more visible."
 Avoid negative labels. Focus on potential and enhancement.
 
-Analyze the uploaded image strictly and objectively for technical data, but keep the 'short_neutral_analysis' guidance-oriented.
+Analyze the uploaded image strictly and objectively for both technical and artistic data.
+
+METRIC GUIDELINES:
+- light_score: Balance of shadows and highlights.
+- composition_score: Structural harmony.
+- storytelling_score: Does the image evoke a feeling or narrative?
+- technical_clarity_score: Sharpness and technical execution.
+- boldness_score: How much did the artist push the boundaries?
 
 Return ONLY valid JSON. Do not write explanations outside JSON.
 

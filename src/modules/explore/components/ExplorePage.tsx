@@ -19,22 +19,16 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
-const getTechnicalScore = (photo: Photo): number => {
-    if (!photo.aiFeedback) return 0;
-    const technicalSubScores = [
-        normalizeScore(photo.aiFeedback.focus_score),
-        normalizeScore(photo.aiFeedback.color_control_score),
-        normalizeScore(photo.aiFeedback.background_control_score)
-    ];
-    return technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
-};
-
 const getOverallScore = (photo: Photo): number => {
     if (!photo.aiFeedback) return 0;
-    const lScore = normalizeScore(photo.aiFeedback.light_score);
-    const cScore = normalizeScore(photo.aiFeedback.composition_score);
-    const tScore = getTechnicalScore(photo);
-    return (lScore + cScore + tScore) / 3;
+    const scores = [
+        normalizeScore(photo.aiFeedback.light_score),
+        normalizeScore(photo.aiFeedback.composition_score),
+        normalizeScore(photo.aiFeedback.storytelling_score),
+        normalizeScore(photo.aiFeedback.technical_clarity_score),
+        normalizeScore(photo.aiFeedback.boldness_score)
+    ];
+    return scores.reduce((sum, s) => sum + s, 0) / scores.length;
 };
 
 const safeFormatDistance = (dateStr: string | undefined) => {
