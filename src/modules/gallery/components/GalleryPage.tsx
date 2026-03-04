@@ -31,16 +31,21 @@ const normalizeScore = (score: number | undefined | null): number => {
     return score > 1 ? score : score * 10;
 };
 
-const getOverallScore = (photo: Photo): number => {
+const getTechnicalScore = (photo: Photo): number => {
     if (!photo.aiFeedback) return 0;
-    const lScore = normalizeScore(photo.aiFeedback.light_score);
-    const cScore = normalizeScore(photo.aiFeedback.composition_score);
     const technicalSubScores = [
         normalizeScore(photo.aiFeedback.focus_score),
         normalizeScore(photo.aiFeedback.color_control_score),
         normalizeScore(photo.aiFeedback.background_control_score)
     ];
-    const tScore = technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
+    return technicalSubScores.reduce((sum, s) => sum + s, 0) / technicalSubScores.length;
+};
+
+const getOverallScore = (photo: Photo): number => {
+    if (!photo.aiFeedback) return 0;
+    const lScore = normalizeScore(photo.aiFeedback.light_score);
+    const cScore = normalizeScore(photo.aiFeedback.composition_score);
+    const tScore = getTechnicalScore(photo);
     return (lScore + cScore + tScore) / 3;
 };
 
@@ -297,12 +302,13 @@ export default function GalleryPage() {
                             <div className="space-y-6">
                                 <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px]">
                                     <div className="flex justify-between items-baseline mb-6">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Teknik Skor</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Genel Puan</span>
                                         <p className="text-4xl font-black text-primary">{getOverallScore(selectedPhoto).toFixed(1)}</p>
                                     </div>
                                     <div className="space-y-5">
                                         <RatingBar label="Işık" score={normalizeScore(selectedPhoto.aiFeedback.light_score)} />
                                         <RatingBar label="Kompozisyon" score={normalizeScore(selectedPhoto.aiFeedback.composition_score)} />
+                                        <RatingBar label="Teknik" score={getTechnicalScore(selectedPhoto)} />
                                     </div>
                                 </Card>
                                 <div className="space-y-2">
