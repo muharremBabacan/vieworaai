@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase';
 import type { User as UserProfile, PublicUserProfile, AnalysisLog } from '@/types';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 function MilkyWayEffect() {
   const [stars, setStars] = useState<{ id: number; tx: number; ty: number; delay: number }[]>([]);
@@ -51,6 +52,7 @@ export default function PageContent() {
   const { auth, firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
+  const { currencyName } = useAppConfig();
 
   const [isLoading, setIsLoading] = useState(false);
   const [showStars, setShowStars] = useState(false);
@@ -81,9 +83,9 @@ export default function PageContent() {
           const logRef = doc(collection(firestore, 'analysis_logs'));
           batch.set(logRef, { id: logRef.id, userId, userName: existingProfile.name || 'Vizyoner', type: 'gift', auroSpent: -giftAmount, timestamp: now.toISOString(), status: 'success' });
           const notifRef = doc(collection(firestore, 'users', userId, 'notifications'));
-          batch.set(notifRef, { id: notifRef.id, title: "Haftalık Hediye!", message: `Luma senin için ${giftAmount} Auro bıraktı.`, type: 'reward', createdAt: now.toISOString() });
+          batch.set(notifRef, { id: notifRef.id, title: "Haftalık Hediye!", message: `Luma senin için ${giftAmount} ${currencyName} bıraktı.`, type: 'reward', createdAt: now.toISOString() });
           needsUpdate = true;
-          setTimeout(() => { setShowStars(true); toast({ title: "Haftalık Auro Hediyesi!" }); setTimeout(() => setShowStars(false), 3000); }, 2000);
+          setTimeout(() => { setShowStars(true); toast({ title: `Haftalık ${currencyName} Hediyesi!` }); setTimeout(() => setShowStars(false), 3000); }, 2000);
         }
       } else {
         batch.update(userRef, { weekly_free_refill_date: now.toISOString() });
@@ -121,6 +123,10 @@ export default function PageContent() {
         };
         await setDoc(doc(firestore, 'users', firebaseUser.uid), newUser);
         await setDoc(doc(firestore, 'public_profiles', firebaseUser.uid), { id: firebaseUser.uid, name: newUser.name, email: newUser.email, photoURL: newUser.photoURL, level_name: 'Neuner' });
+        
+        // Initial Onboarding notification
+        const notifRef = doc(collection(firestore, 'users', firebaseUser.uid, 'notifications'));
+        await setDoc(notifRef, { id: notifRef.id, title: "Vizyon Analizi Bekliyor", message: "Luma seni tanımak istiyor. Lütfen anketi doldurun.", type: 'system', createdAt: now });
       } else {
         const existing = userSnap.data() as UserProfile;
         await updateDoc(doc(firestore, 'users', firebaseUser.uid), { lastLoginAt: now });

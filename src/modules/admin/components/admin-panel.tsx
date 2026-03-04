@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,13 +10,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
 import {
   collection, doc, updateDoc, query, orderBy,
-  addDoc, deleteDoc
+  addDoc, deleteDoc, setDoc
 } from 'firebase/firestore';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/lib/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, GraduationCap, Layout, Gift, Gem
+  Loader2, Trophy, Sparkles, Globe, Activity, Camera, Trash2, Users, List, Search, GraduationCap, Layout, Gift, Gem, Settings2
 } from 'lucide-react';
-import type { Competition, Exhibition, AnalysisLog, User } from '@/types';
+import type { Competition, Exhibition, AnalysisLog, User, AppSettings } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
@@ -27,6 +27,7 @@ import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 const exhibitionSchema = z.object({
   title: z.string().min(3, 'En az 3 karakter'),
@@ -48,10 +49,15 @@ const competitionSchema = z.object({
   imageHint: z.string().min(2, 'Görsel ipucu gerekli')
 });
 
+const configSchema = z.object({
+  currencyName: z.string().min(2, 'En az 2 karakter').max(10, 'En fazla 10 karakter'),
+});
+
 export default function AdminPanel() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+  const { currencyName: currentCurrency } = useAppConfig();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
@@ -62,6 +68,30 @@ export default function AdminPanel() {
     const adminUids = ['01DT86bQwWUVrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);
+
+  const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
+  const { data: appConfig } = useDoc<AppSettings>(configRef);
+
+  const configForm = useForm({
+    resolver: zodResolver(configSchema),
+    defaultValues: { currencyName: currentCurrency }
+  });
+
+  // Sync config form with actual values
+  useEffect(() => {
+    if (appConfig) configForm.reset({ currencyName: appConfig.currencyName });
+  }, [appConfig]);
+
+  const onUpdateConfig = async (values: z.infer<typeof configSchema>) => {
+    if (!firestore || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await setDoc(doc(firestore, 'app_settings', 'config'), values, { merge: true });
+      toast({ title: "Ayarlar Kaydedildi", description: `Para birimi artık '${values.currencyName}' olarak kullanılacak.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Hata", description: "Ayarlar güncellenemedi." });
+    } finally { setIsSubmitting(false); }
+  };
 
   const exhibitionsQuery = useMemoFirebase(() =>
     firestore && isAdmin ? query(collection(firestore, 'exhibitions'), orderBy('createdAt', 'desc')) : null,
@@ -203,6 +233,7 @@ export default function AdminPanel() {
           <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">İçerik Yönetimi</TabsTrigger>
           <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Akademi</TabsTrigger>
           <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Kullanıcılar</TabsTrigger>
+          <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Genel Ayarlar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounting" className="space-y-8 animate-in fade-in duration-500">
@@ -484,7 +515,7 @@ export default function AdminPanel() {
                   <TableRow className="border-border/40">
                     <TableHead className="px-8 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Vizyoner</TableHead>
                     <TableHead className="font-black uppercase text-[10px] tracking-widest text-muted-foreground">Seviye</TableHead>
-                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-muted-foreground">Auro</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-muted-foreground">{currentCurrency}</TableHead>
                     <TableHead className="font-black uppercase text-[10px] tracking-widest text-muted-foreground">Kayıt</TableHead>
                     <TableHead className="text-right px-8 font-black uppercase text-[10px] tracking-widest text-muted-foreground">İşlem</TableHead>
                   </TableRow>
@@ -514,6 +545,32 @@ export default function AdminPanel() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-8 animate-in fade-in duration-500">
+          <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
+            <CardHeader className="bg-primary/5 border-b border-border/40 p-8">
+              <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><Settings2 className="h-6 w-6 text-primary" /> Markalama ve Genel Ayarlar</CardTitle>
+              <CardDescription>Uygulama genelindeki para birimi ismi ve global kuralları buradan yönetin.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8">
+              <Form {...configForm}>
+                <form onSubmit={configForm.handleSubmit(onUpdateConfig)} className="space-y-8 max-w-md">
+                  <FormField control={configForm.control} name="currencyName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Para Birimi İsmi</FormLabel>
+                      <FormControl><Input {...field} placeholder="Örn: Piix" className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl>
+                      <FormDescription className="text-xs italic">Uygulama genelindeki tüm 'Auro' metinleri bununla değiştirilecektir.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : "Ayarları Güncelle"}
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </TabsContent>

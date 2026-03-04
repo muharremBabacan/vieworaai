@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, CheckCircle, UploadCloud, Loader2 } from 'lucide-react';
 import { evaluatePracticeSubmission, type EvaluatePracticeSubmissionOutput } from '@/ai/flows/evaluate-practice-submission';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 const findPlaceholderImage = (hint: string) => {
     return `https://picsum.photos/seed/${hint.replace(/\s+/g, '')}/600/400`;
@@ -155,6 +156,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
 function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCompleted: boolean; onComplete: (lessonId: string) => void; }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [practiceResult, setPracticeResult] = useState<any | null>(null);
+  const { currencyName } = useAppConfig();
 
   const handleLessonComplete = () => {
       onComplete(lesson.id);
@@ -185,7 +187,7 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
               </span>
             ) : (
                 <Button size="sm" onClick={handleLessonComplete} disabled={!practiceResult || practiceResult.score < 7}>
-                    Dersi Tamamla (+10 XP, +1 Auro)
+                    Dersi Tamamla (+10 XP, +1 {currencyName})
                 </Button>
             )}
           </div>
@@ -219,7 +221,7 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
                         <AccordionContent>{lesson.practiceTask}</AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="auro-note">
-                        <AccordionTrigger className="text-cyan-400">Auro Notu</AccordionTrigger>
+                        <AccordionTrigger className="text-cyan-400">{currencyName} Notu</AccordionTrigger>
                         <AccordionContent className="italic">{lesson.auroNote}</AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -237,6 +239,7 @@ export default function AcademyLevelPage() {
     const firestore = useFirestore();
     const { user } = useUser();
     const { toast } = useToast();
+    const { currencyName } = useAppConfig();
 
     const level = params.level as string;
     const levelFormatted = level.charAt(0).toUpperCase() + level.slice(1);
@@ -312,7 +315,7 @@ export default function AcademyLevelPage() {
             }));
         });
 
-        toast({ title: "Ödül Kazandın!", description: `Bu dersten ${xpGain} XP ve ${auroGain} Auro kazandın.` });
+        toast({ title: "Ödül Kazandın!", description: `Bu dersten ${xpGain} XP ve ${auroGain} ${currencyName} kazandın.` });
 
         const oldLevel = getLevelFromXp(userProfile.current_xp);
         const newLevel = getLevelFromXp(userProfile.current_xp + xpGain);
