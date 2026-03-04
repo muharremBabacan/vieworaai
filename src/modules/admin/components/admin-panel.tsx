@@ -11,7 +11,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   collection, doc, updateDoc, query, orderBy,
-  addDoc, deleteDoc, setDoc
+  addDoc, deleteDoc, setDoc, increment
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
@@ -227,13 +227,14 @@ export default function AdminPanel() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        {/* Swipeable Tabs Navigation */}
         <div className="w-full overflow-x-auto no-scrollbar pb-2">
-          <TabsList className="bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 flex flex-nowrap min-w-max scroll-smooth">
-            <TabsTrigger value="accounting" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Muhasebe</TabsTrigger>
-            <TabsTrigger value="content" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">İçerik Yönetimi</TabsTrigger>
-            <TabsTrigger value="academy" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Akademi</TabsTrigger>
-            <TabsTrigger value="users" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Kullanıcılar</TabsTrigger>
-            <TabsTrigger value="settings" className="px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Genel Ayarlar</TabsTrigger>
+          <TabsList className="flex flex-nowrap w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 scroll-smooth">
+            <TabsTrigger value="accounting" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Muhasebe</TabsTrigger>
+            <TabsTrigger value="content" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">İçerik Yönetimi</TabsTrigger>
+            <TabsTrigger value="academy" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Akademi</TabsTrigger>
+            <TabsTrigger value="users" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Kullanıcılar</TabsTrigger>
+            <TabsTrigger value="settings" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Genel Ayarlar</TabsTrigger>
           </TabsList>
         </div>
 
@@ -348,7 +349,7 @@ export default function AdminPanel() {
                         <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                       <FormField control={exhibitionForm.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px) font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
+                        <FormItem><FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">Bitiş</FormLabel><FormControl><Input type="date" {...field} className="rounded-2xl h-12 bg-muted/30 border-border/60" /></FormControl></FormItem>
                       )} />
                     </div>
                     <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">{isSubmitting ? <Loader2 className="animate-spin" /> : "Sergiyi Aktif Et"}</Button>
@@ -567,7 +568,7 @@ export default function AdminPanel() {
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                  <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/10">
                     {isSubmitting ? <Loader2 className="animate-spin" /> : "Ayarları Güncelle"}
                   </Button>
                 </form>
