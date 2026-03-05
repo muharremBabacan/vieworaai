@@ -2,19 +2,18 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, writeBatch, increment, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, orderBy } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 
 import type { Photo, User, Exhibition, AnalysisLog, UserTier } from '@/types';
-import { levels as gamificationLevels } from '@/lib/gamification';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, ArrowLeftRight, Star, Filter, Lock, HelpCircle, ChevronRight } from 'lucide-react';
+import { Sparkles, Trash2, ArrowLeftRight, Star, Lock, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -43,7 +42,7 @@ const getOverallScore = (photo: Photo): number => {
         normalizeScore(photo.aiFeedback.storytelling_score),
         normalizeScore(photo.aiFeedback.boldness_score)
     ].filter(s => s > 0);
-    return scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
 };
 
 const RatingBar = ({ label, score, isLocked }: { label: string; score: number; isLocked?: boolean }) => (
@@ -241,7 +240,7 @@ export default function GalleryPage() {
         {photos && photos.length > 0 ? (
           <>
             <div className="relative mb-8 filter-scroll">
-                <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
+                <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x">
                     <div className="flex w-max gap-3 px-1">
                         {filters.map(f => (
                             <Button 
@@ -250,8 +249,8 @@ export default function GalleryPage() {
                                 size="sm" 
                                 onClick={() => setActiveFilter(f.id)} 
                                 className={cn(
-                                    "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap shrink-0 snap-start",
-                                    activeFilter === f.id ? "shadow-md shadow-primary/20 scale-105" : "hover:bg-muted"
+                                    "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap shrink-0",
+                                    activeFilter === f.id && "shadow-md shadow-primary/20 scale-105"
                                 )}
                             >
                                 {f.label}
@@ -300,6 +299,7 @@ export default function GalleryPage() {
                     <div className="md:w-2/5 w-full flex flex-col p-8 space-y-8 overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="text-2xl font-black tracking-tight">Eser Detayları</DialogTitle>
+                            <DialogDescription className="sr-only">Fotoğraf analizi ve sergi seçenekleri.</DialogDescription>
                         </DialogHeader>
                         {selectedPhoto.aiFeedback ? (
                             <div className="space-y-6">
