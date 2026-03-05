@@ -47,20 +47,23 @@ export default function PricingPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 animate-in fade-in duration-700">
-      {/* Ücretsiz Kullanım Mesajı */}
+      {/* Ücretsiz Kullanım Mesajı (Beta Revizyonu) */}
       <div className="max-w-4xl mx-auto mb-16">
         <div className="bg-primary/10 border border-primary/20 rounded-[32px] p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left shadow-2xl shadow-primary/5">
           <div className="h-16 w-16 rounded-3xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shrink-0">
             <Sparkles size={32} />
           </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">Luma Erken Erişim Dönemi</h2>
-            <p className="text-muted-foreground font-medium text-lg leading-relaxed">
-              Tüm analiz özelliklerini şu anda <b>ücretsiz</b> kullanabilirsiniz. Paket satışlarımız yakında başlayacaktır.
+          <div className="flex-1 space-y-1">
+            <h2 className="text-2xl font-black tracking-tight uppercase text-primary">Viewora Beta</h2>
+            <p className="text-foreground/90 font-bold text-lg leading-tight">
+              Viewora şu anda erişim (beta) aşamasındadır.
+            </p>
+            <p className="text-muted-foreground font-medium text-base">
+              Tüm analiz özelliklerini şu anda <b>ücretsiz</b> kullanabilirsiniz.
             </p>
           </div>
           <Badge className="bg-primary text-primary-foreground font-black px-6 h-10 rounded-full text-xs tracking-widest uppercase border-none animate-pulse">
-            ŞU AN AKTİF
+            BETA AKTİF
           </Badge>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { collection, query, where, doc, writeBatch, increment, orderBy } from 'f
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 
-import type { Photo, User, Exhibition, AnalysisLog, UserTier } from '@/types';
+import type { Photo, User, Exhibition, UserTier } from '@/types';
 import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
 
 import { Card } from '@/components/ui/card';
@@ -237,7 +237,7 @@ export default function GalleryPage() {
             <Button size="sm" onClick={() => router.push('/dashboard')} className="rounded-full h-10 px-6 font-bold shadow-lg shadow-primary/20"><Sparkles className="mr-2 h-4 w-4" /> Yeni Analiz</Button>
         </div>
 
-        {/* SWIPE BANT YAPISI */}
+        {/* Kayan Filtre Bandı */}
         {photos && photos.length > 0 ? (
           <>
             <div className="relative mb-8 filter-scroll">
