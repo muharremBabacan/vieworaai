@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -10,8 +11,9 @@ import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-impr
 import { useToast } from '@/shared/hooks/use-toast';
 import type { User, Photo, AnalysisLog, UserTier } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
@@ -28,6 +30,36 @@ const TIER_COSTS: Record<UserTier, number> = {
   pro: 2,
   master: 3
 };
+
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
+
+const getOverallScore = (photo: Photo): number => {
+    if (!photo.aiFeedback) return 0;
+    const scores = [
+        normalizeScore(photo.aiFeedback.light_score),
+        normalizeScore(photo.aiFeedback.composition_score),
+        normalizeScore(photo.aiFeedback.technical_clarity_score),
+        normalizeScore(photo.aiFeedback.storytelling_score),
+        normalizeScore(photo.aiFeedback.boldness_score)
+    ].filter(s => s > 0);
+    return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+};
+
+const RatingBar = ({ label, score, isLocked }: { label: string; score: number; isLocked?: boolean }) => (
+    <div className={cn("relative", isLocked && "opacity-40 grayscale")}>
+        <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <span className="flex items-center gap-1">{label} {isLocked && <Lock className="h-2.5 w-2.5" />}</span>
+            <span className="text-foreground">{isLocked ? '?' : score.toFixed(1)}</span>
+        </div>
+        <div className="relative">
+          <Progress value={isLocked ? 0 : score * 10} className="h-1.5" />
+          {isLocked && <div className="absolute inset-0 bg-muted/20 backdrop-blur-[1px] rounded-full" />}
+        </div>
+    </div>
+);
 
 export default function PhotoAnalyzer() {
   const { toast } = useToast();
@@ -47,6 +79,7 @@ export default function PhotoAnalyzer() {
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<Photo | null>(null);
 
   const currentTier = userProfile?.tier || 'start';
   const analysisCost = TIER_COSTS[currentTier];
@@ -57,6 +90,7 @@ export default function PhotoAnalyzer() {
       return;
     }
     setIsDuplicate(false);
+    setAnalysisResult(null);
     setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
   }, [toast]);
@@ -160,9 +194,15 @@ export default function PhotoAnalyzer() {
       batch.update(userRef, { current_xp: increment(analyze ? 20 : 5) });
 
       await batch.commit();
-      toast({ title: analyze ? 'Analiz Tamamlandı' : 'Fotoğraf Yüklendi' });
-      setFile(null);
-      setPreview(null);
+      
+      if (analyze) {
+        setAnalysisResult(photoData);
+        toast({ title: 'Analiz Tamamlandı' });
+      } else {
+        toast({ title: 'Fotoğraf Yüklendi' });
+        setFile(null);
+        setPreview(null);
+      }
 
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'İşlem Başarısız', description: error.message });
@@ -181,6 +221,13 @@ export default function PhotoAnalyzer() {
       return "Artık bir usta adayısın. Luma Master ile fotoğraflarındaki objeleri işaretleyip stil analizi yaptırabilirsin.";
     }
     return "Luma ile her analiz, vizyonunu bir adım öteye taşır.";
+  };
+
+  const resetAnalyzer = () => {
+    setFile(null);
+    setPreview(null);
+    setAnalysisResult(null);
+    setIsDuplicate(false);
   };
 
   if (isUserLoading || isProfileLoading)
@@ -209,7 +256,73 @@ export default function PhotoAnalyzer() {
         </Card>
       </div>
 
-      {!file ? (
+      {analysisResult ? (
+        <Card className="max-w-5xl mx-auto rounded-[48px] border-border/40 bg-card/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-700">
+          <div className="flex flex-col md:flex-row">
+            <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40">
+              <Image src={analysisResult.imageUrl} alt="Analiz" fill className="object-contain" unoptimized />
+            </div>
+            <div className="md:w-2/5 w-full flex flex-col p-8 space-y-8 overflow-y-auto max-h-[800px]">
+              <div className="space-y-2">
+                <Badge variant="outline" className="px-3 h-6 border-primary/30 text-primary font-black uppercase tracking-widest text-[9px] rounded-full">ANALİZ TAMAMLANDI</Badge>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-3xl font-black tracking-tighter">Luma Raporu</h2>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 font-black uppercase text-[10px]">
+                    <Star className="h-3 w-3 mr-1 fill-current text-yellow-400" /> {getOverallScore(analysisResult).toFixed(1)}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Teknik Metrikler</h4>
+                  <div className="space-y-4">
+                    <RatingBar label="Işık" score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
+                    <RatingBar label="Kompozisyon" score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
+                    <RatingBar label="Teknik Netlik" score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
+                    <RatingBar 
+                      label="Hikaye Anlatımı" 
+                      score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} 
+                      isLocked={analysisResult.analysisTier === 'start'} 
+                    />
+                    <RatingBar 
+                      label="Cesur Kadraj" 
+                      score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} 
+                      isLocked={analysisResult.analysisTier === 'start'} 
+                    />
+                  </div>
+                  {analysisResult.analysisTier === 'start' && (
+                    <Button variant="link" onClick={() => router.push('/pricing')} className="mt-4 p-0 h-auto text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1">
+                      Paketini Yükselt ve Tüm Metrikleri Aç <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </Card>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Luma Notu</span>
+                  <p className="text-sm italic text-foreground/90 leading-relaxed font-medium bg-muted/30 p-5 rounded-2xl border border-border/40">
+                    "{analysisResult.aiFeedback!.short_neutral_analysis}"
+                  </p>
+                </div>
+
+                {analysisResult.tags && analysisResult.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {analysisResult.tags.map((t, i) => (
+                      <Badge key={i} variant="secondary" className="text-[9px] bg-secondary/50 uppercase font-black px-3 h-6 border-none">{t}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-8 border-t border-border/40 mt-auto">
+                <Button onClick={resetAnalyzer} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                  <RefreshCw className="mr-2 h-5 w-5" /> Yeni Analiz Başlat
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      ) : !file ? (
         <div {...getRootProps()} className="text-center p-20 border-2 border-dashed rounded-[40px] cursor-pointer bg-card/30 hover:bg-card/50 hover:border-primary/30 transition-all group shadow-inner">
           <input {...getInputProps()} />
           <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-lg">

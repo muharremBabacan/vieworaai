@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -85,15 +86,15 @@ export default function GalleryPage() {
         { id: 'unanalyzed', label: 'Analiz Bekleyenler' },
         { id: 'best_overall', label: 'En İyilerim' },
         { id: 'exhibition', label: 'Sergilenenler' },
-        { id: 'portrait', label: 'Portre' },
-        { id: 'landscape', label: 'Manzara' },
-        { id: 'street', label: 'Sokak' },
-        { id: 'city', label: 'Şehir' },
-        { id: 'human', label: 'İnsan' },
-        { id: 'animal', label: 'Hayvan' },
-        { id: 'still_life', label: 'Natürmort' },
-        { id: 'flower', label: 'Çiçek' },
-        { id: 'architecture', label: 'Mimari' },
+        { id: 'portre', label: 'Portre' },
+        { id: 'manzara', label: 'Manzara' },
+        { id: 'sokak', label: 'Sokak' },
+        { id: 'şehir', label: 'Şehir' },
+        { id: 'insan', label: 'İnsan' },
+        { id: 'hayvan', label: 'Hayvan' },
+        { id: 'natürmort', label: 'Natürmort' },
+        { id: 'çiçek', label: 'Çiçek' },
+        { id: 'mimari', label: 'Mimari' },
     ];
 
     const filteredPhotos = useMemo(() => {
@@ -110,19 +111,7 @@ export default function GalleryPage() {
             result = result.filter(p => {
                 if (!p.aiFeedback) return false;
                 const genreMatch = p.aiFeedback.genre?.toLowerCase() === activeFilter.toLowerCase();
-                const turkishMap: Record<string, string[]> = {
-                    portrait: ['portre', 'yüz', 'insan', 'kişi'],
-                    landscape: ['manzara', 'doğa', 'dağ', 'deniz'],
-                    street: ['sokak', 'cadde', 'yaşam'],
-                    city: ['şehir', 'kent', 'meydan'],
-                    human: ['insan', 'kişi', 'portre', 'kalabalık'],
-                    animal: ['hayvan', 'kedi', 'köpek', 'kuş', 'doğa'],
-                    still_life: ['natürmort', 'nesne', 'obje'],
-                    flower: ['çiçek', 'bitki', 'makro', 'doğa'],
-                    architecture: ['mimari', 'bina', 'yapı', 'iç mekan', 'dış mekan']
-                };
-                const keywords = turkishMap[activeFilter] || [activeFilter];
-                const tagMatch = p.tags?.some(t => keywords.some(k => t.toLowerCase().includes(k.toLowerCase())));
+                const tagMatch = p.tags?.some(t => t.toLowerCase().includes(activeFilter.toLowerCase()));
                 return genreMatch || tagMatch;
             });
         }
