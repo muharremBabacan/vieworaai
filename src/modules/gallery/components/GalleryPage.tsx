@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, ArrowLeftRight, Star, Lock, ChevronRight } from 'lucide-react';
+import { Sparkles, Trash2, ArrowLeftRight, Star, Lock, ChevronRight, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -237,7 +237,6 @@ export default function GalleryPage() {
             <Button size="sm" onClick={() => router.push('/dashboard')} className="rounded-full h-10 px-6 font-bold shadow-lg shadow-primary/20"><Sparkles className="mr-2 h-4 w-4" /> Yeni Analiz</Button>
         </div>
 
-        {/* Kayan Filtre Bandı */}
         {photos && photos.length > 0 ? (
           <>
             <div className="relative mb-8 filter-scroll">
@@ -262,24 +261,34 @@ export default function GalleryPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {filteredPhotos.map((photo) => (
-                <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer rounded-[24px] border-none shadow-md transition-all hover:scale-[1.02] active:scale-95" onClick={() => setSelectedPhoto(photo)}>
-                    <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover transition-transform duration-500 group-hover:scale-110" unoptimized />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {photo.aiFeedback && (
-                        <div className="absolute top-3 right-3 animate-in zoom-in duration-300">
-                            <Badge className="bg-black/50 backdrop-blur-md border-white/10 px-2 h-7 font-black">
+              {filteredPhotos.map((photo) => {
+                const totalLikes = photo.likes?.length || 0;
+                return (
+                  <Card key={photo.id} className="group relative aspect-square overflow-hidden cursor-pointer rounded-[24px] border-none shadow-md transition-all hover:scale-[1.02] active:scale-95" onClick={() => setSelectedPhoto(photo)}>
+                      <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover transition-transform duration-500 group-hover:scale-110" unoptimized />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      
+                      <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+                        {photo.aiFeedback && (
+                            <Badge className="bg-black/50 backdrop-blur-md border-white/10 px-2 h-7 font-black animate-in zoom-in duration-300">
                                 <Star className="h-3 w-3 text-yellow-400 mr-1 fill-current" /> {getOverallScore(photo).toFixed(1)}
                             </Badge>
-                        </div>
-                    )}
-                    {photo.isSubmittedToExhibition && (
-                        <div className="absolute bottom-3 left-3 animate-in slide-in-from-bottom-2">
-                            <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 px-2 h-6 text-[9px] font-black uppercase tracking-wider">SERGİDE</Badge>
-                        </div>
-                    )}
-                </Card>
-              ))}
+                        )}
+                        {totalLikes > 0 && (
+                            <Badge className="bg-red-500 text-white border-none px-2 h-7 font-black animate-in slide-in-from-right-4 duration-500">
+                                <Heart className="h-3 w-3 mr-1 fill-current" /> {totalLikes}
+                            </Badge>
+                        )}
+                      </div>
+
+                      {photo.isSubmittedToExhibition && (
+                          <div className="absolute bottom-3 left-3 animate-in slide-in-from-bottom-2">
+                              <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 px-2 h-6 text-[9px] font-black uppercase tracking-wider">SERGİDE</Badge>
+                          </div>
+                      )}
+                  </Card>
+                );
+              })}
             </div>
           </>
         ) : (
@@ -299,7 +308,14 @@ export default function GalleryPage() {
                     <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40"><Image src={selectedPhoto.imageUrl} alt="Fotoğraf" fill className="object-contain" unoptimized /></div>
                     <div className="md:w-2/5 w-full flex flex-col p-8 space-y-8 overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-black tracking-tight">Eser Detayları</DialogTitle>
+                            <DialogTitle className="text-2xl font-black tracking-tight flex items-center justify-between">
+                                Eser Detayları
+                                {selectedPhoto.likes && selectedPhoto.likes.length > 0 && (
+                                    <Badge variant="secondary" className="bg-red-500/10 text-red-500 border-none px-3 h-7 rounded-full font-black">
+                                        <Heart className="h-3 w-3 mr-1 fill-current" /> {selectedPhoto.likes.length}
+                                    </Badge>
+                                )}
+                            </DialogTitle>
                             <DialogDescription className="sr-only">Fotoğraf analizi ve sergi seçenekleri.</DialogDescription>
                         </DialogHeader>
                         {selectedPhoto.aiFeedback ? (
