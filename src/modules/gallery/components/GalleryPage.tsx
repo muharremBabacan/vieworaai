@@ -237,10 +237,11 @@ export default function GalleryPage() {
             <Button size="sm" onClick={() => router.push('/dashboard')} className="rounded-full h-10 px-6 font-bold shadow-lg shadow-primary/20"><Sparkles className="mr-2 h-4 w-4" /> Yeni Analiz</Button>
         </div>
 
+        {/* SWIPE BANT YAPISI */}
         {photos && photos.length > 0 ? (
           <>
             <div className="relative mb-8 filter-scroll">
-                <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x">
+                <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
                     <div className="flex w-max gap-3 px-1">
                         {filters.map(f => (
                             <Button 
@@ -249,7 +250,7 @@ export default function GalleryPage() {
                                 size="sm" 
                                 onClick={() => setActiveFilter(f.id)} 
                                 className={cn(
-                                    "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap shrink-0",
+                                    "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap shrink-0 snap-start",
                                     activeFilter === f.id && "shadow-md shadow-primary/20 scale-105"
                                 )}
                             >

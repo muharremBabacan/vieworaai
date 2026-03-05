@@ -181,15 +181,16 @@ export default function AdminPanel() {
         <p className="text-sm font-black text-primary uppercase tracking-[0.4em] opacity-70">Yönetici Paneli</p>
       </header>
 
+      {/* SWIPE BANT YAPISI */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <div className="relative filter-scroll mb-6">
-          <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x">
+          <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
             <TabsList className="inline-flex w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 gap-1">
-              <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl">Muhasebe</TabsTrigger>
-              <TabsTrigger value="content" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl">İçerik</TabsTrigger>
-              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl">Akademi</TabsTrigger>
-              <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl">Üyeler</TabsTrigger>
-              <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl">Genel</TabsTrigger>
+              <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Muhasebe</TabsTrigger>
+              <TabsTrigger value="content" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">İçerik</TabsTrigger>
+              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Akademi</TabsTrigger>
+              <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
+              <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Genel</TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -206,7 +207,7 @@ export default function AdminPanel() {
           <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-card/50">
             <CardHeader className="bg-secondary/20 border-b border-border/40 p-8">
               <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><Activity className="h-6 w-6 text-primary" /> Son İşlemler</CardTitle>
-              <CardDescription className="sr-only">Sistem genelindeki son Pix harcamaları.</CardDescription>
+              <CardDescription className="sr-only">Sistem genelindeki son harcamalar.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
