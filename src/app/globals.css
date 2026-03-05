@@ -64,7 +64,7 @@ body {
     right: 0;
     top: 0;
     width: 60px;
-    height: calc(100% - 8px);
+    height: 100%;
     pointer-events: none;
     background: linear-gradient(to right, transparent, hsl(var(--background)));
     z-index: 10;

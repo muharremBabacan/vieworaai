@@ -108,14 +108,9 @@ export default function GalleryPage() {
         } else if (activeFilter === 'exhibition') {
             result = result.filter(p => p.isSubmittedToExhibition);
         } else if (activeFilter !== 'all') {
-            // Genre and Tag based filtering
             result = result.filter(p => {
                 if (!p.aiFeedback) return false;
-                
-                // Check direct genre match (if AI used that specific keyword)
                 const genreMatch = p.aiFeedback.genre?.toLowerCase() === activeFilter.toLowerCase();
-                
-                // Check tag matches (Luma produces Turkish tags when language is 'tr')
                 const turkishMap: Record<string, string[]> = {
                     portrait: ['portre', 'yüz', 'insan', 'kişi'],
                     landscape: ['manzara', 'doğa', 'dağ', 'deniz'],
@@ -127,12 +122,8 @@ export default function GalleryPage() {
                     flower: ['çiçek', 'bitki', 'makro', 'doğa'],
                     architecture: ['mimari', 'bina', 'yapı', 'iç mekan', 'dış mekan']
                 };
-
                 const keywords = turkishMap[activeFilter] || [activeFilter];
-                const tagMatch = p.tags?.some(t => 
-                    keywords.some(k => t.toLowerCase().includes(k.toLowerCase()))
-                );
-
+                const tagMatch = p.tags?.some(t => keywords.some(k => t.toLowerCase().includes(k.toLowerCase())));
                 return genreMatch || tagMatch;
             });
         }
@@ -166,7 +157,8 @@ export default function GalleryPage() {
             });
             batch.update(doc(firestore, 'users', user.uid), { 
                 auro_balance: increment(-cost),
-                total_auro_spent: increment(cost)
+                total_auro_spent: increment(cost),
+                total_analyses_count: increment(1)
             });
             batch.set(statRef, { auroSpent: increment(cost), technicalAnalyses: increment(1), date: today }, { merge: true });
             
@@ -203,9 +195,6 @@ export default function GalleryPage() {
       }
 
       if (!targetExhibitionId) { toast({ title: "Sergi Seçin", description: "Lütfen bir sergi teması seçin." }); return; }
-      const selectedEx = activeExhibitions?.find(e => e.id === targetExhibitionId);
-      if (!selectedEx) return;
-
       const SUBMIT_TO_EXHIBITION_COST = 1;
 
       if (userProfile.auro_balance < SUBMIT_TO_EXHIBITION_COST) {
@@ -216,13 +205,13 @@ export default function GalleryPage() {
       setIsProcessing(true);
       try {
           const batch = writeBatch(firestore);
-          const publicData = { ...photo, isSubmittedToExhibition: true, exhibitionId: selectedEx.id, userName: userProfile.name || 'Sanatçı', userPhotoURL: userProfile.photoURL || null, userLevelName: userProfile.level_name };
+          const publicData = { ...photo, isSubmittedToExhibition: true, exhibitionId: targetExhibitionId, userName: userProfile.name || 'Sanatçı', userPhotoURL: userProfile.photoURL || null, userLevelName: userProfile.level_name };
           batch.set(doc(firestore, 'public_photos', photo.id), publicData);
-          batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: selectedEx.id });
+          batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
           batch.update(doc(firestore, 'users', user.uid), { auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST), total_auro_spent: increment(SUBMIT_TO_EXHIBITION_COST) });
           await batch.commit();
           toast({ title: "Sergiye gönderildi!" });
-          setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true, exhibitionId: selectedEx.id } : null);
+          setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true, exhibitionId: targetExhibitionId } : null);
       } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsProcessing(false); }
     };
 
@@ -252,7 +241,7 @@ export default function GalleryPage() {
         {photos && photos.length > 0 ? (
           <>
             <div className="relative mb-8 filter-scroll">
-                <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x">
+                <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
                     <div className="flex w-max gap-3 px-1">
                         {filters.map(f => (
                             <Button 
@@ -261,7 +250,7 @@ export default function GalleryPage() {
                                 size="sm" 
                                 onClick={() => setActiveFilter(f.id)} 
                                 className={cn(
-                                    "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap shrink-0",
+                                    "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap shrink-0 snap-start",
                                     activeFilter === f.id ? "shadow-md shadow-primary/20 scale-105" : "hover:bg-muted"
                                 )}
                             >
@@ -323,17 +312,8 @@ export default function GalleryPage() {
                                         <RatingBar label="Işık" score={normalizeScore(selectedPhoto.aiFeedback.light_score)} />
                                         <RatingBar label="Kompozisyon" score={normalizeScore(selectedPhoto.aiFeedback.composition_score)} />
                                         <RatingBar label="Teknik Netlik" score={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score)} />
-                                        
-                                        <RatingBar 
-                                          label="Hikaye Anlatımı" 
-                                          score={normalizeScore(selectedPhoto.aiFeedback.storytelling_score)} 
-                                          isLocked={selectedPhoto.analysisTier === 'start'} 
-                                        />
-                                        <RatingBar 
-                                          label="Cesur Kadraj" 
-                                          score={normalizeScore(selectedPhoto.aiFeedback.boldness_score)} 
-                                          isLocked={selectedPhoto.analysisTier === 'start'} 
-                                        />
+                                        <RatingBar label="Hikaye Anlatımı" score={normalizeScore(selectedPhoto.aiFeedback.storytelling_score)} isLocked={selectedPhoto.analysisTier === 'start'} />
+                                        <RatingBar label="Cesur Kadraj" score={normalizeScore(selectedPhoto.aiFeedback.boldness_score)} isLocked={selectedPhoto.analysisTier === 'start'} />
                                     </div>
                                     {selectedPhoto.analysisTier === 'start' && (
                                       <Button variant="link" onClick={() => router.push('/pricing')} className="mt-4 p-0 h-auto text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1">

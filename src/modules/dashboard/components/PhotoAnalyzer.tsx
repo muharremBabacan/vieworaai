@@ -219,12 +219,6 @@ export default function PhotoAnalyzer() {
           <p className="text-muted-foreground mt-3 text-lg font-medium">Analiz etmek veya galerine eklemek için bir fotoğraf seç.</p>
           <Button onClick={open} className="mt-10 px-12 h-14 rounded-2xl font-black tracking-widest shadow-2xl shadow-primary/20">Fotoğraf Seç</Button>
         </div>
-      ) : isLoading ? (
-        <div className="text-center py-32 space-y-6">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="font-black text-2xl tracking-tighter uppercase">Luma İşlem Yapıyor...</p>
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Lütfen pencereyi kapatmayın</p>
-        </div>
       ) : (
         <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm">
           <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12">
@@ -268,15 +262,19 @@ export default function PhotoAnalyzer() {
             <div className="flex flex-col sm:flex-row gap-5">
               <Button
                 onClick={() => handleUploadAndOptionalAnalysis(true)}
-                disabled={isDuplicate}
+                disabled={isDuplicate || isLoading}
                 className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30"
               >
-                <Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> Analiz Et ({analysisCost} {currencyName})
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (
+                  <>
+                    <Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> Analiz Et ({analysisCost} {currencyName})
+                  </>
+                )}
               </Button>
               <Button
                 onClick={() => handleUploadAndOptionalAnalysis(false)}
                 variant="secondary"
-                disabled={isDuplicate}
+                disabled={isDuplicate || isLoading}
                 className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest"
               >
                 Sadece Yükle (Ücretsiz)
