@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { Globe, Trophy, Users, ArrowLeft, ChevronRight, Camera, Clock, Star, Heart, Lock } from 'lucide-react';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -107,7 +108,7 @@ export default function ExplorePage() {
         <header className="mb-12 text-center space-y-4 pt-6">
           <Badge variant="outline" className="px-5 py-1.5 border-primary/30 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.3em] rounded-full">Keşif Merkezi</Badge>
           <h1 className="text-5xl font-black tracking-tighter">İlhamı Keşfet.</h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto text-balance">Topluluğun en iyi eserleri ve küresel etkinlikler.</p>
+          <p className="text-muted-foreground text-lg max-w-xl mx-auto text-balance">Toplulukun en iyi eserleri ve küresel etkinlikler.</p>
         </header>
 
         <div className="grid md:grid-cols-3 gap-8">
