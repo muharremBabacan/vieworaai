@@ -227,14 +227,16 @@ export default function AdminPanel() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <div className="w-full overflow-x-auto no-scrollbar pb-2">
-          <TabsList className="flex flex-nowrap w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 scroll-smooth">
-            <TabsTrigger value="accounting" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Muhasebe</TabsTrigger>
-            <TabsTrigger value="content" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">İçerik Yönetimi</TabsTrigger>
-            <TabsTrigger value="academy" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Akademi</TabsTrigger>
-            <TabsTrigger value="users" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Kullanıcılar</TabsTrigger>
-            <TabsTrigger value="settings" className="flex-shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Genel Ayarlar</TabsTrigger>
-          </TabsList>
+        <div className="relative filter-scroll">
+          <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x">
+            <TabsList className="flex w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 gap-1">
+              <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Muhasebe</TabsTrigger>
+              <TabsTrigger value="content" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">İçerik Yönetimi</TabsTrigger>
+              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Akademi</TabsTrigger>
+              <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Kullanıcılar</TabsTrigger>
+              <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all h-full whitespace-nowrap">Genel Ayarlar</TabsTrigger>
+            </TabsList>
+          </div>
         </div>
 
         <TabsContent value="accounting" className="space-y-8 animate-in fade-in duration-500">

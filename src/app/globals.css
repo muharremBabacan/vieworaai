@@ -54,6 +54,22 @@ body {
     scrollbar-width: none;  /* Firefox */
   }
 
+  .filter-scroll {
+    position: relative;
+  }
+
+  .filter-scroll::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 60px;
+    height: calc(100% - 8px);
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, hsl(var(--background)));
+    z-index: 10;
+  }
+
   /* Star Trail Animation */
   @keyframes star-trail {
     0% {

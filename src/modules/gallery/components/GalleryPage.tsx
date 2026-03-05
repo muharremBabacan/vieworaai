@@ -251,22 +251,24 @@ export default function GalleryPage() {
 
         {photos && photos.length > 0 ? (
           <>
-            <div className="w-full overflow-x-auto no-scrollbar mb-8 py-2">
-                <div className="flex w-max gap-3 px-1">
-                    {filters.map(f => (
-                        <Button 
-                            key={f.id} 
-                            variant={activeFilter === f.id ? 'default' : 'secondary'} 
-                            size="sm" 
-                            onClick={() => setActiveFilter(f.id)} 
-                            className={cn(
-                                "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap",
-                                activeFilter === f.id ? "shadow-md shadow-primary/20 scale-105" : "hover:bg-muted"
-                            )}
-                        >
-                            {f.label}
-                        </Button>
-                    ))}
+            <div className="relative mb-8 filter-scroll">
+                <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x">
+                    <div className="flex w-max gap-3 px-1">
+                        {filters.map(f => (
+                            <Button 
+                                key={f.id} 
+                                variant={activeFilter === f.id ? 'default' : 'secondary'} 
+                                size="sm" 
+                                onClick={() => setActiveFilter(f.id)} 
+                                className={cn(
+                                    "rounded-full h-10 px-6 font-bold transition-all whitespace-nowrap shrink-0",
+                                    activeFilter === f.id ? "shadow-md shadow-primary/20 scale-105" : "hover:bg-muted"
+                                )}
+                            >
+                                {f.label}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -297,7 +299,7 @@ export default function GalleryPage() {
                     <Sparkles className="h-full w-full" />
                 </div>
                 <h3 className="text-2xl font-bold mb-2">Galeriniz Boş</h3>
-                <p className="text-muted-foreground max-sm mx-auto mb-8">Henüz fotoğraf yüklemediniz. Luma ile ilk teknik analizinizi yaparak galeriyi doldurmaya başlayın.</p>
+                <p className="text-muted-foreground max-sm mx-auto mb-8">Henüz fotoğraf yüklemediniz. Luma ile ilk teknik analizlerinizi yaparak galeriyi doldurmaya başlayın.</p>
                 <Button onClick={() => router.push('/dashboard')} size="lg" className="rounded-2xl h-14 px-10 font-bold">Hemen Fotoğraf Yükle</Button>
             </div>
         )}
