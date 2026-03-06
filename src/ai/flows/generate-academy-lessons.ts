@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Viewora Academy Lesson Generator.
@@ -59,9 +60,9 @@ Core Topics to Cover:
 Rules:
 - Each lesson must be unique and focused on a specific sub-topic.
 - Language: {{{language}}} (usually Turkish).
-- imageHint must contain exactly 2 English keywords describing the visual concept.
+- imageHint must contain exactly 2-3 English keywords describing the visual concept.
 - Theory should be educational and professional (2-3 paragraphs).
-- auroNote should mention how this specific skill helps the user save Pix or earn more.
+- auroNote should mention how this specific skill helps the user save Pix or earn more rewards.
 
 Return ONLY a JSON array of 10 objects.`
 });
