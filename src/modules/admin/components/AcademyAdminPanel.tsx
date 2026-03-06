@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, addDoc, doc, writeBatch, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Sparkles, GraduationCap, CheckCircle2, Save, Image as ImageIcon } from 'lucide-react';
 import type { CurriculumTopic, Lesson } from '@/types';
-import { generateAcademyLessons, type GeneratedAcademyLesson } from '@/ai/flows/generate-academy-lessons';
-import { ai } from '@/ai/genkit';
-import Image from 'next/image';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { generateAcademyLessons, generateLessonImage } from '@/ai/flows/generate-academy-lessons';
+import type { GeneratedAcademyLesson } from '@/ai/flows/generate-academy-lessons';
+import { Badge } from '@/components/ui/badge';
 
 export default function AcademyAdminPanel() {
   const { toast } = useToast();
@@ -59,22 +58,6 @@ export default function AcademyAdminPanel() {
     }
   };
 
-  const generateAndUploadImage = async (hint: string, lessonId: string): Promise<string> => {
-    // Note: This logic uses Genkit Imagen model.
-    const result = await ai.generate({
-      model: 'vertexai/imagen-3.0-generate-001',
-      prompt: `Professional photography of: ${hint}. Realistic, high resolution, stunning composition.`,
-    });
-
-    const base64 = result.media?.data;
-    if (!base64) throw new Error("Görsel üretilemedi");
-
-    const storage = getStorage();
-    const storageRef = ref(storage, `academy-lessons/${lessonId}/cover.jpg`);
-    await uploadString(storageRef, base64, 'base64');
-    return await getDownloadURL(storageRef);
-  };
-
   const handlePublish = async () => {
     if (previewLessons.length === 0 || !firestore) return;
     setIsPublishing(true);
@@ -87,10 +70,14 @@ export default function AcademyAdminPanel() {
         const lessonRef = doc(lessonCollection);
         const lessonId = lessonRef.id;
 
-        // Visual production happens sequentially to avoid heavy load
+        // Visual production happens on server
         let imageUrl = '';
         try {
-          imageUrl = await generateAndUploadImage(lessonData.imageHint, lessonId);
+          const base64Data = await generateLessonImage(lessonData.imageHint);
+          const storage = getStorage();
+          const storageRef = ref(storage, `academy-lessons/${lessonId}/cover.jpg`);
+          await uploadString(storageRef, base64Data, 'base64');
+          imageUrl = await getDownloadURL(storageRef);
         } catch (e) {
           console.warn("Image generation failed for lesson, using fallback", e);
           imageUrl = `https://picsum.photos/seed/${lessonId}/800/600`;

@@ -3,6 +3,7 @@
  * @fileOverview AI flow for generating structured photography lessons based on a curriculum.
  * 
  * - generateAcademyLessons - Generates 10 structured lessons for a specific category.
+ * - generateLessonImage - Server-side image generation for academy lessons.
  */
 
 import { ai } from '@/ai/genkit';
@@ -37,10 +38,25 @@ export async function generateAcademyLessons(
   return academyLessonsFlow(input);
 }
 
+/**
+ * Generates an image using Imagen model on the server.
+ * Returns the base64 data of the generated image.
+ */
+export async function generateLessonImage(hint: string): Promise<string> {
+  const result = await ai.generate({
+    model: 'vertexai/imagen-3.0-generate-001',
+    prompt: `Professional photography of: ${hint}. Realistic, high resolution, stunning composition.`,
+  });
+
+  const base64 = result.media?.data;
+  if (!base64) throw new Error("Görsel üretilemedi");
+  return base64;
+}
+
 const academyLessonsPrompt = ai.definePrompt({
   name: 'academyLessonsGenerator',
   input: { schema: GenerateAcademyLessonsInputSchema },
-  output: { schema: GenerateAcademyLessonsOutputSchema },
+  output: { schema: AcademyLessonSchema }, // Define single lesson schema for mapping if needed, or stick to array
   prompt: `
 You are Luma, the Academic Dean of Viewora Academy. 
 Your task is to generate EXACTLY 10 high-quality, professional photography mini-lessons.
@@ -68,7 +84,7 @@ Structure per lesson:
 - practiceTask: A physical shooting assignment for the student.
 - auroNote: A tip about the artistic or technical depth of the shot.
 
-Return JSON only.
+Return JSON array of 10 lessons.
 `,
 });
 
@@ -79,7 +95,11 @@ const academyLessonsFlow = ai.defineFlow(
     outputSchema: GenerateAcademyLessonsOutputSchema,
   },
   async (input) => {
-    const { output } = await academyLessonsPrompt(input);
+    const { output } = await ai.generate({
+      prompt: academyLessonsPrompt(input),
+      output: { schema: GenerateAcademyLessonsOutputSchema }
+    });
+    
     if (!output) throw new Error('AI lesson generation failed.');
     return output;
   }

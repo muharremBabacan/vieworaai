@@ -1,3 +1,5 @@
+'use server';
+
 import { ai } from "@/ai/genkit";
 import { initializeFirebase } from "@/lib/firebase";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
