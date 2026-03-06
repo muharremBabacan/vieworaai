@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -26,7 +25,6 @@ export default function AcademyAdminPanel() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [previewLessons, setPreviewLessons] = useState<GeneratedAcademyLesson[]>([]);
 
-  // academy_curriculum koleksiyonundan müfredat yapısını çek
   const curriculumQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'academy_curriculum'), where('level', '==', selectedLevel)) : null,
     [firestore, selectedLevel]
@@ -46,7 +44,6 @@ export default function AcademyAdminPanel() {
     setPreviewLessons([]);
 
     try {
-      // Server Action üzerinden 10 adet ders taslağı üret
       const lessons = await generateAcademyLessons({
         level: selectedLevel,
         category: selectedCategory,
@@ -77,13 +74,13 @@ export default function AcademyAdminPanel() {
         const lessonRef = doc(lessonCollection);
         const lessonId = lessonRef.id;
 
-        // Görsel üretimi (Server Side)
+        // Görsel üretimi (Server Action)
         let imageUrl = '';
         try {
           const base64Data = await generateLessonImage(lessonData.imageHint);
           const storageRef = ref(storage, `academy-lessons/${lessonId}/cover.jpg`);
           
-          // Base64 verisini yükle
+          // İstemci tarafında yükleme yap (Storage SDK istemcide çalışır)
           await uploadString(storageRef, base64Data, 'base64');
           imageUrl = await getDownloadURL(storageRef);
         } catch (e) {
@@ -93,8 +90,8 @@ export default function AcademyAdminPanel() {
 
         // Final döküman yapısı
         const finalLesson: Lesson = {
-          id: lessonId,
           ...lessonData,
+          id: lessonId,
           level: selectedLevel,
           category: selectedCategory,
           imageUrl,

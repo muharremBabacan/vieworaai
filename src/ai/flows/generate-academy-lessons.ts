@@ -1,29 +1,22 @@
-
 'use server';
 /**
- * @fileOverview Viewora Academy Lesson Generator.
- * 
- * - generateAcademyLessons - Generates 10 structured photography lessons based on a category.
- * - generateLessonImage - Generates a professional cover image for a lesson.
+ * @fileOverview AI flow for generating structured photography lessons for Viewora Academy.
+ * This flow is a pure generator and does not interact with Firebase directly.
  */
 
 import { ai } from "@/ai/genkit";
 import { z } from "genkit";
 
-/* ================= INPUT SCHEMA ================= */
+/* ================= INPUT ================= */
 
-const GenerateAcademyLessonsInputSchema = z.object({
+const InputSchema = z.object({
   level: z.string(),
   category: z.string(),
   topics: z.array(z.string()),
-  language: z.string().default("tr")
+  language: z.string().default('tr')
 });
 
-export type GenerateAcademyLessonsInput = z.infer<
-  typeof GenerateAcademyLessonsInputSchema
->;
-
-/* ================= OUTPUT SCHEMA ================= */
+/* ================= LESSON SCHEMA ================= */
 
 const LessonSchema = z.object({
   title: z.string(),
@@ -35,76 +28,80 @@ const LessonSchema = z.object({
   imageHint: z.string()
 });
 
-const GenerateAcademyLessonsOutputSchema = z.array(LessonSchema).length(10);
+const OutputSchema = z.array(LessonSchema).length(10);
 
 export type GeneratedAcademyLesson = z.infer<typeof LessonSchema>;
 
-/* ================= PROMPTS ================= */
+/* ================= PROMPT ================= */
 
-const academyLessonsPrompt = ai.definePrompt({
-  name: "generate-academy-lessons-prompt",
-  input: { schema: GenerateAcademyLessonsInputSchema },
-  output: { schema: GenerateAcademyLessonsOutputSchema },
-  prompt: `You are Luma, the Academic Dean of Viewora Academy.
+const lessonPrompt = ai.definePrompt({
+  name: "academy-lessons-generator",
+  input: { schema: InputSchema },
+  output: { schema: OutputSchema },
 
-Generate EXACTLY 10 high-quality photography mini-lessons for the following:
+  prompt: `
+You are Luma, the head instructor of Viewora Academy.
+
+Generate EXACTLY 10 photography mini lessons.
 
 Level: {{{level}}}
 Category: {{{category}}}
 
-Core Topics to Cover:
+Topics to cover:
 {{#each topics}}
 - {{{this}}}
 {{/each}}
 
-Rules:
-- Each lesson must be unique and focused on a specific sub-topic.
-- Language: {{{language}}} (usually Turkish).
-- imageHint must contain exactly 2-3 English keywords describing the visual concept.
-- Theory should be educational and professional (2-3 paragraphs).
-- auroNote should mention how this specific skill helps the user save Pix or earn more rewards.
+Each lesson must include:
+- title: Engaging and professional
+- learningObjective: What will they learn? (1 sentence)
+- theory: Clear, concise explanation (2-3 paragraphs)
+- analysisCriteria: 3 specific technical points to look for in a photo
+- practiceTask: A physical shooting assignment
+- auroNote: A tip about why this matters artistically
+- imageHint: 3-4 English keywords for generating a cover image (e.g. "portrait golden hour bokeh")
 
-Return ONLY a JSON array of 10 objects.`
+Respond in language: {{{language}}}
+Return as a JSON array.
+`
 });
 
-/* ================= FLOWS ================= */
+/* ================= MAIN FLOW ================= */
 
-export const generateAcademyLessonsFlow = ai.defineFlow(
+export async function generateAcademyLessons(input: z.infer<typeof InputSchema>): Promise<GeneratedAcademyLesson[]> {
+  return academyLessonsFlow(input);
+}
+
+const academyLessonsFlow = ai.defineFlow(
   {
-    name: "generateAcademyLessonsFlow",
-    inputSchema: GenerateAcademyLessonsInputSchema,
-    outputSchema: GenerateAcademyLessonsOutputSchema
+    name: 'academyLessonsFlow',
+    inputSchema: InputSchema,
+    outputSchema: OutputSchema,
   },
   async (input) => {
-    const { output } = await academyLessonsPrompt(input);
+    const { output } = await lessonPrompt(input);
     if (!output) {
-      throw new Error("AI lesson generation failed.");
+      throw new Error("Lesson generation failed");
     }
     return output;
   }
 );
 
-/* ================= SERVER ACTIONS ================= */
+/* ================= IMAGE GENERATION ================= */
 
 /**
- * Generates 10 lesson drafts for the admin to preview.
- */
-export async function generateAcademyLessons(input: GenerateAcademyLessonsInput) {
-  return generateAcademyLessonsFlow(input);
-}
-
-/**
- * Generates a professional photography image (base64) using Imagen 3.
+ * Generates a base64 image string for a given hint.
  */
 export async function generateLessonImage(imageHint: string): Promise<string> {
   const result = await ai.generate({
     model: "vertexai/imagen-3.0-generate-001",
-    prompt: `A high-quality, professional photography shot demonstrating ${imageHint}. Cinematic lighting, clear focus, 8k resolution, realistic style.`,
+    prompt: `Professional high-quality photography showing: ${imageHint}. Realistic, cinematic lighting, sharp focus.`,
   });
 
   const base64 = result.media?.data;
   if (!base64) {
     throw new Error("Image generation failed");
   }
+
   return base64;
 }
