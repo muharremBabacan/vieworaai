@@ -205,3 +205,26 @@ export type Exhibition = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type Lesson = {
+  id: string;
+  level: 'Temel' | 'Orta' | 'İleri';
+  category: string;
+  title: string;
+  learningObjective: string;
+  theory: string;
+  analysisCriteria: string[];
+  practiceTask: string;
+  auroNote: string;
+  imageUrl?: string;
+  imageHint: string;
+  createdAt: string;
+  tags?: string[];
+};
+
+export type CurriculumTopic = {
+  id: string;
+  level: string;
+  category: string;
+  topics: string[];
+};

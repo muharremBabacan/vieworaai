@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles
+  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User, AppSettings } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import AcademyAdminPanel from './AcademyAdminPanel';
 
 const exhibitionSchema = z.object({
   title: z.string().min(3, 'En az 3 karakter'),
@@ -181,7 +182,6 @@ export default function AdminPanel() {
         <p className="text-sm font-black text-primary uppercase tracking-[0.4em] opacity-70">Yönetici Paneli</p>
       </header>
 
-      {/* Swipe Navigasyon Bandı */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <div className="relative filter-scroll mb-10">
           <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
@@ -267,6 +267,10 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="academy">
+          <AcademyAdminPanel />
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
