@@ -96,7 +96,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    match /academyLessons/{lessonId} {
+    match /academy_lessons/{lessonId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }

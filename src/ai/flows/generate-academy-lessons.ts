@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview AI flow for generating structured photography lessons for Viewora Academy.
- * This flow is a pure generator and does not interact with Firebase directly.
+ * Viewora Academy AI Lesson Generator
+ * Generates structured photography lessons and image prompts.
  */
 
 import { ai } from "@/ai/genkit";
@@ -13,10 +13,10 @@ const InputSchema = z.object({
   level: z.string(),
   category: z.string(),
   topics: z.array(z.string()),
-  language: z.string().default('tr')
+  language: z.string().default("tr"),
 });
 
-/* ================= LESSON SCHEMA ================= */
+/* ================= LESSON STRUCTURE ================= */
 
 const LessonSchema = z.object({
   title: z.string(),
@@ -25,7 +25,7 @@ const LessonSchema = z.object({
   analysisCriteria: z.array(z.string()).length(3),
   practiceTask: z.string(),
   auroNote: z.string(),
-  imageHint: z.string()
+  imageHint: z.string(),
 });
 
 const OutputSchema = z.array(LessonSchema).length(10);
@@ -42,7 +42,7 @@ const lessonPrompt = ai.definePrompt({
   prompt: `
 You are Luma, the head instructor of Viewora Academy.
 
-Generate EXACTLY 10 photography mini lessons.
+Generate EXACTLY 10 structured photography mini-lessons.
 
 Level: {{{level}}}
 Category: {{{category}}}
@@ -53,52 +53,72 @@ Topics to cover:
 {{/each}}
 
 Each lesson must include:
-- title: Engaging and professional
-- learningObjective: What will they learn? (1 sentence)
-- theory: Clear, concise explanation (2-3 paragraphs)
-- analysisCriteria: 3 specific technical points to look for in a photo
-- practiceTask: A physical shooting assignment
-- auroNote: A tip about why this matters artistically
-- imageHint: 3-4 English keywords for generating a cover image (e.g. "portrait golden hour bokeh")
 
-Respond in language: {{{language}}}
-Return as a JSON array.
-`
+title:
+Engaging and professional lesson title.
+
+learningObjective:
+One sentence explaining what the student will learn.
+
+theory:
+Clear explanation of the concept in 2–3 paragraphs.
+
+analysisCriteria:
+Exactly 3 specific technical points to evaluate a photo.
+
+practiceTask:
+A real-world photography assignment for the student.
+
+auroNote:
+A short artistic or professional insight about why this concept matters.
+
+imageHint:
+2–3 English keywords describing a photography scene suitable for a cover image.
+Example: "portrait golden hour"
+
+Language: {{{language}}}
+
+Return ONLY a JSON array containing exactly 10 lessons.
+`,
 });
 
-/* ================= MAIN FLOW ================= */
+/* ================= FLOW ================= */
 
-export async function generateAcademyLessons(input: z.infer<typeof InputSchema>): Promise<GeneratedAcademyLesson[]> {
-  return academyLessonsFlow(input);
-}
+export async function generateAcademyLessons(
+  input: z.infer<typeof InputSchema>
+): Promise<GeneratedAcademyLesson[]> {
+  const { output } = await lessonPrompt(input);
 
-const academyLessonsFlow = ai.defineFlow(
-  {
-    name: 'academyLessonsFlow',
-    inputSchema: InputSchema,
-    outputSchema: OutputSchema,
-  },
-  async (input) => {
-    const { output } = await lessonPrompt(input);
-    if (!output) {
-      throw new Error("Lesson generation failed");
-    }
-    return output;
+  if (!output) {
+    throw new Error("Lesson generation failed");
   }
-);
+
+  return output;
+}
 
 /* ================= IMAGE GENERATION ================= */
 
 /**
- * Generates a base64 image string for a given hint.
+ * Generates a base64 encoded cover image for a lesson.
  */
-export async function generateLessonImage(imageHint: string): Promise<string> {
+export async function generateLessonImage(
+  imageHint: string
+): Promise<string> {
+
   const result = await ai.generate({
     model: "vertexai/imagen-3.0-generate-001",
-    prompt: `Professional high-quality photography showing: ${imageHint}. Realistic, cinematic lighting, sharp focus.`,
+
+    prompt: `
+Professional DSLR photograph of ${imageHint},
+natural lighting,
+shallow depth of field,
+realistic photography,
+8k ultra realistic
+`
   });
 
   const base64 = result.media?.data;
+
   if (!base64) {
     throw new Error("Image generation failed");
   }

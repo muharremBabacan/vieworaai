@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import type { Lesson, User } from '@/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, updateDoc, writeBatch, increment } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, writeBatch, increment, orderBy } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
@@ -256,7 +256,7 @@ export default function AcademyLevelPage() {
     }
     
     const lessonsQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'academyLessons'), where('level', '==', levelFormatted)) : null,
+        firestore ? query(collection(firestore, 'academy_lessons'), where('level', '==', levelFormatted), orderBy('createdAt', 'desc')) : null,
         [firestore, levelFormatted]
     );
 

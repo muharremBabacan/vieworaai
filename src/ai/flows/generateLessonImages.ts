@@ -1,41 +1,102 @@
 'use server';
 
 import { ai } from "@/ai/genkit";
-import { initializeFirebase } from "@/lib/firebase";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { z } from "genkit";
 
-const { storage } = initializeFirebase();
+/* ================= INPUT ================= */
 
-type ImagePrompts = {
-  cover: string;
-  goodExample1: string;
-  goodExample2: string;
-  badExample: string;
-  analysis: string;
-};
+const InputSchema = z.object({
+  level: z.string(),
+  category: z.string(),
+  topics: z.array(z.string()),
+  language: z.string().default('tr')
+});
 
-type LessonImages = {
-  cover: string;
-  goodExample1: string;
-  goodExample2: string;
-  badExample: string;
-  analysis: string;
-};
+/* ================= LESSON SCHEMA ================= */
 
-async function generateAndUpload(
-  prompt: string,
-  lessonId: string,
-  name: string
+const LessonSchema = z.object({
+  title: z.string(),
+  learningObjective: z.string(),
+  theory: z.string(),
+  analysisCriteria: z.array(z.string()).length(3),
+  practiceTask: z.string(),
+  auroNote: z.string(),
+  imageHint: z.string()
+});
+
+const OutputSchema = z.array(LessonSchema).length(5);
+
+export type GeneratedAcademyLesson = z.infer<typeof LessonSchema>;
+
+/* ================= PROMPT ================= */
+
+const lessonPrompt = ai.definePrompt({
+  name: "academy-lessons-generator",
+  input: { schema: InputSchema },
+  output: { schema: OutputSchema },
+
+  prompt: `
+You are Luma, the head instructor of Viewora Academy.
+
+Generate EXACTLY 5 photography mini lessons.
+
+Level: {{{level}}}
+Category: {{{category}}}
+
+Topics to cover:
+{{#each topics}}
+- {{{this}}}
+{{/each}}
+
+Each lesson must include:
+- title: Engaging and professional
+- learningObjective: What will they learn? (1 sentence)
+- theory: Clear explanation (2-3 paragraphs)
+- analysisCriteria: 3 specific technical points to check in a photo
+- practiceTask: A physical shooting assignment
+- auroNote: A tip about why this skill matters
+- imageHint: 2-3 English keywords describing the visual scene (example: "portrait golden hour")
+
+Respond in language: {{{language}}}
+
+Return ONLY a JSON array.
+`
+});
+
+/* ================= FLOW ================= */
+
+export async function generateAcademyLessons(
+  input: z.infer<typeof InputSchema>
+): Promise<GeneratedAcademyLesson[]> {
+  return academyLessonsFlow(input);
+}
+
+const academyLessonsFlow = ai.defineFlow(
+  {
+    name: 'academyLessonsFlow',
+    inputSchema: InputSchema,
+    outputSchema: OutputSchema,
+  },
+  async (input) => {
+    const { output } = await lessonPrompt(input);
+
+    if (!output) {
+      throw new Error("Lesson generation failed");
+    }
+
+    return output;
+  }
+);
+
+/* ================= IMAGE GENERATION ================= */
+
+export async function generateLessonImage(
+  imageHint: string
 ): Promise<string> {
 
-  if (!storage) {
-    throw new Error("Storage not initialized");
-  }
-
-  // Imagen model ile image üret
   const result = await ai.generate({
     model: "vertexai/imagen-3.0-generate-001",
-    prompt,
+    prompt: `Professional DSLR photograph of ${imageHint}, natural lighting, shallow depth of field, ultra realistic, 8k photography`
   });
 
   const base64 = result.media?.data;
@@ -44,58 +105,5 @@ async function generateAndUpload(
     throw new Error("Image generation failed");
   }
 
-  const storageRef = ref(
-    storage,
-    `academy-lessons/${lessonId}/${name}.jpg`
-  );
-
-  await uploadString(storageRef, base64, "base64");
-
-  const url = await getDownloadURL(storageRef);
-
-  return url;
-}
-
-export async function generateLessonImages(
-  prompts: ImagePrompts,
-  lessonId: string
-): Promise<LessonImages> {
-
-  const cover = await generateAndUpload(
-    prompts.cover,
-    lessonId,
-    "cover"
-  );
-
-  const goodExample1 = await generateAndUpload(
-    prompts.goodExample1,
-    lessonId,
-    "good1"
-  );
-
-  const goodExample2 = await generateAndUpload(
-    prompts.goodExample2,
-    lessonId,
-    "good2"
-  );
-
-  const badExample = await generateAndUpload(
-    prompts.badExample,
-    lessonId,
-    "bad"
-  );
-
-  const analysis = await generateAndUpload(
-    prompts.analysis,
-    lessonId,
-    "analysis"
-  );
-
-  return {
-    cover,
-    goodExample1,
-    goodExample2,
-    badExample,
-    analysis,
-  };
+  return base64;
 }

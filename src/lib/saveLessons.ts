@@ -1,10 +1,16 @@
-import { db } from '@/lib/firebase';
+import { initializeFirebase } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { GeneratedLesson } from '@/ai/flows/generateLessons';
 
 export async function saveLessons(lessons: GeneratedLesson[]) {
 
-  const lessonCollection = collection(db, "academy_lessons");
+  const { firestore } = initializeFirebase();
+
+  if (!firestore) {
+    throw new Error("Firestore not initialized");
+  }
+
+  const lessonCollection = collection(firestore, "academy_lessons");
 
   for (const lesson of lessons) {
 
