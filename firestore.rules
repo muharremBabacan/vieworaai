@@ -64,7 +64,7 @@ service cloud.firestore {
     }
     
     match /analysis_logs/{logId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
       allow create: if isSignedIn();
     }
     

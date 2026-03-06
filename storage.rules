@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service firebase.storage {
@@ -8,7 +7,8 @@ service firebase.storage {
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'admin@viewora.ai' ||
-        request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
+        request.auth.token.email == 'babacan.muharrem@gmail.com' ||
+        request.auth.uid == '01DT86bQwWUVrewnEb8c6bd8H43' ||
         request.auth.token.admin == true
       );
     }
