@@ -23,6 +23,7 @@ export default function AcademyAdminPanel() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [previewLessons, setPreviewLessons] = useState<GeneratedAcademyLesson[]>([]);
 
+  // Fetch curriculum structure from Firestore (Client side)
   const curriculumQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'academy_curriculum'), where('level', '==', selectedLevel)) : null,
     [firestore, selectedLevel]
@@ -42,6 +43,7 @@ export default function AcademyAdminPanel() {
     setPreviewLessons([]);
 
     try {
+      // Call Server Action to generate lesson metadata
       const lessons = await generateAcademyLessons({
         level: selectedLevel,
         category: selectedCategory,
@@ -65,17 +67,18 @@ export default function AcademyAdminPanel() {
     try {
       const batch = writeBatch(firestore);
       const lessonCollection = collection(firestore, 'academyLessons');
+      const storage = getStorage();
 
       for (const lessonData of previewLessons) {
         const lessonRef = doc(lessonCollection);
         const lessonId = lessonRef.id;
 
-        // Visual production happens on server
+        // Visual production happens on server (Server Action)
         let imageUrl = '';
         try {
           const base64Data = await generateLessonImage(lessonData.imageHint);
-          const storage = getStorage();
           const storageRef = ref(storage, `academy-lessons/${lessonId}/cover.jpg`);
+          // Upload to storage from client
           await uploadString(storageRef, base64Data, 'base64');
           imageUrl = await getDownloadURL(storageRef);
         } catch (e) {
@@ -85,7 +88,6 @@ export default function AcademyAdminPanel() {
 
         const finalLesson: Omit<Lesson, 'id'> = {
           ...lessonData,
-          id: lessonId,
           level: selectedLevel,
           category: selectedCategory,
           imageUrl,
