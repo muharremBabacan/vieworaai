@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Loader2, Sparkles, GraduationCap, Save, Image as ImageIcon, Download, Check } from 'lucide-react';
+import { Loader2, Sparkles, GraduationCap, Save, Image as ImageIcon, Download, Check, Cpu } from 'lucide-react';
 import type { CurriculumTopic, Lesson } from '@/types';
 import { generateAcademyLessons, generateLessonImage } from '@/ai/flows/generate-academy-lessons';
 import type { GeneratedAcademyLesson } from '@/ai/flows/generate-academy-lessons';
@@ -251,14 +251,19 @@ export default function AcademyAdminPanel() {
       {/* Manual Image Generator Section */}
       <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-xl overflow-hidden">
         <CardHeader className="bg-amber-500/5 border-b border-border/40 p-8">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
-              <ImageIcon size={28}/>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <ImageIcon size={28}/>
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-black uppercase">Görsel Üretim Laboratuvarı</CardTitle>
+                <CardDescription>Akademi için özel sahneler ve kapaklar tasarlayın</CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-2xl font-black uppercase">Görsel Üretim Laboratuvarı</CardTitle>
-              <CardDescription>Akademi için özel sahneler ve kapaklar tasarlayın</CardDescription>
-            </div>
+            <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-500 font-black h-7 px-3 rounded-full flex gap-2">
+              <Cpu className="h-3 w-3" /> Imagen 3
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
@@ -271,7 +276,7 @@ export default function AcademyAdminPanel() {
                 value={imagePrompt}
                 onChange={(e) => setImagePrompt(e.target.value)}
               />
-              <p className="text-[10px] text-muted-foreground italic">* İngilizce promptlar daha iyi sonuç verir.</p>
+              <p className="text-[10px] text-muted-foreground italic">* İngilizce promptlar daha iyi sonuç verir. Vertex AI Imagen 3 motoru kullanılmaktadır.</p>
             </div>
             
             <div className="flex flex-col md:flex-row gap-4">
