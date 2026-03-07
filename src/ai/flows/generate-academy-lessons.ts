@@ -28,7 +28,7 @@ const LessonSchema = z.object({
   imageHint: z.string(),
 });
 
-const OutputSchema = z.array(LessonSchema).length(10);
+const OutputSchema = z.array(LessonSchema).length(1);
 
 export type GeneratedAcademyLesson = z.infer<typeof LessonSchema>;
 
@@ -42,7 +42,7 @@ const lessonPrompt = ai.definePrompt({
   prompt: `
 You are Luma, the head instructor of Viewora Academy.
 
-Generate EXACTLY 10 structured photography mini-lessons.
+Generate EXACTLY 1 structured photography mini-lessons.
 
 Level: {{{level}}}
 Category: {{{category}}}
@@ -78,7 +78,7 @@ Example: "portrait golden hour"
 
 Language: {{{language}}}
 
-Return ONLY a JSON array containing exactly 10 lessons.
+Return ONLY a JSON array containing exactly 1 lessons.
 `,
 });
 
