@@ -2,24 +2,19 @@
 
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useStorage } from '@/lib/firebase';
-import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles, GraduationCap, Save, Image as ImageIcon, Download, Check, Cpu } from 'lucide-react';
 import type { CurriculumTopic, Lesson } from '@/types';
 import { generateAcademyLessons, generateLessonImage } from '@/ai/flows/generate-academy-lessons';
 import type { GeneratedAcademyLesson } from '@/ai/flows/generate-academy-lessons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 export default function AcademyAdminPanel() {
   const { toast } = useToast();
@@ -33,7 +28,7 @@ export default function AcademyAdminPanel() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [previewLessons, setPreviewLessons] = useState<GeneratedAcademyLesson[]>([]);
 
-  // Manual Image Generation States
+  // Manual Image Generation States (Imagen 3.0)
   const [imagePrompt, setImagePrompt] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [generatedBase64, setGeneratedBase64] = useState<string | null>(null);
@@ -74,10 +69,7 @@ export default function AcademyAdminPanel() {
       });
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: "Ders üretimi sırasında hata oluştu"
-      });
+      toast({ variant: 'destructive', title: "Ders üretimi sırasında hata oluştu" });
     } finally {
       setIsGenerating(false);
     }
@@ -93,7 +85,7 @@ export default function AcademyAdminPanel() {
 
       toast({
         title: "Yayınlanıyor...",
-        description: "Dersler ve görseller hazırlanıyor (Bu işlem zaman alabilir)."
+        description: "Dersler ve görseller hazırlanıyor. Lütfen bekleyin."
       });
 
       for (const lessonData of previewLessons) {
@@ -102,14 +94,14 @@ export default function AcademyAdminPanel() {
 
         let imageUrl = '';
         try {
+          // Her ders için Imagen 3 ile görsel üret
           const base64Data = await generateLessonImage(lessonData.imageHint);
           const storageRef = ref(storage, `academy-lessons/${lessonId}/cover.jpg`);
           await uploadString(storageRef, base64Data, 'base64');
           imageUrl = await getDownloadURL(storageRef);
-          await sleep(2000);
         } catch (error) {
-          console.warn("Görsel üretilemedi, fallback kullanılıyor:", error);
-          imageUrl = `https://picsum.photos/seed/viewora-${lessonId}/800/600`;
+          console.warn("Görsel üretilemedi, fallback kullanılıyor.");
+          imageUrl = `https://picsum.photos/seed/${lessonId}/800/600`;
         }
 
         const finalLesson: Lesson = {
@@ -125,23 +117,16 @@ export default function AcademyAdminPanel() {
       }
 
       await batch.commit();
-      toast({
-        title: "Başarıyla yayınlandı",
-        description: `${previewLessons.length} ders akademiye eklendi.`
-      });
+      toast({ title: "Başarıyla yayınlandı", description: "10 ders akademiye eklendi." });
       setPreviewLessons([]);
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: "Firestore kayıt hatası"
-      });
+      toast({ variant: 'destructive', title: "Firestore kayıt hatası" });
     } finally {
       setIsPublishing(false);
     }
   };
 
-  // Manual Image Logic
   const handleManualImageGenerate = async () => {
     if (!imagePrompt.trim()) {
       toast({ variant: 'destructive', title: "Lütfen bir prompt girin." });
@@ -155,7 +140,7 @@ export default function AcademyAdminPanel() {
     try {
       const base64 = await generateLessonImage(imagePrompt);
       setGeneratedBase64(base64);
-      toast({ title: "Görsel Üretildi", description: "Beğendiyseniz Storage'a kaydedebilirsiniz." });
+      toast({ title: "Görsel Üretildi", description: "Imagen 3.0 ile sonuç hazır." });
     } catch (error) {
       console.error(error);
       toast({ variant: 'destructive', title: "Görsel üretilemedi." });
@@ -177,10 +162,10 @@ export default function AcademyAdminPanel() {
       const downloadUrl = await getDownloadURL(storageRef);
       
       setSavedImageUrl(downloadUrl);
-      toast({ title: "Storage'a Kaydedildi", description: `Klasör: academy-lessons/manual-uploads/${fileName}` });
+      toast({ title: "Kayıt Başarılı", description: "Görsel Storage'a eklendi." });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: "Kayıt sırasında hata oluştu." });
+      toast({ variant: 'destructive', title: "Kayıt hatası." });
     } finally {
       setIsSavingImage(false);
     }
@@ -188,7 +173,6 @@ export default function AcademyAdminPanel() {
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
-      {/* Lesson Generator Section */}
       <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-xl overflow-hidden">
         <CardHeader className="bg-primary/5 border-b border-border/40 p-8">
           <div className="flex items-center gap-4">
@@ -197,7 +181,7 @@ export default function AcademyAdminPanel() {
             </div>
             <div>
               <CardTitle className="text-2xl font-black uppercase">Akademi Müfredat Robotu</CardTitle>
-              <CardDescription>Müfredat konularını kullanarak otomatik ders üretir</CardDescription>
+              <CardDescription>Müfredat konularını kullanarak otomatik 10 ders üretir</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -248,7 +232,6 @@ export default function AcademyAdminPanel() {
         </CardContent>
       </Card>
 
-      {/* Manual Image Generator Section */}
       <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-xl overflow-hidden">
         <CardHeader className="bg-amber-500/5 border-b border-border/40 p-8">
           <div className="flex items-center justify-between">
@@ -258,11 +241,11 @@ export default function AcademyAdminPanel() {
               </div>
               <div>
                 <CardTitle className="text-2xl font-black uppercase">Görsel Üretim Laboratuvarı</CardTitle>
-                <CardDescription>Akademi için özel sahneler ve kapaklar tasarlayın</CardDescription>
+                <CardDescription>Bağımsız Imagen 3.0 Görsel Motoru</CardDescription>
               </div>
             </div>
             <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-500 font-black h-7 px-3 rounded-full flex gap-2">
-              <Cpu className="h-3 w-3" /> Imagen 3
+              <Cpu className="h-3 w-3" /> Imagen 3.0
             </Badge>
           </div>
         </CardHeader>
@@ -271,12 +254,11 @@ export default function AcademyAdminPanel() {
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase ml-1">Görsel İstem (Prompt)</label>
               <Textarea 
-                placeholder="Örn: moody portrait during golden hour, sharp focus, cinematic lighting..." 
+                placeholder="Örn: cinematic street photo, moody lighting, neon reflections..." 
                 className="rounded-2xl min-h-[100px] bg-muted/30 resize-none border-border/60"
                 value={imagePrompt}
                 onChange={(e) => setImagePrompt(e.target.value)}
               />
-              <p className="text-[10px] text-muted-foreground italic">* İngilizce promptlar daha iyi sonuç verir. Vertex AI Imagen 3 motoru kullanılmaktadır.</p>
             </div>
             
             <div className="flex flex-col md:flex-row gap-4">
@@ -286,7 +268,7 @@ export default function AcademyAdminPanel() {
                 className="flex-1 h-12 rounded-xl font-bold bg-amber-500 text-black hover:bg-amber-600 transition-all"
               >
                 {isGeneratingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                Görseli Üret
+                Görseli Üret (Imagen 3)
               </Button>
               
               {generatedBase64 && (
@@ -295,33 +277,27 @@ export default function AcademyAdminPanel() {
                   disabled={isSavingImage || !!savedImageUrl}
                   variant="outline"
                   className={cn(
-                    "flex-1 h-12 rounded-xl font-bold border-amber-500/30 text-amber-500 hover:bg-amber-500/10",
-                    savedImageUrl && "border-green-500/30 text-green-500 hover:bg-green-500/10"
+                    "flex-1 h-12 rounded-xl font-bold border-amber-500/30 text-amber-500",
+                    savedImageUrl && "border-green-500/30 text-green-500"
                   )}
                 >
                   {isSavingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : savedImageUrl ? <Check className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                  {savedImageUrl ? "Kaydedildi" : "Storage'a Kaydet"}
+                  {savedImageUrl ? "Kaydedildi" : "Beğendim, Kaydet"}
                 </Button>
               )}
             </div>
           </div>
 
           {generatedBase64 && (
-            <div className="space-y-4 pt-4 border-t border-border/20 animate-in zoom-in-95 duration-500">
-              <label className="text-[10px] font-black uppercase text-center block text-muted-foreground">Sonuç Önizleme</label>
+            <div className="space-y-4 pt-4 border-t border-border/20">
               <div className="relative aspect-video max-w-2xl mx-auto rounded-[24px] overflow-hidden border-4 border-background shadow-2xl">
                 <img src={`data:image/jpeg;base64,${generatedBase64}`} alt="Generated" className="w-full h-full object-cover" />
                 {savedImageUrl && (
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg">
-                      <Check size={24} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-white uppercase text-xs tracking-widest mb-1">Başarıyla Kaydedildi</p>
-                      <p className="text-[10px] text-white/70 break-all select-all font-mono">{savedImageUrl}</p>
-                    </div>
+                    <p className="font-bold text-white uppercase text-xs tracking-widest">Storage'a Kaydedildi</p>
+                    <p className="text-[10px] text-white/70 break-all select-all font-mono">{savedImageUrl}</p>
                     <Button variant="secondary" size="sm" className="rounded-lg text-[10px] font-black" onClick={() => window.open(savedImageUrl, '_blank')}>
-                      <Download className="mr-1 h-3 w-3" /> Görseli Aç
+                      <Download className="mr-1 h-3 w-3" /> Görseli Görüntüle
                     </Button>
                   </div>
                 )}
@@ -331,36 +307,28 @@ export default function AcademyAdminPanel() {
         </CardContent>
       </Card>
 
-      {/* Lesson Preview Section */}
       {previewLessons.length > 0 && (
         <div className="space-y-6 animate-in slide-in-from-bottom-10 duration-700">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
-                <Check size={18} />
-              </div>
-              <h3 className="text-xl font-black uppercase tracking-tight">Taslak Önizleme ({previewLessons.length} Ders)</h3>
-            </div>
+            <h3 className="text-xl font-black uppercase tracking-tight">Taslak Önizleme ({previewLessons.length} Ders)</h3>
             <Button
               onClick={handlePublish}
               disabled={isPublishing}
               className="bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold h-11 px-8 shadow-lg shadow-green-600/20"
             >
               {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Hemen Yayınla
+              Tümünü Yayınla
             </Button>
           </div>
           <div className="grid gap-4">
             {previewLessons.map((lesson, idx) => (
-              <Card key={idx} className="p-6 rounded-2xl border-border/40 bg-card/30 hover:border-primary/20 transition-colors">
+              <Card key={idx} className="p-6 rounded-2xl border-border/40 bg-card/30">
                 <div className="flex gap-4">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 font-black text-primary border border-primary/20">{idx + 1}</div>
                   <div className="space-y-1">
                     <h4 className="font-bold text-lg">{lesson.title}</h4>
                     <p className="text-sm text-muted-foreground">{lesson.learningObjective}</p>
-                    <div className="pt-2">
-                      <Badge variant="outline" className="text-[9px] uppercase font-black tracking-widest">{lesson.imageHint}</Badge>
-                    </div>
+                    <Badge variant="outline" className="text-[9px] uppercase font-black mt-2">{lesson.imageHint}</Badge>
                   </div>
                 </div>
               </Card>
