@@ -277,10 +277,11 @@ export default function GroupDetailPage() {
                           {isOwner && <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-amber-500 border-2 border-background flex items-center justify-center shadow-lg"><Crown size={12} className="text-black" /></div>}
                         </div>
                         <div>
-                          <p className="text-lg font-black tracking-tight flex items-center gap-2">
+                          {/* Hydration fix: Changed <p> to <div> because it contains <Badge> (which was a <div>) */}
+                          <div className="text-lg font-black tracking-tight flex items-center gap-2">
                             {profile ? profile.name : <span className="text-muted-foreground italic font-medium">Yükleniyor...</span>}
                             {profile?.id === user?.uid && <Badge variant="outline" className="text-[8px] font-black h-4 px-1.5 border-primary text-primary uppercase">SEN</Badge>}
-                          </p>
+                          </div>
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{profile?.level_name || 'Neuner'}</p>
                         </div>
                       </div>
