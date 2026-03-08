@@ -1,7 +1,7 @@
 'use server';
 /**
  * Viewora Academy AI Content Engine
- * Model: Google Imagen 3.0 (imagen-3.0-generate-001)
+ * Model: Google Imagen 4.0 (vertexai/imagen-4.0-generate-001)
  */
 
 import { ai } from "@/ai/genkit";
@@ -84,21 +84,21 @@ Language: {{{language}}}
 export async function generateLessonImage(
   userPrompt: string
 ): Promise<string> {
-  console.log(`[IMAGEN 3.0] İstek gönderiliyor: ${userPrompt}`);
+  console.log(`[IMAGEN 4.0] İstek gönderiliyor: ${userPrompt}`);
   
   // Promptu profesyonel seviyeye çeken zenginleştirici ekler
   const finalPrompt = `Professional cinematic photography of ${userPrompt}, ultra-realistic, natural lighting, shot on 35mm lens, f/1.8, high detail, 8k resolution, artistic composition, clean background`;
 
   try {
     const result = await ai.generate({
-      model: "vertexai/imagen-3.0-generate-001",
+      model: "vertexai/imagen-4.0-generate-001",
       prompt: finalPrompt,
     });
 
     const mediaUrl = result.media?.url;
 
     if (!mediaUrl) {
-      console.error("[IMAGEN 3.0] Görsel verisi boş döndü.");
+      console.error("[IMAGEN 4.0] Görsel verisi boş döndü.");
       throw new Error("Görsel üretilemedi, model boş yanıt döndü.");
     }
 

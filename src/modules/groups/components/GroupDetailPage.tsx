@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -77,7 +76,7 @@ export default function GroupDetailPage() {
   const [isCreatingAssignment, setIsCreatingAssignment] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const groupRef = useMemoFirebase(() => doc(firestore, 'groups', groupId as string), [firestore, groupId]);
+  const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading, error } = useDoc<Group>(groupRef);
 
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
@@ -118,6 +117,11 @@ export default function GroupDetailPage() {
     if (!group?.memberIds) return [];
     return group.memberIds.map(uid => profiles?.find(p => p.id === uid) || { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile);
   }, [group?.memberIds, profiles]);
+
+  // FIX: Define founderProfile
+  const founderProfile = useMemo(() => {
+    return profiles?.find(p => p.id === group?.ownerId);
+  }, [profiles, group?.ownerId]);
 
   const handleCreateAssignment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -228,7 +232,7 @@ export default function GroupDetailPage() {
   const handleRemoveMember = async (memberId: string, memberName: string) => {
       if (!group || !isCurrentUserOwner) return;
       try { 
-        await updateDoc(groupRef, { memberIds: arrayRemove(memberId) }); 
+        await updateDoc(groupRef!, { memberIds: arrayRemove(memberId) }); 
         toast({ title: `${memberName} çıkartıldı.` }); 
       } catch (e) { 
         toast({ variant: 'destructive', title: "Hata" }); 
@@ -239,7 +243,7 @@ export default function GroupDetailPage() {
     if (!group || !isCurrentUserOwner || isUpdating) return;
     setIsUpdating(true);
     try {
-      await updateDoc(groupRef, {
+      await updateDoc(groupRef!, {
         name: editName,
         maxMembers: Math.min(editMaxMembers, userLimits.maxMembers),
         allowMemberComments
@@ -264,7 +268,7 @@ export default function GroupDetailPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-10">
             <div className="flex items-center gap-6">
                 <div className="relative">
-                    <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-2xl">
+                    <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-xl">
                         <AvatarImage src={group.photoURL || ''} className="object-cover" />
                         <AvatarFallback className="text-3xl font-black bg-secondary">{group.name.charAt(0)}</AvatarFallback>
                     </Avatar>
@@ -340,20 +344,18 @@ export default function GroupDetailPage() {
                         <CardContent className="p-8 pt-4">
                           <p className="text-muted-foreground text-sm font-medium leading-relaxed whitespace-pre-wrap">{asgn.description}</p>
                           
-                          {/* Üye Yükleme Alanı */}
                           {!isCurrentUserOwner && !mySubmission && (
                             <div className="mt-8 pt-8 border-t border-border/20">
                               <SubmissionUploader assignmentId={asgn.id} onUpload={(file) => handleUploadSubmission(asgn.id, file)} isLoading={isUploading} />
                             </div>
                           )}
 
-                          {/* Kurucu Onay Paneli */}
                           {isCurrentUserOwner && (
                             <div className="mt-8 pt-8 border-t border-border/20">
                               <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">Gelen Teslimler</h4>
                               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                                 {submissions?.filter(s => s.assignmentId === asgn.id).map(sub => (
-                                  <div key={sub.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-border/40 cursor-pointer" onClick={() => {}}>
+                                  <div key={sub.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-border/40 cursor-pointer">
                                     <Image src={sub.photoUrl} alt="Submission" fill className="object-cover" unoptimized />
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
                                       <span className="text-[10px] text-white font-bold mb-2">@{sub.userName}</span>
@@ -474,7 +476,7 @@ export default function GroupDetailPage() {
             </TabsContent>
             
             <TabsContent value="members" className="space-y-8">
-                <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-2xl overflow-hidden">
+                <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-xl overflow-hidden">
                     <CardHeader className="p-8 border-b border-border/40">
                         <CardTitle className="flex justify-between items-center">
                             <span className="text-xl font-black">Topluluk Üyeleri</span>
@@ -546,7 +548,7 @@ export default function GroupDetailPage() {
                         <CardContent className="p-8">
                           <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
                             {PRESET_AVATARS.map((avatar) => (
-                              <button key={avatar.id} onClick={async () => { try { await updateDoc(groupRef, { photoURL: avatar.url }); toast({ title: "Görsel Güncellendi" }); } catch (e) {} }} className={cn("relative aspect-square rounded-xl border-2 transition-all overflow-hidden", group.photoURL === avatar.url ? "border-primary ring-2 ring-primary/20 shadow-lg" : "border-border hover:border-primary/50")}>
+                              <button key={avatar.id} onClick={async () => { try { await updateDoc(groupRef!, { photoURL: avatar.url }); toast({ title: "Görsel Güncellendi" }); } catch (e) {} }} className={cn("relative aspect-square rounded-xl border-2 transition-all overflow-hidden", group.photoURL === avatar.url ? "border-primary ring-2 ring-primary/20 shadow-lg" : "border-border hover:border-primary/50")}>
                                 <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover" />
                                 {group.photoURL === avatar.url && <div className="absolute inset-0 bg-primary/10 flex items-center justify-center"><div className="bg-primary text-white p-1 rounded-full shadow-lg"><Check className="h-4 w-4" /></div></div>}
                               </button>
@@ -570,7 +572,7 @@ export default function GroupDetailPage() {
                             <AlertDialogTrigger asChild><Button variant="destructive" className="w-full h-12 rounded-xl font-bold shadow-lg shadow-destructive/20">Grubu Kalıcı Olarak Sil</Button></AlertDialogTrigger>
                             <AlertDialogContent className="rounded-[32px] border-border/40">
                               <AlertDialogHeader><AlertDialogTitle className="text-2xl font-black">Grubu silmek istediğinizden emin misiniz?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground font-medium"><b>{group.name}</b> grubu kalıcı olarak silinecektir.</AlertDialogDescription></AlertDialogHeader>
-                              <AlertDialogFooter className="gap-3"><AlertDialogCancel className="rounded-xl font-bold h-11">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={async () => { setIsDeleting(true); await deleteDoc(groupRef); toast({ title: "Grup Silindi" }); router.push('/groups'); }} className="rounded-xl font-bold h-11 bg-destructive">Evet, Sil</AlertDialogAction></AlertDialogFooter>
+                              <AlertDialogFooter className="gap-3"><AlertDialogCancel className="rounded-xl font-bold h-11">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={async () => { setIsDeleting(true); await deleteDoc(groupRef!); toast({ title: "Grup Silindi" }); router.push('/groups'); }} className="rounded-xl font-bold h-11 bg-destructive">Evet, Sil</AlertDialogAction></AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </CardContent>

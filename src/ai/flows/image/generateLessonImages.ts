@@ -19,7 +19,7 @@ export async function generateLessonImage(prompt: string) {
   const ai = getAI(app)
 
   const model = getGenerativeModel(ai, {
-    model: "gemini-2.0-flash-exp",
+    model: "vertexai/imagen-4.0-generate-001",
     generationConfig: {
       responseModalities: ["TEXT", "IMAGE"]
     }
