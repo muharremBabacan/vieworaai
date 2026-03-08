@@ -113,7 +113,7 @@ export default function OnboardingPage() {
 
     const results = answers as OnboardingResults;
     
-    // AI Analiz İndeksi için iki katmanlı ilk verileri oluştur
+    // AI Analiz İndeksi için iki katmanlı (Teknik + Aktivite) ilk verileri oluştur
     const initialProfileIndex: UserProfileIndex = {
       dominant_style: results.interest,
       strengths: results.approach === 'casual' ? [] : [results.approach],
@@ -123,7 +123,7 @@ export default function OnboardingPage() {
       consistency_gap: 0,
       profile_index_score: results.technical_level === 'advanced' ? 70 : results.technical_level === 'intermediate' ? 50 : 30,
       
-      // Teknik Katman
+      // 1. Teknik Katman (AI Fotoğraf Analizi Kaynaklı)
       technical: {
         composition: results.approach === 'composition' ? 6 : 4,
         light: results.approach === 'lighting' ? 6 : 4,
@@ -132,9 +132,9 @@ export default function OnboardingPage() {
         storytelling: 4
       },
 
-      // Davranış Katmanı
-      behavioral: {
-        learning_activity_score: 0,
+      // 2. Aktivite Sinyalleri (Davranış Katmanı - Kullanıcı Aktiviteleri Kaynaklı)
+      activity_signals: {
+        learning_score: 0,
         competition_score: 0,
         exhibition_score: 0,
         group_activity_score: 0

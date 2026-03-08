@@ -120,7 +120,7 @@ export default function PhotoAnalyzer() {
     const analyzedPhotos = snap.docs.map(d => d.data() as Photo);
     const count = analyzedPhotos.length;
 
-    // 1. Teknik Katman Hesaplama (Son 12 Ortalaması)
+    // 1. Teknik Katman Hesaplama (Son 12 Fotoğraf Ortalaması)
     const totals = analyzedPhotos.reduce((acc, p) => {
       const f = p.aiFeedback!;
       acc.light += normalizeScore(f.light_score);
@@ -167,14 +167,14 @@ export default function PhotoAnalyzer() {
         trendDirection = trendPercentage > 5 ? 'improving' : trendPercentage < -5 ? 'declining' : 'stagnant';
     }
 
-    // 3. Firestore Güncelleme
+    // 3. Firestore Güncelleme (Yeni Mimari: technical + activity_signals)
     const userRef = doc(firestore, 'users', userId);
     await updateDoc(userRef, {
       'profile_index.dominant_style': dominantStyle,
       'profile_index.strengths': strengths,
       'profile_index.weaknesses': weaknesses,
       'profile_index.dominant_technical_level': dominantLevel,
-      'profile_index.technical': technicalMetrics, // Teknik Katman Güncellendi
+      'profile_index.technical': technicalMetrics, // Teknik Katman Güncelleme
       'profile_index.consistency_gap': consistencyGap,
       'profile_index.trend': { direction: trendDirection, percentage: Math.abs(trendPercentage) },
       'profile_index.profile_index_score': mean * 10,

@@ -70,7 +70,7 @@ export default function GroupDetailPage() {
       });
 
       batch.update(userRef, {
-        'profile_index.behavioral.group_activity_score': increment(5) // Davranış Katmanı Güncelleme
+        'profile_index.activity_signals.group_activity_score': increment(5) // Üretim Düzeni Sinyali (Davranış Katmanı)
       });
 
       await batch.commit();
@@ -98,7 +98,7 @@ export default function GroupDetailPage() {
         })
       });
       batch.update(userRef, {
-        'profile_index.behavioral.group_activity_score': increment(1) // Davranış Katmanı Güncelleme (Yorum)
+        'profile_index.activity_signals.group_activity_score': increment(1) // Etkileşim Sinyali
       });
       await batch.commit();
     } catch (e) { console.error(e); }

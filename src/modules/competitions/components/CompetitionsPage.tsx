@@ -120,8 +120,6 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
         }
     };
 
-    const isLevelEligibleForAI = (userProfile?.current_xp || 0) >= 101;
-
     if (!competition) return null;
 
     return (
@@ -240,7 +238,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
             batch.update(userRef, {
                 auro_balance: increment(-COMPETITION_JOIN_COST),
                 total_auro_spent: increment(COMPETITION_JOIN_COST),
-                'profile_index.behavioral.competition_score': increment(10) // Davranış Katmanı Güncelleme
+                'profile_index.activity_signals.competition_score': increment(10) // Performans Sinyali (Davranış Katmanı)
             });
 
             batch.set(logRef, {

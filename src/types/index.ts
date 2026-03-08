@@ -47,9 +47,9 @@ export type UserProfileIndex = {
     storytelling: number;
   };
 
-  // 2. Davranış Katmanı (Kaynak: Kullanıcı Aktiviteleri)
-  behavioral: {
-    learning_activity_score: number;
+  // 2. Aktivite Sinyalleri (Kaynak: Kullanıcı Aktiviteleri)
+  activity_signals: {
+    learning_score: number;
     competition_score: number;
     exhibition_score: number;
     group_activity_score: number;

@@ -296,7 +296,7 @@ export default function AcademyLevelPage() {
         batch.update(userRef, { 
             current_xp: increment(xpGain),
             auro_balance: increment(auroGain),
-            'profile_index.behavioral.learning_activity_score': increment(5) // Davranış Katmanı Güncelleme
+            'profile_index.activity_signals.learning_score': increment(5) // Öğrenme Sinyali (Davranış Katmanı)
         });
 
         await batch.commit();
