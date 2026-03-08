@@ -34,7 +34,6 @@ export default function GroupDetailPage() {
 
   const [activeTab, setActiveTab] = useState('assignments');
   const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isSyncingProfile, setIsSyncingProfile] = useState(false);
 
   // 1. Group Data
@@ -91,6 +90,7 @@ export default function GroupDetailPage() {
     setIsUploading(true);
     try {
       const hash = Math.random().toString(36).substring(7);
+      // Path must start with user.uid to satisfy storage rules
       const storagePath = `groups/${group.id}/submissions/${assignmentId}/${user.uid}-${hash}.jpg`;
       const storageRef = ref(storage, storagePath);
       await uploadBytes(storageRef, file);
@@ -121,7 +121,8 @@ export default function GroupDetailPage() {
       await batch.commit();
       toast({ title: "Başarıyla Yüklendi" });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Hata" });
+      console.error("Upload error:", e);
+      toast({ variant: 'destructive', title: "Yükleme Hatası", description: "Dosya yüklenirken bir sorun oluştu." });
     } finally {
       setIsUploading(false);
     }
@@ -170,7 +171,7 @@ export default function GroupDetailPage() {
         <TabsList className="bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40">
           <TabsTrigger value="assignments" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
           <TabsTrigger value="gallery" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Galeri</TabsTrigger>
-          <TabsTrigger value="members" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Sınıf Listesi</TabsTrigger>
+          <TabsTrigger value="members" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Grup Listesi</TabsTrigger>
           {isCurrentUserOwner && <TabsTrigger value="admin" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl text-amber-500">Kurucu Paneli</TabsTrigger>}
         </TabsList>
 
@@ -259,7 +260,7 @@ export default function GroupDetailPage() {
         <TabsContent value="members" className="space-y-8">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
             <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
-              <CardTitle className="text-xl font-black tracking-tight flex items-center gap-3"><Users className="text-primary h-6 w-6" /> Sınıf Listesi</CardTitle>
+              <CardTitle className="text-xl font-black tracking-tight flex items-center gap-3"><Users className="text-primary h-6 w-6" /> Grup Listesi</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
@@ -277,7 +278,6 @@ export default function GroupDetailPage() {
                           {isOwner && <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-amber-500 border-2 border-background flex items-center justify-center shadow-lg"><Crown size={12} className="text-black" /></div>}
                         </div>
                         <div>
-                          {/* Hydration fix: Changed <p> to <div> because it contains <Badge> (which was a <div>) */}
                           <div className="text-lg font-black tracking-tight flex items-center gap-2">
                             {profile ? profile.name : <span className="text-muted-foreground italic font-medium">Yükleniyor...</span>}
                             {profile?.id === user?.uid && <Badge variant="outline" className="text-[8px] font-black h-4 px-1.5 border-primary text-primary uppercase">SEN</Badge>}
@@ -286,7 +286,7 @@ export default function GroupDetailPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" className="rounded-xl font-black text-[9px] uppercase tracking-widest h-8 border border-border/40">Profilleri Gör</Button>
+                        <Button variant="ghost" size="sm" className="rounded-xl font-black text-[9px] uppercase tracking-widest h-8 border border-border/40">Profili Gör</Button>
                       </div>
                     </div>
                   );
