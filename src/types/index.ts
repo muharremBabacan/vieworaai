@@ -26,6 +26,7 @@ export type OnboardingResults = {
 };
 
 export type UserProfileIndex = {
+  // Metadata & Derived Summary
   dominant_style: string;
   strengths: string[];
   weaknesses: string[];
@@ -35,19 +36,30 @@ export type UserProfileIndex = {
     percentage: number;
   };
   consistency_gap: number;
-  metrics?: {
+  profile_index_score: number;
+
+  // 1. Teknik Katman (Kaynak: AI Fotoğraf Analizi)
+  technical: {
     composition: number;
     light: number;
-    storytelling: number;
     technical_clarity: number;
     boldness: number;
+    storytelling: number;
   };
+
+  // 2. Davranış Katmanı (Kaynak: Kullanıcı Aktiviteleri)
+  behavioral: {
+    learning_activity_score: number;
+    competition_score: number;
+    exhibition_score: number;
+    group_activity_score: number;
+  };
+
   communication_profile: {
     tone: 'supportive' | 'direct' | 'analytical';
     explanation_depth: 'low' | 'medium' | 'high';
     challenge_level: number;
   };
-  profile_index_score: number;
 };
 
 export type User = {

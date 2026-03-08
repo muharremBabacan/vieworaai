@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
@@ -21,15 +22,21 @@ import { useRouter } from 'next/navigation';
 
 const COMPETITION_JOIN_COST = 2;
 
-const getPrizePercentage = (level: string) => {
-    switch (level) {
-        case 'Vexer': return 0.75;
-        case 'Omner': return 0.60;
-        case 'Sytner': return 0.50;
-        case 'Viewner': return 0.40;
-        case 'Neuner': 
-        default: return 0.30;
-    }
+const normalizeScore = (score: number | undefined | null): number => {
+    if (score === undefined || score === null || !isFinite(score)) return 0;
+    return score > 1 ? score : score * 10;
+};
+
+const getOverallScore = (photo: Photo): number => {
+    if (!photo.aiFeedback) return 0;
+    const scores = [
+        normalizeScore(photo.aiFeedback.light_score),
+        normalizeScore(photo.aiFeedback.composition_score),
+        normalizeScore(photo.aiFeedback.technical_clarity_score),
+        normalizeScore(photo.aiFeedback.storytelling_score),
+        normalizeScore(photo.aiFeedback.boldness_score)
+    ].filter(s => s > 0);
+    return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
 };
 
 const getCompetitionStatus = (startDate: string, endDate: string) => {
@@ -39,11 +46,6 @@ const getCompetitionStatus = (startDate: string, endDate: string) => {
     if (now < start) return 'upcoming';
     if (now > end) return 'ended';
     return 'active';
-};
-
-const normalizeScore = (score: number | undefined | null): number => {
-    if (score === undefined || score === null || !isFinite(score)) return 0;
-    return score > 1 ? score : score * 10;
 };
 
 const StatusBadge = ({ status }: { status: 'active' | 'upcoming' | 'ended' }) => {
@@ -136,15 +138,6 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
                                     return (
                                         <div key={e.id} className="group relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-muted/20 cursor-pointer" onClick={() => setSelectedEntry(e)}>
                                             <Image src={e.photoUrl} alt="Eser" fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
-                                            
-                                            <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all translate-y-[-5px] group-hover:translate-y-0">
-                                                {e.aiScore && (
-                                                    <Badge className="bg-black/50 backdrop-blur-md border-white/10 px-1.5 h-6 font-black text-[8px]">
-                                                        <Star className="h-2.5 w-2.5 text-yellow-400 mr-1 fill-current" /> {e.aiScore.toFixed(1)}
-                                                    </Badge>
-                                                )}
-                                            </div>
-
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
                                                 <p className="text-[10px] font-bold text-white truncate drop-shadow-md">@{e.userName}</p>
@@ -155,9 +148,6 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
                                                     onClick={(ev) => handleToggleLike(e, ev)}
                                                 >
                                                     <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
-                                                    {e.votes && e.votes.length > 0 && (
-                                                        <span className="absolute -top-1 -right-1 text-[8px] font-black bg-red-500 text-white px-1 rounded-full border border-black">{e.votes.length}</span>
-                                                    )}
                                                 </Button>
                                             </div>
                                         </div>
@@ -171,7 +161,6 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
                 </DialogContent>
             </Dialog>
 
-            {/* Entry Detay Dialog */}
             <Dialog open={!!selectedEntry} onOpenChange={(o) => !o && setSelectedEntry(null)}>
                 {selectedEntry && (
                     <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row">
@@ -190,30 +179,10 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
                                 </DialogTitle>
                                 <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">Sanatçı: @{selectedEntry.userName}</DialogDescription>
                             </DialogHeader>
-
-                            <div className="space-y-6">
-                                {isLevelEligibleForAI ? (
-                                    <div className="space-y-4">
-                                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 text-xs italic font-medium leading-relaxed">
-                                            "Bu yarışma eseri Luma tarafından {selectedEntry.aiScore?.toFixed(1)} genel skorla değerlendirilmiştir."
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <Card className="p-8 border-dashed border-border/60 bg-muted/10 text-center space-y-4 rounded-[32px]">
-                                        <Lock className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-black uppercase tracking-tighter">Analiz Verileri Kilitli</p>
-                                            <p className="text-[10px] text-muted-foreground leading-relaxed">Yarışma eserlerinin analizlerini görmek için <b>Viewner</b> seviyesine ulaşmalısın (101+ XP).</p>
-                                        </div>
-                                        <Button variant="outline" size="sm" className="rounded-xl text-[10px] font-bold uppercase tracking-widest h-8" onClick={() => { setSelectedEntry(null); onOpenChange(false); router.push('/academy'); }}>Gelişmeye Başla</Button>
-                                    </Card>
-                                )}
-
-                                <div className="flex items-center gap-4 py-4 border-t border-border/40">
-                                    <div className="flex items-center gap-2 text-red-500 bg-red-500/5 px-4 py-2 rounded-full border border-red-500/10 shadow-inner">
-                                        <Heart className="h-4 w-4 fill-current" />
-                                        <span className="text-sm font-black">{selectedEntry.votes?.length || 0} Beğeni</span>
-                                    </div>
+                            <div className="flex items-center gap-4 py-4 border-t border-border/40">
+                                <div className="flex items-center gap-2 text-red-500 bg-red-500/5 px-4 py-2 rounded-full border border-red-500/10 shadow-inner">
+                                    <Heart className="h-4 w-4 fill-current" />
+                                    <span className="text-sm font-black">{selectedEntry.votes?.length || 0} Beğeni</span>
                                 </div>
                             </div>
                         </div>
@@ -239,11 +208,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
         if (!selectedPhotoId || !competition || !userProfile || !firestore) return;
         
         if (userProfile.auro_balance < COMPETITION_JOIN_COST) {
-            toast({
-                variant: 'destructive',
-                title: "Yetersiz Pix",
-                description: `Yarışmaya katılmak için ${COMPETITION_JOIN_COST} Pix gereklidir.`,
-            });
+            toast({ variant: 'destructive', title: "Yetersiz Pix" });
             return;
         }
 
@@ -257,8 +222,6 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
             const compRef = doc(firestore, 'competitions', competition.id);
             const logRef = doc(collection(firestore, 'analysis_logs'));
             const userRef = doc(firestore, 'users', userProfile.id);
-            const today = new Date().toISOString().split('T')[0];
-            const statRef = doc(firestore, 'global_stats', `daily_${today}`);
 
             batch.set(entryRef, {
                 id: entryRef.id,
@@ -273,16 +236,14 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 award: 'participant'
             });
 
-            batch.update(compRef, {
-                participantCount: increment(1)
-            });
-
+            batch.update(compRef, { participantCount: increment(1) });
             batch.update(userRef, {
                 auro_balance: increment(-COMPETITION_JOIN_COST),
-                total_auro_spent: increment(COMPETITION_JOIN_COST)
+                total_auro_spent: increment(COMPETITION_JOIN_COST),
+                'profile_index.behavioral.competition_score': increment(10) // Davranış Katmanı Güncelleme
             });
 
-            const log: AnalysisLog = {
+            batch.set(logRef, {
                 id: logRef.id,
                 userId: userProfile.id,
                 userName: userProfile.name || 'Sanatçı',
@@ -290,16 +251,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 auroSpent: COMPETITION_JOIN_COST,
                 timestamp: new Date().toISOString(),
                 status: 'success'
-            };
-            batch.set(logRef, log);
-            
-            batch.set(statRef, { 
-                date: today,
-                auroSpent: increment(COMPETITION_JOIN_COST)
-            }, { merge: true });
+            } as AnalysisLog);
 
             await batch.commit();
-            toast({ title: "Tebrikler!", description: `Yarışmaya katıldınız ve ${COMPETITION_JOIN_COST} Pix karşılığında Katılım Şilti kazandınız!` });
+            toast({ title: "Tebrikler!", description: "Yarışmaya katıldınız." });
             setSelectedPhotoId(null);
             onOpenChange(false);
         } catch (error) {
@@ -309,20 +264,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     
     if (!competition) return null;
     const status = getCompetitionStatus(competition.startDate, competition.endDate);
-    const isEligible = userProfile?.level_name === competition.targetLevel || competition.targetLevel === 'Neuner';
-
-    const currentParticipants = competition.participantCount || 0;
-    const poolPercentage = getPrizePercentage(competition.targetLevel);
-    const totalCollected = currentParticipants * COMPETITION_JOIN_COST;
-    const estimatedPrizePool = Math.floor(totalCollected * poolPercentage);
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[95vh] p-0 overflow-hidden border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl">
-                <DialogHeader className="sr-only">
-                    <DialogTitle>{competition.title}</DialogTitle>
-                    <DialogDescription>{competition.description}</DialogDescription>
-                </DialogHeader>
                 <ScrollArea className="max-h-[95vh] w-full">
                     <div className="flex flex-col">
                         <div className="relative h-48 w-full shrink-0">
@@ -332,60 +277,31 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                     <StatusBadge status={status} />
                                     <ScoringModelBadge model={competition.scoringModel} />
-                                    <Badge variant="outline" className="h-5 px-2 bg-primary/10 text-primary border-primary/20 text-[10px] font-bold uppercase">{competition.targetLevel} SEVİYESİ</Badge>
                                 </div>
                                 <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md">{competition.title}</h2>
                             </div>
                         </div>
                         <div className="p-6 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                                <div className="md:col-span-7 space-y-6">
-                                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/40">
-                                        <h3 className="text-xs font-bold mb-2 uppercase tracking-widest text-muted-foreground">Yarışma Hakkında</h3>
-                                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-3 rounded-xl bg-card border border-border/40 flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0"><Star className="h-4 w-4 text-purple-400" /></div>
-                                            <div className="min-w-0"><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight">Tema</p><p className="text-xs font-bold truncate">{competition.theme}</p></div>
-                                        </div>
-                                        <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0"><Trophy className="h-4 w-4 text-primary" /></div>
-                                            <div className="min-w-0">
-                                                <p className="text-[9px] text-primary uppercase font-black tracking-tight">Dinamik Ödül</p>
-                                                <p className="text-xs font-black truncate text-primary">{estimatedPrizePool} Pix</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="md:col-span-5 space-y-4">
-                                    {status === 'active' && isEligible && (
-                                        <div className="space-y-3">
-                                            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Galerimden Seç</h4>
-                                            <ScrollArea className="h-48 border rounded-xl p-2 bg-muted/10">
-                                                {isPhotosLoading ? <Skeleton className="h-32 w-full" /> : 
-                                                 analyzedPhotos.length > 0 ? (
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {analyzedPhotos.map(photo => (
-                                                            <button key={photo.id} onClick={() => setSelectedPhotoId(photo.id)} className={cn("relative aspect-square rounded-lg overflow-hidden border-2", selectedPhotoId === photo.id ? "border-primary ring-2 ring-primary/20" : "border-transparent")}>
-                                                                <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover" unoptimized />
-                                                                {selectedPhotoId === photo.id && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><div className="bg-primary text-white p-1 rounded-full"><CheckCircle2 className="h-4 w-4" /></div></div>}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                ) : <p className="text-[10px] text-muted-foreground text-center py-10">Analizli fotoğraf bulunamadı.</p>}
-                                            </ScrollArea>
-                                            <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">
-                                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                                                    <div className="flex items-center gap-2">
-                                                        <Gem className="h-4 w-4" /> Katılımı Tamamla ({COMPETITION_JOIN_COST} Pix)
-                                                    </div>
-                                                )}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
+                            <div className="bg-secondary/20 p-4 rounded-xl border border-border/40">
+                                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{competition.description}</p>
                             </div>
+                            {status === 'active' && (
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Galerimden Seç</h4>
+                                    <ScrollArea className="h-48 border rounded-xl p-2 bg-muted/10">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {analyzedPhotos.map(photo => (
+                                                <button key={photo.id} onClick={() => setSelectedPhotoId(photo.id)} className={cn("relative aspect-square rounded-lg overflow-hidden border-2", selectedPhotoId === photo.id ? "border-primary" : "border-transparent")}>
+                                                    <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover" unoptimized />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                    <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">
+                                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Katılımı Tamamla (${COMPETITION_JOIN_COST} Pix)`}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </ScrollArea>
@@ -414,32 +330,14 @@ export default function CompetitionsPage() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {competitions.map(comp => {
                         const status = getCompetitionStatus(comp.startDate, comp.endDate);
-                        const poolPercentage = getPrizePercentage(comp.targetLevel);
-                        const estimatedPrize = Math.floor((comp.participantCount || 0) * COMPETITION_JOIN_COST * poolPercentage);
-
                         return (
                             <Card key={comp.id} className="overflow-hidden flex flex-col group border-border/50 rounded-3xl bg-card/50">
                                 <div className="relative h-52 w-full overflow-hidden">
-                                    <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover transition-transform group-hover:scale-110" unoptimized />
-                                    <div className="absolute top-4 left-4 flex flex-col gap-2">
-                                        <div className="flex gap-2"><StatusBadge status={status} /><ScoringModelBadge model={comp.scoringModel} /></div>
-                                        {status === 'active' && <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white"><Countdown endDate={comp.endDate} /></div>}
-                                    </div>
+                                    <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover" unoptimized />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                                     <h2 className="absolute bottom-4 left-5 right-5 text-xl font-bold text-white truncate">{comp.title}</h2>
                                 </div>
                                 <CardContent className="p-6 flex flex-col flex-grow">
-                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-6 h-10">{comp.description}</p>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Güncel Ödül</span>
-                                            <p className="text-lg font-black text-primary">{estimatedPrize} <span className="text-xs">Pix</span></p>
-                                        </div>
-                                        <div className="space-y-1 text-right">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Katılım</span>
-                                            <p className="text-sm font-bold">{comp.participantCount || 0} Kişi</p>
-                                        </div>
-                                    </div>
                                     <div className="mt-auto space-y-3">
                                         <Button className="w-full rounded-xl h-11 font-bold" variant={status === 'active' ? 'default' : 'secondary'} onClick={() => { setSelectedCompetition(comp); setIsDetailOpen(true); }}>{status === 'active' ? 'Hemen Katıl' : 'Detayları Gör'}</Button>
                                         <Button variant="ghost" className="w-full text-xs h-9" onClick={() => { setCompetitionForEntries(comp); setIsEntriesOpen(true); }}><LayoutGrid className="mr-2 h-3.5 w-3.5" /> Katılımları Görüntüle</Button>

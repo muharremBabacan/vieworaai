@@ -106,7 +106,6 @@ export default function PhotoAnalyzer() {
   const updateUserProfileIndex = async (userId: string, newOverallScore: number) => {
     if (!firestore) return;
     
-    // 1. Fetch last 12 analyzed photos
     const photosRef = collection(firestore, 'users', userId, 'photos');
     const q = query(
       photosRef, 
@@ -121,7 +120,7 @@ export default function PhotoAnalyzer() {
     const analyzedPhotos = snap.docs.map(d => d.data() as Photo);
     const count = analyzedPhotos.length;
 
-    // 2. Metrics calculation (Avg of last 12)
+    // 1. Teknik Katman Hesaplama (Son 12 Ortalaması)
     const totals = analyzedPhotos.reduce((acc, p) => {
       const f = p.aiFeedback!;
       acc.light += normalizeScore(f.light_score);
@@ -133,7 +132,7 @@ export default function PhotoAnalyzer() {
       return acc;
     }, { light: 0, composition: 0, clarity: 0, story: 0, boldness: 0, overall: [] as number[] });
 
-    const currentMetrics = {
+    const technicalMetrics = {
       light: totals.light / count,
       composition: totals.composition / count,
       technical_clarity: totals.clarity / count,
@@ -141,28 +140,24 @@ export default function PhotoAnalyzer() {
       boldness: totals.boldness / count
     };
 
-    // 3. Dominant Style (Tags analysis)
+    // 2. Baskın Stil & Yönler
     const allTags = analyzedPhotos.flatMap(p => p.tags || []);
     const tagCounts: Record<string, number> = {};
     allTags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
     const dominantStyle = Object.entries(tagCounts).sort((a,b) => b[1] - a[1])[0]?.[0] || "unknown";
 
-    // 4. Strengths & Weaknesses
-    const metricEntries = Object.entries(currentMetrics);
+    const metricEntries = Object.entries(technicalMetrics);
     const strengths = [metricEntries.sort((a,b) => b[1] - a[1])[0][0]];
     const weaknesses = [metricEntries.sort((a,b) => a[1] - b[1])[0][0]];
 
-    // 5. Technical Level
-    const totalAvg = (currentMetrics.light + currentMetrics.composition + currentMetrics.technical_clarity) / 3;
+    const totalAvg = (technicalMetrics.light + technicalMetrics.composition + technicalMetrics.technical_clarity) / 3;
     const dominantLevel = totalAvg > 7 ? 'advanced' : totalAvg > 4 ? 'intermediate' : 'beginner';
 
-    // 6. Consistency Gap (Standard Deviation of overall scores)
     const mean = totals.overall.reduce((a, b) => a + b, 0) / count;
     const variance = totals.overall.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count;
     const stdDev = Math.sqrt(variance);
-    const consistencyGap = Math.round(stdDev * 10); // Standard deviation based gap index
+    const consistencyGap = Math.round(stdDev * 10);
 
-    // 7. Trend
     let trendDirection: 'improving' | 'stagnant' | 'declining' = 'stagnant';
     let trendPercentage = 0;
     if (count > 1) {
@@ -172,14 +167,14 @@ export default function PhotoAnalyzer() {
         trendDirection = trendPercentage > 5 ? 'improving' : trendPercentage < -5 ? 'declining' : 'stagnant';
     }
 
-    // 8. Update Firestore
+    // 3. Firestore Güncelleme
     const userRef = doc(firestore, 'users', userId);
     await updateDoc(userRef, {
       'profile_index.dominant_style': dominantStyle,
       'profile_index.strengths': strengths,
       'profile_index.weaknesses': weaknesses,
       'profile_index.dominant_technical_level': dominantLevel,
-      'profile_index.metrics': currentMetrics,
+      'profile_index.technical': technicalMetrics, // Teknik Katman Güncellendi
       'profile_index.consistency_gap': consistencyGap,
       'profile_index.trend': { direction: trendDirection, percentage: Math.abs(trendPercentage) },
       'profile_index.profile_index_score': mean * 10,
@@ -194,9 +189,9 @@ export default function PhotoAnalyzer() {
       toast({ 
         variant: 'destructive', 
         title: `Yetersiz ${currencyName}`, 
-        description: `Bu analiz derinliği için ${analysisCost} ${currencyName} gereklidir. Mevcut bakiyen: ${userProfile.auro_balance} ${currencyName}.`,
+        description: `Bu analiz derinliği için ${analysisCost} ${currencyName} gereklidir.`,
         action: (
-          <Button variant="outline" size="sm" onClick={() => router.push('/pricing')} className="bg-primary text-primary-foreground border-none">
+          <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>
             {currencyName} Yükle
           </Button>
         )
@@ -213,7 +208,7 @@ export default function PhotoAnalyzer() {
 
       if (!dupSnap.empty) {
         setIsDuplicate(true);
-        toast({ variant: 'destructive', title: 'Bu kare zaten galerinizde.', description: 'Aynı fotoğrafı tekrar yükleyemezsiniz.' });
+        toast({ variant: 'destructive', title: 'Bu kare zaten galerinizde.' });
         setIsLoading(false);
         return;
       }
@@ -268,14 +263,6 @@ export default function PhotoAnalyzer() {
           timestamp: new Date().toISOString(),
           status: 'success'
         } as AnalysisLog);
-
-        const today = new Date().toISOString().split('T')[0];
-        const statRef = doc(firestore, 'global_stats', `daily_${today}`);
-        batch.set(statRef, { 
-          date: today,
-          auroSpent: increment(analysisCost),
-          technicalAnalyses: increment(1)
-        }, { merge: true });
       }
 
       batch.set(photoDocRef, photoData);
@@ -284,7 +271,6 @@ export default function PhotoAnalyzer() {
       await batch.commit();
       
       if (analyze) {
-        // Update the Profile Index with scientific metrics after analysis
         await updateUserProfileIndex(user.uid, overallScore);
         setAnalysisResult(photoData);
         toast({ title: 'Analiz Tamamlandı' });
@@ -301,18 +287,6 @@ export default function PhotoAnalyzer() {
     }
   };
 
-  const getRecommendation = () => {
-    if (!userProfile) return null;
-    const count = userProfile.total_analyses_count || 0;
-    if (userProfile.tier === 'start' && count >= 5) {
-      return "Teknik analizlerin güçleniyor! Luma Pro'ya geçerek 'Cesur Kadraj' ve 'Hikayeleştirme' metriklerini açmaya ne dersin?";
-    }
-    if (userProfile.tier === 'pro' && count >= 10) {
-      return "Artık bir usta adayısın. Luma Master ile fotoğraflarındaki objeleri işaretleyip stil analizi yaptırabilirsin.";
-    }
-    return "Luma ile her analiz, vizyonunu bir adım öteye taşır.";
-  };
-
   const resetAnalyzer = () => {
     setFile(null);
     setPreview(null);
@@ -325,27 +299,6 @@ export default function PhotoAnalyzer() {
 
   return (
     <div className="container mx-auto px-4 pt-10 pb-20 animate-in fade-in duration-700">
-      <div className="max-w-4xl mx-auto mb-10 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="p-6 bg-primary/5 border-primary/20 rounded-[24px] flex items-center gap-4 shadow-sm">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Analiz Serüvenin</p>
-            <p className="text-xl font-black">{userProfile?.total_analyses_count || 0} <span className="text-xs font-bold text-muted-foreground uppercase ml-1">Derin Analiz</span></p>
-          </div>
-        </Card>
-        <Card className="p-6 bg-secondary/20 border-border/40 rounded-[24px] flex items-center gap-4 shadow-sm">
-          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
-            <Sparkles size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Luma Tavsiyesi</p>
-            <p className="text-xs font-bold leading-tight">{getRecommendation()}</p>
-          </div>
-        </Card>
-      </div>
-
       {analysisResult ? (
         <Card className="max-w-5xl mx-auto rounded-[48px] border-border/40 bg-card/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-700">
           <div className="flex flex-col md:flex-row">
@@ -365,27 +318,14 @@ export default function PhotoAnalyzer() {
 
               <div className="space-y-6">
                 <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Teknik Metrikler</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Teknik Katman (AI)</h4>
                   <div className="space-y-4">
                     <RatingBar label="Işık" score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
                     <RatingBar label="Kompozisyon" score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
                     <RatingBar label="Teknik Netlik" score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
-                    <RatingBar 
-                      label="Hikaye Anlatımı" 
-                      score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} 
-                      isLocked={analysisResult.analysisTier === 'start'} 
-                    />
-                    <RatingBar 
-                      label="Cesur Kadraj" 
-                      score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} 
-                      isLocked={analysisResult.analysisTier === 'start'} 
-                    />
+                    <RatingBar label="Hikaye Anlatımı" score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} isLocked={analysisResult.analysisTier === 'start'} />
+                    <RatingBar label="Cesur Kadraj" score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
                   </div>
-                  {analysisResult.analysisTier === 'start' && (
-                    <Button variant="link" onClick={() => router.push('/pricing')} className="mt-4 p-0 h-auto text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1">
-                      Paketini Yükselt ve Tüm Metrikleri Aç <ChevronRight className="h-3 w-3" />
-                    </Button>
-                  )}
                 </Card>
 
                 <div className="space-y-2">
@@ -394,14 +334,6 @@ export default function PhotoAnalyzer() {
                     "{analysisResult.aiFeedback!.short_neutral_analysis}"
                   </p>
                 </div>
-
-                {analysisResult.tags && analysisResult.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {analysisResult.tags.map((t, i) => (
-                      <Badge key={i} variant="secondary" className="text-[9px] bg-secondary/50 uppercase font-black px-3 h-6 border-none">{t}</Badge>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <div className="pt-8 border-t border-border/40 mt-auto">
@@ -435,30 +367,18 @@ export default function PhotoAnalyzer() {
                 <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
                   <Gem className="h-4 w-4 text-cyan-400" /> 1 <span className="text-[9px] uppercase">{currencyName}</span>
                 </div>
-                <ul className="text-[10px] text-left space-y-1 mb-4 font-bold">
-                  <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> 3 Temel Metrik</li>
-                  <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Kısa Yorum</li>
-                </ul>
               </Card>
               <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'pro' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
                 <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Pro</p>
                 <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
                   <Gem className="h-4 w-4 text-cyan-400" /> 2 <span className="text-[9px] uppercase">{currencyName}</span>
                 </div>
-                <ul className="text-[10px] text-left space-y-1 mb-4 font-bold">
-                  <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> 5 Derin Metrik</li>
-                  <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> AI Stratejik Koç</li>
-                </ul>
               </Card>
               <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'master' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
                 <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Master</p>
                 <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
                   <Gem className="h-4 w-4 text-cyan-400" /> 3 <span className="text-[9px] uppercase">{currencyName}</span>
                 </div>
-                <ul className="text-[10px] text-left space-y-1 mb-4 font-bold">
-                  <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Görsel İşaretleme</li>
-                  <li className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Stil Analizi</li>
-                </ul>
               </Card>
             </div>
 
@@ -480,11 +400,9 @@ export default function PhotoAnalyzer() {
                 disabled={isDuplicate || isLoading}
                 className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest"
               >
-                Sadece Yükle (Ücretsiz)
+                Sadece Yükle
               </Button>
             </div>
-            
-            <Button variant="ghost" className="text-muted-foreground hover:text-destructive font-black uppercase text-[10px] tracking-widest" onClick={() => { setFile(null); setPreview(null); }}>İptal Et</Button>
           </div>
         </Card>
       )}

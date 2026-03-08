@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/shared/hooks/use-toast';
-import { Loader2, Smartphone, Camera, Layers, Users, Map, Utensils, Share2, Palette, Zap, Layout, Eye, XCircle, Settings, Sliders, Target, Heart, GraduationCap, Briefcase, AlertCircle } from 'lucide-react';
+import { Loader2, Smartphone, Camera, Layers, Users, Map, Utensils, Share2, Palette, Zap, Layout, Eye, XCircle, Settings, Sliders, Heart, GraduationCap, Briefcase, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/core/components/logo';
 
@@ -112,7 +113,7 @@ export default function OnboardingPage() {
 
     const results = answers as OnboardingResults;
     
-    // AI Analiz İndeksi için ilk verileri oluştur
+    // AI Analiz İndeksi için iki katmanlı ilk verileri oluştur
     const initialProfileIndex: UserProfileIndex = {
       dominant_style: results.interest,
       strengths: results.approach === 'casual' ? [] : [results.approach],
@@ -121,6 +122,24 @@ export default function OnboardingPage() {
       trend: { direction: 'stagnant', percentage: 0 },
       consistency_gap: 0,
       profile_index_score: results.technical_level === 'advanced' ? 70 : results.technical_level === 'intermediate' ? 50 : 30,
+      
+      // Teknik Katman
+      technical: {
+        composition: results.approach === 'composition' ? 6 : 4,
+        light: results.approach === 'lighting' ? 6 : 4,
+        technical_clarity: results.technical_level === 'advanced' ? 7 : results.technical_level === 'intermediate' ? 5 : 3,
+        boldness: 4,
+        storytelling: 4
+      },
+
+      // Davranış Katmanı
+      behavioral: {
+        learning_activity_score: 0,
+        competition_score: 0,
+        exhibition_score: 0,
+        group_activity_score: 0
+      },
+
       communication_profile: {
         tone: results.motivation === 'professional' ? 'direct' : 'supportive',
         explanation_depth: results.technical_level === 'beginner' ? 'medium' : 'high',

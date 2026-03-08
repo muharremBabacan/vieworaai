@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -244,17 +245,6 @@ export default function AcademyLevelPage() {
     const level = params.level as string;
     const levelFormatted = level.charAt(0).toUpperCase() + level.slice(1);
     
-    const validLevels = ['temel', 'orta', 'ileri'];
-    if (!validLevels.includes(level)) {
-        return (
-            <div className="container text-center">
-                <h1 className="text-2xl font-bold">Geçersiz Seviye</h1>
-                <p className="text-muted-foreground">Aradığınız eğitim seviyesi bulunamadı.</p>
-                <Button onClick={() => router.push('/academy')} className="mt-4">Akademi'ye Dön</Button>
-            </div>
-        );
-    }
-    
     const lessonsQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'academy_lessons'), where('level', '==', levelFormatted), orderBy('createdAt', 'desc')) : null,
         [firestore, levelFormatted]
@@ -305,38 +295,19 @@ export default function AcademyLevelPage() {
         batch.set(progressRef, { lessonId, isCompleted: true, completedAt: new Date().toISOString() });
         batch.update(userRef, { 
             current_xp: increment(xpGain),
-            auro_balance: increment(auroGain)
+            auro_balance: increment(auroGain),
+            'profile_index.behavioral.learning_activity_score': increment(5) // Davranış Katmanı Güncelleme
         });
 
-        batch.commit().catch(async (err) => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: 'academy-complete-batch',
-                operation: 'write'
-            }));
-        });
-
+        await batch.commit();
         toast({ title: "Ödül Kazandın!", description: `Bu dersten ${xpGain} XP ve ${auroGain} ${currencyName} kazandın.` });
 
         const oldLevel = getLevelFromXp(userProfile.current_xp);
         const newLevel = getLevelFromXp(userProfile.current_xp + xpGain);
 
         if (newLevel.name !== oldLevel.name) {
-            updateDoc(userRef, { level_name: newLevel.name }).catch(async (err) => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: userRef.path,
-                    operation: 'update'
-                }));
-            });
+            await updateDoc(userRef, { level_name: newLevel.name });
             toast({ title: "🎉 Seviye Atladın!", description: `Tebrikler! Yeni seviyen: ${newLevel.name}` });
-            if (newLevel.isMentor && !oldLevel.isMentor) {
-                updateDoc(userRef, { is_mentor: true }).catch(async (err) => {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: userRef.path,
-                        operation: 'update'
-                    }));
-                });
-                toast({ title: "👑 Mentor Oldun!", description: "Tebrikler! Artık bir Vexer olarak mentorluk yapabilirsin." });
-            }
         }
     };
     
@@ -353,13 +324,7 @@ export default function AcademyLevelPage() {
                             <Skeleton className="h-8 w-1/4 mb-4" />
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {[...Array(3)].map((_, j) => (
-                                    <Card key={j}>
-                                        <Skeleton className="aspect-video" />
-                                        <CardContent className="p-4">
-                                            <Skeleton className="h-5 w-3/4 mb-2" />
-                                            <Skeleton className="h-4 w-1/2" />
-                                        </CardContent>
-                                    </Card>
+                                    <Card key={j}><Skeleton className="aspect-video" /><CardContent className="p-4"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>
                                 ))}
                             </div>
                         </div>
@@ -386,7 +351,6 @@ export default function AcademyLevelPage() {
             ) : (
                 <div className="text-center py-16">
                      <h2 className="text-xl font-semibold">Bu Seviyede Henüz Ders Yok</h2>
-                    <p className="text-muted-foreground mt-2">Profil sayfasından yönetici aracıyla bu seviyeye ait dersler oluşturun.</p>
                 </div>
             )}
         </div>
