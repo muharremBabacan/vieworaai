@@ -5,7 +5,7 @@ import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy, limit, updateDoc, arrayUnion } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -103,16 +103,16 @@ export default function PhotoAnalyzer() {
     accept: { 'image/*': ['.jpeg', '.png', '.jpg', '.webp'] }
   });
 
-  const updateProfileIndexMetrics = async (userId: string) => {
+  const updateUserProfileIndex = async (userId: string, newOverallScore: number) => {
     if (!firestore) return;
     
-    // Son 5 analiz edilmiş fotoğrafı çek
+    // 1. Fetch last 12 analyzed photos
     const photosRef = collection(firestore, 'users', userId, 'photos');
     const q = query(
       photosRef, 
       where('aiFeedback', '!=', null), 
       orderBy('createdAt', 'desc'), 
-      limit(5)
+      limit(12)
     );
     
     const snap = await getDocs(q);
@@ -121,6 +121,7 @@ export default function PhotoAnalyzer() {
     const analyzedPhotos = snap.docs.map(d => d.data() as Photo);
     const count = analyzedPhotos.length;
 
+    // 2. Metrics calculation (Avg of last 12)
     const totals = analyzedPhotos.reduce((acc, p) => {
       const f = p.aiFeedback!;
       acc.light += normalizeScore(f.light_score);
@@ -128,10 +129,11 @@ export default function PhotoAnalyzer() {
       acc.clarity += normalizeScore(f.technical_clarity_score);
       acc.story += normalizeScore(f.storytelling_score || 0);
       acc.boldness += normalizeScore(f.boldness_score || 0);
+      acc.overall.push(getOverallScore(p));
       return acc;
-    }, { light: 0, composition: 0, clarity: 0, story: 0, boldness: 0 });
+    }, { light: 0, composition: 0, clarity: 0, story: 0, boldness: 0, overall: [] as number[] });
 
-    const newMetrics = {
+    const currentMetrics = {
       light: totals.light / count,
       composition: totals.composition / count,
       technical_clarity: totals.clarity / count,
@@ -139,19 +141,50 @@ export default function PhotoAnalyzer() {
       boldness: totals.boldness / count
     };
 
-    // Kullanıcının profile_index'ini güncelle
-    const userRef = doc(firestore, 'users', userId);
-    const userSnap = await getDocs(query(collection(firestore, 'users'), where('id', '==', userId)));
-    
-    if (!userSnap.empty) {
-      const userData = userSnap.docs[0].data() as User;
-      const currentProfileIndex = userData.profile_index || {} as UserProfileIndex;
-      
-      await updateDoc(userRef, {
-        'profile_index.metrics': newMetrics,
-        'profile_index.profile_index_score': (newMetrics.light + newMetrics.composition + newMetrics.technical_clarity) / 3 * 10
-      });
+    // 3. Dominant Style (Tags analysis)
+    const allTags = analyzedPhotos.flatMap(p => p.tags || []);
+    const tagCounts: Record<string, number> = {};
+    allTags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
+    const dominantStyle = Object.entries(tagCounts).sort((a,b) => b[1] - a[1])[0]?.[0] || "unknown";
+
+    // 4. Strengths & Weaknesses
+    const metricEntries = Object.entries(currentMetrics);
+    const strengths = [metricEntries.sort((a,b) => b[1] - a[1])[0][0]];
+    const weaknesses = [metricEntries.sort((a,b) => a[1] - b[1])[0][0]];
+
+    // 5. Technical Level
+    const totalAvg = (currentMetrics.light + currentMetrics.composition + currentMetrics.technical_clarity) / 3;
+    const dominantLevel = totalAvg > 7 ? 'advanced' : totalAvg > 4 ? 'intermediate' : 'beginner';
+
+    // 6. Consistency Gap (Standard Deviation of overall scores)
+    const mean = totals.overall.reduce((a, b) => a + b, 0) / count;
+    const variance = totals.overall.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count;
+    const stdDev = Math.sqrt(variance);
+    const consistencyGap = Math.round(stdDev * 10); // Standard deviation based gap index
+
+    // 7. Trend
+    let trendDirection: 'improving' | 'stagnant' | 'declining' = 'stagnant';
+    let trendPercentage = 0;
+    if (count > 1) {
+        const recentAvg = (totals.overall[0] + (totals.overall[1] || totals.overall[0])) / 2;
+        const pastAvg = mean;
+        trendPercentage = Math.round(((recentAvg - pastAvg) / pastAvg) * 100) || 0;
+        trendDirection = trendPercentage > 5 ? 'improving' : trendPercentage < -5 ? 'declining' : 'stagnant';
     }
+
+    // 8. Update Firestore
+    const userRef = doc(firestore, 'users', userId);
+    await updateDoc(userRef, {
+      'profile_index.dominant_style': dominantStyle,
+      'profile_index.strengths': strengths,
+      'profile_index.weaknesses': weaknesses,
+      'profile_index.dominant_technical_level': dominantLevel,
+      'profile_index.metrics': currentMetrics,
+      'profile_index.consistency_gap': consistencyGap,
+      'profile_index.trend': { direction: trendDirection, percentage: Math.abs(trendPercentage) },
+      'profile_index.profile_index_score': mean * 10,
+      score_history: arrayUnion({ score: newOverallScore, date: new Date().toISOString() })
+    });
   };
 
   const handleUploadAndOptionalAnalysis = async (analyze = false) => {
@@ -207,6 +240,8 @@ export default function PhotoAnalyzer() {
         analysisTier: analyze ? currentTier : undefined
       };
 
+      let overallScore = 0;
+
       if (analyze) {
         const analysis = await generatePhotoAnalysis({ 
           photoUrl: imageUrl, 
@@ -215,6 +250,7 @@ export default function PhotoAnalyzer() {
         });
         photoData.aiFeedback = analysis;
         photoData.tags = analysis.tags || [];
+        overallScore = getOverallScore(photoData);
 
         batch.update(userRef, {
           auro_balance: increment(-analysisCost),
@@ -248,8 +284,8 @@ export default function PhotoAnalyzer() {
       await batch.commit();
       
       if (analyze) {
-        // Analiz bittikten sonra metrikleri arka planda güncelle
-        await updateProfileIndexMetrics(user.uid);
+        // Update the Profile Index with scientific metrics after analysis
+        await updateUserProfileIndex(user.uid, overallScore);
         setAnalysisResult(photoData);
         toast({ title: 'Analiz Tamamlandı' });
       } else {
