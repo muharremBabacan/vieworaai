@@ -16,9 +16,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Trash2, Loader2, Crown, Users, Settings, Camera, Check, AlertTriangle, PlusCircle, Calendar, Image as ImageIcon, Send, Heart, MessageSquare, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowLeft, Trash2, Loader2, Crown, Users, Settings, Camera, Check, AlertTriangle, PlusCircle, Calendar, Image as ImageIcon, Send, Heart, MessageSquare, CheckCircle2, Clock, ListChecks, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -75,6 +76,7 @@ export default function GroupDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreatingAssignment, setIsCreatingAssignment] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showTracker, setShowTracker] = useState(false);
 
   const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading, error } = useDoc<Group>(groupRef);
@@ -118,7 +120,6 @@ export default function GroupDetailPage() {
     return group.memberIds.map(uid => profiles?.find(p => p.id === uid) || { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile);
   }, [group?.memberIds, profiles]);
 
-  // FIX: Define founderProfile
   const founderProfile = useMemo(() => {
     return profiles?.find(p => p.id === group?.ownerId);
   }, [profiles, group?.ownerId]);
@@ -151,7 +152,6 @@ export default function GroupDetailPage() {
   const handleUploadSubmission = async (assignmentId: string, file: File) => {
     if (!user || !group || isUploading) return;
     
-    // Yükleme sınırı kontrolü: Her üye her ödev için 1 tane yükleyebilir
     const existing = submissions?.find(s => s.assignmentId === assignmentId && s.userId === user.uid);
     if (existing) {
       toast({ variant: 'destructive', title: "Sınır Aşıldı", description: "Bu ödev için zaten bir fotoğraf yüklediniz." });
@@ -179,9 +179,9 @@ export default function GroupDetailPage() {
         comments: [],
         submittedAt: new Date().toISOString()
       });
-      toast({ title: "Ödev Teslim Edildi", description: "Kurucunun onayı bekleniyor." });
+      toast({ title: "Başarıyla Yüklendi", description: "Ödeviniz grup galerisine eklendi ve kurucu onayına sunuldu." });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Hata" });
+      toast({ variant: 'destructive', title: "Hata", description: "Fotoğraf yüklenirken bir sorun oluştu." });
     } finally {
       setIsUploading(false);
     }
@@ -192,7 +192,7 @@ export default function GroupDetailPage() {
     try {
       const subRef = doc(firestore, 'groups', group.id, 'submissions', submissionId);
       await updateDoc(subRef, { status: 'approved' });
-      toast({ title: "Ödev Onaylandı", description: "Öğrenciye başarı puanı eklendi." });
+      toast({ title: "Ödev Onaylandı", description: "Öğrenciye başarı rütbesi eklendi." });
     } catch (e) {
       toast({ variant: 'destructive', title: "Hata" });
     }
@@ -305,22 +305,82 @@ export default function GroupDetailPage() {
             
             <TabsContent value="assignments" className="space-y-8">
                 {isCurrentUserOwner && (
-                  <Card className="rounded-[32px] border-primary/20 bg-primary/5 overflow-hidden">
-                    <CardHeader className="p-8 border-b border-primary/10">
-                      <CardTitle className="text-xl font-black flex items-center gap-2"><PlusCircle size={20} className="text-primary" /> Yeni Ödev Tanımla</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-8">
-                      <form onSubmit={handleCreateAssignment} className="space-y-4">
-                        <div className="grid gap-4">
-                          <Input name="title" placeholder="Ödev Başlığı (örn: Altın Oran Uygulaması)" className="h-12 rounded-xl bg-background" required />
-                          <Textarea name="description" placeholder="Ödev açıklaması ve kriterler..." className="rounded-xl bg-background min-h-[100px]" required />
-                        </div>
-                        <Button type="submit" disabled={isCreatingAssignment} className="w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-                          {isCreatingAssignment ? <Loader2 className="animate-spin" /> : "Ödevi Yayınla"}
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
+                  <div className="flex flex-col gap-6">
+                    <div className="flex justify-end">
+                      <Button variant="outline" onClick={() => setShowTracker(!showTracker)} className="rounded-xl font-bold border-primary/20 text-primary">
+                        <ListChecks className="mr-2 h-4 w-4" /> {showTracker ? 'Ödev Listesini Gör' : 'Öğrenci Takip Çizelgesi'}
+                      </Button>
+                    </div>
+
+                    {showTracker ? (
+                      <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden animate-in slide-in-from-top-4">
+                        <CardHeader className="p-8 bg-secondary/20">
+                          <CardTitle className="text-xl font-black">Öğrenci Başarı Çizelgesi</CardTitle>
+                          <CardDescription>Tüm üyelerin ödev durumlarını toplu olarak buradan takip edin.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <ScrollArea className="w-full">
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="bg-muted/30">
+                                  <TableHead className="px-8 font-bold text-xs uppercase">Öğrenci</TableHead>
+                                  {assignments?.map(a => (
+                                    <TableHead key={a.id} className="font-bold text-[10px] uppercase text-center min-w-[120px]">{a.title}</TableHead>
+                                  ))}
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {allMembers.map(member => (
+                                  <TableRow key={member.id} className="hover:bg-muted/20">
+                                    <TableCell className="px-8 py-4">
+                                      <div className="flex items-center gap-2">
+                                        <Avatar className="h-6 w-6">
+                                          <AvatarImage src={member.photoURL || ''} />
+                                          <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="font-bold text-sm">{member.name}</span>
+                                      </div>
+                                    </TableCell>
+                                    {assignments?.map(a => {
+                                      const sub = submissions?.find(s => s.assignmentId === a.id && s.userId === member.id);
+                                      return (
+                                        <TableCell key={a.id} className="text-center">
+                                          {sub ? (
+                                            <Badge className={cn("px-2 py-0 h-6 text-[9px] font-black", sub.status === 'approved' ? "bg-green-500/20 text-green-500" : "bg-amber-500/20 text-amber-500")}>
+                                              {sub.status === 'approved' ? 'ONAYLI' : 'BEKLİYOR'}
+                                            </Badge>
+                                          ) : (
+                                            <span className="text-[10px] text-muted-foreground/40 font-black">—</span>
+                                          )}
+                                        </TableCell>
+                                      );
+                                    })}
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </ScrollArea>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="rounded-[32px] border-primary/20 bg-primary/5 overflow-hidden">
+                        <CardHeader className="p-8 border-b border-primary/10">
+                          <CardTitle className="text-xl font-black flex items-center gap-2"><PlusCircle size={20} className="text-primary" /> Yeni Ödev Tanımla</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-8">
+                          <form onSubmit={handleCreateAssignment} className="space-y-4">
+                            <div className="grid gap-4">
+                              <Input name="title" placeholder="Ödev Başlığı (örn: Altın Oran Uygulaması)" className="h-12 rounded-xl bg-background" required />
+                              <Textarea name="description" placeholder="Ödev açıklaması ve kriterler..." className="rounded-xl bg-background min-h-[100px]" required />
+                            </div>
+                            <Button type="submit" disabled={isCreatingAssignment} className="w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                              {isCreatingAssignment ? <Loader2 className="animate-spin" /> : "Ödevi Yayınla"}
+                            </Button>
+                          </form>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 )}
 
                 <div className="grid gap-6">
@@ -390,11 +450,24 @@ export default function GroupDetailPage() {
 
             <TabsContent value="gallery" className="space-y-8">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {submissions?.filter(s => s.status === 'approved').map(sub => (
+                  {submissions?.map(sub => (
                     <Card key={sub.id} className="group relative aspect-square rounded-[32px] overflow-hidden border-none shadow-lg bg-secondary/20">
                       <Image src={sub.photoUrl} alt="Submission" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       
+                      <div className="absolute top-4 right-4 flex flex-col gap-2">
+                        {sub.status === 'approved' && (
+                          <Badge className="bg-green-500 text-white border-none h-6 px-2 font-black text-[8px] animate-in zoom-in">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> ONAYLI
+                          </Badge>
+                        )}
+                        {sub.status === 'pending' && (
+                          <Badge variant="secondary" className="bg-amber-500/20 text-amber-500 border-amber-500/20 h-6 px-2 font-black text-[8px]">
+                            <Clock className="h-3 w-3 mr-1" /> BEKLİYOR
+                          </Badge>
+                        )}
+                      </div>
+
                       <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0 duration-500">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6 border border-white/20">
@@ -420,9 +493,14 @@ export default function GroupDetailPage() {
                             </DialogTrigger>
                             <DialogContent className="max-w-md rounded-[32px]">
                               <DialogHeader>
-                                <DialogTitle className="text-xl font-black">Yorumlar</DialogTitle>
+                                <div className="flex items-center justify-between mb-4">
+                                  <DialogTitle className="text-xl font-black">Yorumlar</DialogTitle>
+                                  {isCurrentUserOwner && sub.status === 'pending' && (
+                                    <Button size="sm" onClick={() => handleApproveSubmission(sub.id)} className="rounded-full bg-green-600 hover:bg-green-700 text-[10px] font-black h-8 px-4">ÖDEVİ ONAYLA</Button>
+                                  )}
+                                </div>
                               </DialogHeader>
-                              <div className="space-y-6 mt-4">
+                              <div className="space-y-6">
                                 <ScrollArea className="h-60 pr-4">
                                   <div className="space-y-4">
                                     {sub.comments?.map((c, i) => (
@@ -465,11 +543,11 @@ export default function GroupDetailPage() {
                       </div>
                     </Card>
                   ))}
-                  {submissions?.filter(s => s.status === 'approved').length === 0 && (
+                  {(!submissions || submissions.length === 0) && (
                     <div className="col-span-full py-32 text-center border-2 border-dashed border-border/40 rounded-[48px]">
                       <ImageIcon className="h-16 w-16 mx-auto mb-6 text-muted-foreground/20" />
                       <h3 className="text-2xl font-black tracking-tight">Grup Galerisi Henüz Boş</h3>
-                      <p className="text-muted-foreground max-w-xs mx-auto mt-2">Onaylanan ödevler burada sergilenmeye başlar.</p>
+                      <p className="text-muted-foreground max-w-xs mx-auto mt-2">Grup üyeleri fotoğraf yüklediğinde burada sergilenmeye başlar.</p>
                     </div>
                   )}
                 </div>
@@ -591,25 +669,32 @@ export default function GroupDetailPage() {
 }
 
 function SubmissionUploader({ assignmentId, onUpload, isLoading }: { assignmentId: string, onUpload: (file: File) => void, isLoading: boolean }) {
+  const [success, setSuccess] = useState(false);
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) onUpload(acceptedFiles[0]);
+    if (acceptedFiles.length > 0) {
+      onUpload(acceptedFiles[0]);
+      setSuccess(true);
+    }
   }, [onUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png'] },
     maxFiles: 1,
-    disabled: isLoading
+    disabled: isLoading || success
   });
 
   return (
-    <div {...getRootProps()} className={cn("border-2 border-dashed rounded-[24px] p-8 text-center cursor-pointer transition-all hover:bg-primary/5 hover:border-primary/30 group", isDragActive ? "border-primary bg-primary/5" : "border-border/60")}>
+    <div {...getRootProps()} className={cn(
+      "border-2 border-dashed rounded-[24px] p-8 text-center cursor-pointer transition-all group", 
+      isDragActive ? "border-primary bg-primary/5" : success ? "border-green-500/40 bg-green-500/5" : "border-border/60 hover:bg-primary/5 hover:border-primary/30"
+    )}>
       <input {...getInputProps()} />
-      <div className="h-12 w-12 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-        {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <ImageIcon className="h-6 w-6 text-primary" />}
+      <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110", success ? "bg-green-500/20" : "bg-secondary")}>
+        {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : success ? <Check className="h-6 w-6 text-green-500" /> : <ImageIcon className="h-6 w-6 text-primary" />}
       </div>
-      <p className="text-sm font-black uppercase tracking-widest">{isLoading ? 'Yükleniyor...' : 'Ödevini Teslim Et'}</p>
-      <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-tight">Tıklayın veya fotoğrafı buraya sürükleyin</p>
+      <p className="text-sm font-black uppercase tracking-widest">{isLoading ? 'Yükleniyor...' : success ? 'Ödev Teslim Edildi!' : 'Ödevini Teslim Et'}</p>
+      <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-tight">{success ? 'Durumu ödev listesinden takip edebilirsiniz.' : 'Tıklayın veya fotoğrafı buraya sürükleyin'}</p>
     </div>
   );
 }
