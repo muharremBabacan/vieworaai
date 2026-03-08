@@ -1,8 +1,9 @@
+
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, serverTimestamp, arrayUnion, orderBy } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -10,7 +11,7 @@ import { getGroupLimits } from '@/lib/gamification';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,7 +80,6 @@ export default function GroupDetailPage() {
   const { toast } = useToast();
 
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isCreatingAssignment, setIsCreatingAssignment] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
@@ -119,7 +119,7 @@ export default function GroupDetailPage() {
     return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds.slice(0, 30)));
   }, [group?.memberIds, firestore]);
   
-  const { data: profiles, isLoading: isProfilesLoading } = useCollection<PublicUserProfile>(membersQuery);
+  const { data: profiles } = useCollection<PublicUserProfile>(membersQuery);
   
   const allMembers = useMemo(() => {
     if (!group?.memberIds) return [];
@@ -130,6 +130,7 @@ export default function GroupDetailPage() {
     });
   }, [group?.memberIds, profiles]);
 
+  // Founder profile'ı üyeler arasından bul
   const founderProfile = useMemo(() => {
     return allMembers.find(p => p.id === group?.ownerId);
   }, [allMembers, group?.ownerId]);
@@ -202,7 +203,7 @@ export default function GroupDetailPage() {
     try {
       const subRef = doc(firestore!, 'groups', group.id, 'submissions', submissionId);
       await updateDoc(subRef, { status: 'approved' });
-      toast({ title: "Ödev Onaylandı", description: "Öğrenciye başarı rütbesi eklendi." });
+      toast({ title: "Ödev Onaylandı" });
     } catch (e) {
       toast({ variant: 'destructive', title: "Hata" });
     }
@@ -243,7 +244,7 @@ export default function GroupDetailPage() {
       if (!group || !isCurrentUserOwner) return;
       try { 
         await updateDoc(groupRef!, { memberIds: arrayRemove(memberId) }); 
-        toast({ title: `${memberName} çıkartıldı.` }); 
+        toast({ title: `${memberName} gruptan çıkarıldı.` }); 
       } catch (e) { 
         toast({ variant: 'destructive', title: "Hata" }); 
       }
@@ -286,7 +287,7 @@ export default function GroupDetailPage() {
                         <Crown className="h-4 w-4 text-black" />
                     </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 text-left">
                     <div className="flex items-center gap-3">
                       <h1 className="text-4xl font-black tracking-tighter">{group.name}</h1>
                       <div className="bg-secondary/50 px-3 py-1 rounded-full border border-border/50 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -303,7 +304,7 @@ export default function GroupDetailPage() {
 
         <Tabs defaultValue="assignments" className="w-full">
             <div className="relative filter-scroll mb-8">
-              <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
+              <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory text-left">
                 <TabsList className="bg-secondary/30 p-1 rounded-2xl h-12 inline-flex w-max gap-1">
                     <TabsTrigger value="assignments" className="rounded-xl px-8 font-bold">Ödevler</TabsTrigger>
                     <TabsTrigger value="gallery" className="rounded-xl px-8 font-bold">Grup Galerisi</TabsTrigger>
@@ -324,7 +325,7 @@ export default function GroupDetailPage() {
 
                     {showTracker ? (
                       <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden animate-in slide-in-from-top-4">
-                        <CardHeader className="p-8 bg-secondary/20">
+                        <CardHeader className="p-8 bg-secondary/20 text-left">
                           <CardTitle className="text-xl font-black">Öğrenci Başarı Çizelgesi</CardTitle>
                           <CardDescription>Tüm üyelerin ödev durumlarını toplu olarak buradan takip edin.</CardDescription>
                         </CardHeader>
@@ -374,7 +375,7 @@ export default function GroupDetailPage() {
                       </Card>
                     ) : (
                       <Card className="rounded-[32px] border-primary/20 bg-primary/5 overflow-hidden">
-                        <CardHeader className="p-8 border-b border-primary/10">
+                        <CardHeader className="p-8 border-b border-primary/10 text-left">
                           <CardTitle className="text-xl font-black flex items-center gap-2"><PlusCircle size={20} className="text-primary" /> Yeni Ödev Tanımla</CardTitle>
                         </CardHeader>
                         <CardContent className="p-8">
@@ -399,7 +400,7 @@ export default function GroupDetailPage() {
                     const assignmentSubmissions = submissions?.filter(s => s.assignmentId === asgn.id) || [];
                     
                     return (
-                      <Card key={asgn.id} className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                      <Card key={asgn.id} className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm hover:shadow-md transition-all text-left">
                         <CardHeader className="p-8 pb-4">
                           <div className="flex justify-between items-start">
                             <div>
@@ -520,7 +521,7 @@ export default function GroupDetailPage() {
                                         <Avatar className="h-8 w-8 shrink-0">
                                           <AvatarFallback className="text-[10px] font-bold">{c.userName.charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/40 text-left">
+                                        <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/40 text-left text-left">
                                           <div className="flex justify-between items-center mb-1">
                                             <p className="text-[10px] font-black uppercase text-primary">@{c.userName}</p>
                                             <span className="text-[8px] font-bold text-muted-foreground uppercase">{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: tr })}</span>
@@ -569,7 +570,7 @@ export default function GroupDetailPage() {
             
             <TabsContent value="members" className="space-y-8">
                 <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-xl overflow-hidden">
-                    <CardHeader className="p-8 border-b border-border/40">
+                    <CardHeader className="p-8 border-b border-border/40 text-left">
                         <CardTitle className="flex justify-between items-center">
                             <span className="text-xl font-black">Topluluk Üyeleri</span>
                             <Badge variant="secondary" className="px-4 h-7 rounded-full font-black bg-primary/10 text-primary border-none">
@@ -655,8 +656,8 @@ export default function GroupDetailPage() {
                         <CardHeader className="p-8 border-b border-destructive/10 text-left">
                           <CardTitle className="flex items-center gap-3 text-destructive"><Trash2 className="h-5 w-5" /> Tehlikeli Bölge</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-8 space-y-6">
-                          <div className="flex items-start gap-3 bg-destructive/10 p-4 rounded-2xl border border-destructive/20 text-left">
+                        <CardContent className="p-8 space-y-6 text-left">
+                          <div className="flex items-start gap-3 bg-destructive/10 p-4 rounded-2xl border border-destructive/20">
                             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                             <p className="text-xs font-medium text-destructive/90 leading-relaxed">Grubu sildiğinizde tüm geçmiş veriler yok edilir. Bu işlem geri alınamaz.</p>
                           </div>
@@ -664,7 +665,7 @@ export default function GroupDetailPage() {
                             <AlertDialogTrigger asChild><Button variant="destructive" className="w-full h-12 rounded-xl font-bold shadow-lg shadow-destructive/20">Grubu Kalıcı Olarak Sil</Button></AlertDialogTrigger>
                             <AlertDialogContent className="rounded-[32px] border-border/40">
                               <AlertDialogHeader><AlertDialogTitle className="text-2xl font-black">Grubu silmek istediğinizden emin misiniz?</AlertDialogTitle><AlertDialogDescription className="text-muted-foreground font-medium"><b>{group.name}</b> grubu kalıcı olarak silinecektir.</AlertDialogDescription></AlertDialogHeader>
-                              <AlertDialogFooter className="gap-3"><AlertDialogCancel className="rounded-xl font-bold h-11">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={async () => { setIsDeleting(true); await deleteDoc(groupRef!); toast({ title: "Grup Silindi" }); router.push('/groups'); }} className="rounded-xl font-bold h-11 bg-destructive">Evet, Sil</AlertDialogAction></AlertDialogFooter>
+                              <AlertDialogFooter className="gap-3"><AlertDialogCancel className="rounded-xl font-bold h-11">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={async () => { await deleteDoc(groupRef!); toast({ title: "Grup Silindi" }); router.push('/groups'); }} className="rounded-xl font-bold h-11 bg-destructive">Evet, Sil</AlertDialogAction></AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </CardContent>
