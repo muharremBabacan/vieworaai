@@ -90,7 +90,14 @@ export default function GroupDetailPage() {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
-  // 1. OTOMATİK PROFİL SENKRONİZASYONU (KRİTİK)
+  const isCurrentUserOwner = group?.ownerId === user?.uid;
+  const userLimits = getGroupLimits(userProfile?.level_name);
+  
+  const [editName, setEditName] = useState('');
+  const [editMaxMembers, setEditMaxMembers] = useState(7);
+  const [allowMemberComments, setAllowMemberComments] = useState(true);
+
+  // Profile Sync
   useEffect(() => {
     if (user && userProfile && firestore) {
       const syncPublicProfile = async () => {
@@ -114,13 +121,6 @@ export default function GroupDetailPage() {
     }
   }, [user, userProfile, firestore]);
 
-  const isCurrentUserOwner = group?.ownerId === user?.uid;
-  const userLimits = getGroupLimits(userProfile?.level_name);
-  
-  const [editName, setEditName] = useState('');
-  const [editMaxMembers, setEditMaxMembers] = useState(7);
-  const [allowMemberComments, setAllowMemberComments] = useState(true);
-
   // Assignments Query
   const assignmentsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'assignments'), orderBy('createdAt', 'desc')) : null, [firestore, groupId]);
   const { data: assignments } = useCollection<GroupAssignment>(assignmentsQuery);
@@ -130,7 +130,7 @@ export default function GroupDetailPage() {
   const { data: submissions } = useCollection<GroupSubmission>(submissionsQuery);
 
   // Initialize edit states
-  useMemo(() => {
+  useEffect(() => {
     if (group) {
       setEditName(group.name);
       setEditMaxMembers(group.maxMembers || 7);
@@ -147,23 +147,12 @@ export default function GroupDetailPage() {
   
   const allMembers = useMemo(() => {
     if (!group?.memberIds) return [];
-    
-    // Eğer profiller hala yükleniyorsa hepsini loading göster
-    if (!profiles && isProfilesLoading) {
-      return group.memberIds.map(uid => ({ id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile));
-    }
-
     return group.memberIds.map(uid => {
       const found = profiles?.find(p => p.id === uid);
       if (found) return found;
-      
-      // Eğer profil bulunduysa ama isim yükleniyor kaldıysa (gecikme durumu)
-      if (isProfilesLoading) return { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile;
-      
-      // Doküman gerçekten yoksa (Sync bekleyen veya eski kullanıcı)
-      return { id: uid, name: 'Vizyoner (Hazırlanıyor)', level_name: 'Neuner' } as PublicUserProfile;
+      return { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile;
     });
-  }, [group?.memberIds, profiles, isProfilesLoading]);
+  }, [group?.memberIds, profiles]);
 
   const founderProfile = useMemo(() => {
     return allMembers.find(p => p.id === group?.ownerId);

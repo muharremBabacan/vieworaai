@@ -23,7 +23,8 @@ service cloud.firestore {
 
     function isGroupMember(groupId) {
       return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)) && 
-             request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+             (request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds ||
+              get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
     }
 
     function isGroupOwner(groupId) {
