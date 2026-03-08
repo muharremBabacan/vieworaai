@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -17,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Trash2, ShieldCheck, Heart, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -298,7 +298,7 @@ export default function GroupDetailPage() {
         {isCurrentUserOwner && (
           <TabsContent value="admin" className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
             <div className="grid md:grid-cols-2 gap-8">
-              <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
+              <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
                 <CardHeader className="bg-primary/5 p-8 border-b border-border/40">
                   <CardTitle className="text-xl font-black flex items-center gap-3"><PlusCircle className="text-primary" /> Yeni Ödev Ver</CardTitle>
                   <CardDescription>Öğrencilerin için yeni bir pratik görevi oluştur.</CardDescription>
@@ -308,7 +308,7 @@ export default function GroupDetailPage() {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
+              <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
                 <CardHeader className="bg-green-500/5 p-8 border-b border-border/40">
                   <CardTitle className="text-xl font-black flex items-center gap-3"><ShieldCheck className="text-green-500" /> Gelen Teslimler</CardTitle>
                   <CardDescription>Henüz onaylanmamış yeni ödev teslimleri.</CardDescription>
@@ -337,7 +337,7 @@ export default function GroupDetailPage() {
               </Card>
             </div>
 
-            <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
+            <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-2xl">
               <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
                 <CardTitle className="text-xl font-black flex items-center gap-3 uppercase tracking-tighter"><UserCheck className="text-primary" /> Öğrenci Takip Çizelgesi</CardTitle>
               </CardHeader>
