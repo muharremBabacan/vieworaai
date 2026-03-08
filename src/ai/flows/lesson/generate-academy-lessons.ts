@@ -39,7 +39,6 @@ export async function generateAcademyLessons(
   input: z.infer<typeof InputSchema>
 ): Promise<GeneratedAcademyLesson[]> {
   console.log(`[AI] ${input.level} - ${input.category} için ${input.count} ders üretiliyor...`);
-  // Explicitly tell the model to return an array of exactly X items
   const { output } = await lessonPrompt(input);
   if (!output) throw new Error("Lesson generation failed");
   console.log(`[AI] ${output.length} ders başarıyla üretildi.`);
@@ -72,7 +71,9 @@ Each lesson must include:
 - analysisCriteria: Exactly 3 technical points.
 - practiceTask: A physical photography assignment.
 - auroNote: Artistic or professional insight.
-- imageHint: 2-3 English keywords for a cover image. (This will be used as a prompt for Imagen 3)
+- imageHint: Highly specific 3-4 English keywords that represent the UNIQUE TOPIC of this lesson as a photograph. 
+  DO NOT use generic "camera lens" or "photography" keywords unless specifically about lenses. 
+  INSTEAD, create a scene (e.g., "Golden hour mountain silhouette", "Macro dew drop on green leaf", "Neon city lights blurred motion").
 
 Language: {{{language}}}
 `,
@@ -85,7 +86,8 @@ export async function generateLessonImage(
 ): Promise<string> {
   console.log(`[IMAGEN 3.0] İstek gönderiliyor: ${userPrompt}`);
   
-  const finalPrompt = `Professional photograph of ${userPrompt}, natural lighting, realistic photography, 8k resolution, high quality, commercial photography style, clean composition`;
+  // Promptu profesyonel seviyeye çeken zenginleştirici ekler
+  const finalPrompt = `Professional cinematic photography of ${userPrompt}, ultra-realistic, natural lighting, shot on 35mm lens, f/1.8, high detail, 8k resolution, artistic composition, clean background`;
 
   try {
     const result = await ai.generate({
