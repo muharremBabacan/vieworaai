@@ -1,3 +1,4 @@
+
 import type { PhotoAnalysisOutput } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 
@@ -168,6 +169,35 @@ export type Group = {
   joinCode?: string;
   maxMembers: number;
   photoURL?: string | null;
+  allowMemberComments?: boolean;
+};
+
+export type GroupAssignment = {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string;
+  dueDate?: string;
+  createdAt: string;
+};
+
+export type GroupSubmission = {
+  id: string;
+  groupId: string;
+  assignmentId: string;
+  userId: string;
+  userName: string;
+  userPhotoURL?: string | null;
+  photoUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  likes: string[];
+  comments: {
+    userId: string;
+    userName: string;
+    text: string;
+    createdAt: string;
+  }[];
+  submittedAt: string;
 };
 
 export type GroupInvite = {

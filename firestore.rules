@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,6 +19,16 @@ service cloud.firestore {
         request.auth.uid == 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1' ||
         request.auth.token.admin == true
       );
+    }
+
+    function isGroupMember(groupId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)) && 
+             request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+    }
+
+    function isGroupOwner(groupId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)) && 
+             get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
     }
     
     match /users/{userId} {
@@ -63,6 +74,25 @@ service cloud.firestore {
       }
     }
     
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+
+      match /assignments/{assignmentId} {
+        allow read: if isGroupMember(groupId);
+        allow create, update, delete: if isGroupOwner(groupId);
+      }
+
+      match /submissions/{submissionId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId) && request.resource.data.userId == request.auth.uid;
+        allow update: if isGroupMember(groupId);
+        allow delete: if isGroupOwner(groupId) || (isGroupMember(groupId) && resource.data.userId == request.auth.uid);
+      }
+    }
+
     match /analysis_logs/{logId} {
       allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
       allow create: if isSignedIn();
@@ -71,13 +101,6 @@ service cloud.firestore {
     match /global_stats/{statId} {
       allow read: if isSignedIn();
       allow write: if isAdmin() || isSignedIn();
-    }
-
-    match /groups/{groupId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /public_profiles/{userId} {

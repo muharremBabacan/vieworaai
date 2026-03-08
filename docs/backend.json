@@ -37,18 +37,43 @@
       },
       "required": ["userId", "type", "auroSpent", "timestamp"]
     },
-    "DailyStats": {
-      "title": "Daily Stats",
+    "GroupAssignment": {
+      "title": "Group Assignment",
       "type": "object",
-      "description": "Aggregated daily metrics for admin dashboard performance.",
       "properties": {
-        "date": { "type": "string" },
-        "dau": { "type": "number", "description": "Daily Active Users count" },
-        "technicalAnalyses": { "type": "number" },
-        "mentorAnalyses": { "type": "number" },
-        "photoUploads": { "type": "number" },
-        "auroSpent": { "type": "number" },
-        "activeUsersList": { "type": "array", "items": { "type": "string" } }
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "GroupSubmission": {
+      "title": "Group Submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "assignmentId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "likes": { "type": "array", "items": { "type": "string" } },
+        "comments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "userId": { "type": "string" },
+              "userName": { "type": "string" },
+              "text": { "type": "string" },
+              "createdAt": { "type": "string" }
+            }
+          }
+        },
+        "submittedAt": { "type": "string" }
       }
     }
   },
@@ -60,17 +85,17 @@
       "schema": { "$ref": "#/backend/entities/User" },
       "description": "User profiles and aggregate usage counts."
     },
-    "analysis_logs/{logId}": {
-      "schema": { "$ref": "#/backend/entities/AnalysisLog" },
-      "description": "Central collection for tracking all AI usage events."
+    "groups/{groupId}": {
+      "schema": { "title": "Group", "type": "object", "properties": { "name": { "type": "string" }, "allowMemberComments": { "type": "boolean" } } },
+      "description": "Photography groups/communities."
     },
-    "global_stats/{statId}": {
-      "schema": { "$ref": "#/backend/entities/DailyStats" },
-      "description": "Daily summary records for the admin dashboard."
+    "groups/{groupId}/assignments/{assignmentId}": {
+      "schema": { "$ref": "#/backend/entities/GroupAssignment" },
+      "description": "Tasks created by group owners."
     },
-    "public_profiles/{userId}": {
-      "schema": { "title": "PublicUserProfile", "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "email": { "type": "string" }, "photoURL": { "type": "string" }, "level_name": { "type": "string" } } },
-      "description": "Public-facing user profiles."
+    "groups/{groupId}/submissions/{submissionId}": {
+      "schema": { "$ref": "#/backend/entities/GroupSubmission" },
+      "description": "Member photo submissions for assignments."
     }
   }
 }
