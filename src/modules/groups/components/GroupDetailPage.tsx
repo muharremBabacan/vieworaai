@@ -16,7 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Trash2, Loader2, Crown, Users, Settings, Camera, Check, AlertTriangle, PlusCircle, Calendar, Image as ImageIcon, Send, Heart, MessageSquare, CheckCircle2, Clock, ListChecks, Search } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ArrowLeft, Trash2, Loader2, Crown, Users, Settings, Camera, Check, AlertTriangle, PlusCircle, Calendar, Image as ImageIcon, Send, Heart, MessageSquare, CheckCircle2, Clock, ListChecks } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -115,7 +116,6 @@ export default function GroupDetailPage() {
 
   const membersQuery = useMemoFirebase(() => {
     if (!group?.memberIds || group.memberIds.length === 0 || !firestore) return null;
-    // documentId() query is limited to 30 items
     return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds.slice(0, 30)));
   }, [group?.memberIds, firestore]);
   
