@@ -1,3 +1,4 @@
+
 {
   "indexes": [
     {
@@ -60,6 +61,20 @@
       "collectionGroup": "photos",
       "queryScope": "COLLECTION",
       "fields": [
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "academy_lessons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "level",
+          "order": "ASCENDING"
+        },
         {
           "fieldPath": "createdAt",
           "order": "DESCENDING"

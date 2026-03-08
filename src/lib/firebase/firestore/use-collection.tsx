@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -61,32 +62,22 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        if (err.code === 'permission-denied') {
-          let path = 'unknown';
-          try {
-            path = (query as any)._query?.path?.segments?.join('/') || (query as any).path || 'unknown';
-          } catch {}
+        console.error("Firestore useCollection Error:", err.code, err.message);
 
+        if (err.code === 'permission-denied') {
           const contextualError = new FirestorePermissionError({
             operation: 'list',
-            path: path,
+            path: 'collection_query',
           });
 
           setError(contextualError);
           errorEmitter.emit('permission-error', contextualError);
         } 
         else if (err.code === 'failed-precondition') {
+          // Bu hata genellikle eksik indeks durumunda gelir.
           const indexError = new Error(
-            'Firestore composite index eksik. Arka planda dağıtılıyor, lütfen bekleyin.'
+            'Veritabanı indeksleri hazırlanıyor. Lütfen birkaç dakika sonra tekrar deneyin.'
           );
-          
-          if (process.env.NODE_ENV === 'development') {
-            const match = err.message.match(/https:\/\/console\.firebase\.google\.com\S+/);
-            if (match) {
-              console.warn('👉 BU SORGUNUN ÇALIŞMASI İÇİN INDEX OLUŞTURUN:', match[0]);
-            }
-          }
-
           setError(indexError);
         } 
         else {
