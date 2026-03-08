@@ -123,10 +123,22 @@ export default function AcademyAdminPanel() {
     setIsGeneratingManual(true);
     setManualPreview(null);
     setSavedImageUrl(null);
+    
+    console.log("[CLIENT] Görsel üretimi başlatılıyor...");
+    
     try {
       const base64 = await generateLessonImage(manualPrompt);
-      setManualPreview(`data:image/jpeg;base64,${base64}`);
+      
+      if (base64) {
+        console.log(`[CLIENT] Görsel verisi alındı. Uzunluk: ${base64.length} karakter.`);
+        setManualPreview(`data:image/jpeg;base64,${base64}`);
+        toast({ 
+          title: "Görsel Üretildi", 
+          description: "Yapay zeka veriyi başarıyla oluşturdu ve gönderdi." 
+        });
+      }
     } catch (e: any) {
+      console.error("[CLIENT] Üretim hatası:", e.message);
       toast({ variant: 'destructive', title: "Görsel Üretilemedi", description: e.message });
     } finally {
       setIsGeneratingManual(false);
@@ -165,7 +177,10 @@ export default function AcademyAdminPanel() {
                 <CardDescription>Müfredata dayalı 10 dersi AI ile tek tıkla üretin.</CardDescription>
               </div>
             </div>
-            <Badge variant="outline" className="border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] px-3 h-6">IMAGEN 3.0 AKTİF</Badge>
+            <div className="flex flex-col items-end gap-1">
+              <Badge variant="outline" className="border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] px-3 h-6">IMAGEN 3.0 AKTİF</Badge>
+              <span className="text-[8px] font-bold text-muted-foreground uppercase opacity-50">Vertex AI Engine</span>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-8 space-y-8">

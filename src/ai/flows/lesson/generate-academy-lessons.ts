@@ -37,8 +37,10 @@ export type GeneratedAcademyLesson = z.infer<typeof LessonSchema>;
 export async function generateAcademyLessons(
   input: z.infer<typeof InputSchema>
 ): Promise<GeneratedAcademyLesson[]> {
+  console.log(`[AI] ${input.level} - ${input.category} için 10 ders üretiliyor...`);
   const { output } = await lessonPrompt(input);
   if (!output) throw new Error("Lesson generation failed");
+  console.log(`[AI] 10 ders başarıyla üretildi.`);
   return output;
 }
 
@@ -78,14 +80,37 @@ Language: {{{language}}}
 export async function generateLessonImage(
   userPrompt: string
 ): Promise<string> {
-  const finalPrompt = `Professional photograph of ${userPrompt}, natural lighting, realistic photography, 8k resolution`;
+  console.log(`[IMAGEN 3.0] İstek gönderiliyor: ${userPrompt}`);
+  
+  const finalPrompt = `Professional photograph of ${userPrompt}, natural lighting, realistic photography, 8k resolution, high quality, commercial photography style`;
 
-  const result = await ai.generate({
-    model: "vertexai/imagen-3.0-generate-001",
-    prompt: finalPrompt,
-  });
+  try {
+    const result = await ai.generate({
+      model: "vertexai/imagen-3.0-generate-001",
+      prompt: finalPrompt,
+    });
 
-  const base64 = result.media?.data;
-  if (!base64) throw new Error("Imagen 3.0 image generation failed.");
-  return base64;
+    // Genkit 1.x'te media.url data URI formatında (data:image/png;base64,...) gelir
+    const mediaUrl = result.media?.url;
+
+    if (!mediaUrl) {
+      console.error("[IMAGEN 3.0] Görsel verisi boş döndü.");
+      throw new Error("Görsel üretilemedi, model boş yanıt döndü.");
+    }
+
+    // Verinin boyutunu loglayalım
+    const dataSizeKb = Math.round(mediaUrl.length / 1024);
+    console.log(`[IMAGEN 3.0] Görsel başarıyla üretildi. Veri Boyutu: ${dataSizeKb} KB`);
+
+    // Eğer tam data URI gelmişse sadece base64 kısmını değil, tüm URI'yi döndürebiliriz
+    // Ancak mevcut admin paneli base64 bekliyorsa ayıklayalım
+    if (mediaUrl.includes('base64,')) {
+      return mediaUrl.split('base64,')[1];
+    }
+
+    return mediaUrl;
+  } catch (error: any) {
+    console.error("[IMAGEN 3.0] Üretim sırasında hata oluştu:", error.message);
+    throw new Error(`Imagen 3.0 Hatası: ${error.message}`);
+  }
 }
