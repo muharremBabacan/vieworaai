@@ -12,10 +12,9 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, increment, writeBatch, coll
 import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase';
-import type { User as UserProfile, PublicUserProfile, AnalysisLog } from '@/types';
+import type { User as UserProfile } from '@/types';
 import { useAppConfig } from '@/components/AppConfigProvider';
 
 function MilkyWayEffect() {
@@ -49,7 +48,7 @@ function MilkyWayEffect() {
 }
 
 export default function PageContent() {
-  const { auth, firestore, user, isUserLoading } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
@@ -126,7 +125,6 @@ export default function PageContent() {
         await setDoc(doc(firestore, 'users', firebaseUser.uid), newUser);
         await setDoc(doc(firestore, 'public_profiles', firebaseUser.uid), { id: firebaseUser.uid, name: newUser.name, email: newUser.email, photoURL: newUser.photoURL, level_name: 'Neuner' });
         
-        // Initial Onboarding notification
         const notifRef = doc(collection(firestore, 'users', firebaseUser.uid, 'notifications'));
         await setDoc(notifRef, { id: notifRef.id, title: "Vizyon Analizi Bekliyor", message: "Luma seni tanımak istiyor. Lütfen anketi doldurun.", type: 'system', createdAt: now });
       } else {
@@ -135,8 +133,21 @@ export default function PageContent() {
         await processAuroRefillAndTestAdjustment(firebaseUser.uid, existing);
       }
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.code === 'auth/popup-blocked') {
+        toast({
+          variant: 'destructive',
+          title: 'Giriş Penceresi Engellendi',
+          description: 'Lütfen tarayıcınızın ayarlarından açılır pencerelere (pop-up) izin verin ve tekrar deneyin.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Giriş Başarısız',
+          description: 'Google ile giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.',
+        });
+      }
       setIsLoading(false);
     }
   };
