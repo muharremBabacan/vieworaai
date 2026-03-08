@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/lib/firebase';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
-import type { Group } from '@/types';
+import { doc, updateDoc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
+import type { Group, User } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 
 import { Loader2 } from 'lucide-react';
@@ -17,12 +17,7 @@ export default function JoinGroupPage() {
     const { toast } = useToast();
 
     useEffect(() => {
-        if (isUserLoading || !firestore) return;
-
-        if (!user) {
-            router.push(`/?redirect=/groups/join/${groupId}`);
-            return;
-        }
+        if (isUserLoading || !firestore || !user) return;
 
         const joinGroup = async () => {
             const groupRef = doc(firestore, 'groups', groupId as string);
@@ -35,26 +30,43 @@ export default function JoinGroupPage() {
                 }
 
                 const groupData = groupSnap.data() as Group;
-                if (groupData.memberIds.includes(user.uid)) {
-                    router.push(`/groups/${groupId}`);
-                    return;
+                
+                // 1. Üyelik kontrolü ve ekleme
+                if (!groupData.memberIds.includes(user.uid)) {
+                    if (groupData.memberIds.length >= groupData.maxMembers) {
+                         toast({ variant: 'destructive', title: "Hata", description: "Grup kapasitesi dolu." });
+                         router.push('/groups');
+                         return;
+                    }
+                    await updateDoc(groupRef, {
+                        memberIds: arrayUnion(user.uid)
+                    });
                 }
 
-                if (groupData.memberIds.length >= groupData.maxMembers) {
-                     toast({ variant: 'destructive', title: "Hata", description: "Gruba katılamadınız. Grup dolu olabilir, özel bir grup olabilir veya link geçersiz olabilir." });
-                     router.push('/groups');
-                     return;
-                }
+                // 2. public_profiles varlığını kontrol et ve oluştur
+                const publicProfileRef = doc(firestore, 'public_profiles', user.uid);
+                const publicProfileSnap = await getDoc(publicProfileRef);
 
-                await updateDoc(groupRef, {
-                    memberIds: arrayUnion(user.uid)
-                });
+                if (!publicProfileSnap.exists()) {
+                    const userSnap = await getDoc(doc(firestore, 'users', user.uid));
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data() as User;
+                        await setDoc(publicProfileRef, {
+                            id: user.uid,
+                            name: userData.name,
+                            email: userData.email,
+                            photoURL: userData.photoURL || null,
+                            level_name: userData.level_name || 'Neuner'
+                        });
+                    }
+                }
                 
                 toast({ title: "Hoş Geldin!", description: "Gruba başarıyla katıldın." });
                 router.push(`/groups/${groupId}`);
 
             } catch (error) {
-                toast({ variant: 'destructive', title: "Hata", description: "Gruba katılamadınız. Grup dolu olabilir veya bir hata oluştu." });
+                console.error("Join error:", error);
+                toast({ variant: 'destructive', title: "Hata", description: "Bir sorun oluştu." });
                 router.push('/groups');
             }
         };

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs } from 'firebase/firestore';
+import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import type { Group, User } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -89,6 +89,20 @@ export default function GroupsPage() {
       };
       const docRef = await addDoc(collection(firestore, 'groups'), newGroup);
       await updateDoc(docRef, { id: docRef.id });
+      
+      // public_profiles oluştur/güncelle (Kurucu için de garanti edelim)
+      const publicRef = doc(firestore, 'public_profiles', user.uid);
+      const publicSnap = await getDoc(publicRef);
+      if (!publicSnap.exists()) {
+          await setDoc(publicRef, {
+              id: user.uid,
+              name: userProfile?.name || user.displayName || "Sanatçı",
+              email: user.email,
+              photoURL: userProfile?.photoURL || user.photoURL || null,
+              level_name: userProfile?.level_name || 'Neuner'
+          });
+      }
+
       toast({ title: "Grup Oluşturuldu!", description: `'${values.name}' adlı grubunuz başarıyla oluşturuldu.` });
       setIsCreateDialogOpen(false);
       createForm.reset();
@@ -128,9 +142,27 @@ export default function GroupsPage() {
               return;
           }
 
+          // 1. Üyeyi ekle
           await updateDoc(doc(firestore, "groups", groupId), {
               memberIds: arrayUnion(user.uid)
           });
+
+          // 2. public_profiles garantisi
+          const publicRef = doc(firestore, 'public_profiles', user.uid);
+          const publicSnap = await getDoc(publicRef);
+          if (!publicSnap.exists()) {
+              const userSnap = await getDoc(doc(firestore, 'users', user.uid));
+              if (userSnap.exists()) {
+                  const userData = userSnap.data() as User;
+                  await setDoc(publicRef, {
+                      id: user.uid,
+                      name: userData.name,
+                      email: userData.email,
+                      photoURL: userData.photoURL || null,
+                      level_name: userData.level_name || 'Neuner'
+                  });
+              }
+          }
           
           toast({ title: "Başarıyla Katıldın!", description: `'${groupData.name}' grubuna hoş geldin.` });
           joinForm.reset();

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import type { GroupInvite, GlobalNotification, User } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Button } from '@/shared/ui/button';
@@ -116,6 +116,24 @@ export function NotificationCenter() {
        try {
          batch.update(inviteRef, { status: 'accepted' });
          batch.update(groupRef, { memberIds: arrayUnion(user.uid) });
+         
+         // Daveti kabul ederken public_profiles garantisi
+         const publicRef = doc(firestore, 'public_profiles', user.uid);
+         const publicSnap = await getDoc(publicRef);
+         if (!publicSnap.exists()) {
+             const userSnap = await getDoc(doc(firestore, 'users', user.uid));
+             if (userSnap.exists()) {
+                 const userData = userSnap.data() as User;
+                 batch.set(publicRef, {
+                     id: user.uid,
+                     name: userData.name,
+                     email: userData.email,
+                     photoURL: userData.photoURL || null,
+                     level_name: userData.level_name || 'Neuner'
+                 });
+             }
+         }
+
          await batch.commit();
          toast({ title: "Başarıyla Katıldın!", description: `${invite.groupName} grubuna hoş geldin.` });
          setIsOpen(false);
