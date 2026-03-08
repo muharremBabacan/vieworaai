@@ -2,7 +2,6 @@
 /**
  * Viewora Academy AI Content Engine
  * Model: Google Imagen 3.0 (imagen-3.0-generate-001)
- * Location: src/ai/flows/generate-academy-lessons.ts
  */
 
 import { ai } from "@/ai/genkit";
@@ -29,11 +28,19 @@ const LessonSchema = z.object({
   imageHint: z.string(),
 });
 
-const OutputSchema = z.array(LessonSchema).length(10); // Tek seferde 10 ders üretimi için
+const OutputSchema = z.array(LessonSchema).length(10); 
 
 export type GeneratedAcademyLesson = z.infer<typeof LessonSchema>;
 
 /* ================= LESSON GENERATION FLOW ================= */
+
+export async function generateAcademyLessons(
+  input: z.infer<typeof InputSchema>
+): Promise<GeneratedAcademyLesson[]> {
+  const { output } = await lessonPrompt(input);
+  if (!output) throw new Error("Lesson generation failed");
+  return output;
+}
 
 const lessonPrompt = ai.definePrompt({
   name: "academy-lessons-generator",
@@ -48,7 +55,7 @@ Generate EXACTLY 10 structured photography mini-lessons for the following curric
 Level: {{{level}}}
 Category: {{{category}}}
 
-Topics to cover:
+Topics to cover (Use these as reference for the 10 lessons):
 {{#each topics}}
 - {{{this}}}
 {{/each}}
@@ -66,45 +73,19 @@ Language: {{{language}}}
 `,
 });
 
-export async function generateAcademyLessons(
-  input: z.infer<typeof InputSchema>
-): Promise<GeneratedAcademyLesson[]> {
-  const { output } = await lessonPrompt(input);
-  if (!output) throw new Error("Lesson generation failed");
-  return output;
-}
-
 /* ================= IMAGE GENERATION ENGINE (IMAGEN 3.0) ================= */
 
-/**
- * generateLessonImage
- * Bu fonksiyon doğrudan Imagen 3.0 modeline prompt gönderir.
- * Arka planda Vertex AI Imagen 3 motoru (imagen-3.0-generate-001) kullanılır.
- */
 export async function generateLessonImage(
   userPrompt: string
 ): Promise<string> {
-
-  // Imagen 3.0 modeline gönderilen nihai yapılandırılmış prompt
-  const finalPrompt = `
-    Professional DSLR photograph of ${userPrompt},
-    natural lighting,
-    shallow depth of field,
-    realistic photography,
-    high resolution,
-    8k ultra realistic
-  `;
+  const finalPrompt = `Professional photograph of ${userPrompt}, natural lighting, realistic photography, 8k resolution`;
 
   const result = await ai.generate({
-    model: "vertexai/imagen-3.0-generate-001", // İŞTE MOTOR BURADA
+    model: "vertexai/imagen-3.0-generate-001",
     prompt: finalPrompt,
   });
 
   const base64 = result.media?.data;
-
-  if (!base64) {
-    throw new Error("Imagen 3.0 görsel üretemedi.");
-  }
-
+  if (!base64) throw new Error("Imagen 3.0 image generation failed.");
   return base64;
 }

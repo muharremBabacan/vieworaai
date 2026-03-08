@@ -7,7 +7,7 @@ import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, increment, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
+import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import { useToast } from '@/shared/hooks/use-toast';
 import type { User, Photo, AnalysisLog, UserTier } from '@/types';
 import { Button } from '@/components/ui/button';

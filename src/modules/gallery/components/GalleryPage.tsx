@@ -8,7 +8,7 @@ import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 
 import type { Photo, User, Exhibition, UserTier } from '@/types';
-import { generatePhotoAnalysis } from '@/ai/flows/analyze-photo-and-suggest-improvements';
+import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
