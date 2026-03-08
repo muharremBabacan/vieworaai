@@ -58,6 +58,7 @@
         "assignmentId": { "type": "string" },
         "userId": { "type": "string" },
         "userName": { "type": "string" },
+        "userPhotoURL": { "type": "string", "format": "uri" },
         "photoUrl": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
         "likes": { "type": "array", "items": { "type": "string" } },
