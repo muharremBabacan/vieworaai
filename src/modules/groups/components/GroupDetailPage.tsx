@@ -1,9 +1,9 @@
 
 'use client';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -90,6 +90,30 @@ export default function GroupDetailPage() {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
+  // 1. OTOMATİK PROFİL SENKRONİZASYONU (KRİTİK)
+  useEffect(() => {
+    if (user && userProfile && firestore) {
+      const syncPublicProfile = async () => {
+        try {
+          const pubRef = doc(firestore, 'public_profiles', user.uid);
+          const snap = await getDoc(pubRef);
+          if (!snap.exists()) {
+            await setDoc(pubRef, {
+              id: user.uid,
+              name: userProfile.name || "İsimsiz Vizyoner",
+              email: userProfile.email,
+              photoURL: userProfile.photoURL || null,
+              level_name: userProfile.level_name || 'Neuner'
+            });
+          }
+        } catch (e) {
+          console.error("Profile sync failed:", e);
+        }
+      };
+      syncPublicProfile();
+    }
+  }, [user, userProfile, firestore]);
+
   const isCurrentUserOwner = group?.ownerId === user?.uid;
   const userLimits = getGroupLimits(userProfile?.level_name);
   
@@ -119,18 +143,28 @@ export default function GroupDetailPage() {
     return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds.slice(0, 30)));
   }, [group?.memberIds, firestore]);
   
-  const { data: profiles } = useCollection<PublicUserProfile>(membersQuery);
+  const { data: profiles, isLoading: isProfilesLoading } = useCollection<PublicUserProfile>(membersQuery);
   
   const allMembers = useMemo(() => {
     if (!group?.memberIds) return [];
+    
+    // Eğer profiller hala yükleniyorsa hepsini loading göster
+    if (!profiles && isProfilesLoading) {
+      return group.memberIds.map(uid => ({ id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile));
+    }
+
     return group.memberIds.map(uid => {
       const found = profiles?.find(p => p.id === uid);
       if (found) return found;
-      return { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile;
+      
+      // Eğer profil bulunduysa ama isim yükleniyor kaldıysa (gecikme durumu)
+      if (isProfilesLoading) return { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile;
+      
+      // Doküman gerçekten yoksa (Sync bekleyen veya eski kullanıcı)
+      return { id: uid, name: 'Vizyoner (Hazırlanıyor)', level_name: 'Neuner' } as PublicUserProfile;
     });
-  }, [group?.memberIds, profiles]);
+  }, [group?.memberIds, profiles, isProfilesLoading]);
 
-  // Founder profile'ı üyeler arasından bul
   const founderProfile = useMemo(() => {
     return allMembers.find(p => p.id === group?.ownerId);
   }, [allMembers, group?.ownerId]);
@@ -521,7 +555,7 @@ export default function GroupDetailPage() {
                                         <Avatar className="h-8 w-8 shrink-0">
                                           <AvatarFallback className="text-[10px] font-bold">{c.userName.charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/40 text-left text-left">
+                                        <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/40 text-left">
                                           <div className="flex justify-between items-center mb-1">
                                             <p className="text-[10px] font-black uppercase text-primary">@{c.userName}</p>
                                             <span className="text-[8px] font-bold text-muted-foreground uppercase">{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: tr })}</span>
