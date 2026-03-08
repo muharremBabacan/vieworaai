@@ -14,6 +14,7 @@ const InputSchema = z.object({
   category: z.string(),
   topics: z.array(z.string()),
   language: z.string().default("tr"),
+  count: z.number().default(1),
 });
 
 /* ================= LESSON SCHEMA ================= */
@@ -28,7 +29,7 @@ const LessonSchema = z.object({
   imageHint: z.string(),
 });
 
-const OutputSchema = z.array(LessonSchema).length(10); 
+const OutputSchema = z.array(LessonSchema); 
 
 export type GeneratedAcademyLesson = z.infer<typeof LessonSchema>;
 
@@ -37,10 +38,10 @@ export type GeneratedAcademyLesson = z.infer<typeof LessonSchema>;
 export async function generateAcademyLessons(
   input: z.infer<typeof InputSchema>
 ): Promise<GeneratedAcademyLesson[]> {
-  console.log(`[AI] ${input.level} - ${input.category} için 10 ders üretiliyor...`);
+  console.log(`[AI] ${input.level} - ${input.category} için ${input.count} ders üretiliyor...`);
   const { output } = await lessonPrompt(input);
   if (!output) throw new Error("Lesson generation failed");
-  console.log(`[AI] 10 ders başarıyla üretildi.`);
+  console.log(`[AI] ${output.length} ders başarıyla üretildi.`);
   return output;
 }
 
@@ -52,12 +53,12 @@ const lessonPrompt = ai.definePrompt({
   prompt: `
 You are Luma, the head instructor of Viewora Academy.
 
-Generate EXACTLY 10 structured photography mini-lessons for the following curriculum:
+Generate EXACTLY {{{count}}} structured photography mini-lessons for the following curriculum:
 
 Level: {{{level}}}
 Category: {{{category}}}
 
-Topics to cover (Use these as reference for the 10 lessons):
+Topics to cover:
 {{#each topics}}
 - {{{this}}}
 {{/each}}
@@ -69,7 +70,7 @@ Each lesson must include:
 - analysisCriteria: Exactly 3 technical points.
 - practiceTask: A physical photography assignment.
 - auroNote: Artistic or professional insight.
-- imageHint: 2-3 English keywords for a cover image.
+- imageHint: 2-3 English keywords for a cover image. (This will be used as a prompt for Imagen 3)
 
 Language: {{{language}}}
 `,
@@ -82,7 +83,7 @@ export async function generateLessonImage(
 ): Promise<string> {
   console.log(`[IMAGEN 3.0] İstek gönderiliyor: ${userPrompt}`);
   
-  const finalPrompt = `Professional photograph of ${userPrompt}, natural lighting, realistic photography, 8k resolution, high quality, commercial photography style`;
+  const finalPrompt = `Professional photograph of ${userPrompt}, natural lighting, realistic photography, 8k resolution, high quality, commercial photography style, clean composition`;
 
   try {
     const result = await ai.generate({
@@ -90,7 +91,6 @@ export async function generateLessonImage(
       prompt: finalPrompt,
     });
 
-    // Genkit 1.x'te media.url data URI formatında (data:image/png;base64,...) gelir
     const mediaUrl = result.media?.url;
 
     if (!mediaUrl) {
@@ -98,12 +98,9 @@ export async function generateLessonImage(
       throw new Error("Görsel üretilemedi, model boş yanıt döndü.");
     }
 
-    // Verinin boyutunu loglayalım
     const dataSizeKb = Math.round(mediaUrl.length / 1024);
     console.log(`[IMAGEN 3.0] Görsel başarıyla üretildi. Veri Boyutu: ${dataSizeKb} KB`);
 
-    // Eğer tam data URI gelmişse sadece base64 kısmını değil, tüm URI'yi döndürebiliriz
-    // Ancak mevcut admin paneli base64 bekliyorsa ayıklayalım
     if (mediaUrl.includes('base64,')) {
       return mediaUrl.split('base64,')[1];
     }
