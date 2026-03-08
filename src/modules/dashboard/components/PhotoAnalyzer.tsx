@@ -140,7 +140,7 @@ export default function PhotoAnalyzer() {
       boldness: totals.boldness / count
     };
 
-    // 2. Baskın Stil & Yönler
+    // 2. Baskın Stil & Yönler (Metadata)
     const allTags = analyzedPhotos.flatMap(p => p.tags || []);
     const tagCounts: Record<string, number> = {};
     allTags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
@@ -167,14 +167,14 @@ export default function PhotoAnalyzer() {
         trendDirection = trendPercentage > 5 ? 'improving' : trendPercentage < -5 ? 'declining' : 'stagnant';
     }
 
-    // 3. Firestore Güncelleme (Yeni Mimari: technical + activity_signals)
+    // 3. Firestore Güncelleme (Teknik Katman + Metadata)
     const userRef = doc(firestore, 'users', userId);
     await updateDoc(userRef, {
       'profile_index.dominant_style': dominantStyle,
       'profile_index.strengths': strengths,
       'profile_index.weaknesses': weaknesses,
       'profile_index.dominant_technical_level': dominantLevel,
-      'profile_index.technical': technicalMetrics, // Teknik Katman Güncelleme
+      'profile_index.technical': technicalMetrics,
       'profile_index.consistency_gap': consistencyGap,
       'profile_index.trend': { direction: trendDirection, percentage: Math.abs(trendPercentage) },
       'profile_index.profile_index_score': mean * 10,

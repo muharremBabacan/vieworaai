@@ -19,6 +19,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 const COMPETITION_JOIN_COST = 2;
 
@@ -73,33 +74,8 @@ const ScoringModelBadge = ({ model }: { model: ScoringModel }) => {
     );
 };
 
-const Countdown = ({ endDate }: { endDate: string }) => {
-    const [timeLeft, setTimeLeft] = useState<string>('');
-    useEffect(() => {
-        const calculate = () => {
-            const now = new Date();
-            const end = new Date(endDate);
-            if (now > end) { setTimeLeft('Süre Doldu'); return; }
-            const d = differenceInDays(end, now);
-            const h = differenceInHours(end, now) % 24;
-            const m = differenceInMinutes(end, now) % 60;
-            setTimeLeft(d > 0 ? `${d}g ${h}s kaldı` : h > 0 ? `${h}s ${m}dk kaldı` : `${m}dk kaldı`);
-        };
-        calculate();
-        const timer = setInterval(calculate, 60000);
-        return () => clearInterval(timer);
-    }, [endDate]);
-    if (!timeLeft) return null;
-    return (
-        <div className="flex items-center gap-1 text-[10px] font-bold text-orange-400 uppercase tracking-tighter">
-            <Clock className="h-3 w-3" /> {timeLeft}
-        </div>
-    );
-};
-
 function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfile }: { competition: Competition | null, isOpen: boolean, onOpenChange: (open: boolean) => void, userProfile: User | null }) {
     const firestore = useFirestore();
-    const router = useRouter();
     const entriesQuery = useMemoFirebase(() => (competition && firestore) ? query(collection(firestore, 'competitions', competition.id, 'entries'), orderBy('submittedAt', 'desc')) : null, [competition, firestore]);
     const { data: entries, isLoading } = useCollection<CompetitionEntry>(entriesQuery);
     
@@ -196,9 +172,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
     const firestore = useFirestore();
+    const { currencyName } = useAppConfig();
 
     const userPhotosQuery = useMemoFirebase(() => (userProfile && firestore) ? query(collection(firestore, 'users', userProfile.id, 'photos')) : null, [userProfile, firestore]);
-    const { data: userPhotos, isLoading: isPhotosLoading } = useCollection<Photo>(userPhotosQuery);
+    const { data: userPhotos } = useCollection<Photo>(userPhotosQuery);
 
     const analyzedPhotos = useMemo(() => userPhotos?.filter(p => !!p.aiFeedback).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [], [userPhotos]);
 
@@ -206,7 +183,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
         if (!selectedPhotoId || !competition || !userProfile || !firestore) return;
         
         if (userProfile.auro_balance < COMPETITION_JOIN_COST) {
-            toast({ variant: 'destructive', title: "Yetersiz Pix" });
+            toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
             return;
         }
 
@@ -296,7 +273,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                         </div>
                                     </ScrollArea>
                                     <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">
-                                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Katılımı Tamamla (${COMPETITION_JOIN_COST} Pix)`}
+                                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Katılımı Tamamla (${COMPETITION_JOIN_COST} ${currencyName})`}
                                     </Button>
                                 </div>
                             )}
@@ -315,8 +292,10 @@ export default function CompetitionsPage() {
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isEntriesOpen, setIsEntriesOpen] = useState(false);
     const [competitionForEntries, setCompetitionForEntries] = useState<Competition | null>(null);
+    
     const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
     const { data: userProfile } = useDoc<User>(userDocRef);
+    
     const competitionsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const { data: competitions, isLoading } = useCollection<Competition>(competitionsQuery);
 

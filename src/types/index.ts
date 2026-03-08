@@ -47,7 +47,7 @@ export type UserProfileIndex = {
     storytelling: number;
   };
 
-  // 2. Aktivite Sinyalleri (Kaynak: Kullanıcı Aktiviteleri)
+  // 2. Davranış Katmanı / Aktivite Sinyalleri (Kaynak: Kullanıcı Aktiviteleri)
   activity_signals: {
     learning_score: number;
     competition_score: number;
@@ -98,25 +98,6 @@ export type AnalysisLog = {
   auroSpent: number;
   timestamp: string;
   status: 'success' | 'failed';
-};
-
-export type DailyStats = {
-  id: string;
-  date: string;
-  dau: number;
-  technicalAnalyses: number;
-  mentorAnalyses: number;
-  photoUploads: number;
-  auroSpent: number;
-  activeUsersList: string[];
-};
-
-export type PublicUserProfile = {
-  id: string;
-  name: string | null;
-  email: string | null;
-  photoURL?: string | null;
-  level_name: string;
 };
 
 export type Photo = {

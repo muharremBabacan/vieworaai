@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -21,12 +22,18 @@ const UserProfileIndexSchema = z.object({
     percentage: z.number(),
   }),
   consistency_gap: z.number(),
-  metrics: z.object({
-    composition: z.number(),
-    light: z.number(),
-    storytelling: z.number(),
-    technical_clarity: z.number(),
-    boldness: z.number(),
+  technical: z.object({
+    composition: number,
+    light: number,
+    technical_clarity: number,
+    boldness: number,
+    storytelling: number,
+  }).optional(),
+  activity_signals: z.object({
+    learning_score: number,
+    competition_score: number,
+    exhibition_score: number,
+    group_activity_score: number,
   }).optional(),
   communication_profile: z.object({
     tone: z.enum(['supportive', 'direct', 'analytical']),
@@ -43,9 +50,7 @@ const StrategicFeedbackInputSchema = z.object({
   focusArea: z.string().optional(),
 });
 
-export type StrategicFeedbackInput = z.infer<
-  typeof StrategicFeedbackInputSchema
->;
+export type StrategicFeedbackInput = z.infer<typeof StrategicFeedbackInputSchema>;
 
 const StrategicFeedbackOutputSchema = z.object({
   feedback: z.string(),
@@ -64,9 +69,7 @@ const StrategicFeedbackOutputSchema = z.object({
   ).optional(),
 });
 
-export type StrategicFeedbackOutput = z.infer<
-  typeof StrategicFeedbackOutputSchema
->;
+export type StrategicFeedbackOutput = z.infer<typeof StrategicFeedbackOutputSchema>;
 
 /* -------------------------------------------------------------------------- */
 /*                                MAIN EXPORT                                 */
@@ -84,10 +87,8 @@ export async function generateStrategicFeedback(
 
 const generationPrompt = ai.definePrompt({
   name: 'strategicCoachPromptElite',
-
   input: { schema: StrategicFeedbackInputSchema },
   output: { schema: StrategicFeedbackOutputSchema },
-
   system: `
 You are Luma, an elite AI photography coach and visual strategist at Viewora.
 
@@ -95,92 +96,38 @@ CORE PHILOSOPHY:
 Luma does not criticize; Luma makes the artist realize.
 You are a mentor, not a judge.
 
-IMPORTANT RULES:
+INDEX ANALYSIS RULES:
+You receive a two-layer profile index:
+1. Technical Layer: Raw AI analysis metrics.
+2. Activity Signals: Behavioral discipline (Academy, Groups, etc.)
 
-FOCUS AREA SYSTEM
-The variable FOCUS_AREA indicates the weakest development area.
-
-Possible values:
-
-technical_clarity
-light
-composition
-boldness
-storytelling
-
-If FOCUS_AREA is technical:
-Focus the weekly assignment on improving that technical skill.
-
-If FOCUS_AREA is storytelling:
-Create narrative and emotional storytelling assignments.
-
-CRITICAL RULE:
-
-Storytelling should NOT be prioritized if technical skills are weak.
-
-Storytelling tasks can only appear if:
-
-technical_clarity >= 6
-light >= 6
-composition >= 6
-
-Otherwise focus only on technical growth.
+STRATEGY ENGINE:
+- If technical metrics are low (< 5), focus on fundamental technical assignments.
+- If technical is high (> 7) but activity_signals.competition_score is low, push them to join a competition.
+- If activity_signals.group_activity_score is low, suggest a collaborative group task.
+- Use the 'tone' and 'explanation_depth' from the communication_profile to shape your language.
 
 TASK RULES:
-
-All tasks must be real shooting assignments.
-Never suggest reading, studying or researching.
-All assignments must involve taking photos.
+All tasks must be real shooting assignments. All assignments must involve taking photos.
 
 STRUCTURE:
-
-1 Luma Analizi – Kişisel Strateji
-
-Summarize photographer state.
-
-List metrics:
-
-Kompozisyon
-Işık Kontrolü
-Hikâye/Duygu
-Teknik Netlik
-Cesur Kadraj
-
-Provide a short verdict.
-
-Define the week's focus.
-
-2 Haftalık Görev
-
-Title
-
-Amaç
-
-Steps
-
-Evaluation questions
-
-3 Bu Haftanın Hedefi
-
-List weekly targets.
+1. Luma Analysis – Personal Strategy (Tone-aware summary)
+2. Weekly Task (Title, Purpose, Steps, Evaluation Questions)
+3. This Week's Target (Clear measurable goal)
 `,
-
   prompt: `
 USER_PROFILE_INDEX:
-
 {{{userProfileIndex}}}
 
 FOCUS_AREA:
-
 {{{focusArea}}}
 
 USER_REQUEST:
-
 "{{{userPrompt}}}"
 
 Respond in language: {{{language}}}
 
-Generate a personalized strategic coaching response.
+Generate a personalized strategic coaching response based on both technical skill and behavioral signals.
 `,
 });
 
@@ -194,78 +141,26 @@ const strategicFeedbackFlow = ai.defineFlow(
     inputSchema: StrategicFeedbackInputSchema,
     outputSchema: StrategicFeedbackOutputSchema,
   },
-
   async (input) => {
-
-    const metrics = input.userProfileIndex.metrics;
-
+    const technical = input.userProfileIndex.technical;
     let focusArea = "composition";
 
-    if (metrics) {
-
-      const clarity = metrics.technical_clarity;
-      const light = metrics.light;
-      const composition = metrics.composition;
-      const boldness = metrics.boldness;
-      const story = metrics.storytelling;
-
-      /**
-       * Technical average
-       * storytelling intentionally excluded
-       */
-
-      const technicalAvg =
-        (clarity + light + composition + boldness) / 4;
-
-      /**
-       * Determine weakest technical area
-       */
-
-      if (clarity < technicalAvg) {
-
-        focusArea = "technical_clarity";
-
-      } else if (light < technicalAvg) {
-
-        focusArea = "light";
-
-      } else if (composition < technicalAvg) {
-
-        focusArea = "composition";
-
-      } else if (boldness < technicalAvg) {
-
-        focusArea = "boldness";
-
-      }
-      /**
-       * storytelling becomes active
-       * only if technical baseline exists
-       */
-
-      else if (
-        clarity >= 6 &&
-        light >= 6 &&
-        composition >= 6
-      ) {
-
-        focusArea = "storytelling";
-
-      }
-
+    if (technical) {
+      const { composition, light, technical_clarity, boldness, storytelling } = technical;
+      const metrics = [
+        { key: 'composition', val: composition },
+        { key: 'light', val: light },
+        { key: 'technical_clarity', val: technical_clarity },
+        { key: 'boldness', val: boldness },
+        { key: 'storytelling', val: storytelling }
+      ];
+      // En düşük teknik alanı bul
+      focusArea = metrics.sort((a, b) => a.val - b.val)[0].key;
     }
 
-    const enrichedInput = {
-      ...input,
-      focusArea
-    };
-
+    const enrichedInput = { ...input, focusArea };
     const { output } = await generationPrompt(enrichedInput);
-
-    if (!output) {
-      throw new Error('AI elite strategic feedback generation failed.');
-    }
-
+    if (!output) throw new Error('AI elite strategic feedback generation failed.');
     return output;
   }
 );

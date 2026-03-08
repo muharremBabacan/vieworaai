@@ -90,21 +90,9 @@ export default function OnboardingPage() {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  useEffect(() => {
-    if (userProfile && !userProfile.onboarded) {
-      toast({
-        title: "Lütfen Anketi Doldurun",
-        description: "Luma'nın size rehberlik edebilmesi için bu analizi tamamlamanız gerekiyor.",
-      });
-    }
-  }, [userProfile, toast]);
-
   const handleSelect = (questionId: keyof OnboardingResults, optionId: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
-    
-    if (step < questions.length - 1) {
-      setTimeout(() => setStep(s => s + 1), 300);
-    }
+    if (step < questions.length - 1) setTimeout(() => setStep(s => s + 1), 300);
   };
 
   const handleFinish = async () => {
@@ -113,7 +101,7 @@ export default function OnboardingPage() {
 
     const results = answers as OnboardingResults;
     
-    // AI Analiz İndeksi için iki katmanlı (Teknik + Aktivite) ilk verileri oluştur
+    // Vizyoner DNA - İki Katmanlı Başlangıç İndeksi
     const initialProfileIndex: UserProfileIndex = {
       dominant_style: results.interest,
       strengths: results.approach === 'casual' ? [] : [results.approach],
@@ -132,7 +120,7 @@ export default function OnboardingPage() {
         storytelling: 4
       },
 
-      // 2. Aktivite Sinyalleri (Davranış Katmanı - Kullanıcı Aktiviteleri Kaynaklı)
+      // 2. Davranış Katmanı / Aktivite Sinyalleri (Kullanıcı Aktiviteleri Kaynaklı)
       activity_signals: {
         learning_score: 0,
         competition_score: 0,
@@ -154,12 +142,7 @@ export default function OnboardingPage() {
         profile_index: initialProfileIndex,
         interests: [results.interest]
       });
-
-      toast({
-        title: "Analiz Tamamlandı!",
-        description: "Luma seni artık daha iyi tanıyor.",
-      });
-
+      toast({ title: "Analiz Tamamlandı!", description: "Luma seni artık daha iyi tanıyor." });
       router.push('/dashboard');
     } catch (e) {
       toast({ variant: 'destructive', title: "Hata", description: "Veriler kaydedilemedi." });
@@ -198,57 +181,23 @@ export default function OnboardingPage() {
         <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
           <CardContent className="p-10 md:p-16 space-y-10">
             <h2 className="text-2xl md:text-3xl font-black text-center leading-tight">{currentQuestion.text}</h2>
-            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {currentQuestion.options.map((opt) => {
                 const isSelected = answers[currentQuestion.id] === opt.id;
                 return (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleSelect(currentQuestion.id, opt.id)}
-                    className={cn(
-                      "flex items-center gap-4 p-6 rounded-3xl border-2 text-left transition-all group active:scale-95",
-                      isSelected 
-                        ? "border-primary bg-primary/10 shadow-lg shadow-primary/5" 
-                        : "border-border/60 hover:border-primary/40 hover:bg-muted/30"
-                    )}
-                  >
-                    <div className={cn("p-3 rounded-2xl bg-secondary transition-colors group-hover:bg-background", opt.color)}>
-                      <opt.icon className="h-6 w-6" />
-                    </div>
+                  <button key={opt.id} onClick={() => handleSelect(currentQuestion.id, opt.id)} className={cn("flex items-center gap-4 p-6 rounded-3xl border-2 text-left transition-all group active:scale-95", isSelected ? "border-primary bg-primary/10 shadow-lg shadow-primary/5" : "border-border/60 hover:border-primary/40 hover:bg-muted/30")}>
+                    <div className={cn("p-3 rounded-2xl bg-secondary transition-colors group-hover:bg-background", opt.color)}><opt.icon className="h-6 w-6" /></div>
                     <span className="font-bold text-lg">{opt.label}</span>
                   </button>
                 );
               })}
             </div>
-
             <div className="flex justify-between pt-6 border-t border-border/20">
-              <Button 
-                variant="ghost" 
-                onClick={() => setStep(s => Math.max(0, s - 1))}
-                disabled={step === 0}
-                className="font-black uppercase tracking-widest text-[10px]"
-              >
-                Geri Dön
-              </Button>
-              
+              <Button variant="ghost" onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0} className="font-black uppercase tracking-widest text-[10px]">Geri Dön</Button>
               {step === questions.length - 1 ? (
-                <Button 
-                  onClick={handleFinish} 
-                  disabled={!answers[currentQuestion.id] || isSaving}
-                  className="px-10 h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20"
-                >
-                  {isSaving ? <Loader2 className="animate-spin" /> : "Analizi Bitir"}
-                </Button>
+                <Button onClick={handleFinish} disabled={!answers[currentQuestion.id] || isSaving} className="px-10 h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">{isSaving ? <Loader2 className="animate-spin" /> : "Analizi Bitir"}</Button>
               ) : (
-                <Button 
-                  variant="secondary"
-                  onClick={() => setStep(s => s + 1)}
-                  disabled={!answers[currentQuestion.id]}
-                  className="font-black uppercase tracking-widest text-[10px]"
-                >
-                  Sonraki Soru
-                </Button>
+                <Button variant="secondary" onClick={() => setStep(s => s + 1)} disabled={!answers[currentQuestion.id]} className="font-black uppercase tracking-widest text-[10px]">Sonraki Soru</Button>
               )}
             </div>
           </CardContent>
