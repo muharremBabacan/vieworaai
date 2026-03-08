@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Sparkles, Send, GraduationCap, Image as ImageIcon, Save, CheckCircle2, Trash2, FileText, Check } from 'lucide-react';
+import { Loader2, Sparkles, GraduationCap, Image as ImageIcon, Save, CheckCircle2, FileText, Check, ArrowLeftRight } from 'lucide-react';
 import { generateAcademyLessons, generateLessonImage, type GeneratedAcademyLesson } from '@/ai/flows/lesson/generate-academy-lessons';
 import type { CurriculumTopic } from '@/types';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,6 @@ export default function AcademyAdminPanel() {
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [publishProgress, setPublishProgress] = useState(0);
   
   const [previewLessons, setPreviewLessons] = useState<GeneratedAcademyLesson[]>([]);
 
@@ -67,12 +66,17 @@ export default function AcademyAdminPanel() {
       
       setPreviewLessons(lessons);
       
-      // Eğer tek bir ders üretilmişse, promptu otomatik olarak aşağıya aktar
+      // Eğer tek bir ders üretilmişse, promptu otomatik olarak laboratuvar alanına aktar
       if (count === 1 && lessons.length > 0) {
         setManualPrompt(lessons[0].imageHint);
-        toast({ title: "Ders Hazır!", description: "Görsel ipucu laboratuvara aktarıldı." });
+        toast({ title: "Ders İçeriği Hazır!", description: "Görsel ipucu laboratuvara aktarıldı. Lütfen aşağıdan onaylayıp görseli üretin." });
+        
+        // Laboratuvar alanına odaklanması için sayfayı kaydır
+        setTimeout(() => {
+          document.getElementById('image-lab')?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
       } else {
-        toast({ title: `${lessons.length} Taslak Hazır`, description: "Dersleri inceleyip yayınlayabilirsiniz." });
+        toast({ title: `${lessons.length} Taslak Hazır`, description: "Dersleri inceleyip toplu yayınlayabilirsiniz." });
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: "Hata", description: e.message });
@@ -88,22 +92,18 @@ export default function AcademyAdminPanel() {
     if (!selectedCurriculum) return;
 
     setIsPublishing(true);
-    setPublishProgress(0);
 
     try {
       for (let i = 0; i < previewLessons.length; i++) {
         const lesson = previewLessons[i];
         const lessonId = crypto.randomUUID();
         
-        // 1. Generate Image for each lesson
+        // Generate Image for each lesson using its prompt
         const base64 = await generateLessonImage(lesson.imageHint);
-        
-        // 2. Upload to Storage
         const storageRef = ref(storage, `academy-lessons/${lessonId}.jpg`);
         await uploadString(storageRef, base64, 'base64');
         const imageUrl = await getDownloadURL(storageRef);
 
-        // 3. Save to Firestore
         const lessonData = {
           ...lesson,
           id: lessonId,
@@ -114,7 +114,6 @@ export default function AcademyAdminPanel() {
         };
 
         await setDoc(doc(firestore, 'academy_lessons', lessonId), lessonData);
-        setPublishProgress(i + 1);
       }
 
       toast({ title: "Başarılı!", description: `${previewLessons.length} ders yayınlandı.` });
@@ -123,7 +122,6 @@ export default function AcademyAdminPanel() {
       toast({ variant: 'destructive', title: "Yayınlama Hatası", description: e.message });
     } finally {
       setIsPublishing(false);
-      setPublishProgress(0);
     }
   };
 
@@ -140,17 +138,16 @@ export default function AcademyAdminPanel() {
     setIsPublishing(true);
     try {
       const lessonId = crypto.randomUUID();
-      const fileName = `lesson-${lessonId}.jpg`;
-      const storageRef = ref(storage, `academy-lessons/${fileName}`);
+      const storageRef = ref(storage, `academy-lessons/${lessonId}.jpg`);
       
-      const base64Data = manualPreview.split(',')[1];
+      const base64Data = manualPreview.includes('base64,') ? manualPreview.split('base64,')[1] : manualPreview;
       await uploadString(storageRef, base64Data, 'base64');
       const imageUrl = await getDownloadURL(storageRef);
 
       const lessonData = {
         ...lesson,
         id: lessonId,
-        level: selectedLevel,
+        level: selectedLevel as any,
         category: selectedCurriculum.category,
         imageUrl,
         createdAt: new Date().toISOString()
@@ -160,7 +157,6 @@ export default function AcademyAdminPanel() {
       
       toast({ title: "Ders Yayınlandı!", description: "Seçili görsel ile ders akademiye eklendi." });
       
-      // Yayınlanan dersi listeden çıkar
       setPreviewLessons(prev => prev.filter((_, i) => i !== lessonIndex));
       setManualPreview(null);
       setManualPrompt('');
@@ -219,10 +215,10 @@ export default function AcademyAdminPanel() {
               </div>
               <div>
                 <CardTitle className="text-2xl font-black tracking-tight">Akademi İçerik Robotu</CardTitle>
-                <CardDescription>Müfredata dayalı dersleri AI ile üretin.</CardDescription>
+                <CardDescription>Müfredata dayalı dersleri Gemini 2.0 Flash ile üretin.</CardDescription>
               </div>
             </div>
-            <Badge variant="outline" className="border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] px-3 h-6">IMAGEN 3.0 AKTİF</Badge>
+            <Badge variant="outline" className="border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] px-3 h-6">IMAGEN 3.0 & FLASH 2.0 AKTİF</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
@@ -260,7 +256,7 @@ export default function AcademyAdminPanel() {
               onClick={() => handleGenerateLessons(1)} 
               disabled={isGenerating || !selectedCategoryId} 
               variant="outline"
-              className="h-14 rounded-2xl font-black uppercase tracking-widest border-2"
+              className="h-14 rounded-2xl font-black uppercase tracking-widest border-2 border-primary/20 text-primary hover:bg-primary/5"
             >
               {isGenerating ? <Loader2 className="animate-spin" /> : <><FileText className="mr-2 h-5 w-5" /> Tek Ders Üret</>}
             </Button>
@@ -281,7 +277,7 @@ export default function AcademyAdminPanel() {
           <CardHeader className="p-8 border-b border-primary/10 flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-xl font-black uppercase tracking-widest">Taslak Önizleme ({previewLessons.length} Ders)</CardTitle>
-              <p className="text-xs font-bold text-primary mt-1">Tekli derslerde aşağıdan görseli onaylayıp yayınlayabilirsiniz.</p>
+              <p className="text-xs font-bold text-primary mt-1">Ders detaylarını inceleyin. Tekli derslerde görseli aşağıdan üretebilirsiniz.</p>
             </div>
             <div className="flex gap-3">
               <Button variant="ghost" size="sm" onClick={() => setPreviewLessons([])} className="rounded-xl font-black text-[10px] uppercase">Temizle</Button>
@@ -307,11 +303,17 @@ export default function AcademyAdminPanel() {
                         <h4 className="text-lg font-black tracking-tight">{lesson.title}</h4>
                         {previewLessons.length === 1 && (
                           <div className="flex items-center gap-2 text-[10px] font-bold text-amber-500 uppercase bg-amber-500/10 px-3 py-1 rounded-full">
-                            <ArrowLeftRight size={12} className="rotate-90" /> Görsel Aşağıda Bekliyor
+                            <ArrowLeftRight size={12} className="rotate-90" /> Görsel Aşağıda Onay Bekliyor
                           </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground font-medium leading-relaxed italic">"{lesson.learningObjective}"</p>
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground font-medium leading-relaxed italic">"{lesson.learningObjective}"</p>
+                        <div className="p-4 rounded-xl bg-muted/20 border border-border/40 space-y-2">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Önerilen Görsel İstem (Prompt):</p>
+                           <p className="text-xs font-mono text-primary bg-primary/5 p-2 rounded-lg">{lesson.imageHint}</p>
+                        </div>
+                      </div>
                       
                       {previewLessons.length === 1 && (
                         <div className="pt-4">
@@ -321,7 +323,7 @@ export default function AcademyAdminPanel() {
                             className="rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20"
                            >
                              {isPublishing ? <Loader2 className="animate-spin mr-2" /> : <Check className="mr-2 h-4 w-4" />}
-                             Mevcut Görselle Yayınla
+                             Üretilen Görselle Yayınla
                            </Button>
                         </div>
                       )}
@@ -337,18 +339,18 @@ export default function AcademyAdminPanel() {
       {/* Manual Image Lab */}
       <Card id="image-lab" className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-lg border-dashed">
         <CardHeader className="p-8 border-b border-border/40">
-          <CardTitle className="text-xl font-black flex items-center gap-3"><ImageIcon className="text-primary" /> Görsel Üretim Laboratuvarı</CardTitle>
-          <CardDescription>Ders görsellerini burada üretip onaylayabilirsiniz.</CardDescription>
+          <CardTitle className="text-xl font-black flex items-center gap-3"><ImageIcon className="text-primary" /> Görsel Üretim Laboratuvarı (Imagen 3)</CardTitle>
+          <CardDescription>Üretilen dersin görsel ipucunu burada onaylayıp görseli oluşturun.</CardDescription>
         </CardHeader>
         <CardContent className="p-8 space-y-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Görsel İstem (Prompt)</Label>
               <Input 
-                placeholder="Dersin görsel ipucu buraya gelecek..." 
+                placeholder="Dersin görsel ipucu buraya otomatik gelecek..." 
                 value={manualPrompt}
                 onChange={e => setManualPrompt(e.target.value)}
-                className="h-12 rounded-xl bg-muted/30 border-border/60"
+                className="h-12 rounded-xl bg-muted/30 border-border/60 font-medium"
               />
             </div>
             <Button 
@@ -390,5 +392,3 @@ export default function AcademyAdminPanel() {
     </div>
   );
 }
-
-import { ArrowLeftRight } from 'lucide-react';

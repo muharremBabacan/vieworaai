@@ -39,6 +39,7 @@ export async function generateAcademyLessons(
   input: z.infer<typeof InputSchema>
 ): Promise<GeneratedAcademyLesson[]> {
   console.log(`[AI] ${input.level} - ${input.category} için ${input.count} ders üretiliyor...`);
+  // Explicitly tell the model to return an array of exactly X items
   const { output } = await lessonPrompt(input);
   if (!output) throw new Error("Lesson generation failed");
   console.log(`[AI] ${output.length} ders başarıyla üretildi.`);
@@ -53,7 +54,8 @@ const lessonPrompt = ai.definePrompt({
   prompt: `
 You are Luma, the head instructor of Viewora Academy.
 
-Generate EXACTLY {{{count}}} structured photography mini-lessons for the following curriculum:
+Generate EXACTLY {{{count}}} structured photography mini-lessons for the following curriculum. 
+IMPORTANT: If count is 1, return an array with exactly one object.
 
 Level: {{{level}}}
 Category: {{{category}}}
