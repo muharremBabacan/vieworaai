@@ -5,14 +5,15 @@ import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { doc, increment, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import { useToast } from '@/shared/hooks/use-toast';
-import type { User, Photo, AnalysisLog, UserTier } from '@/types';
+import type { User, Photo, AnalysisLog, UserTier, UserProfileIndex } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
@@ -101,6 +102,57 @@ export default function PhotoAnalyzer() {
     noKeyboard: true,
     accept: { 'image/*': ['.jpeg', '.png', '.jpg', '.webp'] }
   });
+
+  const updateProfileIndexMetrics = async (userId: string) => {
+    if (!firestore) return;
+    
+    // Son 5 analiz edilmiş fotoğrafı çek
+    const photosRef = collection(firestore, 'users', userId, 'photos');
+    const q = query(
+      photosRef, 
+      where('aiFeedback', '!=', null), 
+      orderBy('createdAt', 'desc'), 
+      limit(5)
+    );
+    
+    const snap = await getDocs(q);
+    if (snap.empty) return;
+
+    const analyzedPhotos = snap.docs.map(d => d.data() as Photo);
+    const count = analyzedPhotos.length;
+
+    const totals = analyzedPhotos.reduce((acc, p) => {
+      const f = p.aiFeedback!;
+      acc.light += normalizeScore(f.light_score);
+      acc.composition += normalizeScore(f.composition_score);
+      acc.clarity += normalizeScore(f.technical_clarity_score);
+      acc.story += normalizeScore(f.storytelling_score || 0);
+      acc.boldness += normalizeScore(f.boldness_score || 0);
+      return acc;
+    }, { light: 0, composition: 0, clarity: 0, story: 0, boldness: 0 });
+
+    const newMetrics = {
+      light: totals.light / count,
+      composition: totals.composition / count,
+      technical_clarity: totals.clarity / count,
+      storytelling: totals.story / count,
+      boldness: totals.boldness / count
+    };
+
+    // Kullanıcının profile_index'ini güncelle
+    const userRef = doc(firestore, 'users', userId);
+    const userSnap = await getDocs(query(collection(firestore, 'users'), where('id', '==', userId)));
+    
+    if (!userSnap.empty) {
+      const userData = userSnap.docs[0].data() as User;
+      const currentProfileIndex = userData.profile_index || {} as UserProfileIndex;
+      
+      await updateDoc(userRef, {
+        'profile_index.metrics': newMetrics,
+        'profile_index.profile_index_score': (newMetrics.light + newMetrics.composition + newMetrics.technical_clarity) / 3 * 10
+      });
+    }
+  };
 
   const handleUploadAndOptionalAnalysis = async (analyze = false) => {
     if (!file || !user || !firestore || !userProfile) return;
@@ -196,6 +248,8 @@ export default function PhotoAnalyzer() {
       await batch.commit();
       
       if (analyze) {
+        // Analiz bittikten sonra metrikleri arka planda güncelle
+        await updateProfileIndexMetrics(user.uid);
         setAnalysisResult(photoData);
         toast({ title: 'Analiz Tamamlandı' });
       } else {

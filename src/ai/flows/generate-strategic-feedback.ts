@@ -1,5 +1,5 @@
-
 'use server';
+
 /**
  * Strategic AI Photography Coach - Elite Production Version
  */
@@ -37,27 +37,31 @@ const UserProfileIndexSchema = z.object({
 });
 
 const StrategicFeedbackInputSchema = z.object({
-    userPrompt: z.string(),
-    userProfileIndex: UserProfileIndexSchema,
-    language: z.string().describe('The language for the response (e.g., "tr", "en").'),
+  userPrompt: z.string(),
+  userProfileIndex: UserProfileIndexSchema,
+  language: z.string(),
+  focusArea: z.string().optional(),
 });
+
 export type StrategicFeedbackInput = z.infer<
   typeof StrategicFeedbackInputSchema
 >;
 
 const StrategicFeedbackOutputSchema = z.object({
-  feedback: z.string().describe("Direct, data-driven coaching summary. Start by summarizing the current performance based on available metrics."),
+  feedback: z.string(),
   actionTask: z.object({
     title: z.string(),
-    purpose: z.string().describe("The 'Amaç' of the task."),
-    steps: z.array(z.string()).describe("Detailed steps including 'Modelle Çalışma', 'Işık Stratejisi', 'Kompozisyon Disiplini'."),
-    evaluationQuestions: z.array(z.string()).describe("Self-evaluation questions for the user."),
-    weeklyTarget: z.array(z.string()).describe("The 'Bu Haftanın Hedefi' list."),
+    purpose: z.string(),
+    steps: z.array(z.string()),
+    evaluationQuestions: z.array(z.string()),
+    weeklyTarget: z.array(z.string()),
   }),
-  explanations: z.array(z.object({
-    term: z.string().describe("The complex technical or artistic term used."),
-    definition: z.string().describe("A simple, short explanation of the term.")
-  })).optional().describe("Glossary for complex terms like 'Chiaroscuro', 'Negative Space', etc."),
+  explanations: z.array(
+    z.object({
+      term: z.string(),
+      definition: z.string(),
+    })
+  ).optional(),
 });
 
 export type StrategicFeedbackOutput = z.infer<
@@ -80,6 +84,7 @@ export async function generateStrategicFeedback(
 
 const generationPrompt = ai.definePrompt({
   name: 'strategicCoachPromptElite',
+
   input: { schema: StrategicFeedbackInputSchema },
   output: { schema: StrategicFeedbackOutputSchema },
 
@@ -87,51 +92,95 @@ const generationPrompt = ai.definePrompt({
 You are Luma, an elite AI photography coach and visual strategist at Viewora.
 
 CORE PHILOSOPHY:
-Luma does not criticize; Luma makes the artist realize. 
-You are an expert mentor, not a judge. 
-Your tone is calm, authoritative yet empowering. 
+Luma does not criticize; Luma makes the artist realize.
+You are a mentor, not a judge.
 
-STRICT OUTPUT STRUCTURE:
-1. **Luma Analizi – Kişisel Strateji**: 
-   - Provide a concise summary of the photographer's current state based on the provided metrics.
-   - List the metrics: Kompozisyon, Işık Kontrolü, Hikâye/Duygu, Teknik Netlik, Cesur Kadraj.
-   - Provide a "Verdicts" section: "Bu tablo net: [Analysis of tech vs narrative]".
-   - Identify the core problem: "Sorun teknik değil. Sorun anlatı." (if applicable).
-   - Set the week's focus: "Bu haftaki odak: [Focus Point]".
+IMPORTANT RULES:
 
-2. **Haftalık Görev – [GÖREV BAŞLIĞI]**:
-   - **Amaç**: Transition from tech to narrative.
-   - **1. Adım**: (e.g. Duygu Seç)
-   - **2. Adım**: (e.g. Modelle Çalışma)
-   - **3. Adım**: (e.g. Işık Stratejisi)
-   - **4. Adım**: (e.g. Kompozisyon Disiplini)
-   - **5. Değerlendirme**: Self-evaluation questions.
+FOCUS AREA SYSTEM
+The variable FOCUS_AREA indicates the weakest development area.
 
-3. **Bu Haftanın Hedefi**: 
-   - Bullet points of what to achieve.
+Possible values:
 
-CORE RULES:
-- **No theoretical tasks**: NEVER suggest "take notes", "read", or "research". ALL tasks must be shooting assignments.
-- **Data-Driven**: Use the provided 'metrics' from 'userProfileIndex' to make the feedback highly specific to their current scores.
-- **Terminology Glossary**: If you use terms like 'Minimalizm', 'Chiaroscuro', 'Altın Oran', list them in 'explanations'.
-- **Adapt Tone**: Match 'communication_profile.tone' (supportive, direct, or analytical).
-- **No History Mention**: Do not explicitly mention the number of photos analyzed (e.g., avoid saying "Based on your last 12 photos").
+technical_clarity
+light
+composition
+boldness
+storytelling
+
+If FOCUS_AREA is technical:
+Focus the weekly assignment on improving that technical skill.
+
+If FOCUS_AREA is storytelling:
+Create narrative and emotional storytelling assignments.
+
+CRITICAL RULE:
+
+Storytelling should NOT be prioritized if technical skills are weak.
+
+Storytelling tasks can only appear if:
+
+technical_clarity >= 6
+light >= 6
+composition >= 6
+
+Otherwise focus only on technical growth.
+
+TASK RULES:
+
+All tasks must be real shooting assignments.
+Never suggest reading, studying or researching.
+All assignments must involve taking photos.
+
+STRUCTURE:
+
+1 Luma Analizi – Kişisel Strateji
+
+Summarize photographer state.
+
+List metrics:
+
+Kompozisyon
+Işık Kontrolü
+Hikâye/Duygu
+Teknik Netlik
+Cesur Kadraj
+
+Provide a short verdict.
+
+Define the week's focus.
+
+2 Haftalık Görev
+
+Title
+
+Amaç
+
+Steps
+
+Evaluation questions
+
+3 Bu Haftanın Hedefi
+
+List weekly targets.
 `,
 
   prompt: `
 USER_PROFILE_INDEX:
-\`\`\`json
+
 {{{userProfileIndex}}}
-\`\`\`
+
+FOCUS_AREA:
+
+{{{focusArea}}}
 
 USER_REQUEST:
+
 "{{{userPrompt}}}"
 
 Respond in language: {{{language}}}
 
-Based on the provided metrics and history, generate a deep strategic guidance plan. 
-Make the artist realize their path from being "correct" to being "memorable". 
-Ensure the weekly task is a physical shooting assignment.
+Generate a personalized strategic coaching response.
 `,
 });
 
@@ -145,8 +194,73 @@ const strategicFeedbackFlow = ai.defineFlow(
     inputSchema: StrategicFeedbackInputSchema,
     outputSchema: StrategicFeedbackOutputSchema,
   },
+
   async (input) => {
-    const { output } = await generationPrompt(input);
+
+    const metrics = input.userProfileIndex.metrics;
+
+    let focusArea = "composition";
+
+    if (metrics) {
+
+      const clarity = metrics.technical_clarity;
+      const light = metrics.light;
+      const composition = metrics.composition;
+      const boldness = metrics.boldness;
+      const story = metrics.storytelling;
+
+      /**
+       * Technical average
+       * storytelling intentionally excluded
+       */
+
+      const technicalAvg =
+        (clarity + light + composition + boldness) / 4;
+
+      /**
+       * Determine weakest technical area
+       */
+
+      if (clarity < technicalAvg) {
+
+        focusArea = "technical_clarity";
+
+      } else if (light < technicalAvg) {
+
+        focusArea = "light";
+
+      } else if (composition < technicalAvg) {
+
+        focusArea = "composition";
+
+      } else if (boldness < technicalAvg) {
+
+        focusArea = "boldness";
+
+      }
+      /**
+       * storytelling becomes active
+       * only if technical baseline exists
+       */
+
+      else if (
+        clarity >= 6 &&
+        light >= 6 &&
+        composition >= 6
+      ) {
+
+        focusArea = "storytelling";
+
+      }
+
+    }
+
+    const enrichedInput = {
+      ...input,
+      focusArea
+    };
+
+    const { output } = await generationPrompt(enrichedInput);
 
     if (!output) {
       throw new Error('AI elite strategic feedback generation failed.');

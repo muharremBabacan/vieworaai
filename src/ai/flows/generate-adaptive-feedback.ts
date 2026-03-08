@@ -1,123 +1,90 @@
 'use server';
-/**
- * Adaptive Luma Feedback - Profile Integrated Version
- */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-/* -------------------------------------------------------------------------- */
-/*                               SCHEMAS                                      */
-/* -------------------------------------------------------------------------- */
-
-const PhotoTechnicalDataSchema = z.object({
-  light_score: z.number(),
-  composition_score: z.number(),
-  focus_score: z.number(),
-  color_control_score: z.number(),
-  background_control_score: z.number(),
-  creativity_risk_score: z.number(),
+const PhotoTechnicalSchema = z.object({
+  light_score:z.number(),
+  composition_score:z.number(),
+  technical_clarity_score:z.number(),
+  storytelling_score:z.number().optional(),
+  boldness_score:z.number().optional()
 });
 
-const AdaptiveFeedbackInputSchema = z.object({
-  userGamificationLevel: z.string(),
-  language: z.string(),
-  technicalAnalysis: PhotoTechnicalDataSchema,
-  communicationStyle: z.string().optional(),
-  scoreTrend: z.enum(['improving', 'stagnant', 'declining']),
-  averageScore: z.number(),
-  overallScore: z.number(), // Score of the current photo
+const AdaptiveInputSchema=z.object({
+  language:z.string(),
+  userLevel:z.string(),
+
+  genre:z.string(),
+  scene:z.string(),
+  dominant_subject:z.string(),
+  tags:z.array(z.string()),
+
+  technical:PhotoTechnicalSchema
 });
 
-export type AdaptiveFeedbackInput = z.infer<
-  typeof AdaptiveFeedbackInputSchema
->;
+export type AdaptiveInput=z.infer<typeof AdaptiveInputSchema>;
 
-const AdaptiveFeedbackOutputSchema = z.object({
-  feedback: z.string(),
+const AdaptiveOutputSchema=z.object({
+  feedback:z.string()
 });
-
-export type AdaptiveFeedbackOutput = z.infer<
-  typeof AdaptiveFeedbackOutputSchema
->;
-
-/* -------------------------------------------------------------------------- */
-/*                              MAIN EXPORT                                   */
-/* -------------------------------------------------------------------------- */
 
 export async function generateAdaptiveFeedback(
-  input: AdaptiveFeedbackInput
-): Promise<AdaptiveFeedbackOutput> {
-  return feedbackFlow(input);
+input:AdaptiveInput
+){
+return flow(input);
 }
 
-/* -------------------------------------------------------------------------- */
-/*                                  PROMPT                                    */
-/* -------------------------------------------------------------------------- */
+const prompt=ai.definePrompt({
+name:'adaptiveLumaPromptV2',
+input:{schema:AdaptiveInputSchema},
+output:{schema:AdaptiveOutputSchema},
 
-const feedbackPrompt = ai.definePrompt({
-  name: 'adaptiveFeedbackLumaProfileIntegrated',
-  input: { schema: AdaptiveFeedbackInputSchema },
-  output: { schema: AdaptiveFeedbackOutputSchema },
+system:`
+You are Luma, Viewora's visual mentor.
 
-  system: `
-You are Luma, Viewora’s intelligent visual mentor. 
+Use the scene, subject and tags to understand the image context.
 
-CORE PHILOSOPHY:
-Luma does not criticize; Luma makes the artist realize. 
-You are a guide, not a judge. 
+Structure feedback:
 
-TONE RULES:
-1.  **Avoid Criticism:** Do NOT say things are "bad", "poor", or "wrong".
-2.  **Encourage Realization:** Use phrases like "If the background is simplified, the core feeling becomes more visible." Or "When the light hits from the side, the story of the texture starts to unfold."
-3.  **Adaptive Depth:** Adjust complexity based on 'userGamificationLevel'.
-4.  **Trend Awareness:** Reference 'scoreTrend' to encourage them (e.g., "Your steady progress is starting to show in your composition choices...").
-5.  **No Scores:** Do NOT mention numeric scores in your feedback.
-6.  **Concise:** Keep feedback focused and actionable.
-7.  **Structure:** Use Markdown headers: **Işık**, **Kompozisyon**, **Teknik**.
-8.  **No Intro:** No emojis. No self-introduction.
+Işık
+Kompozisyon
+Teknik
+
+Never invent themes unrelated to tags.
 `,
 
-  prompt: `
-USER_PROFILE_DATA:
-- Level: {{{userGamificationLevel}}}
-- Communication Style: {{{communicationStyle}}}
-- Recent Trend: {{{scoreTrend}}}
-- Historical Average Score: {{{averageScore}}}
+prompt:`
 
-CURRENT_PHOTO_DATA:
-- Current Photo Score: {{{overallScore}}}
-- Light: {{{technicalAnalysis.light_score}}}
-- Composition: {{{technicalAnalysis.composition_score}}}
-- Focus: {{{technicalAnalysis.focus_score}}}
-- Color Control: {{{technicalAnalysis.color_control_score}}}
-- Background Control: {{{technicalAnalysis.background_control_score}}}
-- Creativity: {{{technicalAnalysis.creativity_risk_score}}}
+GENRE: {{{genre}}}
+SCENE: {{{scene}}}
+SUBJECT: {{{dominant_subject}}}
 
-Respond in language: {{{language}}}
+TAGS:
+{{#each tags}}
+- {{this}}
+{{/each}}
 
-Generate adaptive guidance that makes the artist realize their next step.
-`,
+TECHNICAL DATA:
+Light: {{{technical.light_score}}}
+Composition: {{{technical.composition_score}}}
+Clarity: {{{technical.technical_clarity_score}}}
+Storytelling: {{{technical.storytelling_score}}}
+Boldness: {{{technical.boldness_score}}}
+
+Respond in {{{language}}}.
+`
 });
 
-/* -------------------------------------------------------------------------- */
-/*                                   FLOW                                     */
-/* -------------------------------------------------------------------------- */
-
-const feedbackFlow = ai.defineFlow(
-  {
-    name: 'adaptiveFeedbackFlow',
-    inputSchema: AdaptiveFeedbackInputSchema,
-    outputSchema: AdaptiveFeedbackOutputSchema,
-  },
-  async (input) => {
-    // CORRECTED: Call the prompt object, not the flow itself recursively
-    const { output } = await feedbackPrompt(input);
-
-    if (!output) {
-      throw new Error('Adaptive feedback generation failed.');
-    }
-
-    return output;
-  }
+const flow=ai.defineFlow(
+{
+name:'adaptiveLumaFlowV2',
+inputSchema:AdaptiveInputSchema,
+outputSchema:AdaptiveOutputSchema
+},
+async(input)=>{
+const {output}=await prompt(input);
+if(!output) throw new Error("Luma feedback failed");
+return output;
+}
 );
