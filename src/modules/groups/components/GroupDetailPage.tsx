@@ -38,19 +38,24 @@ const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
 });
 
 function MemberItem({ member, isGroupOwner, isCurrentUserOwner, currentUserId, onRemove }: { member: any, isGroupOwner: boolean, isCurrentUserOwner: boolean, currentUserId?: string, onRemove: (memberId: string, memberName: string) => void }) {
-  const isBilinmeyen = !member.name || member.name === 'Yükleniyor...';
+  const isPending = member.name === 'Yükleniyor...';
   return (
       <div className={cn("flex items-center justify-between p-3 rounded-xl transition-colors", isGroupOwner ? "bg-primary/5 border border-primary/10" : "hover:bg-muted/50")}>
           <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar className={cn(isGroupOwner && "ring-2 ring-amber-400/50", isBilinmeyen && "opacity-50")}>
+                <Avatar className={cn(isGroupOwner && "ring-2 ring-amber-400/50", isPending && "opacity-50")}>
                     <AvatarImage src={member.photoURL || ''} alt={member.name || ''} className="object-cover" />
                     <AvatarFallback>{member.name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
                 {isGroupOwner && <div className="absolute -top-1 -right-1 bg-amber-400 rounded-full p-0.5 shadow-sm"><Crown className="h-2.5 w-2.5 text-black" /></div>}
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2"><span className={cn("font-semibold text-sm", isBilinmeyen && "text-muted-foreground italic")}>{member.name || 'Bilinmeyen Üye'}</span>{isGroupOwner && <Badge variant="outline" className="h-4 px-1.5 text-[8px] font-black uppercase bg-amber-400/10 text-amber-500 border-amber-400/20">Kurucu</Badge>}</div>
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-2">
+                  <span className={cn("font-semibold text-sm", isPending && "text-muted-foreground animate-pulse")}>
+                    {member.name || 'İsimsiz Üye'}
+                  </span>
+                  {isGroupOwner && <Badge variant="outline" className="h-4 px-1.5 text-[8px] font-black uppercase bg-amber-400/10 text-amber-500 border-amber-400/20">Kurucu</Badge>}
+                </div>
                 <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tight">{member.level_name || 'Neuner'}</span>
               </div>
           </div>
@@ -109,20 +114,25 @@ export default function GroupDetailPage() {
   }, [group]);
 
   const membersQuery = useMemoFirebase(() => {
-    if (!group?.memberIds || group.memberIds.length === 0) return null;
+    if (!group?.memberIds || group.memberIds.length === 0 || !firestore) return null;
+    // documentId() query is limited to 30 items
     return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds.slice(0, 30)));
   }, [group?.memberIds, firestore]);
   
-  const { data: profiles } = useCollection<PublicUserProfile>(membersQuery);
+  const { data: profiles, isLoading: isProfilesLoading } = useCollection<PublicUserProfile>(membersQuery);
   
   const allMembers = useMemo(() => {
     if (!group?.memberIds) return [];
-    return group.memberIds.map(uid => profiles?.find(p => p.id === uid) || { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile);
+    return group.memberIds.map(uid => {
+      const found = profiles?.find(p => p.id === uid);
+      if (found) return found;
+      return { id: uid, name: 'Yükleniyor...', level_name: 'Neuner' } as PublicUserProfile;
+    });
   }, [group?.memberIds, profiles]);
 
   const founderProfile = useMemo(() => {
-    return profiles?.find(p => p.id === group?.ownerId);
-  }, [profiles, group?.ownerId]);
+    return allMembers.find(p => p.id === group?.ownerId);
+  }, [allMembers, group?.ownerId]);
 
   const handleCreateAssignment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -133,7 +143,7 @@ export default function GroupDetailPage() {
     const description = formData.get('description') as string;
 
     try {
-      const assignmentRef = collection(firestore, 'groups', group.id, 'assignments');
+      const assignmentRef = collection(firestore!, 'groups', group.id, 'assignments');
       await addDoc(assignmentRef, {
         groupId: group.id,
         title,
@@ -166,7 +176,7 @@ export default function GroupDetailPage() {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
-      const submissionRef = collection(firestore, 'groups', group.id, 'submissions');
+      const submissionRef = collection(firestore!, 'groups', group.id, 'submissions');
       await addDoc(submissionRef, {
         groupId: group.id,
         assignmentId,
@@ -190,7 +200,7 @@ export default function GroupDetailPage() {
   const handleApproveSubmission = async (submissionId: string) => {
     if (!group || !isCurrentUserOwner) return;
     try {
-      const subRef = doc(firestore, 'groups', group.id, 'submissions', submissionId);
+      const subRef = doc(firestore!, 'groups', group.id, 'submissions', submissionId);
       await updateDoc(subRef, { status: 'approved' });
       toast({ title: "Ödev Onaylandı", description: "Öğrenciye başarı rütbesi eklendi." });
     } catch (e) {
@@ -200,7 +210,7 @@ export default function GroupDetailPage() {
 
   const handleToggleLike = async (submission: GroupSubmission) => {
     if (!user || !group) return;
-    const subRef = doc(firestore, 'groups', group.id, 'submissions', submission.id);
+    const subRef = doc(firestore!, 'groups', group.id, 'submissions', submission.id);
     const isLiked = submission.likes.includes(user.uid);
     try {
       await updateDoc(subRef, {
@@ -215,7 +225,7 @@ export default function GroupDetailPage() {
       toast({ variant: 'destructive', title: "Yorumlar Kapalı", description: "Bu grupta yorum yapma yetkisi sadece kurucuya aittir." });
       return;
     }
-    const subRef = doc(firestore, 'groups', group.id, 'submissions', submissionId);
+    const subRef = doc(firestore!, 'groups', group.id, 'submissions', submissionId);
     const newComment = {
       userId: user.uid,
       userName: userProfile?.name || 'Sanatçı',
@@ -386,6 +396,8 @@ export default function GroupDetailPage() {
                 <div className="grid gap-6">
                   {assignments && assignments.length > 0 ? assignments.map(asgn => {
                     const mySubmission = submissions?.find(s => s.assignmentId === asgn.id && s.userId === user?.uid);
+                    const assignmentSubmissions = submissions?.filter(s => s.assignmentId === asgn.id) || [];
+                    
                     return (
                       <Card key={asgn.id} className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-sm hover:shadow-md transition-all">
                         <CardHeader className="p-8 pb-4">
@@ -414,11 +426,11 @@ export default function GroupDetailPage() {
                             <div className="mt-8 pt-8 border-t border-border/20">
                               <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">Gelen Teslimler</h4>
                               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                                {submissions?.filter(s => s.assignmentId === asgn.id).map(sub => (
+                                {assignmentSubmissions.map(sub => (
                                   <div key={sub.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-border/40 cursor-pointer">
                                     <Image src={sub.photoUrl} alt="Submission" fill className="object-cover" unoptimized />
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center">
-                                      <span className="text-[10px] text-white font-bold mb-2">@{sub.userName}</span>
+                                      <span className="text-[10px] text-white font-bold mb-2 truncate w-full">@{sub.userName}</span>
                                       {sub.status === 'pending' ? (
                                         <Button size="sm" onClick={() => handleApproveSubmission(sub.id)} className="h-7 px-3 text-[9px] rounded-lg font-black uppercase tracking-widest bg-green-600 hover:bg-green-700">Onayla</Button>
                                       ) : (
@@ -427,7 +439,7 @@ export default function GroupDetailPage() {
                                     </div>
                                   </div>
                                 ))}
-                                {submissions?.filter(s => s.assignmentId === asgn.id).length === 0 && (
+                                {assignmentSubmissions.length === 0 && (
                                   <div className="col-span-full py-10 text-center rounded-2xl border-2 border-dashed border-border/20">
                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Henüz teslim yok</p>
                                   </div>
@@ -469,12 +481,12 @@ export default function GroupDetailPage() {
                       </div>
 
                       <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0 duration-500">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6 border border-white/20">
+                        <div className="flex items-center gap-2 max-w-[60%]">
+                          <Avatar className="h-6 w-6 border border-white/20 shrink-0">
                             <AvatarImage src={sub.userPhotoURL || ''} className="object-cover" />
                             <AvatarFallback className="text-[10px] font-bold">{sub.userName.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <span className="text-[10px] font-black text-white uppercase drop-shadow-md">@{sub.userName}</span>
+                          <span className="text-[10px] font-black text-white uppercase drop-shadow-md truncate">@{sub.userName}</span>
                         </div>
                         <div className="flex gap-2">
                           <Button 
@@ -508,7 +520,7 @@ export default function GroupDetailPage() {
                                         <Avatar className="h-8 w-8 shrink-0">
                                           <AvatarFallback className="text-[10px] font-bold">{c.userName.charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/40">
+                                        <div className="flex-1 p-3 rounded-2xl bg-muted/50 border border-border/40 text-left">
                                           <div className="flex justify-between items-center mb-1">
                                             <p className="text-[10px] font-black uppercase text-primary">@{c.userName}</p>
                                             <span className="text-[8px] font-bold text-muted-foreground uppercase">{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true, locale: tr })}</span>
@@ -525,8 +537,10 @@ export default function GroupDetailPage() {
                                   <form onSubmit={(e) => {
                                     e.preventDefault();
                                     const input = (e.target as any).comment;
-                                    handleAddComment(sub.id, input.value);
-                                    input.value = '';
+                                    if (input.value.trim()) {
+                                      handleAddComment(sub.id, input.value);
+                                      input.value = '';
+                                    }
                                   }} className="flex gap-2">
                                     <Input name="comment" placeholder="Harika bir kare..." className="h-10 rounded-xl" />
                                     <Button type="submit" size="icon" className="h-10 w-10 rounded-xl shrink-0"><Send size={16} /></Button>
@@ -585,17 +599,17 @@ export default function GroupDetailPage() {
                   <div className="grid lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-8">
                       <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
-                        <CardHeader className="p-8 border-b border-border/40">
+                        <CardHeader className="p-8 border-b border-border/40 text-left">
                           <CardTitle className="flex items-center gap-3"><Settings className="h-5 w-5 text-primary" /> Grup Yönetimi</CardTitle>
                           <CardDescription>Grubun adını, üye kapasitesini ve etkileşim izinlerini buradan yönetin.</CardDescription>
                         </CardHeader>
                         <CardContent className="p-8 space-y-8">
                           <div className="space-y-6">
-                            <div className="space-y-2">
+                            <div className="space-y-2 text-left">
                               <Label htmlFor="groupName" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Grup Adı</Label>
                               <Input id="groupName" value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl h-12 bg-muted/30 border-border/60" />
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-2 text-left">
                               <div className="flex justify-between items-center px-1">
                                 <Label htmlFor="maxMembers" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Maksimum Üye Sayısı</Label>
                                 <span className="text-xs font-bold text-primary">{editMaxMembers} / {userLimits.maxMembers}</span>
@@ -603,7 +617,7 @@ export default function GroupDetailPage() {
                               <Input id="maxMembers" type="number" min={group.memberIds.length} max={userLimits.maxMembers} value={editMaxMembers} onChange={(e) => setEditMaxMembers(parseInt(e.target.value))} className="rounded-xl h-12 bg-muted/30 border-border/60" />
                             </div>
                             
-                            <div className="flex items-center justify-between p-4 rounded-2xl bg-secondary/30 border border-border/40">
+                            <div className="flex items-center justify-between p-4 rounded-2xl bg-secondary/30 border border-border/40 text-left">
                               <div className="space-y-0.5">
                                 <Label className="text-sm font-bold">Üye Yorumları</Label>
                                 <p className="text-xs text-muted-foreground font-medium">Üyeler teslim edilen fotoğrafların altına yorum yazabilsin.</p>
@@ -613,14 +627,14 @@ export default function GroupDetailPage() {
                           </div>
 
                           <Button onClick={handleUpdateSettings} disabled={isUpdating} className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20">
-                            {isUpdating && <Loader2 className="animate-spin" />}
+                            {isUpdating && <Loader2 className="animate-spin mr-2" />}
                             Ayarları Güncelle
                           </Button>
                         </CardContent>
                       </Card>
 
                       <Card className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
-                        <CardHeader className="p-8 border-b border-border/40">
+                        <CardHeader className="p-8 border-b border-border/40 text-left">
                           <CardTitle className="flex items-center gap-3"><Camera className="h-5 w-5 text-primary" /> Grup Görseli</CardTitle>
                         </CardHeader>
                         <CardContent className="p-8">
@@ -638,11 +652,11 @@ export default function GroupDetailPage() {
 
                     <div className="space-y-8">
                       <Card className="rounded-[32px] border-destructive/20 bg-destructive/5 overflow-hidden shadow-xl">
-                        <CardHeader className="p-8 border-b border-destructive/10">
+                        <CardHeader className="p-8 border-b border-destructive/10 text-left">
                           <CardTitle className="flex items-center gap-3 text-destructive"><Trash2 className="h-5 w-5" /> Tehlikeli Bölge</CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 space-y-6">
-                          <div className="flex items-start gap-3 bg-destructive/10 p-4 rounded-2xl border border-destructive/20">
+                          <div className="flex items-start gap-3 bg-destructive/10 p-4 rounded-2xl border border-destructive/20 text-left">
                             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                             <p className="text-xs font-medium text-destructive/90 leading-relaxed">Grubu sildiğinizde tüm geçmiş veriler yok edilir. Bu işlem geri alınamaz.</p>
                           </div>
