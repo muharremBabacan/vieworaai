@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -23,17 +22,17 @@ const UserProfileIndexSchema = z.object({
   }),
   consistency_gap: z.number(),
   technical: z.object({
-    composition: number,
-    light: number,
-    technical_clarity: number,
-    boldness: number,
-    storytelling: number,
+    composition: z.number(),
+    light: z.number(),
+    technical_clarity: z.number(),
+    boldness: z.number(),
+    storytelling: z.number(),
   }).optional(),
   activity_signals: z.object({
-    learning_score: number,
-    competition_score: number,
-    exhibition_score: number,
-    group_activity_score: number,
+    learning_score: z.number(),
+    competition_score: z.number(),
+    exhibition_score: z.number(),
+    group_activity_score: z.number(),
   }).optional(),
   communication_profile: z.object({
     tone: z.enum(['supportive', 'direct', 'analytical']),
@@ -154,7 +153,7 @@ const strategicFeedbackFlow = ai.defineFlow(
         { key: 'boldness', val: boldness },
         { key: 'storytelling', val: storytelling }
       ];
-      // En düşük teknik alanı bul
+      // Find lowest technical area
       focusArea = metrics.sort((a, b) => a.val - b.val)[0].key;
     }
 
