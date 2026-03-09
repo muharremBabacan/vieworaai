@@ -49,7 +49,7 @@ export default function GalleryPage() {
   const [targetExhibitionId, setTargetExhibitionId] = useState<string>('');
 
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   const photosQuery = useMemoFirebase(() => (user && firestore) ? query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc')) : null, [user, firestore]);
   const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
@@ -96,7 +96,7 @@ export default function GalleryPage() {
         batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
         batch.update(doc(firestore, 'users', user.uid), { 
           auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST),
-          'profile_index.activity_signals.exhibition_score': increment(5) // Sanatsal Güven Sinyali (Davranış Katmanı)
+          'profile_index.activity_signals.exhibition_score': increment(5) 
         });
         await batch.commit();
         toast({ title: "Sergiye gönderildi!" });
@@ -127,7 +127,7 @@ export default function GalleryPage() {
       
       {isPhotosLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {[...Array(12)].map((_, i) => <Skeleton className="aspect-square rounded-2xl" />)}
+          {[...Array(12)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
         </div>
       ) : photos && photos.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
