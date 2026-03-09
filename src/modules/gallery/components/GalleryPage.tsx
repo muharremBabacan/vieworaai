@@ -81,7 +81,6 @@ export default function GalleryPage() {
     if (!photos) return [];
     let result = [...photos];
 
-    // Status filtering
     if (statusFilter !== 'all') {
       switch (statusFilter) {
         case 'analyzed':
@@ -90,18 +89,12 @@ export default function GalleryPage() {
         case 'exhibition':
           result = result.filter(p => p.isSubmittedToExhibition);
           break;
-        case 'competition':
-          // In this implementation, we don't have a direct 'isSubmittedToCompetition' on Personal Photo doc, 
-          // but we can infer or leave as is if we track it. For now, filter by a hypothetical field.
-          // result = result.filter(p => p.isSubmittedToCompetition);
-          break;
         case 'best':
           result = result.filter(p => getOverallScore(p) >= 8);
           break;
       }
     }
 
-    // Category filtering
     if (categoryFilter !== 'all') {
       result = result.filter(p => p.tags?.some(t => t.toLowerCase() === categoryFilter));
     }
@@ -175,14 +168,13 @@ export default function GalleryPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
+    <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
       <header className="mb-10 space-y-1 pt-6">
         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KÜTÜPHANE</p>
         <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Galerim</h1>
       </header>
       
       <div className="space-y-4 mb-12">
-        {/* Layer 1: Status Filters */}
         <div className="relative filter-scroll">
           <div className="flex overflow-x-auto no-scrollbar snap-x gap-2 pb-1 touch-pan-x scroll-smooth">
             {STATUS_FILTERS.map((f) => (
@@ -203,7 +195,6 @@ export default function GalleryPage() {
           </div>
         </div>
 
-        {/* Layer 2: Category Filters */}
         <div className="relative filter-scroll">
           <div className="flex overflow-x-auto no-scrollbar snap-x gap-2 pb-2 touch-pan-x scroll-smooth">
             {CATEGORY_FILTERS.map((f) => (
@@ -239,11 +230,7 @@ export default function GalleryPage() {
                 onClick={() => setSelectedPhoto(photo)}
               >
                 <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
-                
-                {/* Image Overlays */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                {/* Top Overlays (Score & Exhibition) */}
                 <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                   <div className="flex flex-col gap-1.5">
                     {photo.isSubmittedToExhibition && (
@@ -251,17 +238,13 @@ export default function GalleryPage() {
                         <Globe className="h-3 w-3 text-white" />
                       </div>
                     )}
-                    {/* If we had competition status on photo doc, it would go here */}
                   </div>
-                  
                   {photo.aiFeedback && (
                     <Badge className="bg-black/60 backdrop-blur-md text-white border-white/10 px-2 h-6 font-black text-[10px] rounded-full shadow-lg">
                       <Star className="h-2.5 w-2.5 mr-1 fill-current text-yellow-400" /> {overallScore.toFixed(1)}
                     </Badge>
                   )}
                 </div>
-
-                {/* Bottom Overlays (Likes & Date) */}
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-500">
                   <div className="flex items-center gap-1.5 text-white/90">
                     <Heart size={14} className={cn(photo.likes?.length ? "fill-red-500 text-red-500" : "text-white")} />
@@ -290,7 +273,6 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {/* Detay Penceresi */}
       <Dialog open={!!selectedPhoto} onOpenChange={(o) => !o && setSelectedPhoto(null)}>
         {selectedPhoto && (
           <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row rounded-[48px]">

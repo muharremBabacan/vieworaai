@@ -205,7 +205,7 @@ export default function LumaMentorPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 pb-24 pt-6 animate-in fade-in duration-700">
+    <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
       <header className="mb-12 space-y-1 pt-6">
         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">MENTORLUK</p>
         <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Luma Mentor</h1>
@@ -213,7 +213,6 @@ export default function LumaMentorPage() {
       </header>
 
       <div className="max-w-6xl mx-auto space-y-12">
-        {/* Main Action Section (Redesigned to match PhotoAnalyzer Upload Area) */}
         {!currentAnalysis && (
           <div className="relative p-10 md:p-16 border-2 border-dashed border-border/60 rounded-[48px] bg-card/30 hover:bg-card/40 transition-all group shadow-inner overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
@@ -258,7 +257,6 @@ export default function LumaMentorPage() {
           </div>
         )}
 
-        {/* Current Analysis Result */}
         {currentAnalysis && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="flex justify-between items-center">
@@ -269,7 +267,6 @@ export default function LumaMentorPage() {
           </div>
         )}
 
-        {/* History Section */}
         {history && history.length > 0 && (
           <div className="space-y-6 pt-12 max-w-4xl mx-auto">
             <div className="flex items-center gap-3 ml-2">
