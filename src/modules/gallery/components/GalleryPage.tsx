@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -168,8 +167,8 @@ export default function GalleryPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
-      <header className="mb-10 space-y-1 pt-6">
+    <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
+      <header className="mb-10 space-y-1">
         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KÜTÜPHANE</p>
         <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Galerim</h1>
       </header>

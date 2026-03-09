@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -205,8 +204,8 @@ export default function LumaMentorPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
-      <header className="mb-12 space-y-1 pt-6">
+    <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
+      <header className="mb-12 space-y-1">
         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">MENTORLUK</p>
         <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Luma Mentor</h1>
         <p className="text-muted-foreground text-sm font-medium opacity-80">Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>

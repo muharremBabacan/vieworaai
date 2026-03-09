@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -245,7 +244,7 @@ export default function AcademyLevelPage() {
     };
     
     return (
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4 pt-6 pb-24">
             <Button variant="ghost" onClick={() => router.push('/academy')} className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" /> Akademi'ye Dön</Button>
             <h1 className="text-3xl font-bold tracking-tight mb-8">{levelFormatted} Seviye Dersleri</h1>
             {lessonsLoading ? (

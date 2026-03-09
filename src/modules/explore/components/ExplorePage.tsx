@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -99,8 +98,8 @@ export default function ExplorePage() {
 
   if (view === 'hub') {
     return (
-      <div className="container mx-auto px-4 pb-20 animate-in fade-in duration-700">
-        <header className="mb-10 space-y-1 pt-6">
+      <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
+        <header className="mb-10 space-y-1">
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KEŞFET</p>
           <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">İlhamı Keşfet</h1>
           <p className="text-muted-foreground text-sm font-medium opacity-80">Sergileri, yarışmaları ve fotoğraf topluluklarını keşfet.</p>
@@ -230,7 +229,7 @@ export default function ExplorePage() {
   // --- Exhibition List View ---
   if (view === 'exhibitions') {
     return (
-      <div className="container mx-auto px-4 pb-24 animate-in slide-in-from-bottom-10 duration-700">
+      <div className="container mx-auto px-4 pt-6 pb-24 animate-in slide-in-from-bottom-10 duration-700">
         <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 hover:bg-primary/5 rounded-2xl font-bold text-muted-foreground hover:text-primary transition-all">
           <ArrowLeft className="mr-2 h-4 w-4" /> Keşfet Merkezi
         </Button>
@@ -278,7 +277,7 @@ export default function ExplorePage() {
 
   // --- Photo Stream (Exhibition Detail or Featured) ---
   return (
-    <div className="container mx-auto px-4 pb-24 animate-in slide-in-from-right-10 duration-700">
+    <div className="container mx-auto px-4 pt-6 pb-24 animate-in slide-in-from-right-10 duration-700">
       <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 hover:bg-primary/5 rounded-2xl font-bold text-muted-foreground hover:text-primary transition-all">
         <ArrowLeft className="mr-2 h-4 w-4" /> Geri Dön
       </Button>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -295,7 +294,7 @@ export default function PhotoAnalyzer() {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (
-    <div className="container mx-auto px-4 pt-10 pb-20 animate-in fade-in duration-700">
+    <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       {analysisResult ? (
         <Card className="max-w-5xl mx-auto rounded-[48px] border-border/40 bg-card/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-700">
           <div className="flex flex-col md:flex-row">

@@ -35,7 +35,7 @@ const academyLevels = [
 
 export default function AcademyHubPage() {
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4 pt-6 pb-24">
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold tracking-tight">Viewora Akademi</h1>
         <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Fotoğrafçılık bilginizi temelden ustalığa taşıyın.</p>
