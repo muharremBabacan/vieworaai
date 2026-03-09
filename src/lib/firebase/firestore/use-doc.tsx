@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,8 +7,8 @@ import {
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
-  getAuth,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 

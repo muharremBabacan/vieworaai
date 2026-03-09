@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -8,8 +7,8 @@ import {
   FirestoreError,
   Query,
   QuerySnapshot,
-  getAuth,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { useUser } from '@/lib/firebase/provider';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
