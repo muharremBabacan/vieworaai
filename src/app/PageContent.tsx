@@ -1,3 +1,4 @@
+
 'use client';
 import {
   GoogleAuthProvider,
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/core/components/logo';
 import Link from 'next/link';
 
-import { doc, getDoc, setDoc, updateDoc, collection, writeBatch, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, writeBatch, increment, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -89,11 +90,12 @@ export default function PageContent() {
     let needsUpdate = false;
     let finalAuro = existingProfile.auro_balance;
 
-    // Handle Daily Streak
+    // 1. Handle Daily Streak
     const { streak, lastDate } = calculateDailyStreak(existingProfile);
     batch.update(userRef, { daily_streak: streak, last_active_date: lastDate });
     needsUpdate = true;
 
+    // 2. Initial Balance Sync (Test users)
     if (!existingProfile.test_balance_reset) {
       const testAuro = Math.floor(Math.random() * 11) + 10;
       finalAuro = testAuro;
@@ -101,6 +103,16 @@ export default function PageContent() {
       needsUpdate = true;
     }
 
+    // 3. Stats Reconciliation (Rozetlerin 0 kalmaması için doğrulama)
+    // Sergi sayısını gerçek veriden say ve güncelle
+    const publicPhotosSnap = await getDocs(query(collection(firestore, 'public_photos'), where('userId', '==', userId)));
+    const actualExhibitionCount = publicPhotosSnap.size;
+    if (existingProfile.total_exhibitions_count !== actualExhibitionCount) {
+      batch.update(userRef, { total_exhibitions_count: actualExhibitionCount });
+      needsUpdate = true;
+    }
+
+    // 4. Weekly Refill Logic
     const now = new Date();
     const lastRefillDate = existingProfile.weekly_free_refill_date ? new Date(existingProfile.weekly_free_refill_date) : new Date(0);
     const msInWeek = 7 * 24 * 60 * 60 * 1000;
@@ -122,6 +134,7 @@ export default function PageContent() {
         needsUpdate = true;
       }
     }
+    
     if (needsUpdate) await batch.commit();
   };
 

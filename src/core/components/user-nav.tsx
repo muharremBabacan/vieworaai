@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -22,6 +23,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { NotificationCenter } from '@/core/components/notification-popover';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function UserNav() {
   const { user: authUser, isUserLoading } = useUser();
@@ -74,25 +76,42 @@ export function UserNav() {
   return (
     <div className="flex items-center gap-2">
       {/* İstatistik Rozetleri Grubu */}
-      <div className="hidden md:flex items-center gap-1.5 p-1 bg-secondary/30 rounded-full border border-border/40">
-        {/* Günlük Seri */}
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/10 text-orange-500">
-          <Flame size={14} className="fill-current" />
-          <span className="text-[10px] font-black">{streak}</span>
-        </div>
-        
-        {/* Sergi Katılımı */}
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-400">
-          <Globe size={14} />
-          <span className="text-[10px] font-black">{exhibitionCount}</span>
-        </div>
+      <TooltipProvider>
+        <div className="hidden md:flex items-center gap-1.5 p-1 bg-secondary/30 rounded-full border border-border/40">
+          {/* Günlük Seri */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/10 text-orange-500 cursor-default">
+                <Flame size={14} className="fill-current" />
+                <span className="text-[10px] font-black">{streak}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="rounded-xl font-bold text-[10px] uppercase tracking-widest">GÜNLÜK SERİ (STREAK)</TooltipContent>
+          </Tooltip>
+          
+          {/* Sergi Katılımı */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 cursor-default">
+                <Globe size={14} />
+                <span className="text-[10px] font-black">{exhibitionCount}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="rounded-xl font-bold text-[10px] uppercase tracking-widest">AKTİF SERGİ KATILIMI</TooltipContent>
+          </Tooltip>
 
-        {/* Yarışma Katılımı */}
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-500">
-          <Trophy size={14} />
-          <span className="text-[10px] font-black">{competitionCount}</span>
+          {/* Yarışma Katılımı */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 cursor-default">
+                <Trophy size={14} />
+                <span className="text-[10px] font-black">{competitionCount}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="rounded-xl font-bold text-[10px] uppercase tracking-widest">YARIŞMA KATILIMI</TooltipContent>
+          </Tooltip>
         </div>
-      </div>
+      </TooltipProvider>
 
       <NotificationCenter />
       

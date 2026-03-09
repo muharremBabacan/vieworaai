@@ -112,6 +112,12 @@ export default function GalleryPage() {
             const batch = writeBatch(firestore);
             batch.delete(doc(firestore, 'public_photos', photo.id));
             batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: false, exhibitionId: null });
+            
+            // Sayaçı düşür
+            batch.update(doc(firestore, 'users', user.uid), { 
+              total_exhibitions_count: increment(-1)
+            });
+
             await batch.commit();
             toast({ title: "Sergiden çekildi" });
             setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false, exhibitionId: null } : null);
@@ -160,7 +166,14 @@ export default function GalleryPage() {
       
       const batch = writeBatch(firestore);
       batch.delete(doc(firestore, 'users', user.uid, 'photos', photo.id));
-      if (photo.isSubmittedToExhibition) batch.delete(doc(firestore, 'public_photos', photo.id));
+      
+      if (photo.isSubmittedToExhibition) {
+        batch.delete(doc(firestore, 'public_photos', photo.id));
+        // Eğer sergideyse sayaçı düşür
+        batch.update(doc(firestore, 'users', user.uid), { 
+          total_exhibitions_count: increment(-1)
+        });
+      }
       
       await batch.commit();
       toast({ title: "Fotoğraf Silindi" });
