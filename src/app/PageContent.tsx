@@ -7,8 +7,9 @@ import {
 
 import { Button } from '@/components/ui/button';
 import Logo from '@/core/components/logo';
+import Link from 'next/link';
 
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, increment, writeBatch, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, writeBatch, increment } from 'firebase/firestore';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -64,7 +65,6 @@ export default function PageContent() {
       return { streak: 1, lastDate: todayStr };
     }
 
-    const lastActive = new Date(existingProfile.last_active_date);
     const lastActiveStr = existingProfile.last_active_date.split('T')[0];
 
     if (lastActiveStr === todayStr) {
@@ -191,14 +191,34 @@ export default function PageContent() {
     <div className="flex min-h-screen flex-col bg-background p-4 relative overflow-hidden">
       {showStars && <MilkyWayEffect />}
       <main className="flex flex-grow items-center justify-center">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col items-center space-y-2 text-center">
+        <div className="mx-auto flex w-full max-w-[400px] flex-col justify-center space-y-8">
+          <div className="flex flex-col items-center space-y-4 text-center">
             <Logo />
-            <h1 className="!mt-6 text-2xl font-semibold tracking-tight">Hesap oluşturun veya giriş yapın</h1>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+                Türkiye’de geliştirilen küresel bir fotoğraf ve yapay zekâ platformudur.
+              </p>
+              <h1 className="text-2xl font-black tracking-tight uppercase pt-4">Giriş Yap</h1>
+            </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={handleSignIn} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Google ile Giriş Yap"}
-          </Button>
+          
+          <div className="space-y-4">
+            <Button variant="outline" className="w-full h-12 rounded-2xl font-bold border-2" onClick={handleSignIn} disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Google ile Giriş Yap"}
+            </Button>
+            
+            <p className="px-8 text-center text-[10px] text-muted-foreground leading-relaxed">
+              Giriş yaparak veya hesap oluşturarak{' '}
+              <Link href="/terms" className="underline underline-offset-4 hover:text-primary font-bold">
+                Hizmet Şartları
+              </Link>{' '}
+              ve{' '}
+              <Link href="/privacy" className="underline underline-offset-4 hover:text-primary font-bold">
+                Gizlilik Politikası
+              </Link>
+              ’nı kabul etmiş olursunuz.
+            </p>
+          </div>
         </div>
       </main>
     </div>
