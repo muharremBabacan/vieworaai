@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -11,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -127,7 +127,7 @@ export default function GalleryPage() {
       
       {isPhotosLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {[...Array(12)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
+          {[...Array(12)].map((_, i) => <Skeleton className="aspect-square rounded-2xl" />)}
         </div>
       ) : photos && photos.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
