@@ -111,143 +111,95 @@ export default function ExplorePage() {
 
   if (view === 'hub') {
     return (
-      <div className="container mx-auto px-4 pb-24 animate-in fade-in duration-700">
-        <header className="mb-16 space-y-2 pt-10">
-          <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KEŞFET</p>
-          <h1 className="text-6xl font-black tracking-tighter leading-none">İlhamı Keşfet</h1>
-          <p className="text-muted-foreground text-lg font-medium opacity-80">Sergileri, yarışmaları ve fotoğraf topluluklarını keşfet.</p>
+      <div className="container mx-auto px-4 pb-20 animate-in fade-in duration-700">
+        <header className="mb-10 space-y-1 pt-6">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KEŞFET</p>
+          <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">İlhamı Keşfet</h1>
+          <p className="text-muted-foreground text-base font-medium opacity-80">Sergileri, yarışmaları ve fotoğraf topluluklarını keşfet.</p>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Sergi Salonları Kartı */}
-          <Card className="group relative h-[420px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <Card 
+            onClick={() => setView('exhibitions')}
+            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          >
             <Image 
               src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=1000" 
               alt="Exhibitions" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
             
-            <div className="absolute top-6 left-6 h-12 w-12 rounded-2xl bg-primary/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Landmark className="h-6 w-6 text-primary" />
+            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-primary/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
+              <Landmark className="h-5 w-5 text-primary" />
             </div>
 
-            <div className="absolute bottom-8 left-8 right-8 space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black tracking-tight text-white uppercase">Sergi Salonları</h2>
-                <p className="text-sm font-bold text-muted-foreground">Tematik fotoğraf galerilerini keşfet.</p>
-              </div>
-              
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-primary" /> 25 aktif sergi
-                </li>
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-primary" /> Yeni temalar her hafta
-                </li>
-              </ul>
-
-              <Button onClick={() => setView('exhibitions')} className="w-full h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20">
-                Salonları Gör
-              </Button>
+            <div className="absolute bottom-6 left-6 right-6 space-y-2">
+              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Sergi Salonları</h2>
+              <p className="text-xs font-bold text-white/70 leading-relaxed">Tematik fotoğraf galerilerini keşfet.</p>
             </div>
           </Card>
 
           {/* Global Yarışmalar Kartı */}
-          <Card className="group relative h-[420px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <Card 
+            onClick={() => router.push('/competitions')}
+            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          >
             <Image 
               src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000" 
               alt="Competitions" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
             
-            <div className="absolute top-6 left-6 h-12 w-12 rounded-2xl bg-amber-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Trophy className="h-6 w-6 text-amber-500" />
+            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-amber-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
+              <Trophy className="h-5 w-5 text-amber-500" />
             </div>
 
-            <div className="absolute bottom-8 left-8 right-8 space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black tracking-tight text-white uppercase">Global Yarışmalar</h2>
-                <p className="text-sm font-bold text-muted-foreground">Fotoğraflarınla yarış ve ödüller kazan.</p>
-              </div>
-              
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-amber-500" /> 3 aktif yarışma
-                </li>
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-amber-500" /> Jüri ve topluluk oylaması
-                </li>
-              </ul>
-
-              <Button onClick={() => router.push('/competitions')} className="w-full h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20">
-                Yarışmaları Gör
-              </Button>
+            <div className="absolute bottom-6 left-6 right-6 space-y-2">
+              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Global Yarışmalar</h2>
+              <p className="text-xs font-bold text-white/70 leading-relaxed">Fotoğraflarınla yarış ve ödüller kazan.</p>
             </div>
           </Card>
 
           {/* Fotoğraf Grupları Kartı */}
-          <Card className="group relative h-[420px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <Card 
+            onClick={() => router.push('/groups')}
+            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          >
             <Image 
               src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000" 
               alt="Groups" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
             
-            <div className="absolute top-6 left-6 h-12 w-12 rounded-2xl bg-blue-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Users className="h-6 w-6 text-blue-400" />
+            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-blue-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
+              <Users className="h-5 w-5 text-blue-400" />
             </div>
 
-            <div className="absolute bottom-8 left-8 right-8 space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black tracking-tight text-white uppercase">Fotoğraf Grupları</h2>
-                <p className="text-sm font-bold text-muted-foreground">Fotoğraf topluluklarına katıl ve geri bildirim al.</p>
-              </div>
-              
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-blue-400" /> {allGroups?.length || 12} aktif grup
-                </li>
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-blue-400" /> Mentor destekli topluluklar
-                </li>
-              </ul>
-
-              <Button onClick={() => router.push('/groups')} className="w-full h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20">
-                Grupları Keşfet
-              </Button>
+            <div className="absolute bottom-6 left-6 right-6 space-y-2">
+              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Fotoğraf Grupları</h2>
+              <p className="text-xs font-bold text-white/70 leading-relaxed">Topluluklara katıl ve geri bildirim al.</p>
             </div>
           </Card>
 
           {/* Öne Çıkan Fotoğraflar Kartı */}
-          <Card className="group relative h-[420px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <Card 
+            onClick={() => setView('featured')}
+            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+          >
             <Image 
               src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000" 
               alt="Featured" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
             
-            <div className="absolute top-6 left-6 h-12 w-12 rounded-2xl bg-yellow-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Sparkles className="h-6 w-6 text-yellow-400" />
+            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-yellow-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
+              <Sparkles className="h-5 w-5 text-yellow-400" />
             </div>
 
-            <div className="absolute bottom-8 left-8 right-8 space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black tracking-tight text-white uppercase">Öne Çıkan Kareler</h2>
-                <p className="text-sm font-bold text-muted-foreground">Topluluğun en iyi fotoğrafları.</p>
-              </div>
-              
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-yellow-400" /> AI seçimi
-                </li>
-                <li className="flex items-center gap-2 text-xs font-bold text-white/70">
-                  <div className="h-1 w-1 rounded-full bg-yellow-400" /> Editör seçimi
-                </li>
-              </ul>
-
-              <Button onClick={() => setView('featured')} className="w-full h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20">
-                Fotoğrafları Gör
-              </Button>
+            <div className="absolute bottom-6 left-6 right-6 space-y-2">
+              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Öne Çıkan Kareler</h2>
+              <p className="text-xs font-bold text-white/70 leading-relaxed">Topluluğun en iyi fotoğrafları.</p>
             </div>
           </Card>
         </div>
