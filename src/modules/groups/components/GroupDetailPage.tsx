@@ -2,11 +2,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
-import { getGroupLimits } from '@/lib/gamification';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,12 +16,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Trash2, ShieldCheck, Heart, UserCheck, Star, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
 
 export default function GroupDetailPage() {
@@ -82,13 +81,13 @@ export default function GroupDetailPage() {
       setIsSyncingProfile(false);
     };
     checkAndSyncProfile();
-  }, [user, userProfile, firestore]);
+  }, [user, userProfile, firestore, isSyncingProfile]);
 
   const handleUploadSubmission = async (assignment: GroupAssignment, file: File) => {
     if (!user || !group || isUploading || !firestore) return;
     
     setIsUploading(true);
-    toast({ title: "Yükleniyor ve Analiz Ediliyor...", description: "Luma ödevini değerlendiriyor." });
+    toast({ title: "Yükleniyor ve Analiz Ediliyor...", description: "Luma ödevini değerlendiriyor. Lütfen bekleyin..." });
     
     try {
       const hash = Math.random().toString(36).substring(7);
@@ -129,7 +128,7 @@ export default function GroupDetailPage() {
       });
 
       await batch.commit();
-      toast({ title: "Ödev Teslim Edildi!", description: "AI analizi galeriye eklendi." });
+      toast({ title: "Ödev Teslim Edildi!", description: "AI analizi tamamlandı ve galeriye eklendi." });
     } catch (e) {
       console.error("Upload error:", e);
       toast({ variant: 'destructive', title: "Hata", description: "İşlem tamamlanamadı." });
@@ -449,7 +448,6 @@ export default function GroupDetailPage() {
               <DialogHeader>
                 <div className="flex justify-between items-start mb-2">
                   <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase text-[9px] tracking-widest">ÖDEV TESLİMİ</Badge>
-                  <DialogClose className="h-8 w-8 rounded-full bg-secondary/50 flex items-center justify-center"><X size={16}/></DialogClose>
                 </div>
                 <DialogTitle className="text-2xl font-black tracking-tight">{assignments?.find(a => a.id === selectedSubmission.assignmentId)?.title || 'Ödev Detayı'}</DialogTitle>
                 <div className="flex items-center gap-2 mt-2">
@@ -479,7 +477,7 @@ export default function GroupDetailPage() {
                   ) : (
                     <div className="p-6 border-dashed border-border/60 bg-muted/10 rounded-2xl text-center">
                       <Loader2 className="h-6 w-6 mx-auto mb-2 text-muted-foreground/40 animate-spin" />
-                      <p className="text-xs font-bold text-muted-foreground italic">Analiz bekleniyor...</p>
+                      <p className="text-xs font-bold text-muted-foreground italic">Analiz yükleniyor...</p>
                     </div>
                   )}
 
