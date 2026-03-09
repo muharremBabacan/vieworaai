@@ -1,76 +1,129 @@
 'use client';
-import { Award, BarChart3, Diamond, Lock } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Award, BarChart3, Diamond, Lock, CheckCircle2, GraduationCap } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 const academyLevels = [
   {
     name: 'Temel',
+    id: 'temel',
     icon: Award,
     title: 'Temel Seviye',
-    description: 'Kameranızın temellerini öğrenin, pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.',
+    subtitle: 'Kameranızın temellerini öğrenin.',
+    description: 'Pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.',
     href: '/academy/temel',
     unlocked: true,
+    imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600',
+    features: ['Kamera temelleri', 'Pozlama üçgeni', 'Temel kompozisyon']
   },
   {
     name: 'Orta',
+    id: 'orta',
     icon: BarChart3,
     title: 'Orta Seviye',
-    description: 'Farklı türlerde çekim yapın, gelişmiş teknikleri uygulayın ve ışığı bilinçli bir şekilde yönetin.',
+    subtitle: 'Tekniğinizi profesyonelleştirin.',
+    description: 'Farklı türlerde çekim yapın ve ışığı bilinçli yönetin.',
     href: '/academy/orta',
     unlocked: false,
+    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=600',
+    features: ['Tür bazlı çekim', 'Işık yönetimi', 'Görsel hikaye anlatımı']
   },
   {
     name: 'İleri',
+    id: 'ileri',
     icon: Diamond,
     title: 'İleri Seviye',
-    description: 'Kendi sanatsal tarzınızı yaratın, profesyonel ışık kurulumlarını öğrenin ve fotoğrafçılıkta uzmanlaşın.',
+    subtitle: 'Kendi sanatsal tarzınızı yaratın.',
+    description: 'Profesyonel ışık kurulumlarını öğrenin ve uzmanlaşın.',
     href: '/academy/ileri',
     unlocked: false,
+    imageUrl: 'https://images.unsplash.com/photo-1578476719994-464aef88d2da?q=80&w=600',
+    features: ['Profesyonel ışık', 'Sanatsal stil', 'Marka konumlandırma']
   },
 ];
 
 export default function AcademyHubPage() {
   return (
-    <div className="container mx-auto px-4 pt-6 pb-24">
-      <div className="mb-12 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">Viewora Akademi</h1>
-        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Fotoğrafçılık bilginizi temelden ustalığa taşıyın.</p>
-      </div>
+    <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
+      <header className="mb-10 space-y-1">
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">AKADEMİ</p>
+        <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Viewora Akademi</h1>
+        <p className="text-muted-foreground text-sm font-medium opacity-80">Fotoğrafçılık bilginizi temelden ustalığa taşıyın.</p>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {academyLevels.map((level) => {
           const content = (
             <Card className={cn(
-              "flex flex-col h-full transition-all duration-300",
+              "flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all",
               level.unlocked 
-                ? "hover:border-primary hover:shadow-lg cursor-pointer" 
-                : "bg-muted/20 opacity-60 grayscale-[0.5] cursor-default border-dashed"
+                ? "hover:border-primary/20" 
+                : "opacity-60 grayscale-[0.5] cursor-default"
             )}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <level.icon className={cn(
-                      "h-8 w-8",
-                      level.unlocked ? "text-primary" : "text-muted-foreground"
-                    )} />
-                    <CardTitle className={cn(
-                      !level.unlocked && "text-muted-foreground"
-                    )}>{level.title}</CardTitle>
-                  </div>
-                  {!level.unlocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+              <div className="relative h-40 w-full overflow-hidden">
+                <Image 
+                  src={level.imageUrl} 
+                  alt={level.title} 
+                  fill 
+                  className={cn(
+                    "object-cover transition-transform duration-700",
+                    level.unlocked && "group-hover:scale-110"
+                  )} 
+                  unoptimized 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className={cn(
+                  "absolute -bottom-5 left-5 h-10 w-10 rounded-xl backdrop-blur-xl border border-white/10 flex items-center justify-center",
+                  level.unlocked ? "bg-primary/20 text-primary" : "bg-muted/20 text-muted-foreground"
+                )}>
+                  <level.icon className="h-5 w-5" />
                 </div>
-              </CardHeader>
-              <CardContent className="flex-grow flex flex-col">
-                <CardDescription className="flex-grow">{level.description}</CardDescription>
-                <Button asChild className="mt-6 w-full" disabled={!level.unlocked} variant={level.unlocked ? "default" : "secondary"}>
+                {!level.unlocked && (
+                  <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/60">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                )}
+              </div>
+
+              <CardContent className="pt-8 p-6 space-y-5 flex-grow flex flex-col">
+                <div>
+                  <h3 className="text-xl font-black uppercase tracking-tight leading-none">{level.title}</h3>
+                  <p className="text-[10px] text-muted-foreground font-bold mt-1.5 leading-tight uppercase tracking-widest">{level.subtitle}</p>
+                </div>
+
+                <p className="text-xs text-foreground/70 leading-relaxed font-medium">
+                  {level.description}
+                </p>
+
+                <ul className="space-y-2 flex-grow">
+                  {level.features.map((feature, idx) => (
+                    <li key={idx} className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                      <div className={cn("h-1 w-1 rounded-full", level.unlocked ? "bg-primary" : "bg-muted-foreground")} /> 
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <Button 
+                  asChild={level.unlocked} 
+                  className={cn(
+                    "w-full rounded-xl h-11 font-black uppercase text-[10px] tracking-widest transition-all",
+                    level.unlocked 
+                      ? "bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30" 
+                      : "bg-secondary text-muted-foreground hover:bg-secondary"
+                  )}
+                  disabled={!level.unlocked}
+                >
                   {level.unlocked ? (
                     <Link href={level.href}>Dersleri Gör</Link>
                   ) : (
-                    <span>Yakında Açılacak</span>
+                    <span className="flex items-center gap-2">
+                      <Lock className="h-3 w-3" /> Yakında Açılacak
+                    </span>
                   )}
                 </Button>
               </CardContent>
@@ -79,31 +132,45 @@ export default function AcademyHubPage() {
 
           if (level.unlocked) {
             return (
-              <div key={level.name} className="h-full">
+              <div key={level.id} className="h-full">
                 {content}
               </div>
             );
           }
 
-          const tooltipText = level.name === 'Orta' 
+          const tooltipText = level.id === 'orta' 
             ? 'Orta Seviye — İlerlemeye devam et, kilit açılıyor.' 
             : 'İleri Seviye için Uzman içerik. Kilidi açmak için gelişimine devam et.';
 
           return (
-            <TooltipProvider key={level.name}>
+            <TooltipProvider key={level.id}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="h-full">
                     {content}
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>{tooltipText}</p>
+                <TooltipContent className="rounded-xl border-border/40 bg-background/95 backdrop-blur-xl">
+                  <p className="text-[10px] font-bold uppercase tracking-widest p-1">{tooltipText}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           );
         })}
+      </div>
+
+      <div className="mt-16 p-8 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 flex flex-col md:flex-row items-center justify-between gap-8 animate-in slide-in-from-bottom-4 duration-1000 delay-200">
+        <div className="space-y-2 text-center md:text-left">
+          <h4 className="text-2xl font-black uppercase tracking-tight">Akademi Yolculuğu</h4>
+          <p className="text-sm text-muted-foreground font-medium max-w-md">Her seviye, fotoğrafçılıkta uzmanlaşmanız için özel olarak tasarlandı. Dersleri tamamlayarak XP kazanın ve rütbenizi yükseltin.</p>
+        </div>
+        <div className="flex items-center gap-4 bg-background/50 p-6 rounded-3xl border border-border/40 shadow-inner">
+          <GraduationCap className="h-10 w-10 text-primary" />
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Eğitim Durumu</p>
+            <p className="text-lg font-black uppercase">Gelişim Bekleniyor</p>
+          </div>
+        </div>
       </div>
     </div>
   );
