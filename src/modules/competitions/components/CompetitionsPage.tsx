@@ -216,6 +216,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
             batch.update(userRef, {
                 auro_balance: increment(-COMPETITION_JOIN_COST),
                 total_auro_spent: increment(COMPETITION_JOIN_COST),
+                total_competitions_count: increment(1),
                 'profile_index.activity_signals.competition_score': increment(10) // Performans Sinyali (Davranış Katmanı)
             });
 
@@ -244,7 +245,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[95vh] p-0 overflow-hidden border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl">
-                <DialogHeader className="sr-only">
+                <DialogHeader className="p-6 border-b shrink-0">
                     <DialogTitle>{competition.title}</DialogTitle>
                     <DialogDescription>Yarışma detayları ve katılım formu.</DialogDescription>
                 </DialogHeader>

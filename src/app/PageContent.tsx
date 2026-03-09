@@ -149,6 +149,8 @@ export default function PageContent() {
           tier: 'start',
           total_analyses_count: 0,
           total_mentor_analyses_count: 0,
+          total_exhibitions_count: 0,
+          total_competitions_count: 0,
           weekly_free_refill_date: now,
           onboarded: false,
           daily_streak: 1,

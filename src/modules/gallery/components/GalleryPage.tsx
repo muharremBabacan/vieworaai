@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, writeBatch, increment, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, orderBy } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import type { Photo, User, Exhibition } from '@/types';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X, Camera, Filter } from 'lucide-react';
+import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X, Camera } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -136,6 +136,7 @@ export default function GalleryPage() {
         batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
         batch.update(doc(firestore, 'users', user.uid), { 
           auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST),
+          total_exhibitions_count: increment(1),
           'profile_index.activity_signals.exhibition_score': increment(5) 
         });
         await batch.commit();
@@ -166,7 +167,6 @@ export default function GalleryPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <h1 className="text-4xl font-black tracking-tight">Galerim</h1>
         
-        {/* Yatay Kaydırmalı Filtre Menüsü */}
         <div className="w-full md:w-auto relative filter-scroll">
           <div className="flex overflow-x-auto no-scrollbar snap-x gap-2 pb-2 touch-pan-x scroll-smooth">
             {FILTERS.map((f) => (

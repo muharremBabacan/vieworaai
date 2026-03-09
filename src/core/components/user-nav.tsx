@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield, User as UserIcon, Flame } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield, User as UserIcon, Flame, Globe, Trophy } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
@@ -63,6 +63,8 @@ export function UserNav() {
   const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
   const streak = userProfile.daily_streak || 1;
+  const exhibitionCount = userProfile.total_exhibitions_count || 0;
+  const competitionCount = userProfile.total_competitions_count || 0;
   const displayName = userProfile.name || "Kullanıcı";
   const displayEmail = userProfile.email || "E-posta yok";
   const fallbackChar = displayName?.charAt(0) || displayEmail?.charAt(0) || 'U';
@@ -70,16 +72,31 @@ export function UserNav() {
   const displayPhotoURL = userProfile.photoURL || authUser.photoURL || '';
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Günlük Aktiflik Rozeti */}
-      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 rounded-full border border-orange-500/20 text-orange-500">
-        <Flame className="h-4 w-4 fill-current" />
-        <span className="text-xs font-black">{streak}</span>
+    <div className="flex items-center gap-2">
+      {/* İstatistik Rozetleri Grubu */}
+      <div className="hidden md:flex items-center gap-1.5 p-1 bg-secondary/30 rounded-full border border-border/40">
+        {/* Günlük Seri */}
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/10 text-orange-500">
+          <Flame size={14} className="fill-current" />
+          <span className="text-[10px] font-black">{streak}</span>
+        </div>
+        
+        {/* Sergi Katılımı */}
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-400">
+          <Globe size={14} />
+          <span className="text-[10px] font-black">{exhibitionCount}</span>
+        </div>
+
+        {/* Yarışma Katılımı */}
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-500">
+          <Trophy size={14} />
+          <span className="text-[10px] font-black">{competitionCount}</span>
+        </div>
       </div>
 
       <NotificationCenter />
       
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-full border border-border/50">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-full border border-border/50 shadow-inner">
         <Gem className="h-4 w-4 text-cyan-400" />
         <span className="text-sm font-bold">{auroBalance}</span>
         <span className="text-[10px] font-black uppercase tracking-tighter opacity-60 ml-0.5">{currencyName}</span>
@@ -87,8 +104,8 @@ export function UserNav() {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-            <Avatar className="h-10 w-10 border border-border/50">
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 border-2 border-transparent hover:border-primary/20 transition-all">
+            <Avatar className="h-10 w-10">
               <AvatarImage src={displayPhotoURL} alt={displayName} className="object-cover" />
               <AvatarFallback>{fallbackChar}</AvatarFallback>
             </Avatar>
@@ -111,26 +128,26 @@ export function UserNav() {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link href="/profile">
+              <Link href="/profile" className="cursor-pointer">
                 <UserIcon className="mr-2 h-4 w-4" />
                 <span>Profilim</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/settings">
+              <Link href="/settings" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Ayarlar</span>
                 </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/pricing">
+              <Link href="/pricing" className="cursor-pointer">
                 <Coins className="mr-2 h-4 w-4" />
                 <span>{currencyName} Satın Al</span>
               </Link>
             </DropdownMenuItem>
             {isAdmin && (
               <DropdownMenuItem asChild>
-                <Link href="/admin">
+                <Link href="/admin" className="cursor-pointer">
                   <Shield className="mr-2 h-4 w-4 text-amber-500" />
                   <span>Yönetici Paneli</span>
                 </Link>
@@ -158,7 +175,7 @@ export function UserNav() {
             </div>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut}>
+          <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
             <span>Çıkış Yap</span>
           </DropdownMenuItem>

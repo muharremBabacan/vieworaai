@@ -70,6 +70,8 @@ export type User = {
   total_auro_spent?: number;
   total_analyses_count: number;
   total_mentor_analyses_count: number;
+  total_exhibitions_count?: number;
+  total_competitions_count?: number;
   current_xp: number;
   level_name: string;
   tier: UserTier;
