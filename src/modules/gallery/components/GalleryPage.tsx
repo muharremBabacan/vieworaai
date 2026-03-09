@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X } from 'lucide-react';
+import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X, Camera, Filter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -37,6 +37,18 @@ const getOverallScore = (photo: Photo): number => {
     return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
 };
 
+const FILTERS = [
+  { id: 'all', label: 'Tümü' },
+  { id: 'analyzed', label: 'Analiz Edilenler' },
+  { id: 'exhibition', label: 'Sergidekiler' },
+  { id: 'best', label: 'En İyiler' },
+  { id: 'portrait', label: 'Portre' },
+  { id: 'street', label: 'Sokak' },
+  { id: 'architecture', label: 'Mimari' },
+  { id: 'macro', label: 'Makro' },
+  { id: 'landscape', label: 'Manzara' },
+];
+
 export default function GalleryPage() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -44,6 +56,7 @@ export default function GalleryPage() {
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
 
+  const [activeFilter, setActiveFilter] = useState('all');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [targetExhibitionId, setTargetExhibitionId] = useState<string>('');
@@ -56,6 +69,33 @@ export default function GalleryPage() {
 
   const exhibitionsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true)) : null, [firestore]);
   const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
+
+  const filteredPhotos = useMemo(() => {
+    if (!photos) return [];
+    let result = [...photos];
+
+    switch (activeFilter) {
+      case 'analyzed':
+        result = result.filter(p => !!p.aiFeedback);
+        break;
+      case 'exhibition':
+        result = result.filter(p => p.isSubmittedToExhibition);
+        break;
+      case 'best':
+        result = result.filter(p => getOverallScore(p) >= 8);
+        break;
+      case 'portrait':
+      case 'street':
+      case 'architecture':
+      case 'macro':
+      case 'landscape':
+        result = result.filter(p => p.tags?.some(t => t.toLowerCase() === activeFilter));
+        break;
+      default:
+        break;
+    }
+    return result;
+  }, [photos, activeFilter]);
 
   const handleToggleExhibition = async (photo: Photo) => {
     if (!user || !userProfile || !firestore) return;
@@ -123,15 +163,39 @@ export default function GalleryPage() {
 
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
-      <h1 className="text-4xl font-black mb-10 tracking-tight">Galerim</h1>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <h1 className="text-4xl font-black tracking-tight">Galerim</h1>
+        
+        {/* Yatay Kaydırmalı Filtre Menüsü */}
+        <div className="w-full md:w-auto relative filter-scroll">
+          <div className="flex overflow-x-auto no-scrollbar snap-x gap-2 pb-2 touch-pan-x scroll-smooth">
+            {FILTERS.map((f) => (
+              <Button
+                key={f.id}
+                variant={activeFilter === f.id ? 'default' : 'secondary'}
+                size="sm"
+                onClick={() => setActiveFilter(f.id)}
+                className={cn(
+                  "shrink-0 snap-start h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all px-5",
+                  activeFilter === f.id ? "shadow-lg shadow-primary/20" : "bg-secondary/50 border border-border/40"
+                )}
+              >
+                {f.id === 'best' && <Star className="mr-1.5 h-3 w-3 fill-current text-yellow-400" />}
+                {f.id === 'exhibition' && <Globe className="mr-1.5 h-3 w-3" />}
+                {f.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
       
       {isPhotosLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {[...Array(12)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
         </div>
-      ) : photos && photos.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {photos.map(photo => (
+      ) : filteredPhotos.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {filteredPhotos.map(photo => (
             <Card key={photo.id} className="group relative aspect-square rounded-2xl overflow-hidden border-border/40 bg-card/50 cursor-pointer shadow-sm hover:shadow-xl transition-all" onClick={() => setSelectedPhoto(photo)}>
               <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
               {photo.aiFeedback && (
@@ -146,9 +210,16 @@ export default function GalleryPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-32 rounded-[40px] border-2 border-dashed bg-muted/5">
-          <p className="text-muted-foreground font-medium">Galeriniz henüz boş.</p>
-          <Button onClick={() => router.push('/dashboard')} className="mt-6 rounded-xl font-bold">İlk Fotoğrafını Yükle</Button>
+        <div className="text-center py-32 rounded-[40px] border-2 border-dashed bg-muted/5 animate-in zoom-in duration-500">
+          <Camera className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+          <p className="text-muted-foreground font-bold uppercase text-sm tracking-widest">
+            {activeFilter === 'all' ? 'Galeriniz henüz boş.' : 'Bu kriterde eser bulunamadı.'}
+          </p>
+          {activeFilter === 'all' ? (
+            <Button onClick={() => router.push('/dashboard')} className="mt-6 rounded-xl font-bold shadow-lg shadow-primary/10">İlk Fotoğrafını Yükle</Button>
+          ) : (
+            <Button onClick={() => setActiveFilter('all')} variant="outline" className="mt-6 rounded-xl font-bold">Filtreyi Temizle</Button>
+          )}
         </div>
       )}
 
