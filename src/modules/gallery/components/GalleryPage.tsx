@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { typography } from "@/lib/design/typography";
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -169,8 +171,8 @@ export default function GalleryPage() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-10 space-y-1">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KÜTÜPHANE</p>
-        <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Galerim</h1>
+        <p className={cn(typography.eyebrow, "ml-1")}>KÜTÜPHANE</p>
+        <h1 className={cn(typography.h1, "leading-none uppercase")}>Galerim</h1>
       </header>
       
       <div className="space-y-4 mb-12">
@@ -183,7 +185,8 @@ export default function GalleryPage() {
                 size="sm"
                 onClick={() => setStatusFilter(f.id)}
                 className={cn(
-                  "shrink-0 snap-start h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all px-6",
+                  typography.button,
+                  "shrink-0 snap-start h-10 rounded-xl transition-all px-6",
                   statusFilter === f.id ? "shadow-lg shadow-primary/20" : "bg-secondary/30 border border-border/40 hover:bg-secondary/50"
                 )}
               >
@@ -203,7 +206,8 @@ export default function GalleryPage() {
                 size="sm"
                 onClick={() => setCategoryFilter(f.id)}
                 className={cn(
-                  "shrink-0 snap-start h-8 rounded-lg font-bold text-[9px] uppercase tracking-[0.15em] transition-all px-4",
+                  typography.button,
+                  "shrink-0 snap-start h-8 rounded-lg transition-all px-4 text-[9px] tracking-[0.15em]",
                   categoryFilter === f.id ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -249,7 +253,7 @@ export default function GalleryPage() {
                     <Heart size={14} className={cn(photo.likes?.length ? "fill-red-500 text-red-500" : "text-white")} />
                     <span className="text-[10px] font-black">{photo.likes?.length || 0}</span>
                   </div>
-                  <span className="text-[8px] font-bold text-white/60 uppercase tracking-widest">{new Date(photo.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+                  <span className={cn(typography.meta, "text-[8px] text-white/60 uppercase tracking-widest")}>{new Date(photo.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
                 </div>
               </Card>
             );
@@ -260,14 +264,14 @@ export default function GalleryPage() {
           <div className="h-20 w-20 bg-secondary rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-inner">
             <Camera className="h-10 w-10 text-muted-foreground/30" />
           </div>
-          <h3 className="text-2xl font-black tracking-tight uppercase">Galeri Boş</h3>
-          <p className="text-muted-foreground mt-2 font-medium max-w-xs mx-auto">
+          <h3 className={cn(typography.h2, "uppercase")}>Galeri Boş</h3>
+          <p className={cn(typography.body, "mt-2 max-w-xs mx-auto")}>
             {statusFilter === 'all' && categoryFilter === 'all' ? 'Henüz yüklenmiş bir fotoğrafın yok.' : 'Bu kriterlere uygun eser bulunamadı.'}
           </p>
           {(statusFilter !== 'all' || categoryFilter !== 'all') ? (
-            <Button onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }} variant="outline" className="mt-8 rounded-xl font-black uppercase text-[10px] tracking-widest px-8">Filtreleri Temizle</Button>
+            <Button onClick={() => { setStatusFilter('all'); setCategoryFilter('all'); }} variant="outline" className={cn(typography.button, "mt-8 rounded-xl px-8")}>Filtreleri Temizle</Button>
           ) : (
-            <Button onClick={() => router.push('/dashboard')} className="mt-8 rounded-xl font-black uppercase text-[10px] tracking-widest px-10 h-12 shadow-xl shadow-primary/20">İlk Fotoğrafını Yükle</Button>
+            <Button onClick={() => router.push('/dashboard')} className={cn(typography.button, "mt-8 rounded-xl px-10 h-12 shadow-xl shadow-primary/20")}>İlk Fotoğrafını Yükle</Button>
           )}
         </div>
       )}
@@ -280,7 +284,7 @@ export default function GalleryPage() {
             </div>
             <div className="md:w-2/5 w-full flex flex-col p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-black tracking-tight flex items-center justify-between">
+                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>
                   Detaylar
                   {selectedPhoto.aiFeedback && (
                     <Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full font-black uppercase text-[10px]">
@@ -288,7 +292,7 @@ export default function GalleryPage() {
                     </Badge>
                   )}
                 </DialogTitle>
-                <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <DialogDescription className={typography.eyebrow}>
                   {new Date(selectedPhoto.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </DialogDescription>
               </DialogHeader>
@@ -297,20 +301,20 @@ export default function GalleryPage() {
                 <div className="space-y-6">
                   {selectedPhoto.aiFeedback ? (
                     <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-5">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <h4 className={cn(typography.eyebrow, "text-primary flex items-center gap-2")}>
                         <Sparkles size={12} /> Teknik Analiz Özeti
                       </h4>
                       <div className="space-y-4">
                         <div className="space-y-1.5">
-                          <div className="flex justify-between text-[10px] font-black uppercase"><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
+                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
                           <Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1.5" />
                         </div>
                         <div className="space-y-1.5">
-                          <div className="flex justify-between text-[10px] font-black uppercase"><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
+                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
                           <Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1.5" />
                         </div>
                         <div className="space-y-1.5">
-                          <div className="flex justify-between text-[10px] font-black uppercase"><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
+                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
                           <Progress value={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) * 10} className="h-1.5" />
                         </div>
                       </div>
@@ -318,13 +322,13 @@ export default function GalleryPage() {
                   ) : (
                     <div className="p-8 border-dashed border-border/60 bg-muted/10 rounded-[32px] text-center">
                       <Sparkles className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
-                      <p className="text-xs font-bold text-muted-foreground italic">Bu kare henüz analiz edilmemiş.</p>
+                      <p className={cn(typography.meta, "font-bold italic")}>Bu kare henüz analiz edilmemiş.</p>
                     </div>
                   )}
 
                   <div className="space-y-4 pt-6 border-t border-border/40">
                     <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Sergi İşlemleri</Label>
+                      <Label className={cn(typography.eyebrow, "ml-1")}>Sergi İşlemleri</Label>
                       {!selectedPhoto.isSubmittedToExhibition && (
                         <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId}>
                           <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
@@ -335,12 +339,12 @@ export default function GalleryPage() {
                           </SelectContent>
                         </Select>
                       )}
-                      <Button onClick={() => handleToggleExhibition(selectedPhoto)} disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} className="w-full h-12 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg" variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}>
+                      <Button onClick={() => handleToggleExhibition(selectedPhoto)} disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}>
                         {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> Sergiden Çek</> : <><Globe className="mr-2 h-4 w-4" /> Sergiye Gönder (1 {currencyName})</>}
                       </Button>
                     </div>
 
-                    <Button onClick={() => handleDeletePhoto(selectedPhoto)} disabled={isProcessing} variant="ghost" className="w-full h-12 rounded-xl text-destructive hover:bg-destructive/10 font-black uppercase text-[10px] tracking-widest">
+                    <Button onClick={() => handleDeletePhoto(selectedPhoto)} disabled={isProcessing} variant="ghost" className={cn(typography.button, "w-full h-12 rounded-xl text-destructive hover:bg-destructive/10")}>
                       <Trash2 className="mr-2 h-4 w-4" /> Fotoğrafı Sil
                     </Button>
                   </div>

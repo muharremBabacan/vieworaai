@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -17,6 +18,7 @@ import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
+import { typography } from "@/lib/design/typography";
 
 const MENTOR_COSTS: Record<UserTier, number> = {
   start: 2,
@@ -29,12 +31,12 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <Card className="rounded-[32px] border-primary/20 bg-primary/5 shadow-xl overflow-hidden">
         <CardHeader className="p-8 border-b border-primary/10">
-          <CardTitle className="text-2xl font-black tracking-tight flex items-center gap-3">
+          <CardTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center gap-3")}>
             <Compass className="h-6 w-6 text-primary" /> Luma Analizi – Kişisel Strateji
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
-          <p className="text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap font-medium">
+          <p className={cn(typography.subtitle, "text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap font-medium")}>
             {analysis.feedback}
           </p>
         </CardContent>
@@ -44,28 +46,28 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
         <CardHeader className="p-8 border-b border-border/40 bg-secondary/20">
           <div className="flex items-center justify-between mb-2">
             <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black tracking-widest uppercase">BU HAFTANIN GÖREVİ</Badge>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">{new Date(analysis.createdAt).toLocaleDateString('tr-TR')}</span>
+            <span className={cn(typography.meta, "font-bold uppercase")}>{new Date(analysis.createdAt).toLocaleDateString('tr-TR')}</span>
           </div>
-          <CardTitle className="text-3xl font-black tracking-tighter uppercase">{analysis.actionTask.title}</CardTitle>
-          <CardDescription className="text-base font-bold mt-2 italic">“{analysis.actionTask.purpose}”</CardDescription>
+          <CardTitle className={cn(typography.h1, "text-3xl uppercase")}>{analysis.actionTask.title}</CardTitle>
+          <CardDescription className={cn(typography.subtitle, "text-base font-bold mt-2 italic")}>“{analysis.actionTask.purpose}”</CardDescription>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
           <div className="grid gap-4">
             {analysis.actionTask.steps.map((step, i) => (
               <div key={i} className="flex gap-4 p-5 rounded-2xl bg-muted/30 border border-border/40 hover:border-primary/30 transition-colors group">
                 <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-black text-sm group-hover:scale-110 transition-transform">{i + 1}</div>
-                <p className="text-sm font-bold leading-relaxed">{step}</p>
+                <p className={cn(typography.body, "text-sm font-bold leading-relaxed")}>{step}</p>
               </div>
             ))}
           </div>
 
           <div className="pt-8 border-t border-border/40">
-            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-2">
+            <h4 className={cn(typography.eyebrow, "text-primary mb-6 flex items-center gap-2")}>
               <CheckCircle2 className="h-4 w-4" /> Değerlendirme Soruları
             </h4>
             <div className="grid sm:grid-cols-2 gap-4">
               {analysis.actionTask.evaluationQuestions.map((q, i) => (
-                <div key={i} className="p-4 rounded-xl border border-dashed border-border/60 bg-muted/10 text-xs font-medium italic text-muted-foreground leading-relaxed">
+                <div key={i} className={cn(typography.meta, "p-4 rounded-xl border border-dashed border-border/60 bg-muted/10 font-medium italic leading-relaxed")}>
                   "{q}"
                 </div>
               ))}
@@ -206,9 +208,9 @@ export default function LumaMentorPage() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-12 space-y-1">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">MENTORLUK</p>
-        <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Luma Mentor</h1>
-        <p className="text-muted-foreground text-sm font-medium opacity-80">Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>
+        <p className={cn(typography.eyebrow, "ml-1")}>MENTORLUK</p>
+        <h1 className={cn(typography.h1, "leading-none uppercase")}>Luma Mentor</h1>
+        <p className={cn(typography.subtitle, "opacity-80")}>Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>
       </header>
 
       <div className="max-w-6xl mx-auto space-y-12">
@@ -218,9 +220,9 @@ export default function LumaMentorPage() {
             
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="text-center md:text-left space-y-4 max-w-md">
-                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-tight">Analizini Başlat</h2>
-                <p className="text-xl md:text-2xl font-bold text-muted-foreground">Kişisel gelişim rotanı oluştur</p>
-                <p className="text-sm font-medium text-muted-foreground/70">Luma, fotoğraflarını tarayarak senin için özel bir strateji hazırlamaya hazır.</p>
+                <h2 className={cn(typography.h1, "uppercase leading-tight")}>Analizini Başlat</h2>
+                <p className={cn(typography.h2, "text-xl md:text-2xl font-bold text-muted-foreground")}>Kişisel gelişim rotanı oluştur</p>
+                <p className={cn(typography.body, "text-muted-foreground/70")}>Luma, fotoğraflarını tarayarak senin için özel bir strateji hazırlamaya hazır.</p>
               </div>
 
               <div className="flex flex-col items-center gap-6">
@@ -232,7 +234,7 @@ export default function LumaMentorPage() {
                   <Button 
                     onClick={handleStartAnalysis} 
                     disabled={isAnalyzing}
-                    className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95"
+                    className={cn(typography.button, "px-12 h-14 rounded-2xl shadow-2xl shadow-primary/20 transition-all active:scale-95")}
                   >
                     {isAnalyzing ? <Loader2 className="animate-spin h-5 w-5" /> : (
                       <>Stratejik Analiz ({strategicCost} {currencyName})</>
@@ -242,12 +244,12 @@ export default function LumaMentorPage() {
                   <div className="flex items-center gap-4 px-4 py-2 bg-background/50 backdrop-blur-sm rounded-full border border-border/40">
                     <div className="flex items-center gap-1.5">
                       <Award className="h-3.5 w-3.5 text-amber-400" /> 
-                      <span className="text-[9px] font-black uppercase tracking-widest">+50 XP</span>
+                      <span className={cn(typography.meta, "font-black uppercase tracking-widest text-[9px]")}>+50 XP</span>
                     </div>
                     <div className="w-px h-3 bg-border" />
                     <div className="flex items-center gap-1.5">
                       <Gem className="h-3.5 w-3.5 text-cyan-400" /> 
-                      <span className="text-[9px] font-black uppercase tracking-widest">{userProfile?.auro_balance} {currencyName}</span>
+                      <span className={cn(typography.meta, "font-black uppercase tracking-widest text-[9px]")}>{userProfile?.auro_balance} {currencyName}</span>
                     </div>
                   </div>
                 </div>
@@ -260,7 +262,7 @@ export default function LumaMentorPage() {
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="flex justify-between items-center">
               <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3">YENİ PLAN OLUŞTURULDU</Badge>
-              <Button variant="ghost" size="sm" onClick={() => setCurrentAnalysis(null)} className="rounded-xl font-bold text-muted-foreground">Kapat</Button>
+              <Button variant="ghost" size="sm" onClick={() => setCurrentAnalysis(null)} className={cn(typography.button, "rounded-xl font-bold text-muted-foreground")}>Kapat</Button>
             </div>
             <FeedbackDisplay analysis={currentAnalysis} />
           </div>
@@ -270,7 +272,7 @@ export default function LumaMentorPage() {
           <div className="space-y-6 pt-12 max-w-4xl mx-auto">
             <div className="flex items-center gap-3 ml-2">
               <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center"><History size={16} className="text-muted-foreground" /></div>
-              <h3 className="font-black uppercase text-xs tracking-[0.3em] text-muted-foreground">Önceki Rotalar</h3>
+              <h3 className={typography.eyebrow}>Önceki Rotalar</h3>
             </div>
             
             <div className="grid gap-4">
@@ -281,11 +283,11 @@ export default function LumaMentorPage() {
                       <CardContent className="p-6 flex items-center justify-between gap-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[9px] font-black text-primary uppercase tracking-widest">{new Date(item.createdAt).toLocaleDateString('tr-TR')}</span>
+                            <span className={cn(typography.meta, "font-black text-primary uppercase tracking-widest")}>{new Date(item.createdAt).toLocaleDateString('tr-TR')}</span>
                             <div className="h-1 w-1 rounded-full bg-border" />
-                            <span className="text-[9px] font-bold text-muted-foreground uppercase">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}</span>
+                            <span className={cn(typography.meta, "font-bold uppercase")}>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}</span>
                           </div>
-                          <h4 className="text-lg font-black tracking-tight group-hover:text-primary transition-colors">{item.actionTask.title}</h4>
+                          <h4 className={cn(typography.cardTitle, "tracking-tight group-hover:text-primary transition-colors")}>{item.actionTask.title}</h4>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
                       </CardContent>
@@ -294,7 +296,7 @@ export default function LumaMentorPage() {
                   <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[40px] p-0 border-border/40 bg-background/95 backdrop-blur-xl">
                     <div className="p-8">
                       <DialogHeader className="mb-8">
-                        <DialogTitle className="text-3xl font-black tracking-tighter flex items-center gap-3 uppercase">
+                        <DialogTitle className={cn(typography.h1, "text-3xl flex items-center gap-3 uppercase")}>
                           <Target className="h-7 w-7 text-primary" /> Kayıtlı Yol Haritası
                         </DialogTitle>
                       </DialogHeader>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -18,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, CheckCircle, UploadCloud, Loader2 } from 'lucide-react';
 import { evaluatePracticeSubmission, type EvaluatePracticeSubmissionOutput } from '@/ai/flows/evaluate-practice-submission';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { typography } from "@/lib/design/typography";
 
 const findPlaceholderImage = (hint: string) => {
     return `https://picsum.photos/seed/${hint.replace(/\s+/g, '')}/600/400`;
@@ -90,27 +92,27 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
     
     return (
         <Card>
-            <CardHeader><CardTitle>Pratiğini Göster</CardTitle></CardHeader>
+            <CardHeader><CardTitle className={typography.cardTitle}>Pratiğini Göster</CardTitle></CardHeader>
             <CardContent>
-                <p className="text-muted-foreground text-sm mb-4">Bu ödev için çektiğin fotoğrafı yükle ve anında geri bildirim al.</p>
-                <div className="grid md:grid-cols-2 gap-6">
+                <p className={typography.body}>Bu ödev için çektiğin fotoğrafı yükle ve anında geri bildirim al.</p>
+                <div className="grid md:grid-cols-2 gap-6 mt-4">
                     <div>
                         <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}>
                             <input {...getInputProps()} />
                             <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                            {isDragActive ? <p className="text-primary">veya sürükleyip bırakın</p> : <p>Yüklemek için tıklayın <span className="text-muted-foreground">veya sürükleyip bırakın</span></p>}
+                            {isDragActive ? <p className="text-primary">veya sürükleyip bırakın</p> : <p className={typography.meta}>Yüklemek için tıklayın <span className="text-muted-foreground">veya sürükleyip bırakın</span></p>}
                         </div>
                         {preview && <div className="mt-4 relative aspect-video rounded-lg overflow-hidden"><Image src={preview} alt="Preview" fill className="object-cover" unoptimized /></div>}
                     </div>
                     <div className="flex flex-col justify-center items-center">
                         {analysisResult ? (
                             <div className="text-center">
-                                <h3 className="text-lg font-semibold">Puan: {analysisResult.score}/10</h3>
-                                <p className="mt-2 text-muted-foreground">{analysisResult.feedback}</p>
-                                <Button onClick={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} className="mt-4">Yeni Fotoğraf Yükle</Button>
+                                <h3 className={typography.cardTitle}>Puan: {analysisResult.score}/10</h3>
+                                <p className={cn(typography.body, "mt-2")}>{analysisResult.feedback}</p>
+                                <Button onClick={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} className={cn(typography.button, "mt-4")}>Yeni Fotoğraf Yükle</Button>
                             </div>
                         ) : (
-                            <Button onClick={handleGetFeedback} disabled={!file || isUploading || isAnalyzing} className="w-full">
+                            <Button onClick={handleGetFeedback} disabled={!file || isUploading || isAnalyzing} className={cn(typography.button, "w-full")}>
                                 {(isUploading || isAnalyzing) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isAnalyzing ? "Değerlendiriliyor..." : "Geri Bildirim Al"}
                             </Button>
@@ -139,14 +141,14 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
           <Image src={lesson.imageUrl || findPlaceholderImage(lesson.imageHint)} alt={lesson.title} fill className="object-cover" data-ai-hint={lesson.imageHint} unoptimized />
         </div>
         <CardContent className="p-4">
-          <h3 className="font-semibold">{lesson.title}</h3>
-          <p className="text-xs text-muted-foreground mt-1">{lesson.learningObjective}</p>
+          <h3 className={typography.cardTitle}>{lesson.title}</h3>
+          <p className={cn(typography.meta, "mt-1")}>{lesson.learningObjective}</p>
           <div className="flex items-center justify-between mt-4">
-            <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)}>Teori</Button>
+            <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)} className={typography.button}>Teori</Button>
             {isCompleted ? (
-              <span className="flex items-center gap-2 text-sm font-semibold text-green-500"><CheckCircle className="h-4 w-4" /> Bitti</span>
+              <span className={cn(typography.meta, "flex items-center gap-2 font-semibold text-green-500")}><CheckCircle className="h-4 w-4" /> Bitti</span>
             ) : (
-                <Button size="sm" onClick={handleLessonComplete} disabled={!practiceResult || practiceResult.score < 7}>
+                <Button size="sm" onClick={handleLessonComplete} disabled={!practiceResult || practiceResult.score < 7} className={typography.button}>
                     Dersi Tamamla (+10 XP, +1 {currencyName})
                 </Button>
             )}
@@ -155,14 +157,14 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
       </Card>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-            <DialogHeader><DialogTitle>{lesson.title}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className={typography.cardTitle}>{lesson.title}</DialogTitle></DialogHeader>
             <div className="flex-1 overflow-y-auto pr-4 -mr-4 space-y-6">
                 <Accordion type="multiple" defaultValue={['objective', 'theory']} className="w-full">
-                    <AccordionItem value="objective"><AccordionTrigger>Öğrenim Hedefi</AccordionTrigger><AccordionContent>{lesson.learningObjective}</AccordionContent></AccordionItem>
-                    <AccordionItem value="theory"><AccordionTrigger>Teori</AccordionTrigger><AccordionContent className="prose prose-sm dark:prose-invert">{lesson.theory}</AccordionContent></AccordionItem>
-                    <AccordionItem value="criteria"><AccordionTrigger>Başarı Kriterleri</AccordionTrigger><AccordionContent><ul className="list-disc pl-5 space-y-1">{lesson.analysisCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul></AccordionContent></AccordionItem>
-                    <AccordionItem value="task"><AccordionTrigger>Pratik Görevi</AccordionTrigger><AccordionContent>{lesson.practiceTask}</AccordionContent></AccordionItem>
-                    <AccordionItem value="auro-note"><AccordionTrigger className="text-cyan-400">{currencyName} Notu</AccordionTrigger><AccordionContent className="italic">{lesson.auroNote}</AccordionContent></AccordionItem>
+                    <AccordionItem value="objective"><AccordionTrigger className={typography.cardTitle}>Öğrenim Hedefi</AccordionTrigger><AccordionContent className={typography.body}>{lesson.learningObjective}</AccordionContent></AccordionItem>
+                    <AccordionItem value="theory"><AccordionTrigger className={typography.cardTitle}>Teori</AccordionTrigger><AccordionContent className={cn(typography.body, "prose prose-sm dark:prose-invert")}>{lesson.theory}</AccordionContent></AccordionItem>
+                    <AccordionItem value="criteria"><AccordionTrigger className={typography.cardTitle}>Başarı Kriterleri</AccordionTrigger><AccordionContent><ul className={cn(typography.body, "list-disc pl-5 space-y-1")}>{lesson.analysisCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul></AccordionContent></AccordionItem>
+                    <AccordionItem value="task"><AccordionTrigger className={typography.cardTitle}>Pratik Görevi</AccordionTrigger><AccordionContent className={typography.body}>{lesson.practiceTask}</AccordionContent></AccordionItem>
+                    <AccordionItem value="auro-note"><AccordionTrigger className={cn(typography.cardTitle, "text-cyan-400")}>{currencyName} Notu</AccordionTrigger><AccordionContent className={cn(typography.body, "italic")}>{lesson.auroNote}</AccordionContent></AccordionItem>
                 </Accordion>
                 <PracticeSubmission lesson={lesson} onFeedbackReady={setPracticeResult} />
             </div>
@@ -228,7 +230,7 @@ export default function AcademyLevelPage() {
         batch.update(userRef, { 
             current_xp: increment(xpGain),
             auro_balance: increment(auroGain),
-            'profile_index.activity_signals.learning_score': increment(5) // Öğrenme Sinyali (Davranış Katmanı)
+            'profile_index.activity_signals.learning_score': increment(5) 
         });
 
         await batch.commit();
@@ -245,8 +247,8 @@ export default function AcademyLevelPage() {
     
     return (
         <div className="container mx-auto px-4 pt-6 pb-24">
-            <Button variant="ghost" onClick={() => router.push('/academy')} className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" /> Akademi'ye Dön</Button>
-            <h1 className="text-3xl font-bold tracking-tight mb-8">{levelFormatted} Seviye Dersleri</h1>
+            <Button variant="ghost" onClick={() => router.push('/academy')} className={cn(typography.button, "mb-4 font-bold text-muted-foreground")}><ArrowLeft className="mr-2 h-4 w-4" /> Akademi'ye Dön</Button>
+            <h1 className={cn(typography.h2, "mb-8 uppercase")}>{levelFormatted} Seviye Dersleri</h1>
             {lessonsLoading ? (
                 <div className="space-y-8">
                     {[...Array(2)].map((_, i) => (
@@ -257,7 +259,7 @@ export default function AcademyLevelPage() {
                 <div className="space-y-8">
                     {Object.entries(groupedLessons).map(([category, lessonsInCategory]) => (
                         <section key={category}>
-                            <h2 className="text-2xl font-semibold mb-4">{category}</h2>
+                            <h2 className={cn(typography.cardTitle, "text-2xl mb-4")}>{category}</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {lessonsInCategory.map(lesson => (<LessonItem key={lesson.id} lesson={lesson} isCompleted={completedLessonIds.has(lesson.id)} onComplete={handleCompleteLesson} />))}
                             </div>
@@ -265,7 +267,7 @@ export default function AcademyLevelPage() {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16"><h2 className="text-xl font-semibold">Bu Seviyede Henüz Ders Yok</h2></div>
+                <div className="text-center py-16"><h2 className={typography.h2}>Bu Seviyede Henüz Ders Yok</h2></div>
             )}
         </div>
     );

@@ -1,3 +1,4 @@
+
 'use client';
 import { Award, BarChart3, Diamond, Lock, CheckCircle2, GraduationCap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { typography } from "@/lib/design/typography";
 
 const academyLevels = [
   {
@@ -50,9 +52,9 @@ export default function AcademyHubPage() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-10 space-y-1">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">AKADEMİ</p>
-        <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Viewora Akademi</h1>
-        <p className="text-muted-foreground text-sm font-medium opacity-80">Fotoğrafçılık bilginizi temelden ustalığa taşıyın.</p>
+        <p className={cn(typography.eyebrow, "ml-1")}>AKADEMİ</p>
+        <h1 className={cn(typography.h1, "leading-none uppercase")}>Viewora Akademi</h1>
+        <p className={cn(typography.subtitle, "opacity-80")}>Fotoğrafçılık bilginizi temelden ustalığa taşıyın.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -91,17 +93,17 @@ export default function AcademyHubPage() {
 
               <CardContent className="pt-8 p-6 space-y-5 flex-grow flex flex-col">
                 <div>
-                  <h3 className="text-xl font-black uppercase tracking-tight leading-none">{level.title}</h3>
-                  <p className="text-[10px] text-muted-foreground font-bold mt-1.5 leading-tight uppercase tracking-widest">{level.subtitle}</p>
+                  <h3 className={cn(typography.cardTitle, "uppercase leading-none")}>{level.title}</h3>
+                  <p className={cn(typography.meta, "mt-1.5 leading-tight uppercase")}>{level.subtitle}</p>
                 </div>
 
-                <p className="text-xs text-foreground/70 leading-relaxed font-medium">
+                <p className={typography.body}>
                   {level.description}
                 </p>
 
                 <ul className="space-y-2 flex-grow">
                   {level.features.map((feature, idx) => (
-                    <li key={idx} className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                    <li key={idx} className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                       <div className={cn("h-1 w-1 rounded-full", level.unlocked ? "bg-primary" : "bg-muted-foreground")} /> 
                       {feature}
                     </li>
@@ -111,7 +113,8 @@ export default function AcademyHubPage() {
                 <Button 
                   asChild={level.unlocked} 
                   className={cn(
-                    "w-full rounded-xl h-11 font-black uppercase text-[10px] tracking-widest transition-all",
+                    typography.button,
+                    "w-full rounded-xl h-11 transition-all",
                     level.unlocked 
                       ? "bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30" 
                       : "bg-secondary text-muted-foreground hover:bg-secondary"
@@ -151,7 +154,7 @@ export default function AcademyHubPage() {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="rounded-xl border-border/40 bg-background/95 backdrop-blur-xl">
-                  <p className="text-[10px] font-bold uppercase tracking-widest p-1">{tooltipText}</p>
+                  <p className={cn(typography.meta, "font-bold uppercase tracking-widest p-1")}>{tooltipText}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -161,14 +164,14 @@ export default function AcademyHubPage() {
 
       <div className="mt-16 p-8 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 flex flex-col md:flex-row items-center justify-between gap-8 animate-in slide-in-from-bottom-4 duration-1000 delay-200">
         <div className="space-y-2 text-center md:text-left">
-          <h4 className="text-2xl font-black uppercase tracking-tight">Akademi Yolculuğu</h4>
-          <p className="text-sm text-muted-foreground font-medium max-w-md">Her seviye, fotoğrafçılıkta uzmanlaşmanız için özel olarak tasarlandı. Dersleri tamamlayarak XP kazanın ve rütbenizi yükseltin.</p>
+          <h4 className={cn(typography.cardTitle, "text-2xl font-black uppercase")}>Akademi Yolculuğu</h4>
+          <p className={cn(typography.body, "max-w-md")}>Her seviye, fotoğrafçılıkta uzmanlaşmanız için özel olarak tasarlandı. Dersleri tamamlayarak XP kazanın ve rütbenizi yükseltin.</p>
         </div>
         <div className="flex items-center gap-4 bg-background/50 p-6 rounded-3xl border border-border/40 shadow-inner">
           <GraduationCap className="h-10 w-10 text-primary" />
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Eğitim Durumu</p>
-            <p className="text-lg font-black uppercase">Gelişim Bekleniyor</p>
+            <p className={typography.eyebrow}>Eğitim Durumu</p>
+            <p className={cn(typography.cardTitle, "text-lg font-black uppercase")}>Gelişim Bekleniyor</p>
           </div>
         </div>
       </div>

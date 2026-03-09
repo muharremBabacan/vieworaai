@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -16,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { typography } from "@/lib/design/typography";
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -100,9 +102,9 @@ export default function ExplorePage() {
     return (
       <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
         <header className="mb-10 space-y-1">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KEŞFET</p>
-          <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">İlhamı Keşfet</h1>
-          <p className="text-muted-foreground text-sm font-medium opacity-80">Sergileri, yarışmaları ve fotoğraf topluluklarını keşfet.</p>
+          <p className={cn(typography.eyebrow, "ml-1")}>KEŞFET</p>
+          <h1 className={cn(typography.h1, "leading-none uppercase")}>İlhamı Keşfet</h1>
+          <p className={cn(typography.subtitle, "opacity-80")}>Sergileri, yarışmaları ve fotoğraf topluluklarını keşfet.</p>
         </header>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -120,18 +122,18 @@ export default function ExplorePage() {
             </div>
             <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Sergi Salonları</h3>
-                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Tematik fotoğraf galerilerini keşfet.</p>
+                <h3 className={cn(typography.cardTitle, "leading-none uppercase")}>Sergi Salonları</h3>
+                <p className={cn(typography.meta, "font-bold mt-1 leading-tight")}>Tematik fotoğraf galerilerini keşfet.</p>
               </div>
               <ul className="space-y-1.5 flex-grow">
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-primary" /> 25 aktif sergi
                 </li>
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-primary" /> Yeni temalar her hafta
                 </li>
               </ul>
-              <Button onClick={() => setView('exhibitions')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Salonları Gör</Button>
+              <Button onClick={() => setView('exhibitions')} className={cn(typography.button, "w-full rounded-xl h-10 bg-primary shadow-lg shadow-primary/20")}>Salonları Gör</Button>
             </CardContent>
           </Card>
 
@@ -149,18 +151,18 @@ export default function ExplorePage() {
             </div>
             <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Global Yarışmalar</h3>
-                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Fotoğraflarınla yarış ve ödüller kazan.</p>
+                <h3 className={cn(typography.cardTitle, "leading-none uppercase")}>Global Yarışmalar</h3>
+                <p className={cn(typography.meta, "font-bold mt-1 leading-tight")}>Fotoğraflarınla yarış ve ödüller kazan.</p>
               </div>
               <ul className="space-y-1.5 flex-grow">
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-amber-500" /> 3 aktif yarışma
                 </li>
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-amber-500" /> Jüri ve topluluk oylaması
                 </li>
               </ul>
-              <Button onClick={() => router.push('/competitions')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Yarışmaları Gör</Button>
+              <Button onClick={() => router.push('/competitions')} className={cn(typography.button, "w-full rounded-xl h-10 bg-primary shadow-lg shadow-primary/20")}>Yarışmaları Gör</Button>
             </CardContent>
           </Card>
 
@@ -178,18 +180,18 @@ export default function ExplorePage() {
             </div>
             <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Fotoğraf Grupları</h3>
-                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Fotoğraf topluluklarına katıl ve geri bildirim al.</p>
+                <h3 className={cn(typography.cardTitle, "leading-none uppercase")}>Fotoğraf Grupları</h3>
+                <p className={cn(typography.meta, "font-bold mt-1 leading-tight")}>Fotoğraf topluluklarına katıl ve geri bildirim al.</p>
               </div>
               <ul className="space-y-1.5 flex-grow">
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-blue-400" /> 12 aktif grup
                 </li>
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-blue-400" /> Mentor destekli topluluklar
                 </li>
               </ul>
-              <Button onClick={() => router.push('/groups')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Grupları Keşfet</Button>
+              <Button onClick={() => router.push('/groups')} className={cn(typography.button, "w-full rounded-xl h-10 bg-primary shadow-lg shadow-primary/20")}>Grupları Keşfet</Button>
             </CardContent>
           </Card>
 
@@ -207,18 +209,18 @@ export default function ExplorePage() {
             </div>
             <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Öne Çıkan Fotoğraflar</h3>
-                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Topluluğun en iyi fotoğrafları.</p>
+                <h3 className={cn(typography.cardTitle, "leading-none uppercase")}>Öne Çıkan Fotoğraflar</h3>
+                <p className={cn(typography.meta, "font-bold mt-1 leading-tight")}>Topluluğun en iyi fotoğrafları.</p>
               </div>
               <ul className="space-y-1.5 flex-grow">
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-yellow-400" /> AI seçimi
                 </li>
-                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                <li className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
                   <div className="h-1 w-1 rounded-full bg-yellow-400" /> Editör seçimi
                 </li>
               </ul>
-              <Button onClick={() => setView('featured')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Fotoğrafları Gör</Button>
+              <Button onClick={() => setView('featured')} className={cn(typography.button, "w-full rounded-xl h-10 bg-primary shadow-lg shadow-primary/20")}>Fotoğrafları Gör</Button>
             </CardContent>
           </Card>
         </div>
@@ -234,7 +236,7 @@ export default function ExplorePage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Keşfet Merkezi
         </Button>
 
-        <h1 className="text-5xl font-black tracking-tighter mb-12">Aktif Sergi Salonları</h1>
+        <h1 className={cn(typography.h1, "mb-12 uppercase")}>Aktif Sergi Salonları</h1>
 
         {isExLoading ? (
           <div className="grid md:grid-cols-2 gap-10">
@@ -252,12 +254,12 @@ export default function ExplorePage() {
                 </div>
                 <div className="absolute bottom-10 left-10 right-10 flex justify-between items-end">
                   <div className="space-y-2">
-                    <h2 className="text-4xl font-black text-white leading-tight tracking-tighter">{ex.title}</h2>
-                    <div className="flex items-center gap-2 text-xs font-black text-primary uppercase tracking-wider">
+                    <h2 className={cn(typography.h2, "text-white leading-tight uppercase")}>{ex.title}</h2>
+                    <div className={cn(typography.meta, "flex items-center gap-2 font-black text-primary uppercase tracking-wider")}>
                       <Clock className="h-4 w-4" /> {safeFormatDistance(ex.endDate)}
                     </div>
                   </div>
-                  <Button className="rounded-xl px-8 h-11 font-black uppercase text-[10px] tracking-widest bg-white text-black hover:bg-white/90 shadow-lg">
+                  <Button className={cn(typography.button, "rounded-xl px-8 h-11 bg-white text-black hover:bg-white/90 shadow-lg")}>
                     Salona Gir <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
@@ -267,8 +269,8 @@ export default function ExplorePage() {
         ) : (
           <div className="text-center py-40 rounded-[64px] border-2 border-dashed border-border/40 bg-muted/5">
             <Globe className="h-20 w-20 mx-auto mb-8 text-muted-foreground/20" />
-            <h3 className="text-3xl font-black tracking-tight">Henüz Açık Sergi Yok</h3>
-            <p className="text-muted-foreground mt-2">Admin tarafından yeni salonlar eklendiğinde burada göreceksin.</p>
+            <h3 className={cn(typography.h2, "uppercase")}>Henüz Açık Sergi Yok</h3>
+            <p className={typography.body}>Admin tarafından yeni salonlar eklendiğinde burada göreceksin.</p>
           </div>
         )}
       </div>
@@ -284,18 +286,18 @@ export default function ExplorePage() {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 mb-16">
         <div className="space-y-4">
-          <h1 className="text-5xl font-black tracking-tighter">
+          <h1 className={cn(typography.h1, "uppercase")}>
             {view === 'featured' ? 'Öne Çıkan Kareler' : selectedExhibition?.title}
           </h1>
-          <p className="text-muted-foreground text-lg max-w-3xl leading-relaxed">
+          <p className={cn(typography.subtitle, "max-w-3xl")}>
             {view === 'featured' ? 'Topluluğun en çok beğeni alan ve AI tarafından yüksek puanlanan eserleri.' : selectedExhibition?.description}
           </p>
         </div>
         <div className="flex items-center gap-4 px-8 py-4 bg-secondary/30 rounded-[32px] border border-border/40 shadow-inner">
           <Users className="h-6 w-6 text-primary" />
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Eser Sayısı</p>
-            <p className="text-lg font-black">{photos?.length || 0}</p>
+            <p className={typography.eyebrow}>Eser Sayısı</p>
+            <p className={cn(typography.cardTitle, "text-lg font-black")}>{photos?.length || 0}</p>
           </div>
         </div>
       </div>
@@ -311,7 +313,7 @@ export default function ExplorePage() {
             return (
               <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden border-none shadow-2xl ring-1 ring-white/5 cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
                 <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 <div className="absolute top-4 left-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-[-10px] group-hover:translate-y-0">
                    <Badge className="bg-black/50 backdrop-blur-md border-white/10 text-[10px] h-7 px-3 rounded-full font-black">
@@ -341,8 +343,8 @@ export default function ExplorePage() {
       ) : (
         <div className="text-center py-40 rounded-[64px] border-2 border-dashed border-border/40 bg-muted/5">
           <Camera className="h-20 w-20 mx-auto mb-8 text-muted-foreground/20" />
-          <h3 className="text-3xl font-black tracking-tight">Eser Bulunmuyor</h3>
-          <p className="text-muted-foreground mt-4">Bu alanda henüz paylaşılan bir fotoğraf yok.</p>
+          <h3 className={cn(typography.h2, "uppercase")}>Eser Bulunmuyor</h3>
+          <p className={cn(typography.body, "mt-4")}>Bu alanda henüz paylaşılan bir fotoğraf yok.</p>
         </div>
       )}
 
@@ -355,33 +357,33 @@ export default function ExplorePage() {
             </div>
             <div className="md:w-2/5 w-full flex flex-col p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-black tracking-tight flex items-center justify-between">
+                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>
                   Eser Detayları
                   <Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 font-black uppercase text-[10px]">
                     <Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}
                   </Badge>
                 </DialogTitle>
-                <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">Sanatçı: @{selectedPhoto.userName || 'Sanatçı'}</DialogDescription>
+                <DialogDescription className={cn(typography.meta, "font-bold uppercase")}>Sanatçı: @{selectedPhoto.userName || 'Sanatçı'}</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-6">
                 {isLevelEligibleForAI ? (
                   <>
                     <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Luma Analizi</h4>
+                      <h4 className={cn(typography.eyebrow, "text-primary")}>Luma Analizi</h4>
                       <div className="space-y-3">
                         {selectedPhoto.aiFeedback && (
                           <>
                             <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-bold"><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
+                              <div className={cn(typography.meta, "flex justify-between font-bold")}><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
                               <Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1" />
                             </div>
                             <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-bold"><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
+                              <div className={cn(typography.meta, "flex justify-between font-bold")}><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
                               <Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1" />
                             </div>
                             <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-bold"><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
+                              <div className={cn(typography.meta, "flex justify-between font-bold")}><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
                               <Progress value={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) * 10} className="h-1" />
                             </div>
                           </>
@@ -389,8 +391,8 @@ export default function ExplorePage() {
                       </div>
                     </Card>
                     <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Luma Notu</span>
-                      <p className="text-sm italic text-foreground/90 leading-relaxed font-medium bg-muted/30 p-4 rounded-xl border border-border/40">
+                      <span className={typography.eyebrow}>Luma Notu</span>
+                      <p className={cn(typography.body, "italic text-foreground/90 bg-muted/30 p-4 rounded-xl border border-border/40")}>
                         "{selectedPhoto.aiFeedback?.short_neutral_analysis}"
                       </p>
                     </div>
@@ -399,17 +401,17 @@ export default function ExplorePage() {
                   <Card className="p-8 border-dashed border-border/60 bg-muted/10 text-center space-y-4 rounded-[32px]">
                     <Lock className="h-8 w-8 mx-auto text-muted-foreground/40" />
                     <div className="space-y-1">
-                      <p className="text-sm font-black uppercase tracking-tighter">Analiz Detayları Kilitli</p>
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">Topluluk eserlerinin derin analizlerini görmek için <b>Viewner</b> seviyesine ulaşmalısın (101+ XP).</p>
+                      <p className={cn(typography.cardTitle, "uppercase")}>Analiz Detayları Kilitli</p>
+                      <p className={cn(typography.meta, "leading-relaxed")}>Topluluk eserlerinin derin analizlerini görmek için <b>Viewner</b> seviyesine ulaşmalısın (101+ XP).</p>
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-xl text-[10px] font-bold uppercase tracking-widest h-8" onClick={() => router.push('/academy')}>Gelişmeye Başla</Button>
+                    <Button variant="outline" size="sm" className={cn(typography.button, "rounded-xl h-8")} onClick={() => router.push('/academy')}>Gelişmeye Başla</Button>
                   </Card>
                 )}
 
                 <div className="flex items-center gap-4 py-4 border-t border-border/40">
                   <div className="flex items-center gap-2 text-red-500 bg-red-500/5 px-4 py-2 rounded-full border border-red-500/10 shadow-inner">
                     <Heart className="h-4 w-4 fill-current" />
-                    <span className="text-sm font-black">{selectedPhoto.likes?.length || 0} Beğeni</span>
+                    <span className={cn(typography.meta, "font-black text-red-500")}>{selectedPhoto.likes?.length || 0} Beğeni</span>
                   </div>
                 </div>
               </div>
