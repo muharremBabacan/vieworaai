@@ -195,8 +195,8 @@ export default function PageContent() {
           <div className="flex flex-col items-center space-y-4 text-center">
             <Logo />
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
-                Türkiye’de geliştirilen küresel bir fotoğraf ve yapay zekâ platformudur.
+              <p className="text-sm font-medium text-muted-foreground max-w-[320px] mx-auto leading-relaxed">
+                Türkiye’de geliştirilen; fotoğrafları yapay zekâ ile analiz ederek kullanıcıların öğrenmesini, gelişmesini ve paylaşmasını sağlayan küresel bir fotoğraf platformudur.
               </p>
               <h1 className="text-2xl font-black tracking-tight uppercase pt-4">Giriş Yap</h1>
             </div>
