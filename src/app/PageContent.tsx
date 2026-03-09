@@ -99,6 +99,11 @@ export default function PageContent() {
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
+      // Her seferinde hesap seçme penceresini zorla
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
       const result: UserCredential = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
       const userSnap = await getDoc(doc(firestore, 'users', firebaseUser.uid));
