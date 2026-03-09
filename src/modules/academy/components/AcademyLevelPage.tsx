@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -20,6 +19,7 @@ import { ArrowLeft, CheckCircle, UploadCloud, Loader2 } from 'lucide-react';
 import { evaluatePracticeSubmission, type EvaluatePracticeSubmissionOutput } from '@/ai/flows/evaluate-practice-submission';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
+import { cn } from '@/lib/utils';
 
 const findPlaceholderImage = (hint: string) => {
     return `https://picsum.photos/seed/${hint.replace(/\s+/g, '')}/600/400`;
