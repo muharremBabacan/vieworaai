@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,6 +8,7 @@ import {
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
+  getAuth,
 } from 'firebase/firestore';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
@@ -25,7 +27,7 @@ export function useDoc<T = any>(
 ): UseDocResult<T> {
 
   const [data, setData] = useState<WithId<T> | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(!!memoizedDocRef);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
@@ -51,7 +53,14 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        // Zengin içerikli izin hatası oluşturulur ve yayılır
+        // Çıkış yaparken oluşan yetki hatasını yakala
+        const auth = getAuth();
+        if (err.code === 'permission-denied' && !auth.currentUser) {
+          setData(null);
+          setIsLoading(false);
+          return;
+        }
+
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -61,7 +70,6 @@ export function useDoc<T = any>(
         setData(null);
         setIsLoading(false);
 
-        // Global dinleyiciye gönderilir
         errorEmitter.emit('permission-error', contextualError);
       }
     );

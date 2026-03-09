@@ -8,6 +8,7 @@ import {
   FirestoreError,
   Query,
   QuerySnapshot,
+  getAuth,
 } from 'firebase/firestore';
 import { useUser } from '@/lib/firebase/provider';
 import { FirestorePermissionError } from '@/lib/firebase/errors';
@@ -31,15 +32,16 @@ export function useCollection<T = any>(
   const { user } = useUser();
 
   const [data, setData] = useState<WithId<T>[] | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(!!query);
   const [error, setError] = useState<Error | null>(null);
   
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    // Sorgu yoksa veya yetki gerekip kullanıcı yoksa dinleyiciyi başlatma
     if (!query || (requireAuth && !user?.uid)) {
-      setIsLoading(false);
       setData(null);
+      setIsLoading(false);
       return;
     }
 
@@ -62,6 +64,15 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
+        // Çıkış yaparken oluşan yetki hatasını yakala
+        const auth = getAuth();
+        if (err.code === 'permission-denied' && !auth.currentUser) {
+          console.warn("Firestore access revoked due to sign out.");
+          setData(null);
+          setIsLoading(false);
+          return;
+        }
+
         console.error("Firestore useCollection Error:", err.code, err.message);
 
         if (err.code === 'permission-denied') {
@@ -74,7 +85,6 @@ export function useCollection<T = any>(
           errorEmitter.emit('permission-error', contextualError);
         } 
         else if (err.code === 'failed-precondition') {
-          // Bu hata genellikle eksik indeks durumunda gelir.
           const indexError = new Error(
             'Veritabanı indeksleri hazırlanıyor. Lütfen birkaç dakika sonra tekrar deneyin.'
           );
