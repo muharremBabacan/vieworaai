@@ -64,18 +64,6 @@ export default function ExplorePage() {
   );
   const { data: exhibitions, isLoading: isExLoading } = useCollection<Exhibition>(exhibitionsQuery);
 
-  const competitionsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc'), limit(5)) : null,
-    [firestore]
-  );
-  const { data: competitions } = useCollection<Competition>(competitionsQuery);
-
-  const groupsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'groups'), limit(10)) : null,
-    [firestore]
-  );
-  const { data: allGroups } = useCollection<Group>(groupsQuery);
-
   const photosQuery = useMemoFirebase(() => {
     if (!firestore || view === 'hub') return null;
     if (view === 'exhibition-detail' && selectedExhibition) {
@@ -115,92 +103,124 @@ export default function ExplorePage() {
         <header className="mb-10 space-y-1 pt-6">
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">KEŞFET</p>
           <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">İlhamı Keşfet</h1>
-          <p className="text-muted-foreground text-base font-medium opacity-80">Sergileri, yarışmaları ve fotoğraf topluluklarını keşfet.</p>
+          <p className="text-muted-foreground text-sm font-medium opacity-80">Sergileri, yarışmaları ve fotoğraf topluluklarını keşfet.</p>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Sergi Salonları Kartı */}
-          <Card 
-            onClick={() => setView('exhibitions')}
-            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <Image 
-              src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=1000" 
-              alt="Exhibitions" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-            
-            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-primary/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Landmark className="h-5 w-5 text-primary" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {/* Sergi Salonları */}
+          <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-primary/20">
+            <div className="relative h-32 w-full overflow-hidden">
+              <Image 
+                src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=600" 
+                alt="Sergiler" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute -bottom-5 left-5 h-10 w-10 rounded-xl bg-primary/20 backdrop-blur-xl border border-white/10 flex items-center justify-center">
+                <Landmark className="h-5 w-5 text-primary" />
+              </div>
             </div>
-
-            <div className="absolute bottom-6 left-6 right-6 space-y-2">
-              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Sergi Salonları</h2>
-              <p className="text-xs font-bold text-white/70 leading-relaxed">Tematik fotoğraf galerilerini keşfet.</p>
-            </div>
+            <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Sergi Salonları</h3>
+                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Tematik fotoğraf galerilerini keşfet.</p>
+              </div>
+              <ul className="space-y-1.5 flex-grow">
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-primary" /> 25 aktif sergi
+                </li>
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-primary" /> Yeni temalar her hafta
+                </li>
+              </ul>
+              <Button onClick={() => setView('exhibitions')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Salonları Gör</Button>
+            </CardContent>
           </Card>
 
-          {/* Global Yarışmalar Kartı */}
-          <Card 
-            onClick={() => router.push('/competitions')}
-            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <Image 
-              src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000" 
-              alt="Competitions" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-            
-            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-amber-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Trophy className="h-5 w-5 text-amber-500" />
+          {/* Global Yarışmalar */}
+          <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-amber-500/20">
+            <div className="relative h-32 w-full overflow-hidden">
+              <Image 
+                src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600" 
+                alt="Yarışmalar" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute -bottom-5 left-5 h-10 w-10 rounded-xl bg-amber-500/20 backdrop-blur-xl border border-white/10 flex items-center justify-center">
+                <Trophy className="h-5 w-5 text-amber-500" />
+              </div>
             </div>
-
-            <div className="absolute bottom-6 left-6 right-6 space-y-2">
-              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Global Yarışmalar</h2>
-              <p className="text-xs font-bold text-white/70 leading-relaxed">Fotoğraflarınla yarış ve ödüller kazan.</p>
-            </div>
+            <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Global Yarışmalar</h3>
+                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Fotoğraflarınla yarış ve ödüller kazan.</p>
+              </div>
+              <ul className="space-y-1.5 flex-grow">
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-amber-500" /> 3 aktif yarışma
+                </li>
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-amber-500" /> Jüri ve topluluk oylaması
+                </li>
+              </ul>
+              <Button onClick={() => router.push('/competitions')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Yarışmaları Gör</Button>
+            </CardContent>
           </Card>
 
-          {/* Fotoğraf Grupları Kartı */}
-          <Card 
-            onClick={() => router.push('/groups')}
-            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <Image 
-              src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000" 
-              alt="Groups" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-            
-            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-blue-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Users className="h-5 w-5 text-blue-400" />
+          {/* Fotoğraf Grupları */}
+          <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-blue-400/20">
+            <div className="relative h-32 w-full overflow-hidden">
+              <Image 
+                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=600" 
+                alt="Gruplar" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute -bottom-5 left-5 h-10 w-10 rounded-xl bg-blue-500/20 backdrop-blur-xl border border-white/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-blue-400" />
+              </div>
             </div>
-
-            <div className="absolute bottom-6 left-6 right-6 space-y-2">
-              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Fotoğraf Grupları</h2>
-              <p className="text-xs font-bold text-white/70 leading-relaxed">Topluluklara katıl ve geri bildirim al.</p>
-            </div>
+            <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Fotoğraf Grupları</h3>
+                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Fotoğraf topluluklarına katıl ve geri bildirim al.</p>
+              </div>
+              <ul className="space-y-1.5 flex-grow">
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-blue-400" /> 12 aktif grup
+                </li>
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-blue-400" /> Mentor destekli topluluklar
+                </li>
+              </ul>
+              <Button onClick={() => router.push('/groups')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Grupları Keşfet</Button>
+            </CardContent>
           </Card>
 
-          {/* Öne Çıkan Fotoğraflar Kartı */}
-          <Card 
-            onClick={() => setView('featured')}
-            className="group relative h-[320px] rounded-[32px] overflow-hidden border-border/40 bg-card shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <Image 
-              src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=1000" 
-              alt="Featured" fill className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" unoptimized 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-            
-            <div className="absolute top-5 left-5 h-10 w-10 rounded-2xl bg-yellow-500/20 backdrop-blur-xl flex items-center justify-center border border-white/10">
-              <Sparkles className="h-5 w-5 text-yellow-400" />
+          {/* Öne Çıkan Fotoğraflar */}
+          <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-yellow-400/20">
+            <div className="relative h-32 w-full overflow-hidden">
+              <Image 
+                src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=600" 
+                alt="Öne Çıkanlar" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute -bottom-5 left-5 h-10 w-10 rounded-xl bg-yellow-500/20 backdrop-blur-xl border border-white/10 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-yellow-400" />
+              </div>
             </div>
-
-            <div className="absolute bottom-6 left-6 right-6 space-y-2">
-              <h2 className="text-xl font-black tracking-tight text-white uppercase leading-tight">Öne Çıkan Kareler</h2>
-              <p className="text-xs font-bold text-white/70 leading-relaxed">Topluluğun en iyi fotoğrafları.</p>
-            </div>
+            <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight leading-none">Öne Çıkan Fotoğraflar</h3>
+                <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-tight">Topluluğun en iyi fotoğrafları.</p>
+              </div>
+              <ul className="space-y-1.5 flex-grow">
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-yellow-400" /> AI seçimi
+                </li>
+                <li className="text-[10px] flex items-center gap-2 text-muted-foreground font-black uppercase tracking-tighter">
+                  <div className="h-1 w-1 rounded-full bg-yellow-400" /> Editör seçimi
+                </li>
+              </ul>
+              <Button onClick={() => setView('featured')} className="w-full rounded-xl h-10 font-black uppercase text-[10px] tracking-widest bg-primary shadow-lg shadow-primary/20">Fotoğrafları Gör</Button>
+            </CardContent>
           </Card>
         </div>
       </div>
