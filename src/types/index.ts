@@ -155,10 +155,13 @@ export type CompetitionEntry = {
   award?: 'winner' | 'honorable_mention' | 'participant';
 };
 
+export type GroupPurpose = 'study' | 'challenge' | 'walk' | 'mentor';
+
 export type Group = {
   id: string;
   name: string;
   description: string;
+  purpose: GroupPurpose;
   ownerId: string;
   memberIds: string[];
   createdAt: string;

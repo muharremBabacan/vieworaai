@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment } from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -16,13 +16,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
+
+const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: string }> = {
+  study: { label: 'Eğitim', icon: GraduationCap, color: 'bg-blue-500/10 text-blue-400' },
+  challenge: { label: 'Yarışma', icon: Trophy, color: 'bg-amber-500/10 text-amber-400' },
+  walk: { label: 'Gezi', icon: Map, color: 'bg-green-500/10 text-green-400' },
+  mentor: { label: 'Eğitimci', icon: ShieldCheck, color: 'bg-purple-500/10 text-purple-400' },
+};
 
 export default function GroupDetailPage() {
   const { groupId } = useParams();
@@ -181,15 +188,20 @@ export default function GroupDetailPage() {
   if (isGroupLoading) return <div className="container mx-auto px-4 pt-12 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   if (!group) return null;
 
+  const purpose = PURPOSE_CONFIG[group.purpose || 'study'];
+
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-12 space-y-4">
         <Button variant="ghost" onClick={() => router.push('/groups')} className="rounded-xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Gruplarım</Button>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-5xl font-black tracking-tighter uppercase">{group.name}</h1>
               {isCurrentUserOwner && <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black h-6 uppercase tracking-widest px-3">KURUCU</Badge>}
+              <Badge variant="secondary" className={cn("px-3 h-6 text-[10px] font-black uppercase tracking-widest border-none", purpose.color)}>
+                <purpose.icon size={12} className="mr-1.5" /> {purpose.label}
+              </Badge>
             </div>
             <p className="text-muted-foreground text-lg font-medium">{group.description}</p>
           </div>
