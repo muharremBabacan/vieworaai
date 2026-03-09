@@ -9,12 +9,12 @@ import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy,
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import { useToast } from '@/shared/hooks/use-toast';
-import type { User, Photo, AnalysisLog, UserTier, UserProfileIndex } from '@/types';
+import type { User, Photo, AnalysisLog, UserTier } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock, BarChart3, GraduationCap, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
@@ -120,7 +120,6 @@ export default function PhotoAnalyzer() {
     const analyzedPhotos = snap.docs.map(d => d.data() as Photo);
     const count = analyzedPhotos.length;
 
-    // 1. Teknik Katman Hesaplama (Son 12 Fotoğraf Ortalaması)
     const totals = analyzedPhotos.reduce((acc, p) => {
       const f = p.aiFeedback!;
       acc.light += normalizeScore(f.light_score);
@@ -140,7 +139,6 @@ export default function PhotoAnalyzer() {
       boldness: totals.boldness / count
     };
 
-    // 2. Baskın Stil & Yönler (Metadata)
     const allTags = analyzedPhotos.flatMap(p => p.tags || []);
     const tagCounts: Record<string, number> = {};
     allTags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
@@ -167,7 +165,6 @@ export default function PhotoAnalyzer() {
         trendDirection = trendPercentage > 5 ? 'improving' : trendPercentage < -5 ? 'declining' : 'stagnant';
     }
 
-    // 3. Firestore Güncelleme (Teknik Katman + Metadata)
     const userRef = doc(firestore, 'users', userId);
     await updateDoc(userRef, {
       'profile_index.dominant_style': dominantStyle,
@@ -345,14 +342,72 @@ export default function PhotoAnalyzer() {
           </div>
         </Card>
       ) : !file ? (
-        <div {...getRootProps()} className="text-center p-20 border-2 border-dashed rounded-[40px] cursor-pointer bg-card/30 hover:bg-card/50 hover:border-primary/30 transition-all group shadow-inner">
-          <input {...getInputProps()} />
-          <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-lg">
-            <Camera className="text-primary" size={40} />
+        <div className="max-w-6xl mx-auto space-y-16">
+          <div {...getRootProps()} className="relative p-10 md:p-16 border-2 border-dashed border-border/60 rounded-[48px] bg-card/30 hover:bg-card/40 transition-all group shadow-inner">
+            <input {...getInputProps()} />
+            <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="text-center md:text-left space-y-4 max-w-md">
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">Fotoğrafını yükle</h2>
+                <p className="text-xl md:text-2xl font-bold text-muted-foreground">Yapay zeka fotoğrafını analiz etsin</p>
+                <p className="text-sm font-medium text-muted-foreground/70">Işık, kompozisyon ve hikaye gücünü keşfet.</p>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <Camera className="text-primary" size={40} />
+                </div>
+                <Button onClick={open} className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95">
+                  Fotoğraf Seç
+                </Button>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">veya buraya sürükle bırak</p>
+              </div>
+            </div>
           </div>
-          <p className="font-black text-3xl tracking-tighter uppercase">VİZYONUNU PAYLAŞ</p>
-          <p className="text-muted-foreground mt-3 text-lg font-medium">Analiz etmek veya galerine eklemek için bir fotoğraf seç.</p>
-          <Button onClick={open} className="mt-10 px-12 h-14 rounded-2xl font-black tracking-widest shadow-2xl shadow-primary/20">Fotoğraf Seç</Button>
+
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+            <h3 className="text-xl font-black tracking-tight uppercase ml-2">Viewora ile neler yapabilirsin</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <BarChart3 size={18} />
+                  </div>
+                  <h4 className="font-black text-sm uppercase tracking-tight">AI Fotoğraf Analizi</h4>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Fotoğrafını yükle. Yapay zeka ışık, kompozisyon ve hikaye gücünü analiz etsin.</p>
+              </Card>
+
+              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <GraduationCap size={18} />
+                  </div>
+                  <h4 className="font-black text-sm uppercase tracking-tight">Fotoğraf Akademisi</h4>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Seviyene göre hazırlanmış derslerle fotoğraf bilgisini geliştir.</p>
+              </Card>
+
+              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <Globe size={18} />
+                  </div>
+                  <h4 className="font-black text-sm uppercase tracking-tight">Topluluk ve Sergiler</h4>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Fotoğraflarını paylaş, geri bildirim al ve sergilere katıl.</p>
+              </Card>
+
+              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <Sparkles size={18} />
+                  </div>
+                  <h4 className="font-black text-sm uppercase tracking-tight">Luma – Özel Koçluk</h4>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Fotoğraf gelişim koçun. Kişisel geri bildirimler ve gelişim önerileri al.</p>
+              </Card>
+            </div>
+            <p className="text-center pt-10 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">Türkiye'de geliştirilen küresel bir mobil fotoğraf ve yapay zekâ platformu.</p>
+          </div>
         </div>
       ) : (
         <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm">
