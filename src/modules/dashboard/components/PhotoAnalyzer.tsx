@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock, BarChart3, GraduationCap, Globe } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock, BarChart3, GraduationCap, Globe, Trophy, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
@@ -365,7 +365,7 @@ export default function PhotoAnalyzer() {
 
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
             <h3 className="text-xl font-black tracking-tight uppercase ml-2">Viewora ile neler yapabilirsin</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
@@ -389,11 +389,21 @@ export default function PhotoAnalyzer() {
               <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                    <Globe size={18} />
+                    <Trophy size={18} />
                   </div>
-                  <h4 className="font-black text-sm uppercase tracking-tight">Topluluk ve Sergiler</h4>
+                  <h4 className="font-black text-sm uppercase tracking-tight">Sergiler ve Yarışmalar</h4>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Fotoğraflarını paylaş, geri bildirim al ve sergilere katıl.</p>
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Global yarışmalara katıl, eserlerini tematik sergilerde dünyaya göster.</p>
+              </Card>
+
+              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <Users size={18} />
+                  </div>
+                  <h4 className="font-black text-sm uppercase tracking-tight">Topluluk ve Gruplar</h4>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Diğer sanatçılarla tanış, özel gruplara katıl ve birlikte öğren.</p>
               </Card>
 
               <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
