@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock, BarChart3, GraduationCap, Globe, Trophy, Users } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock, BarChart3, GraduationCap, Globe, Trophy, Users, Scan, SearchCode, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
@@ -59,6 +60,27 @@ const RatingBar = ({ label, score, isLocked }: { label: string; score: number; i
           {isLocked && <div className="absolute inset-0 bg-muted/20 backdrop-blur-[1px] rounded-full" />}
         </div>
     </div>
+);
+
+const ScanningOverlay = () => (
+  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
+    <div className="relative w-full max-w-[280px] space-y-6 text-center">
+      <div className="relative h-20 w-20 mx-auto">
+        <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+        <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Scan className="h-8 w-8 text-primary animate-pulse" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <h3 className="text-xl font-black uppercase tracking-tighter text-white">Luma Taraması</h3>
+        <p className="text-xs font-bold text-primary/80 uppercase tracking-[0.2em] animate-pulse">Görsel Analiz Ediliyor...</p>
+      </div>
+      <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-full bg-primary animate-progress-fast shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
+      </div>
+    </div>
+  </div>
 );
 
 export default function PhotoAnalyzer() {
@@ -203,8 +225,14 @@ export default function PhotoAnalyzer() {
       const dupSnap = await getDocs(q);
 
       if (!dupSnap.empty) {
-        setIsDuplicate(true);
-        toast({ variant: 'destructive', title: 'Bu kare zaten galerinizde.' });
+        const existingPhoto = dupSnap.docs[0].data() as Photo;
+        if (existingPhoto.aiFeedback) {
+            setAnalysisResult(existingPhoto);
+            toast({ title: 'Zaten Analiz Edilmiş', description: 'Bu fotoğrafın analizi sistemde kayıtlı.' });
+        } else {
+            setIsDuplicate(true);
+            toast({ variant: 'destructive', title: 'Bu kare zaten galerinizde.', description: 'Henüz analiz edilmemiş.' });
+        }
         setIsLoading(false);
         return;
       }
@@ -296,50 +324,100 @@ export default function PhotoAnalyzer() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       {analysisResult ? (
-        <Card className="max-w-5xl mx-auto rounded-[48px] border-border/40 bg-card/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-700">
-          <div className="flex flex-col md:flex-row">
-            <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40">
-              <Image src={analysisResult.imageUrl} alt="Analiz" fill className="object-contain" unoptimized />
+        <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-10 duration-700">
+          <header className="flex justify-between items-center">
+            <div className="space-y-1">
+              <Badge variant="outline" className="px-3 h-6 border-primary/30 text-primary font-black uppercase tracking-widest text-[9px] rounded-full">LUMA ANALİZ RAPORU</Badge>
+              <h1 className="text-4xl font-black tracking-tighter uppercase">Gelişim Özetin</h1>
             </div>
-            <div className="md:w-2/5 w-full flex flex-col p-8 space-y-8 overflow-y-auto max-h-[800px]">
-              <div className="space-y-2">
-                <Badge variant="outline" className="px-3 h-6 border-primary/30 text-primary font-black uppercase tracking-widest text-[9px] rounded-full">ANALİZ TAMAMLANDI</Badge>
-                <div className="flex justify-between items-center">
-                  <h2 className="text-3xl font-black tracking-tighter">Luma Raporu</h2>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 font-black uppercase text-[10px]">
-                    <Star className="h-3 w-3 mr-1 fill-current text-yellow-400" /> {getOverallScore(analysisResult).toFixed(1)}
-                  </Badge>
-                </div>
-              </div>
+            <Button onClick={resetAnalyzer} variant="ghost" className="rounded-xl font-bold text-muted-foreground"><RefreshCw size={16} className="mr-2" /> Yeni Analiz</Button>
+          </header>
 
-              <div className="space-y-6">
-                <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Teknik Katman (AI)</h4>
-                  <div className="space-y-4">
-                    <RatingBar label="Işık" score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
-                    <RatingBar label="Kompozisyon" score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
-                    <RatingBar label="Teknik Netlik" score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
-                    <RatingBar label="Hikaye Anlatımı" score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} isLocked={analysisResult.analysisTier === 'start'} />
-                    <RatingBar label="Cesur Kadraj" score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Sol: Büyük Görsel */}
+            <div className="lg:col-span-7 space-y-6">
+              <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
+                <div className="relative aspect-square md:aspect-video">
+                  <Image src={analysisResult.imageUrl} alt="Analiz" fill className="object-contain" unoptimized />
+                </div>
+              </Card>
+              
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                    <SearchCode size={20} />
                   </div>
-                </Card>
-
-                <div className="space-y-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Luma Notu</span>
-                  <p className="text-sm italic text-foreground/90 leading-relaxed font-medium bg-muted/30 p-5 rounded-2xl border border-border/40">
-                    "{analysisResult.aiFeedback!.short_neutral_analysis}"
-                  </p>
+                  <h3 className="text-lg font-black uppercase tracking-tight">Algılanan Detaylar</h3>
                 </div>
-              </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Tür</p>
+                    <p className="text-sm font-bold capitalize">{analysisResult.aiFeedback!.genre}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Sahne</p>
+                    <p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.scene}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Ana Özne</p>
+                    <p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.dominant_subject}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {analysisResult.tags?.map(tag => (
+                    <Badge key={tag} variant="secondary" className="bg-secondary/50 text-foreground/70 font-bold px-3 py-1 rounded-lg">#{tag}</Badge>
+                  ))}
+                </div>
+              </Card>
+            </div>
 
-              <div className="pt-8 border-t border-border/40 mt-auto">
-                <Button onClick={resetAnalyzer} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-                  <RefreshCw className="mr-2 h-5 w-5" /> Yeni Analiz Başlat
+            {/* Sağ: Puanlar ve Notlar */}
+            <div className="lg:col-span-5 space-y-6">
+              <Card className="p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8">
+                  <Star className="h-16 w-16 text-primary/5 -mr-4 -mt-4 fill-current" />
+                </div>
+                
+                <div className="relative z-10 flex flex-col items-center text-center space-y-2 mb-10">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">GENEL SKOR</p>
+                  <div className="text-7xl font-black tracking-tighter text-primary">{getOverallScore(analysisResult).toFixed(1)}</div>
+                  <div className="flex gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} size={14} className={cn(i < Math.floor(getOverallScore(analysisResult) / 2) ? "text-yellow-400 fill-current" : "text-muted-foreground/30")} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <RatingBar label="Işık Kullanımı" score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
+                  <RatingBar label="Kompozisyon" score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
+                  <RatingBar label="Teknik Netlik" score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
+                  <RatingBar label="Hikaye Anlatımı" score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} isLocked={analysisResult.analysisTier === 'start'} />
+                  <RatingBar label="Cesur Kadraj" score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
+                </div>
+              </Card>
+
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Lightbulb size={18} className="text-amber-400" />
+                  <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Luma'nın Notu</h4>
+                </div>
+                <p className="text-base italic text-foreground/90 leading-relaxed font-medium">
+                  "{analysisResult.aiFeedback!.short_neutral_analysis}"
+                </p>
+              </Card>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Button asChild variant="outline" className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]">
+                  <a href="/academy"><GraduationCap className="mr-2 h-4 w-4" /> Eğitime Git</a>
+                </Button>
+                <Button asChild className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
+                  <a href="/luma"><Sparkles className="mr-2 h-4 w-4 text-yellow-400" /> Mentor'a Sor</a>
                 </Button>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       ) : !file ? (
         <div className="max-w-6xl mx-auto space-y-16">
           <div {...getRootProps()} className="relative p-10 md:p-16 border-2 border-dashed border-border/60 rounded-[48px] bg-card/30 hover:bg-card/40 transition-all group shadow-inner">
@@ -419,7 +497,9 @@ export default function PhotoAnalyzer() {
           </div>
         </div>
       ) : (
-        <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm">
+        <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm relative overflow-hidden">
+          {isLoading && <ScanningOverlay />}
+          
           <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12">
             <Image src={preview!} alt="Preview" fill className="object-cover" unoptimized />
           </div>
