@@ -212,47 +212,55 @@ export default function LumaMentorPage() {
         <p className="text-muted-foreground text-sm font-medium opacity-80">Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>
       </header>
 
-      <div className="max-w-4xl mx-auto space-y-12">
-        {/* Main Action Section */}
+      <div className="max-w-6xl mx-auto space-y-12">
+        {/* Main Action Section (Redesigned to match PhotoAnalyzer Upload Area) */}
         {!currentAnalysis && (
-          <Card className="rounded-[48px] border-border/40 bg-card/30 p-10 md:p-16 text-center space-y-8 shadow-inner overflow-hidden relative group">
+          <div className="relative p-10 md:p-16 border-2 border-dashed border-border/60 rounded-[48px] bg-card/30 hover:bg-card/40 transition-all group shadow-inner overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="h-24 w-24 rounded-[32px] bg-secondary flex items-center justify-center shadow-xl mb-8 group-hover:scale-105 transition-transform duration-500">
-                <Sparkles className="text-primary" size={48} />
-              </div>
-              
-              <div className="space-y-3 max-w-md mx-auto">
-                <h2 className="text-3xl font-black tracking-tight uppercase">Analizini Başlat</h2>
-                <p className="text-muted-foreground font-medium leading-relaxed">
-                  Luma, fotoğraflarını tarayarak senin için özel bir gelişim rotası oluşturmaya hazır.
-                </p>
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="text-center md:text-left space-y-4 max-w-md">
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-tight">Analizini Başlat</h2>
+                <p className="text-xl md:text-2xl font-bold text-muted-foreground">Kişisel gelişim rotanı oluştur</p>
+                <p className="text-sm font-medium text-muted-foreground/70">Luma, fotoğraflarını tarayarak senin için özel bir strateji hazırlamaya hazır.</p>
               </div>
 
-              <div className="mt-10 flex flex-col items-center gap-4">
-                <Button 
-                  onClick={handleStartAnalysis} 
-                  disabled={isAnalyzing}
-                  className="h-16 px-12 rounded-[24px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 transition-all active:scale-95 text-lg"
-                >
-                  {isAnalyzing ? <Loader2 className="animate-spin h-6 w-6" /> : (
-                    <>Stratejik Analiz ({strategicCost} {currencyName})</>
-                  )}
-                </Button>
-                <div className="flex items-center gap-6 px-6 py-3 bg-background/50 backdrop-blur-sm rounded-full border border-border/40">
-                  <div className="flex items-center gap-2"><Award className="h-4 w-4 text-amber-400" /> <span className="text-[10px] font-black uppercase">+50 XP</span></div>
-                  <div className="w-px h-3 bg-border" />
-                  <div className="flex items-center gap-2"><Gem className="h-4 w-4 text-cyan-400" /> <span className="text-[10px] font-black uppercase">{userProfile?.auro_balance} {currencyName}</span></div>
+              <div className="flex flex-col items-center gap-6">
+                <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <Sparkles className="text-primary" size={40} />
+                </div>
+                
+                <div className="flex flex-col items-center gap-4">
+                  <Button 
+                    onClick={handleStartAnalysis} 
+                    disabled={isAnalyzing}
+                    className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95"
+                  >
+                    {isAnalyzing ? <Loader2 className="animate-spin h-5 w-5" /> : (
+                      <>Stratejik Analiz ({strategicCost} {currencyName})</>
+                    )}
+                  </Button>
+                  
+                  <div className="flex items-center gap-4 px-4 py-2 bg-background/50 backdrop-blur-sm rounded-full border border-border/40">
+                    <div className="flex items-center gap-1.5">
+                      <Award className="h-3.5 w-3.5 text-amber-400" /> 
+                      <span className="text-[9px] font-black uppercase tracking-widest">+50 XP</span>
+                    </div>
+                    <div className="w-px h-3 bg-border" />
+                    <div className="flex items-center gap-1.5">
+                      <Gem className="h-3.5 w-3.5 text-cyan-400" /> 
+                      <span className="text-[9px] font-black uppercase tracking-widest">{userProfile?.auro_balance} {currencyName}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Current Analysis Result */}
         {currentAnalysis && (
-          <div className="space-y-8">
+          <div className="space-y-8 max-w-4xl mx-auto">
             <div className="flex justify-between items-center">
               <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3">YENİ PLAN OLUŞTURULDU</Badge>
               <Button variant="ghost" size="sm" onClick={() => setCurrentAnalysis(null)} className="rounded-xl font-bold text-muted-foreground">Kapat</Button>
@@ -263,7 +271,7 @@ export default function LumaMentorPage() {
 
         {/* History Section */}
         {history && history.length > 0 && (
-          <div className="space-y-6 pt-12">
+          <div className="space-y-6 pt-12 max-w-4xl mx-auto">
             <div className="flex items-center gap-3 ml-2">
               <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center"><History size={16} className="text-muted-foreground" /></div>
               <h3 className="font-black uppercase text-xs tracking-[0.3em] text-muted-foreground">Önceki Rotalar</h3>
