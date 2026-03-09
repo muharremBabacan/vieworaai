@@ -1,4 +1,3 @@
-
 import type { PhotoAnalysisOutput } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
 
@@ -174,6 +173,13 @@ export type GroupAssignment = {
   createdAt: string;
 };
 
+export type GroupComment = {
+  userId: string;
+  userName: string;
+  text: string;
+  createdAt: string;
+};
+
 export type GroupSubmission = {
   id: string;
   groupId: string;
@@ -184,12 +190,13 @@ export type GroupSubmission = {
   photoUrl: string;
   status: 'pending' | 'approved' | 'rejected';
   likes: string[];
-  comments: {
-    userId: string;
-    userName: string;
-    text: string;
-    createdAt: string;
-  }[];
+  aiFeedback?: {
+    isSuccess: boolean;
+    feedback: string;
+    score: number;
+    technicalPoints: string[];
+  } | null;
+  comments: GroupComment[];
   submittedAt: string;
 };
 
