@@ -1,8 +1,7 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import { collection, query, orderBy, doc, where, writeBatch, increment, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Competition, User, Photo, CompetitionEntry, ScoringModel, AnalysisLog } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -102,7 +101,9 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col">
-                    <DialogHeader className="p-6 border-b shrink-0"><DialogTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> {competition.title} - Katılımlar</DialogTitle></DialogHeader>
+                    <DialogHeader className="p-6 border-b shrink-0">
+                        <DialogTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> {competition.title} - Katılımlar</DialogTitle>
+                    </DialogHeader>
                     <ScrollArea className="flex-1 p-6">
                         {isLoading ? <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}</div> :
                         entries && entries.length > 0 ? (
@@ -243,6 +244,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[95vh] p-0 overflow-hidden border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>{competition.title}</DialogTitle>
+                    <DialogDescription>Yarışma detayları ve katılım formu.</DialogDescription>
+                </DialogHeader>
                 <ScrollArea className="max-h-[95vh] w-full">
                     <div className="flex flex-col">
                         <div className="relative h-48 w-full shrink-0">
