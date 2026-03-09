@@ -76,6 +76,8 @@ export type User = {
   is_mentor?: boolean;
   weekly_free_refill_date: string;
   test_balance_reset?: boolean;
+  daily_streak?: number;
+  last_active_date?: string;
   completed_modules: string[];
   interests: string[];
   onboarded: boolean;

@@ -6,7 +6,7 @@ import { getLevelFromXp, levels } from '@/lib/gamification';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Gem, UserCircle } from 'lucide-react';
+import { Award, Gem, UserCircle, Flame } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,14 +23,21 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
   const displayEmail = userProfile.email || 'email@example.com';
   const fallbackChar = displayName?.charAt(0).toUpperCase() || 'U';
   const displayPhotoURL = userProfile.photoURL || user.photoURL || '';
+  const streak = userProfile.daily_streak || 1;
 
   return (
     <Card className="rounded-[32px] overflow-hidden">
       <CardContent className="p-8 flex flex-col sm:flex-row items-center gap-8">
-        <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-xl">
-          <AvatarImage src={displayPhotoURL} alt={displayName} className="object-cover" />
-          <AvatarFallback className="text-3xl font-black bg-secondary">{fallbackChar}</AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-xl">
+            <AvatarImage src={displayPhotoURL} alt={displayName} className="object-cover" />
+            <AvatarFallback className="text-3xl font-black bg-secondary">{fallbackChar}</AvatarFallback>
+          </Avatar>
+          <div className="absolute -bottom-2 -right-2 bg-orange-500 text-white flex items-center gap-1 px-3 py-1 rounded-full border-4 border-background shadow-lg">
+            <Flame size={14} className="fill-current" />
+            <span className="text-xs font-black">{streak}</span>
+          </div>
+        </div>
         <div className="flex-1 w-full text-center sm:text-left space-y-1">
           <div className="flex items-center justify-center sm:justify-start gap-3">
             <h2 className="text-3xl font-black tracking-tight">{displayName}</h2>
@@ -47,9 +54,14 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
                     <AvatarFallback className="text-3xl font-black">{fallbackChar}</AvatarFallback>
                   </Avatar>
                   <h3 className="font-black text-xl text-foreground tracking-tight">{displayName}</h3>
-                  <Badge className="mt-3 bg-primary text-white border-none px-4 h-7 rounded-full font-black uppercase tracking-widest text-[10px]">
-                    {userProfile.level_name}
-                  </Badge>
+                  <div className="flex gap-2 mt-3">
+                    <Badge className="bg-primary text-white border-none px-4 h-7 rounded-full font-black uppercase tracking-widest text-[10px]">
+                      {userProfile.level_name}
+                    </Badge>
+                    <Badge className="bg-orange-500 text-white border-none px-3 h-7 rounded-full font-black uppercase tracking-widest text-[10px] flex items-center gap-1">
+                      <Flame size={10} className="fill-current"/> {streak} GÜN
+                    </Badge>
+                  </div>
                 </div>
                 <div className="bg-card/50 p-4 border-t border-border/40 text-center">
                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">Viewora Üyesi</p>
@@ -58,8 +70,9 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
             </Popover>
           </div>
           <p className="text-muted-foreground font-medium">{displayEmail}</p>
-          <div className="pt-2">
+          <div className="pt-2 flex justify-center sm:justify-start gap-2">
             <Badge variant="outline" className="border-border/60 text-[10px] font-black uppercase tracking-widest h-6 px-3">{userProfile.tier} PAKETİ</Badge>
+            <Badge variant="outline" className="border-orange-500/30 text-orange-500 text-[10px] font-black uppercase tracking-widest h-6 px-3">GÜNLÜK AKTİF</Badge>
           </div>
         </div>
       </CardContent>

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield, User as UserIcon } from 'lucide-react';
+import { Gem, LogOut, Award, ShieldCheck, Coins, Settings, Shield, User as UserIcon, Flame } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
@@ -62,6 +62,7 @@ export function UserNav() {
   const isMentor = userProfile.is_mentor ?? false;
   const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
+  const streak = userProfile.daily_streak || 1;
   const displayName = userProfile.name || "Kullanıcı";
   const displayEmail = userProfile.email || "E-posta yok";
   const fallbackChar = displayName?.charAt(0) || displayEmail?.charAt(0) || 'U';
@@ -70,6 +71,12 @@ export function UserNav() {
 
   return (
     <div className="flex items-center gap-3">
+      {/* Günlük Aktiflik Rozeti */}
+      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 rounded-full border border-orange-500/20 text-orange-500">
+        <Flame className="h-4 w-4 fill-current" />
+        <span className="text-xs font-black">{streak}</span>
+      </div>
+
       <NotificationCenter />
       
       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-full border border-border/50">
@@ -90,7 +97,12 @@ export function UserNav() {
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{displayName}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium leading-none">{displayName}</p>
+                <div className="flex items-center gap-1 text-orange-500 text-[10px] font-black">
+                  <Flame size={12} className="fill-current"/> {streak}
+                </div>
+              </div>
               <p className="text-xs leading-none text-muted-foreground">
                 {displayEmail}
               </p>

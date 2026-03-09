@@ -56,12 +56,43 @@ export default function PageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [showStars, setShowStars] = useState(false);
 
+  const calculateDailyStreak = (existingProfile: UserProfile): { streak: number; lastDate: string } => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    
+    if (!existingProfile.last_active_date) {
+      return { streak: 1, lastDate: todayStr };
+    }
+
+    const lastActive = new Date(existingProfile.last_active_date);
+    const lastActiveStr = existingProfile.last_active_date.split('T')[0];
+
+    if (lastActiveStr === todayStr) {
+      return { streak: existingProfile.daily_streak || 1, lastDate: todayStr };
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    if (lastActiveStr === yesterdayStr) {
+      return { streak: (existingProfile.daily_streak || 0) + 1, lastDate: todayStr };
+    }
+
+    return { streak: 1, lastDate: todayStr };
+  };
+
   const processAuroRefillAndTestAdjustment = async (userId: string, existingProfile: UserProfile) => {
     if (!firestore) return;
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', userId);
     let needsUpdate = false;
     let finalAuro = existingProfile.auro_balance;
+
+    // Handle Daily Streak
+    const { streak, lastDate } = calculateDailyStreak(existingProfile);
+    batch.update(userRef, { daily_streak: streak, last_active_date: lastDate });
+    needsUpdate = true;
 
     if (!existingProfile.test_balance_reset) {
       const testAuro = Math.floor(Math.random() * 11) + 10;
@@ -99,10 +130,7 @@ export default function PageContent() {
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      // Her seferinde hesap seçme penceresini zorla
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
+      provider.setCustomParameters({ prompt: 'select_account' });
       
       const result: UserCredential = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
@@ -123,6 +151,8 @@ export default function PageContent() {
           total_mentor_analyses_count: 0,
           weekly_free_refill_date: now,
           onboarded: false,
+          daily_streak: 1,
+          last_active_date: now.split('T')[0],
           completed_modules: [],
           interests: [],
           createdAt: now,
