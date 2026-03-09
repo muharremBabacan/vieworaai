@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X, Camera, Trophy, LayoutGrid, Layers } from 'lucide-react';
+import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X, Camera, Trophy, LayoutGrid, Layers, Lightbulb } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -113,7 +113,6 @@ export default function GalleryPage() {
             batch.delete(doc(firestore, 'public_photos', photo.id));
             batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: false, exhibitionId: null });
             
-            // Sayaçı düşür
             batch.update(doc(firestore, 'users', user.uid), { 
               total_exhibitions_count: increment(-1)
             });
@@ -169,7 +168,6 @@ export default function GalleryPage() {
       
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
-        // Eğer sergideyse sayaçı düşür
         batch.update(doc(firestore, 'users', user.uid), { 
           total_exhibitions_count: increment(-1)
         });
@@ -313,25 +311,37 @@ export default function GalleryPage() {
               <ScrollArea className="flex-1 -mx-2 pr-2">
                 <div className="space-y-6">
                   {selectedPhoto.aiFeedback ? (
-                    <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-5">
-                      <h4 className={cn(typography.eyebrow, "text-primary flex items-center gap-2")}>
-                        <Sparkles size={12} /> Teknik Analiz Özeti
-                      </h4>
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
-                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1.5" />
+                    <>
+                      <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-5">
+                        <h4 className={cn(typography.eyebrow, "text-primary flex items-center gap-2")}>
+                          <Sparkles size={12} /> Teknik Analiz Özeti
+                        </h4>
+                        <div className="space-y-4">
+                          <div className="space-y-1.5">
+                            <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
+                            <Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1.5" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
+                            <Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1.5" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
+                            <Progress value={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) * 10} className="h-1.5" />
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
-                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1.5" />
+                      </Card>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Lightbulb size={16} className="text-amber-400" />
+                          <span className={typography.eyebrow}>Luma Notu</span>
                         </div>
-                        <div className="space-y-1.5">
-                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
-                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) * 10} className="h-1.5" />
-                        </div>
+                        <p className={cn(typography.body, "italic text-foreground/90 bg-muted/30 p-4 rounded-xl border border-border/40 leading-relaxed")}>
+                          "{selectedPhoto.aiFeedback.short_neutral_analysis}"
+                        </p>
                       </div>
-                    </Card>
+                    </>
                   ) : (
                     <div className="p-8 border-dashed border-border/60 bg-muted/10 rounded-[32px] text-center">
                       <Sparkles className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
