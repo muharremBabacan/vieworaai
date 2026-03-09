@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, BarChart3, Info } from 'lucide-react';
+import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, BarChart3, Info, TrendingUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -73,31 +74,6 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
           </div>
         </CardContent>
       </Card>
-
-      {analysis.explanations && analysis.explanations.length > 0 && (
-        <Card className="rounded-[24px] border-border/40 bg-secondary/10">
-          <CardContent className="p-6">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Terimler Sözlüğü</h4>
-            <div className="flex flex-wrap gap-3">
-              {analysis.explanations.map((exp, i) => (
-                <Dialog key={i}>
-                  <DialogTrigger asChild>
-                    <Badge variant="outline" className="cursor-pointer hover:bg-primary/10 hover:border-primary/30 py-1.5 px-3 rounded-xl transition-all">
-                      {exp.term}
-                    </Badge>
-                  </DialogTrigger>
-                  <DialogContent className="rounded-[24px]">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-black">{exp.term}</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-sm leading-relaxed text-muted-foreground mt-2">{exp.definition}</p>
-                  </DialogContent>
-                </Dialog>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -139,8 +115,6 @@ export default function LumaMentorPage() {
 
   const { data: photos } = useCollection<Photo>(photosQuery);
 
-  const lastAnalysis = useMemo(() => history?.[0] || null, [history]);
-
   const handleStartAnalysis = async () => {
     if (!user || !userProfile || !firestore || !photos) return;
 
@@ -148,9 +122,9 @@ export default function LumaMentorPage() {
       toast({
         variant: 'destructive',
         title: `Yetersiz ${currencyName}`,
-        description: `Stratejik analiz için ${strategicCost} ${currencyName} gereklidir. Mevcut bakiyen: ${userProfile.auro_balance} ${currencyName}.`,
+        description: `Stratejik analiz için ${strategicCost} ${currencyName} gereklidir.`,
         action: (
-          <Button variant="outline" size="sm" onClick={() => router.push('/pricing')} className="bg-primary text-primary-foreground border-none">
+          <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>
             {currencyName} Yükle
           </Button>
         )
@@ -163,7 +137,7 @@ export default function LumaMentorPage() {
       toast({
         variant: 'destructive',
         title: "Veri Yetersiz",
-        description: "Luma'nın gelişimini analiz edebilmesi için en az 3 adet teknik analiz yapılmış fotoğrafınız olmalı.",
+        description: "Luma'nın gelişimini analiz edebilmesi için en az 3 adet analizli fotoğrafınız olmalı.",
       });
       return;
     }
@@ -196,8 +170,6 @@ export default function LumaMentorPage() {
       const feedbackRef = doc(collection(firestore, 'users', user.uid, 'strategic_feedbacks'));
       const logRef = doc(collection(firestore, 'analysis_logs'));
       const userRef = doc(firestore, 'users', user.uid);
-      const today = new Date().toISOString().split('T')[0];
-      const statRef = doc(firestore, 'global_stats', `daily_${today}`);
 
       batch.set(feedbackRef, { ...feedbackData, id: feedbackRef.id });
       batch.update(userRef, {
@@ -206,7 +178,7 @@ export default function LumaMentorPage() {
         total_mentor_analyses_count: increment(1)
       });
 
-      const log: AnalysisLog = {
+      batch.set(logRef, {
         id: logRef.id,
         userId: user.uid,
         userName: userProfile.name || 'Sanatçı',
@@ -214,188 +186,123 @@ export default function LumaMentorPage() {
         auroSpent: strategicCost,
         timestamp: feedbackData.createdAt,
         status: 'success'
-      };
-      batch.set(logRef, log);
-
-      batch.set(statRef, {
-        date: today,
-        auroSpent: increment(strategicCost),
-        mentorAnalyses: increment(1)
-      }, { merge: true });
+      } as AnalysisLog);
 
       await batch.commit();
       
       setCurrentAnalysis({ ...feedbackData, id: feedbackRef.id });
-      toast({ title: "Stratejik Plan Hazır!", description: "Luma sizin için özel bir yol haritası çıkardı." });
+      toast({ title: "Stratejik Plan Hazır!" });
 
     } catch (error: any) {
-      console.error('Strategic Analysis error:', error);
-      const errorMessage = error?.message || 'Luma şu an yanıt veremiyor. Lütfen daha sonra tekrar deneyin.';
-      toast({ 
-        variant: 'destructive', 
-        title: "Analiz Yapılamadı",
-        description: `Yapay zeka servisine ulaşılamadı: ${errorMessage}`
-      });
+      toast({ variant: 'destructive', title: "Analiz Yapılamadı", description: "Luma şu an yanıt veremiyor." });
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const getRecommendation = () => {
-    if (!userProfile) return null;
-    const count = userProfile.total_mentor_analyses_count || 0;
-    if (userProfile.tier === 'start' && count >= 2) {
-      return "Stratejik rotan netleşiyor. Pro pakete geçerek Luma'nın her hafta senin için daha karmaşık görevler hazırlamasını sağlayabilirsin.";
-    }
-    if (userProfile.tier === 'pro' && count >= 5) {
-      return "Üst düzey tekniklere hazırsın. Master paket ile Luma'nın sanatsal kimlik ve stil danışmanlığını tam kapasite açabilirsin.";
-    }
-    return "Luma Mentor, vizyonunu stratejik bir disipline kavuşturmak için burada.";
-  };
-
   if (isProfileLoading || isHistoryLoading) {
-    return (
-      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-        <p className="mt-4 text-xs font-black uppercase tracking-widest text-muted-foreground">Luma Hazırlanıyor...</p>
-      </div>
-    );
+    return <div className="container mx-auto px-4 py-20 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" /></div>;
   }
 
   return (
-    <div className="container mx-auto px-4 pb-24 pt-6 max-w-4xl animate-in fade-in duration-700">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-        <Card className="p-6 bg-primary/5 border-primary/20 rounded-[24px] flex items-center gap-4 shadow-sm">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-            <BarChart3 size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Mentorluk Kullanımı</p>
-            <p className="text-xl font-black">{userProfile?.total_mentor_analyses_count || 0} <span className="text-xs font-bold text-muted-foreground uppercase ml-1">Stratejik Plan</span></p>
-          </div>
-        </Card>
-        <Card className="p-6 bg-secondary/20 border-border/40 rounded-[24px] flex items-center gap-4 shadow-sm">
-          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
-            <Info size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Luma Tavsiyesi</p>
-            <p className="text-xs font-bold leading-tight">{getRecommendation()}</p>
-          </div>
-        </Card>
-      </div>
-
-      <header className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12 border-b border-border/40 pb-10">
-        <div className="text-center md:text-left space-y-2">
-          <div className="flex items-center justify-center md:justify-start gap-3">
-            <h1 className="text-5xl font-black tracking-tighter">Luma Mentor</h1>
-            <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6 uppercase tracking-widest">
-              {currentTier}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground font-medium max-w-md">Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlayabilirim.</p>
-        </div>
-        <div className="flex flex-col gap-3 w-full sm:w-auto">
-          {lastAnalysis && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="h-12 rounded-2xl font-bold border-primary/30 text-primary hover:bg-primary/5 transition-all active:scale-95 shadow-lg shadow-primary/5">
-                  <History className="mr-2 h-4 w-4" /> Son Stratejik Plana Ulaş
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[40px] p-0 border-border/40 bg-background/95 backdrop-blur-xl">
-                <div className="p-8">
-                  <DialogHeader className="mb-8">
-                    <DialogTitle className="text-3xl font-black tracking-tighter flex items-center gap-3">
-                      <Target className="h-7 w-7 text-primary" /> Kayıtlı Yol Haritası
-                    </DialogTitle>
-                  </DialogHeader>
-                  <FeedbackDisplay analysis={lastAnalysis} />
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-          <Button 
-            onClick={handleStartAnalysis} 
-            disabled={isAnalyzing}
-            className="h-14 px-10 rounded-[24px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 transition-all active:scale-95 group relative overflow-hidden"
-          >
-            {isAnalyzing ? (
-              <Loader2 className="animate-spin h-5 w-5" />
-            ) : (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-                <Sparkles className="mr-2 h-5 w-5 text-yellow-400 relative z-10" /> 
-                <span className="relative z-10">Stratejik Analiz Başlat ({strategicCost} {currencyName})</span>
-              </>
-            )}
-          </Button>
-        </div>
+    <div className="container mx-auto px-4 pb-24 pt-6 animate-in fade-in duration-700">
+      <header className="mb-12 space-y-1 pt-6">
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] ml-1">MENTORLUK</p>
+        <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">Luma Mentor</h1>
+        <p className="text-muted-foreground text-sm font-medium opacity-80">Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>
       </header>
 
-      {currentAnalysis ? (
-        <FeedbackDisplay analysis={currentAnalysis} />
-      ) : lastAnalysis ? (
-        <div className="space-y-12">
-          <div className="flex items-center gap-4 text-muted-foreground mb-6">
-            <History className="h-5 w-5" />
-            <h3 className="font-black uppercase text-xs tracking-[0.2em]">Analiz Geçmişi</h3>
+      <div className="max-w-4xl mx-auto space-y-12">
+        {/* Main Action Section */}
+        {!currentAnalysis && (
+          <Card className="rounded-[48px] border-border/40 bg-card/30 p-10 md:p-16 text-center space-y-8 shadow-inner overflow-hidden relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="h-24 w-24 rounded-[32px] bg-secondary flex items-center justify-center shadow-xl mb-8 group-hover:scale-105 transition-transform duration-500">
+                <Sparkles className="text-primary" size={48} />
+              </div>
+              
+              <div className="space-y-3 max-w-md mx-auto">
+                <h2 className="text-3xl font-black tracking-tight uppercase">Analizini Başlat</h2>
+                <p className="text-muted-foreground font-medium leading-relaxed">
+                  Luma, fotoğraflarını tarayarak senin için özel bir gelişim rotası oluşturmaya hazır.
+                </p>
+              </div>
+
+              <div className="mt-10 flex flex-col items-center gap-4">
+                <Button 
+                  onClick={handleStartAnalysis} 
+                  disabled={isAnalyzing}
+                  className="h-16 px-12 rounded-[24px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 transition-all active:scale-95 text-lg"
+                >
+                  {isAnalyzing ? <Loader2 className="animate-spin h-6 w-6" /> : (
+                    <>Stratejik Analiz ({strategicCost} {currencyName})</>
+                  )}
+                </Button>
+                <div className="flex items-center gap-6 px-6 py-3 bg-background/50 backdrop-blur-sm rounded-full border border-border/40">
+                  <div className="flex items-center gap-2"><Award className="h-4 w-4 text-amber-400" /> <span className="text-[10px] font-black uppercase">+50 XP</span></div>
+                  <div className="w-px h-3 bg-border" />
+                  <div className="flex items-center gap-2"><Gem className="h-4 w-4 text-cyan-400" /> <span className="text-[10px] font-black uppercase">{userProfile?.auro_balance} {currencyName}</span></div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Current Analysis Result */}
+        {currentAnalysis && (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center">
+              <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3">YENİ PLAN OLUŞTURULDU</Badge>
+              <Button variant="ghost" size="sm" onClick={() => setCurrentAnalysis(null)} className="rounded-xl font-bold text-muted-foreground">Kapat</Button>
+            </div>
+            <FeedbackDisplay analysis={currentAnalysis} />
           </div>
-          <div className="grid gap-6">
-            {history?.map((item, idx) => (
-              <Card key={item.id} className={cn(
-                "rounded-[28px] border-border/40 bg-card/30 hover:border-primary/30 transition-all duration-300 cursor-pointer group shadow-sm",
-                idx === 0 && "border-primary/20 bg-primary/5"
-              )}>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        {idx === 0 && <Badge className="h-5 text-[9px] font-black bg-primary text-white">EN GÜNCEL</Badge>}
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}</span>
-                      </div>
-                      <h4 className="text-xl font-black tracking-tight group-hover:text-primary transition-colors">{item.actionTask.title}</h4>
-                      <p className="text-sm text-muted-foreground line-clamp-1 italic font-medium">{item.actionTask.purpose}</p>
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-xl h-12 w-12 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                          <ChevronRight className="h-6 w-6" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[40px] p-0 border-border/40 bg-background/95 backdrop-blur-xl">
-                        <div className="p-8">
-                          <DialogHeader className="mb-6">
-                            <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-3">
-                              <Target className="h-6 w-6 text-primary" /> Stratejik Yol Haritası Detayı
-                            </DialogTitle>
-                          </DialogHeader>
-                          <FeedbackDisplay analysis={item} />
+        )}
+
+        {/* History Section */}
+        {history && history.length > 0 && (
+          <div className="space-y-6 pt-12">
+            <div className="flex items-center gap-3 ml-2">
+              <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center"><History size={16} className="text-muted-foreground" /></div>
+              <h3 className="font-black uppercase text-xs tracking-[0.3em] text-muted-foreground">Önceki Rotalar</h3>
+            </div>
+            
+            <div className="grid gap-4">
+              {history.map((item, idx) => (
+                <Dialog key={item.id}>
+                  <DialogTrigger asChild>
+                    <Card className="rounded-[24px] border-border/40 bg-card/20 hover:border-primary/30 transition-all duration-300 cursor-pointer group shadow-sm">
+                      <CardContent className="p-6 flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[9px] font-black text-primary uppercase tracking-widest">{new Date(item.createdAt).toLocaleDateString('tr-TR')}</span>
+                            <div className="h-1 w-1 rounded-full bg-border" />
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}</span>
+                          </div>
+                          <h4 className="text-lg font-black tracking-tight group-hover:text-primary transition-colors">{item.actionTask.title}</h4>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="text-center py-32 rounded-[48px] border-2 border-dashed border-border/40 bg-muted/5">
-          <div className="h-20 w-20 bg-secondary rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-inner">
-            <Target className="h-10 w-10 text-muted-foreground/30" />
-          </div>
-          <h3 className="text-3xl font-black tracking-tight mb-4">Henüz Stratejik Planın Yok</h3>
-          <p className="text-muted-foreground max-sm mx-auto text-lg leading-relaxed mb-10">Fotoğraflarını tarayıp senin için özel bir gelişim rotası oluşturmamı ister misin?</p>
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-6 px-8 py-4 bg-background rounded-full border border-border/60 shadow-lg">
-              <div className="flex items-center gap-2"><Award className="h-4 w-4 text-amber-400" /> <span className="text-xs font-bold uppercase">+50 XP</span></div>
-              <div className="w-px h-4 bg-border" />
-              <div className="flex items-center gap-2"><Gem className="h-4 w-4 text-cyan-400" /> <span className="text-xs font-bold uppercase">{strategicCost} {currencyName}</span></div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
+                      </CardContent>
+                    </Card>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-[40px] p-0 border-border/40 bg-background/95 backdrop-blur-xl">
+                    <div className="p-8">
+                      <DialogHeader className="mb-8">
+                        <DialogTitle className="text-3xl font-black tracking-tighter flex items-center gap-3 uppercase">
+                          <Target className="h-7 w-7 text-primary" /> Kayıtlı Yol Haritası
+                        </DialogTitle>
+                      </DialogHeader>
+                      <FeedbackDisplay analysis={item} />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
