@@ -14,106 +14,28 @@ export const PlaceHolderImages: ImagePlaceholder[] = [
       "imageHint": "landscape photo"
     },
     {
-      "id": "gallery-1",
-      "description": "A close-up portrait of a person with interesting lighting.",
-      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdHxlbnwwfHx8fDE3NzA1OTE5MTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "portrait"
+      "id": "academy-temel-12",
+      "description": "Local academy placeholder 12",
+      "imageUrl": "/temel12a.jpg",
+      "imageHint": "photography training"
     },
     {
-      "id": "gallery-2",
-      "description": "A bustling street scene in a city at night.",
-      "imageUrl": "https://images.unsplash.com/photo-1599557041284-7e2a15610388?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzdHJlZXQlMjBwaG90b2dyYXBoeXxlbnwwfHx8fDE3NzA2MzQzNDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "street photography"
-    },
-    {
-      "id": "gallery-3",
-      "description": "A serene nature shot of a forest.",
-      "imageUrl": "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxuYXR1cmUlMjBmb3Jlc3R8ZW58MHx8fHwxNzcwNjAyNjcyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "nature forest"
-    },
-    {
-      "id": "gallery-4",
-      "description": "An abstract architectural photo with strong lines.",
-      "imageUrl": "https://images.unsplash.com/photo-1575330734740-21b22ac7bf5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhYnN0cmFjdCUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3NzA2MDY0MzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "abstract architecture"
-    },
-    {
-      "id": "gallery-5",
-      "description": "A dramatic black and white landscape.",
-      "imageUrl": "https://images.unsplash.com/photo-1542400275-f0f2796b253f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxibGFjayUyMHdoaXRlfGVufDB8fHx8MTc3MDY2NzU2NXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "black white"
-    },
-    {
-      "id": "gallery-6",
-      "description": "A high-fashion studio portrait.",
-      "imageUrl": "https://images.unsplash.com/photo-1578476719994-464aef88d2da?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmYXNoaW9uJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzcwNjAwMjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "fashion portrait"
-    },
-    {
-      "id": "gallery-7",
-      "description": "A vibrant food photography shot from above.",
-      "imageUrl": "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmb29kJTIwcGhvdG9ncmFwaHl8ZW58MHx8fHwxNzcwNTU5NzA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "food photography"
-    },
-    {
-      "id": "gallery-8",
-      "description": "A travel photo of an exotic location.",
-      "imageUrl": "https://images.unsplash.com/photo-1606922183036-62e19495eaab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx0cmF2ZWwlMjBkZXN0aW5hdGlvbnxlbnwwfHx8fDE3NzA2MTg1ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "travel destination"
-    },
-    {
-      "id": "academy-level-basic",
-      "description": "Educational image showing sensor sizes and camera bodies.",
-      "imageUrl": "/temel15a.jpg",
+      "id": "academy-temel-13",
+      "description": "Local academy placeholder 13",
+      "imageUrl": "/temel13a.jpg",
       "imageHint": "camera technology"
     },
     {
-      "id": "academy-level-intermediate",
-      "description": "Technical photography illustration from storage.",
-      "imageUrl": "/temel15a.jpg",
-      "imageHint": "photography technique"
+      "id": "academy-temel-14",
+      "description": "Local academy placeholder 14",
+      "imageUrl": "/temel14a.jpg",
+      "imageHint": "studio lighting"
     },
     {
-      "id": "academy-level-advanced",
-      "description": "Professional artistic photography illustration from storage.",
+      "id": "academy-temel-15",
+      "description": "Local academy placeholder 15",
       "imageUrl": "/temel15a.jpg",
       "imageHint": "artistic photography"
-    },
-    {
-      "id": "academy-composition",
-      "description": "A photo demonstrating the rule of thirds in composition.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-composition.jpg?alt=media",
-      "imageHint": "composition rule thirds"
-    },
-    {
-      "id": "academy-light",
-      "description": "A portrait taken during the golden hour with warm light.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-light.jpg?alt=media",
-      "imageHint": "light golden hour"
-    },
-    {
-      "id": "academy-technique",
-      "description": "A long exposure shot of city traffic at night.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-technique.jpg?alt=media",
-      "imageHint": "technique long exposure"
-    },
-    {
-      "id": "academy-portrait",
-      "description": "A classic portrait with a blurred background.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-portrait.jpg?alt=media",
-      "imageHint": "portrait light"
-    },
-    {
-      "id": "academy-landscape",
-      "description": "A wide landscape showing leading lines.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-landscape.jpg?alt=media",
-      "imageHint": "composition landscape"
-    },
-    {
-      "id": "academy-street",
-      "description": "A candid street photography moment.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-street.jpg?alt=media",
-      "imageHint": "street candid"
     },
     {
       "id": "user-avatar",

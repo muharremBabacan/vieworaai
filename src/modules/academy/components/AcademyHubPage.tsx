@@ -1,3 +1,4 @@
+
 'use client';
 import { Award, BarChart3, Diamond, Lock, GraduationCap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +12,6 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/types';
 import { canAccess } from '@/lib/auth/canAccess';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const academyLevels = [
   {
@@ -23,7 +23,7 @@ const academyLevels = [
     subtitle: 'Kameranızın temellerini öğrenin.',
     description: 'Pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.',
     href: '/academy/temel',
-    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-basic')?.imageUrl || 'https://picsum.photos/seed/academy-basic/600/400',
+    imageUrl: '/temel12a.jpg',
     features: ['Kamera temelleri', 'Pozlama üçgeni', 'Temel kompozisyon']
   },
   {
@@ -35,7 +35,7 @@ const academyLevels = [
     subtitle: 'Tekniğinizi profesyonelleştirin.',
     description: 'Farklı türlerde çekim yapın ve ışığı bilinçli yönetin.',
     href: '/academy/orta',
-    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-intermediate')?.imageUrl || 'https://picsum.photos/seed/academy-intermediate/600/400',
+    imageUrl: '/temel13a.jpg',
     features: ['Tür bazlı çekim', 'Işık yönetimi', 'Görsel hikaye anlatımı']
   },
   {
@@ -47,7 +47,7 @@ const academyLevels = [
     subtitle: 'Kendi sanatsal tarzınızı yaratın.',
     description: 'Profesyonel ışık kurulumlarını öğrenin ve uzmanlaşın.',
     href: '/academy/ileri',
-    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-advanced')?.imageUrl || 'https://picsum.photos/seed/academy-advanced/600/400',
+    imageUrl: '/temel15a.jpg',
     features: ['Profesyonel ışık', 'Sanatsal stil', 'Marka konumlandırma']
   },
 ];
@@ -80,7 +80,7 @@ export default function AcademyHubPage() {
             )}>
               <div className="relative h-40 w-full overflow-hidden">
                 <Image 
-                  src={level.imageUrl} 
+                  src={level.imageUrl || '/temel15a.jpg'} 
                   alt={level.title} 
                   fill 
                   className={cn(

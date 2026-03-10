@@ -22,8 +22,19 @@ import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
 import { cn } from '@/lib/utils';
 
-const findPlaceholderImage = (hint: string) => {
-    return "/temel15a.jpg";
+/**
+ * Picks one of the four local placeholder images deterministically based on lesson ID.
+ * This avoids hydration errors and provides consistent visuals.
+ */
+const getDeterminsticPlaceholder = (id: string) => {
+    const images = ["/temel12a.jpg", "/temel13a.jpg", "/temel14a.jpg", "/temel15a.jpg"];
+    // Simple hash-like index
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % images.length;
+    return images[index];
 };
 
 function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFeedbackReady: (result: any) => void }) {
@@ -139,7 +150,14 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
     <>
       <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
         <div className="relative aspect-video">
-          <Image src={lesson.imageUrl || findPlaceholderImage(lesson.imageHint)} alt={lesson.title} fill className="object-cover" data-ai-hint={lesson.imageHint} unoptimized />
+          <Image 
+            src={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)} 
+            alt={lesson.title} 
+            fill 
+            className="object-cover" 
+            data-ai-hint={lesson.imageHint} 
+            unoptimized 
+          />
         </div>
         <CardContent className="p-4">
           <h3 className={typography.cardTitle}>{lesson.title}</h3>
