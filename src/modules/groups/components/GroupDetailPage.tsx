@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle } from 'lucide-react';
+import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -45,7 +45,6 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
-  // 1. ALL HOOKS MUST BE AT THE TOP LEVEL
   const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef);
 
@@ -67,7 +66,6 @@ export default function GroupDetailPage() {
   const tripsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'trips'), orderBy('created_at', 'desc')) : null, [firestore, groupId]);
   const { data: trips, isLoading: isTripsLoading } = useCollection<Trip>(tripsQuery);
 
-  // 2. STATE DEFINITIONS
   const [activeTab, setActiveTab] = useState('assignments');
   const [isUploading, setIsUploading] = useState(false);
   const [isSyncingProfile, setIsSyncingProfile] = useState(false);
@@ -75,7 +73,6 @@ export default function GroupDetailPage() {
 
   const isCurrentUserOwner = group?.ownerId === user?.uid;
 
-  // AUTO-SYNC: Ensure user has a public profile
   useEffect(() => {
     if (!user || !userProfile || !firestore || isSyncingProfile) return;
     const checkAndSyncProfile = async () => {
@@ -102,7 +99,6 @@ export default function GroupDetailPage() {
     }
   }, [group?.purpose]);
 
-  // 3. ACTION HANDLERS
   const handleUploadSubmission = async (assignment: GroupAssignment, file: File) => {
     if (!user || !group || isUploading || !firestore) return;
     setIsUploading(true);
@@ -243,7 +239,6 @@ export default function GroupDetailPage() {
     }
   };
 
-  // 4. CONDITIONAL RENDERING (AFTER ALL HOOKS)
   if (isGroupLoading) return <div className="container mx-auto px-4 pt-12 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   if (!group) return null;
 
@@ -496,7 +491,7 @@ export default function GroupDetailPage() {
                   <CardContent className="p-8">
                     <ScrollArea className="h-[400px]">
                       <div className="space-y-6">
-                        {trips?.filter(t => t.status !== 'cancelled').map(trip => (
+                        {trips?.filter(t => t.status !== 'cancelled' && t.status !== 'archived').map(trip => (
                           <div key={trip.id} className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-4">
                             <div className="flex justify-between items-center">
                               <p className="font-black uppercase text-sm truncate">{trip.title}</p>
