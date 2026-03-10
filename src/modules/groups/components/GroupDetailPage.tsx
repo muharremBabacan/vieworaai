@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus, TripTemplate, RoutePoint } from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus, TripTemplate, RoutePoint, ContactVisible } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react';
+import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ThumbsUp, ThumbsDown, ExternalLink, Instagram, Phone, Mail, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -118,85 +118,6 @@ const ISTANBUL_TEMPLATES: Omit<TripTemplate, 'id'>[] = [
       { name: "Moda Çay Bahçesi", type: "break" },
       { name: "Moda Burnu", type: "end" }
     ]
-  },
-  {
-    title: "Eminönü - Mısır Çarşısı Kaosu",
-    city: "istanbul",
-    category: "street",
-    duration_minutes: 120,
-    distance_km: 1.8,
-    start_point: "Eminönü Meydanı",
-    end_point: "Sirkeci Garı",
-    route_points: [
-      { name: "Eminönü Meydanı", type: "start" },
-      { name: "Yeni Camii", type: "viewpoint" },
-      { name: "Mısır Çarşısı", type: "photo_stop" },
-      { name: "Tahtakale Sokakları", type: "photo_stop" },
-      { name: "Sirkeci Garı", type: "end" }
-    ]
-  },
-  {
-    title: "Arnavutköy - Bebek Sahil",
-    city: "istanbul",
-    category: "lifestyle",
-    duration_minutes: 100,
-    distance_km: 3.0,
-    start_point: "Arnavutköy İskelesi",
-    end_point: "Bebek Parkı",
-    route_points: [
-      { name: "Arnavutköy İskelesi", type: "start" },
-      { name: "Renkli Arnavutköy Evleri", type: "photo_stop" },
-      { name: "Akıntıburnu", type: "viewpoint" },
-      { name: "Bebek Sahili", type: "break" },
-      { name: "Bebek Parkı", type: "end" }
-    ]
-  },
-  {
-    title: "İstiklal Caddesi Gece Çekimi",
-    city: "istanbul",
-    category: "night",
-    duration_minutes: 90,
-    distance_km: 1.4,
-    start_point: "Taksim Meydanı",
-    end_point: "Tünel Meydanı",
-    route_points: [
-      { name: "Taksim Meydanı", type: "start" },
-      { name: "Fransız Konsolosluğu", type: "photo_stop" },
-      { name: "St. Antuan Kilisesi", type: "viewpoint" },
-      { name: "Çiçek Pasajı", type: "break" },
-      { name: "Tünel Meydanı", type: "end" }
-    ]
-  },
-  {
-    title: "Nişantaşı Moda ve Stil",
-    city: "istanbul",
-    category: "fashion",
-    duration_minutes: 75,
-    distance_km: 1.2,
-    start_point: "Maçka Parkı",
-    end_point: "Abdi İpekçi Caddesi",
-    route_points: [
-      { name: "Maçka Parkı", type: "start" },
-      { name: "Teşvikiye Camii", type: "photo_stop" },
-      { name: "City's Nişantaşı", type: "break" },
-      { name: "Abdi İpekçi Caddesi", type: "end" }
-    ]
-  },
-  {
-    title: "Pierre Loti Manzara Rotası",
-    city: "istanbul",
-    category: "landscape",
-    duration_minutes: 120,
-    distance_km: 2.2,
-    start_point: "Eyüp Sultan Camii",
-    end_point: "Pierre Loti Tepesi",
-    route_points: [
-      { name: "Eyüp Sultan Camii", type: "start" },
-      { name: "Tarihi Eyüp Mezarlığı", type: "photo_stop" },
-      { name: "Teleferik İstasyonu", type: "viewpoint" },
-      { name: "Haliç Manzarası", type: "viewpoint" },
-      { name: "Pierre Loti Tepesi", type: "end" }
-    ]
   }
 ];
 
@@ -211,8 +132,19 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
   
   const { data: participants } = useCollection<TripParticipant>(participantsQuery);
   
+  const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'users', trip.mentorId) : null, [firestore, trip.mentorId]);
+  const { data: mentorProfile } = useDoc<User>(mentorRef);
+
   const myParticipantDoc = participants?.find(p => p.userId === userId);
   const myStatus = myParticipantDoc?.status || 'pending';
+
+  const isContactVisible = useMemo(() => {
+    if (isOwner) return true;
+    if (trip.contact_visible === 'none') return false;
+    if (trip.contact_visible === 'group_members') return true;
+    if (trip.contact_visible === 'participants_only' && myStatus === 'yes') return true;
+    return false;
+  }, [trip.contact_visible, myStatus, isOwner]);
 
   const handleRSVP = async (status: ParticipantStatus) => {
     if (!firestore) return;
@@ -255,7 +187,7 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
               <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{trip.date}</span></div>
               <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.time}</span></div>
               <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{trip.distance}</span></div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.duration}</span></div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Users size={18} className="text-primary" /><span className="text-sm font-bold">{participants?.filter(p => p.status === 'yes').length || 0} / {trip.max_participants}</span></div>
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
@@ -271,61 +203,91 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
         </div>
       </CardHeader>
       <CardContent className="p-10 space-y-10">
-        <div className="grid md:grid-cols-2 gap-10">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
-              <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
-                <MapPin className="text-primary mt-1 shrink-0" size={24} />
-                <div className="space-y-4 w-full">
-                  <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
-                  
-                  {trip.route_points && trip.route_points.length > 2 && (
-                    <div className="space-y-3 py-2 border-y border-border/40">
-                      <p className="text-[9px] font-black uppercase text-muted-foreground">Ara Duraklar</p>
-                      {trip.route_points.filter(p => p.type !== 'start' && p.type !== 'end').map((p, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-sm font-medium">
-                          <div className="h-1.5 w-1.5 rounded-full bg-border" />
-                          {p.name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
+        <div className="grid lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2 space-y-10">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
+                <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
+                  <MapPin className="text-primary mt-1 shrink-0" size={24} />
+                  <div className="space-y-4 w-full">
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
+                    {trip.route_points && trip.route_points.length > 2 && (
+                      <div className="space-y-2 py-2 border-y border-border/40">
+                        {trip.route_points.filter(p => p.type !== 'start' && p.type !== 'end').map((p, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><div className="h-1 w-1 rounded-full bg-border" /> {p.name}</div>
+                        ))}
+                      </div>
+                    )}
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Buluşma Detayları</h4>
+                <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <MapPin size={18} className="text-primary mt-1" />
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Buluşma Noktası</p><p className="font-bold">{trip.meeting_point}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Clock size={18} className="text-primary mt-1" />
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Buluşma Saati</p><p className="font-bold">{trip.meeting_time}</p></div>
+                  </div>
                 </div>
               </div>
             </div>
+
             <div className="space-y-2">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Açıklama</h4>
               <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{trip.description}"</p>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Mentor & İletişim Kartı */}
+            <Card className="rounded-[32px] border-border/40 bg-secondary/10 overflow-hidden">
+              <div className="p-6 border-b border-border/40 flex items-center gap-4">
+                <Avatar className="h-12 w-12 border-2 border-primary/20"><AvatarImage src={mentorProfile?.photoURL || ''} /><AvatarFallback>{mentorProfile?.name?.charAt(0)}</AvatarFallback></Avatar>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-primary tracking-widest">MENTOR</p>
+                  <p className="font-black text-lg">@{mentorProfile?.name}</p>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">İletişim Bilgileri</h5>
+                {isContactVisible ? (
+                  <div className="space-y-3">
+                    {mentorProfile?.phone && (
+                      <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Phone size={14} className="text-primary" /> {mentorProfile.phone}</div>
+                    )}
+                    {mentorProfile?.instagram && (
+                      <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Instagram size={14} className="text-pink-500" /> @{mentorProfile.instagram}</div>
+                    )}
+                    <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Mail size={14} className="text-blue-400" /> {mentorProfile?.email}</div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-muted/20 border border-dashed text-center space-y-2">
+                    <EyeOff size={20} className="mx-auto text-muted-foreground/40" />
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+                      {trip.contact_visible === 'participants_only' ? 'Sadece katılımcılar görebilir' : 'İletişim bilgileri kapalı'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
             <div className="space-y-4">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcı Durumu</h4>
               <div className="flex gap-3">
-                <Button 
-                  onClick={() => handleRSVP('yes')} 
-                  variant={myStatus === 'yes' ? 'default' : 'outline'}
-                  className="flex-1 h-14 rounded-2xl font-black uppercase text-xs"
-                >
-                  <ThumbsUp className="mr-2 h-4 w-4" /> Geliyorum
-                </Button>
-                <Button 
-                  onClick={() => handleRSVP('no')} 
-                  variant={myStatus === 'no' ? 'default' : 'outline'}
-                  className="flex-1 h-14 rounded-2xl font-black uppercase text-xs"
-                >
-                  <ThumbsDown className="mr-2 h-4 w-4" /> Gelemem
-                </Button>
+                <Button onClick={() => handleRSVP('yes')} variant={myStatus === 'yes' ? 'default' : 'outline'} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Geliyorum</Button>
+                <Button onClick={() => handleRSVP('no')} variant={myStatus === 'no' ? 'default' : 'outline'} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Gelemem</Button>
               </div>
             </div>
 
             {(trip.isListPublic || isOwner) && participants && (
               <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılacaklar ({participants.filter(p => p.status === 'yes').length})</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılacaklar ({participants.filter(p => p.status === 'yes').length} / {trip.max_participants})</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {participants.filter(p => p.status === 'yes').map(p => (
                     <div key={p.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40">
@@ -343,6 +305,92 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
   );
 }
 
+function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
+  const [formData, setFormData] = useState({
+    title: '', description: '', startPoint: '', endPoint: '',
+    meeting_point: '', meeting_time: '',
+    date: '', time: '', duration: '', distance: '',
+    approvalRequired: false, isListPublic: true,
+    contact_visible: 'participants_only' as ContactVisible,
+    max_participants: 15,
+    route_points: [] as RoutePoint[]
+  });
+
+  const handleTemplateSelect = (templateTitle: string) => {
+    const template = ISTANBUL_TEMPLATES.find(t => t.title === templateTitle);
+    if (template) {
+      setFormData({
+        ...formData,
+        title: template.title,
+        description: `${template.city.toUpperCase()} - ${template.category.toUpperCase()} Fotoğraf Gezisi`,
+        startPoint: template.start_point,
+        endPoint: template.end_point,
+        meeting_point: template.start_point,
+        duration: `${template.duration_minutes} Dakika`,
+        distance: `${template.distance_km} KM`,
+        route_points: template.route_points
+      });
+    }
+  };
+
+  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', meeting_point: '', meeting_time: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, contact_visible: 'participants_only', max_participants: 15, route_points: [] }); } };
+  
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Taslak Rotalardan Seç (İstanbul)</Label>
+        <Select onValueChange={handleTemplateSelect}>
+          <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-primary/20"><SelectValue placeholder="Bir rota şablonu seçin..." /></SelectTrigger>
+          <SelectContent>
+            {ISTANBUL_TEMPLATES.map(t => <SelectItem key={t.title} value={t.title}>{t.title}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-4 pt-4 border-t border-border/40">
+        <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Gezi Başlığı" className="rounded-2xl h-12 bg-muted/30" />
+        <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Açıklama" className="rounded-2xl min-h-[80px] bg-muted/30" />
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase ml-1">Buluşma Noktası</Label>
+            <Input value={formData.meeting_point} onChange={e => setFormData({...formData, meeting_point: e.target.value})} placeholder="Örn: Kule önü" className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase ml-1">Buluşma Saati</Label>
+            <Input value={formData.meeting_time} onChange={e => setFormData({...formData, meeting_time: e.target.value})} placeholder="Örn: 14:30" className="rounded-xl h-10" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-xl h-10" />
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase ml-1">Katılımcı Limiti</Label>
+            <Input type="number" value={formData.max_participants} onChange={e => setFormData({...formData, max_participants: parseInt(e.target.value)})} className="rounded-xl h-10" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 p-6 rounded-3xl bg-secondary/20 border border-border/40">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase">İletişim Bilgilerimi Kimler Görebilir?</Label>
+            <Select value={formData.contact_visible} onValueChange={(v: any) => setFormData({...formData, contact_visible: v})}>
+              <SelectTrigger className="h-10 rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Kimse</SelectItem>
+                <SelectItem value="group_members">Tüm Grup Üyeleri</SelectItem>
+                <SelectItem value="participants_only">Sadece Geziye Katılanlar</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Onay Gerekli mi?</Label><Switch checked={formData.approvalRequired} onCheckedChange={v => setFormData({...formData, approvalRequired: v})} /></div>
+          <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Listeyi Herkese Aç?</Label><Switch checked={formData.isListPublic} onCheckedChange={v => setFormData({...formData, isListPublic: v})} /></div>
+        </div>
+      </div>
+      <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">Geziyi Yayınla</Button>
+    </div>
+  );
+}
+
 export default function GroupDetailPage() {
   const { groupId } = useParams();
   const router = useRouter();
@@ -351,6 +399,7 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
+  // Tüm hooklar early return'den önce tanımlanmalı
   const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef);
 
@@ -452,6 +501,7 @@ export default function GroupDetailPage() {
         ...tripData,
         id: tripRef.id,
         groupId: group.id,
+        mentorId: user.uid,
         status: 'planned',
         created_at: now
       });
@@ -807,8 +857,11 @@ export default function GroupDetailPage() {
 function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
   const [formData, setFormData] = useState({
     title: '', description: '', startPoint: '', endPoint: '',
+    meeting_point: '', meeting_time: '',
     date: '', time: '', duration: '', distance: '',
     approvalRequired: false, isListPublic: true,
+    contact_visible: 'participants_only' as ContactVisible,
+    max_participants: 15,
     route_points: [] as RoutePoint[]
   });
 
@@ -821,6 +874,7 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
         description: `${template.city.toUpperCase()} - ${template.category.toUpperCase()} Fotoğraf Gezisi`,
         startPoint: template.start_point,
         endPoint: template.end_point,
+        meeting_point: template.start_point,
         duration: `${template.duration_minutes} Dakika`,
         distance: `${template.distance_km} KM`,
         route_points: template.route_points
@@ -828,20 +882,16 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
     }
   };
 
-  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, route_points: [] }); } };
+  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', meeting_point: '', meeting_time: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, contact_visible: 'participants_only', max_participants: 15, route_points: [] }); } };
   
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Taslak Rotalardan Seç (İstanbul)</Label>
         <Select onValueChange={handleTemplateSelect}>
-          <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-primary/20">
-            <SelectValue placeholder="Bir rota şablonu seçin..." />
-          </SelectTrigger>
+          <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-primary/20"><SelectValue placeholder="Bir rota şablonu seçin..." /></SelectTrigger>
           <SelectContent>
-            {ISTANBUL_TEMPLATES.map(t => (
-              <SelectItem key={t.title} value={t.title}>{t.title}</SelectItem>
-            ))}
+            {ISTANBUL_TEMPLATES.map(t => <SelectItem key={t.title} value={t.title}>{t.title}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -849,19 +899,38 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
       <div className="grid gap-4 pt-4 border-t border-border/40">
         <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Gezi Başlığı" className="rounded-2xl h-12 bg-muted/30" />
         <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Açıklama" className="rounded-2xl min-h-[80px] bg-muted/30" />
+        
         <div className="grid grid-cols-2 gap-4">
-          <Input value={formData.startPoint} onChange={e => setFormData({...formData, startPoint: e.target.value})} placeholder="Başlangıç Noktası" className="rounded-xl h-10" />
-          <Input value={formData.endPoint} onChange={e => setFormData({...formData, endPoint: e.target.value})} placeholder="Bitiş Noktası" className="rounded-xl h-10" />
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase ml-1">Buluşma Noktası</Label>
+            <Input value={formData.meeting_point} onChange={e => setFormData({...formData, meeting_point: e.target.value})} placeholder="Örn: Kule önü" className="rounded-xl h-10" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase ml-1">Buluşma Saati</Label>
+            <Input value={formData.meeting_time} onChange={e => setFormData({...formData, meeting_time: e.target.value})} placeholder="Örn: 14:30" className="rounded-xl h-10" />
+          </div>
         </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-xl h-10" />
-          <Input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="rounded-xl h-10" />
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase ml-1">Katılımcı Limiti</Label>
+            <Input type="number" value={formData.max_participants} onChange={e => setFormData({...formData, max_participants: parseInt(e.target.value)})} className="rounded-xl h-10" />
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Input value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} placeholder="Tahmini Süre" className="rounded-xl h-10" />
-          <Input value={formData.distance} onChange={e => setFormData({...formData, distance: e.target.value})} placeholder="Mesafe" className="rounded-xl h-10" />
-        </div>
-        <div className="flex flex-col gap-4 p-4 rounded-2xl bg-secondary/20 border">
+
+        <div className="flex flex-col gap-4 p-6 rounded-3xl bg-secondary/20 border border-border/40">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase">İletişim Bilgilerimi Kimler Görebilir?</Label>
+            <Select value={formData.contact_visible} onValueChange={(v: any) => setFormData({...formData, contact_visible: v})}>
+              <SelectTrigger className="h-10 rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Kimse</SelectItem>
+                <SelectItem value="group_members">Tüm Grup Üyeleri</SelectItem>
+                <SelectItem value="participants_only">Sadece Geziye Katılanlar</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Onay Gerekli mi?</Label><Switch checked={formData.approvalRequired} onCheckedChange={v => setFormData({...formData, approvalRequired: v})} /></div>
           <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Listeyi Herkese Aç?</Label><Switch checked={formData.isListPublic} onCheckedChange={v => setFormData({...formData, isListPublic: v})} /></div>
         </div>

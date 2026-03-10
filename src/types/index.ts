@@ -91,6 +91,8 @@ export type User = {
   name: string | null;
   email: string | null;
   photoURL?: string | null;
+  phone?: string;
+  instagram?: string;
   auro_balance: number;
   total_auro_spent?: number;
   total_analyses_count: number;
@@ -325,6 +327,8 @@ export type RoutePoint = {
   type: RoutePointType;
 };
 
+export type ContactVisible = 'none' | 'group_members' | 'participants_only';
+
 export type Trip = {
   id: string;
   groupId: string;
@@ -343,6 +347,13 @@ export type Trip = {
   created_at: string;
   completed_at?: string;
   cancelled_at?: string;
+  
+  // Mentor & Meeting Info
+  mentorId: string;
+  meeting_point: string;
+  meeting_time: string;
+  contact_visible: ContactVisible;
+  max_participants: number;
 };
 
 export type TripTemplate = {
