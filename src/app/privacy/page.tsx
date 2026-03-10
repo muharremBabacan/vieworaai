@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="container mx-auto max-w-3xl py-12 space-y-8">
       <div className="text-center">
-        <Link href="/">
+        <Link href="/login">
             <Logo className="mx-auto mb-4 justify-center" />
         </Link>
       </div>
@@ -18,7 +18,7 @@ export default function PrivacyPolicyPage() {
       
       <div className="text-center">
         <Button variant="outline" asChild>
-            <Link href="/">
+            <Link href="/login">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Giriş Sayfasına Dön
             </Link>

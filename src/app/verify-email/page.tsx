@@ -34,7 +34,7 @@ export default function VerifyEmailPage() {
             
             <div className="pt-4 space-y-3">
               <Button asChild className="w-full h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-                <Link href="/">
+                <Link href="/login">
                   Giriş Yap <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

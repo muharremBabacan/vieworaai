@@ -21,6 +21,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // Bağımsız sayfalar (Navigasyon barındırmazlar)
   const isStandalonePage = [
     '/', 
+    '/login',
     '/signup', 
     '/verify-email', 
     '/terms', 
@@ -36,9 +37,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       // KULLANICI GİRİŞ YAPMIŞ
       
       // E-posta doğrulama kontrolü (Email ile giriş yapanlar için)
-      // Google ile girenlerin emailVerified değeri zaten true gelir.
       if (!user.emailVerified) {
-        if (pathname !== '/verify-email' && pathname !== '/' && pathname !== '/signup') {
+        if (pathname !== '/verify-email' && pathname !== '/login' && pathname !== '/signup') {
           router.replace('/verify-email');
         }
         return;
@@ -53,7 +53,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Anketi doldurmuş -> Eğer giriş veya onboarding sayfasındaysa dashboard'a gönder
-        if (pathname === '/' || pathname === '/onboarding' || pathname === '/signup' || pathname === '/verify-email') {
+        if (pathname === '/' || pathname === '/login' || pathname === '/onboarding' || pathname === '/signup' || pathname === '/verify-email') {
           router.replace('/dashboard');
         }
       }
@@ -61,7 +61,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       // KULLANICI GİRİŞ YAPMAMIŞ
       // Sadece giriş, kayıt, doğrulama, şartlar ve gizlilik sayfalarına izin ver
       if (!isStandalonePage) {
-        router.replace('/');
+        router.replace('/login');
       }
     }
   }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage]);

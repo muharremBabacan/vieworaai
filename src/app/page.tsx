@@ -1,12 +1,5 @@
-'use client'
-
-import { Suspense } from "react"
-import PageContent from "./PageContent"
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return (
-    <Suspense fallback={null}>
-      <PageContent />
-    </Suspense>
-  )
+  redirect("/login");
 }

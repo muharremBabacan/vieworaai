@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -63,10 +62,7 @@ function SignupForm() {
       
       router.push('/verify-email');
     } catch (error: any) {
-      // Dev ortamında Next.js overlay'ini tetiklememek için warn kullanıyoruz
-      if (process.env.NODE_ENV === 'development') {
-        console.warn("Signup error caught:", error.code);
-      }
+      console.warn("Signup error caught:", error.code);
 
       if (error.code === 'auth/email-already-in-use') {
         toast({
@@ -74,7 +70,7 @@ function SignupForm() {
           title: 'Bu e-posta zaten kayıtlı',
           description: 'Bu e-posta adresiyle daha önce hesap oluşturulmuş. Lütfen giriş yapın.',
           action: (
-            <ToastAction altText="Giriş Yap" onClick={() => router.push('/')}>
+            <ToastAction altText="Giriş Yap" onClick={() => router.push('/login')}>
               Giriş Yap
             </ToastAction>
           ),
@@ -145,7 +141,7 @@ function SignupForm() {
 
         <div className="text-center">
           <Button variant="ghost" asChild className="rounded-xl font-bold text-muted-foreground hover:text-primary transition-all">
-            <Link href="/">
+            <Link href="/login">
               <ArrowLeft className="mr-2 h-4 w-4" /> Giriş Sayfasına Dön
             </Link>
           </Button>
