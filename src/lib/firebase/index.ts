@@ -1,40 +1,9 @@
-import { firebaseConfig } from '@/lib/firebase/config';
+/**
+ * Firebase İstemci SDK Barrel Dosyası
+ * Bileşenlerde kullanım kolaylığı sağlamak için exportları merkezileştirir.
+ */
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
-
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION SIGNATURE
-export function initializeFirebase(): {
-  firebaseApp: FirebaseApp | null;
-  auth: Auth | null;
-  firestore: Firestore | null;
-  storage: FirebaseStorage | null;
-} {
-  // 🚫 SSR / Build sırasında Firebase initialize ETME
-  if (typeof window === 'undefined') {
-    return {
-      firebaseApp: null,
-      auth: null,
-      firestore: null,
-      storage: null,
-    };
-  }
-
-  // Browser ortamında güvenli initialize
-  const firebaseApp =
-    !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp),
-  };
-}
-
-// Diğer exportlar
+export * from './init';
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';

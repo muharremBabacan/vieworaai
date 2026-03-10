@@ -1,103 +1,68 @@
 'use server'
 
+/**
+ * @fileOverview Günlük fotoğrafçılık dersi üretme AI akışı.
+ */
+
 import { ai } from '@/ai/genkit'
 import { z } from 'genkit'
-
-import { db, storage } from '@/lib/firebase'
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { ref, uploadString, getDownloadURL } from 'firebase/storage'
-
-import { generateLessonImage } from '../image/generateLessonImages'
+import { generateLessonImage } from '../lesson/generate-academy-lessons';
 
 const InputSchema = z.object({
- level:z.enum(['Temel','Orta','İleri']),
- category:z.string()
+ level: z.enum(['Temel','Orta','İleri']),
+ category: z.string()
 })
 
 const LessonSchema = z.object({
-
- title:z.string(),
- learningObjective:z.string(),
- theory:z.string(),
-
- analysisCriteria:z.array(z.string()).length(3),
-
- practiceTask:z.string(),
- authorNote:z.string(),
-
- imageHint:z.string()
-
+ title: z.string(),
+ learningObjective: z.string(),
+ theory: z.string(),
+ analysisCriteria: z.array(z.string()).length(3),
+ practiceTask: z.string(),
+ auroNote: z.string(),
+ imageHint: z.string()
 })
 
 const OutputSchema = z.array(LessonSchema).length(1)
 
 const lessonPrompt = ai.definePrompt({
+ name: "vieworaLessonGenerator",
+ input: { schema: InputSchema },
+ output: { schema: OutputSchema },
+ prompt: `
+Aşağıdaki müfredat için yapılandırılmış bir fotoğrafçılık mini dersi oluştur.
 
- name:"vieworaLessonGenerator",
+Seviye: {{{level}}}
+Kategori: {{{category}}}
 
- input:{schema:InputSchema},
- output:{schema:OutputSchema},
+Ders şunları içermeli:
+- title: Başlık
+- learningObjective: Öğrenim hedefi
+- theory: Teori (2-3 paragraf)
+- analysisCriteria: Başarı kriterleri (Tam 3 adet)
+- practiceTask: Pratik görevi
+- auroNote: Uzman notu
+- imageHint: Görsel için 3-4 İngilizce anahtar kelime
 
- prompt:`
-
-Generate ONE photography lesson.
-
-Return JSON only.
-
-{
-"title":"",
-"learningObjective":"",
-"theory":"",
-"analysisCriteria":["","",""],
-"practiceTask":"",
-"authorNote":"",
-"imageHint":"two keyword phrase"
-}
-
+Dil: tr
 `
-
 })
 
-export async function generateDailyLesson(input:z.infer<typeof InputSchema>){
+export async function generateDailyLesson(input: z.infer<typeof InputSchema>) {
+ const { output } = await lessonPrompt(input);
 
- const {output} = await lessonPrompt(input)
+ if (!output || output.length === 0) throw new Error("Ders üretimi başarısız oldu.");
 
- if(!output) throw new Error("Lesson generation failed")
+ const lesson = output[0];
+ 
+ // Mevcut görsel üretim akışını kullanıyoruz
+ const base64 = await generateLessonImage(lesson.imageHint);
 
- const lesson = output[0]
-
- const imagePrompt = `
- photography education illustration
- ${lesson.imageHint}
- clean background
- minimal infographic style
- `
-
- const base64 = await generateLessonImage(imagePrompt)
-
- const lessonId = crypto.randomUUID()
-
- const storageRef = ref(storage,`academy-lessons/${lessonId}.jpg`)
-
- await uploadString(storageRef,base64,"base64")
-
- const imageUrl = await getDownloadURL(storageRef)
-
- const lessonDoc = {
-
+ return {
   ...lesson,
-
-  level:input.level,
-  category:input.category,
-
-  imageUrl,
-
-  createdAt:serverTimestamp()
-
- }
-
- await setDoc(doc(collection(db,"academy_lessons"),lessonId),lessonDoc)
-
- return lessonDoc
-
+  level: input.level,
+  category: input.category,
+  generatedImageBase64: base64,
+  createdAt: new Date().toISOString()
+ };
 }
