@@ -248,11 +248,25 @@ export type GlobalNotification = {
   id: string;
   title: string;
   message: string;
-  type: 'system' | 'competition' | 'exhibition' | 'reward';
+  type: 'system' | 'competition' | 'exhibition' | 'reward' | 'trip_created' | 'trip_cancelled' | 'trip_updated';
   targetLevel?: string;
   competitionId?: string;
   exhibitionId?: string;
+  tripId?: string;
+  groupId?: string;
   createdAt: string;
+  read?: boolean;
+};
+
+export type TripNotification = {
+  id: string;
+  type: 'trip_created' | 'trip_cancelled' | 'trip_updated';
+  tripId: string;
+  groupId: string;
+  title: string;
+  message: string;
+  created_at: string;
+  read: boolean;
 };
 
 export type Exhibition = {

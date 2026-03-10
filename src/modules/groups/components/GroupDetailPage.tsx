@@ -250,27 +250,76 @@ export default function GroupDetailPage() {
   };
 
   const handleCreateTrip = async (tripData: any) => {
-    if (!firestore || !group) return;
+    if (!user || !firestore || !group) return;
+    const batch = writeBatch(firestore);
+    const tripRef = doc(collection(firestore, 'groups', group.id, 'trips'));
+    
     try {
-      const docRef = await addDoc(collection(firestore, 'groups', group.id, 'trips'), {
+      const now = new Date().toISOString();
+      batch.set(tripRef, {
         ...tripData,
+        id: tripRef.id,
         groupId: group.id,
         status: 'planned',
-        created_at: new Date().toISOString()
+        created_at: now
       });
-      await updateDoc(docRef, { id: docRef.id });
+
+      // Send notifications to all group members except creator
+      group.memberIds.forEach(memberId => {
+        if (memberId !== user.uid) {
+          const notifRef = doc(collection(firestore, 'users', memberId, 'notifications'));
+          batch.set(notifRef, {
+            type: "trip_created",
+            tripId: tripRef.id,
+            groupId: group.id,
+            title: "Yeni Gezi Planı",
+            message: `${tripData.title} gezisi planlandı.`,
+            created_at: now,
+            read: false
+          });
+        }
+      });
+
+      await batch.commit();
       toast({ title: "Gezi Planı Yayınlandı!" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
   const handleUpdateTripStatus = async (tripId: string, newStatus: TripStatus) => {
-    if (!isCurrentUserOwner || !firestore || !group) return;
+    if (!user || !isCurrentUserOwner || !firestore || !group) return;
+    const batch = writeBatch(firestore);
     const tripRef = doc(firestore, 'groups', group.id, 'trips', tripId);
+    
+    const now = new Date().toISOString();
     const updates: any = { status: newStatus };
-    if (newStatus === 'completed') updates.completed_at = new Date().toISOString();
-    if (newStatus === 'cancelled') updates.cancelled_at = new Date().toISOString();
+    if (newStatus === 'completed') updates.completed_at = now;
+    if (newStatus === 'cancelled') updates.cancelled_at = now;
+    
+    batch.update(tripRef, updates);
+
+    // Send notifications
+    const type = newStatus === 'cancelled' ? 'trip_cancelled' : 'trip_updated';
+    const messagePrefix = newStatus === 'cancelled' ? 'Gezi iptal edildi: ' : 'Gezi güncellendi: ';
+    const tripSnap = await getDoc(tripRef);
+    const tripTitle = tripSnap.exists() ? tripSnap.data().title : "Bir gezi";
+
+    group.memberIds.forEach(memberId => {
+      if (memberId !== user.uid) {
+        const notifRef = doc(collection(firestore, 'users', memberId, 'notifications'));
+        batch.set(notifRef, {
+          type: type,
+          tripId: tripId,
+          groupId: group.id,
+          title: "Gezi Güncellemesi",
+          message: `${messagePrefix} ${tripTitle}`,
+          created_at: now,
+          read: false
+        });
+      }
+    });
+
     try {
-      await updateDoc(tripRef, updates);
+      await batch.commit();
       toast({ title: "Gezi Durumu Güncellendi" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
