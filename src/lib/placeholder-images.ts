@@ -1,3 +1,4 @@
+
 export type ImagePlaceholder = {
   id: string;
   description: string;
@@ -63,19 +64,19 @@ export const PlaceHolderImages: ImagePlaceholder[] = [
     {
       "id": "academy-level-basic",
       "description": "Educational image showing sensor sizes and camera bodies.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Flesons%2Ftemel11a.jpg?alt=media",
+      "imageUrl": "/temel15a.jpg",
       "imageHint": "camera technology"
     },
     {
       "id": "academy-level-intermediate",
       "description": "Technical photography illustration from storage.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Flesons%2Ftemel13a.jpg?alt=media",
+      "imageUrl": "/temel15a.jpg",
       "imageHint": "photography technique"
     },
     {
       "id": "academy-level-advanced",
       "description": "Professional artistic photography illustration from storage.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Flesons%2Ftemel15a.jpg?alt=media",
+      "imageUrl": "/temel15a.jpg",
       "imageHint": "artistic photography"
     },
     {

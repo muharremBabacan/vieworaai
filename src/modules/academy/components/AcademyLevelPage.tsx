@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -22,7 +23,7 @@ import { typography } from "@/lib/design/typography";
 import { cn } from '@/lib/utils';
 
 const findPlaceholderImage = (hint: string) => {
-    return `https://picsum.photos/seed/${hint.replace(/\s+/g, '')}/600/400`;
+    return "/temel15a.jpg";
 };
 
 function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFeedbackReady: (result: any) => void }) {
