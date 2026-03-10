@@ -1,5 +1,5 @@
-
 'use client';
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ThumbsUp, ThumbsDown, ExternalLink, Instagram, Phone, Mail, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ExternalLink, Instagram, Phone, Mail, Eye, EyeOff, Diamond, Zap, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAppConfig } from '@/components/AppConfigProvider';
 
 const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: string }> = {
   study: { label: 'Eğitim', icon: GraduationCap, color: 'bg-blue-500/10 text-blue-400' },
@@ -121,276 +122,6 @@ const ISTANBUL_TEMPLATES: Omit<TripTemplate, 'id'>[] = [
   }
 ];
 
-function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip, isOwner: boolean, userId: string, userProfile: User | null, groupId: string }) {
-  const firestore = useFirestore();
-  const { toast } = useToast();
-  
-  const participantsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'groups', groupId, 'trips', trip.id, 'participants');
-  }, [firestore, groupId, trip.id]);
-  
-  const { data: participants } = useCollection<TripParticipant>(participantsQuery);
-  
-  const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'users', trip.mentorId) : null, [firestore, trip.mentorId]);
-  const { data: mentorProfile } = useDoc<User>(mentorRef);
-
-  const myParticipantDoc = participants?.find(p => p.userId === userId);
-  const myStatus = myParticipantDoc?.status || 'pending';
-
-  const isContactVisible = useMemo(() => {
-    if (isOwner) return true;
-    if (trip.contact_visible === 'none') return false;
-    if (trip.contact_visible === 'group_members') return true;
-    if (trip.contact_visible === 'participants_only' && myStatus === 'yes') return true;
-    return false;
-  }, [trip.contact_visible, myStatus, isOwner]);
-
-  const handleRSVP = async (status: ParticipantStatus) => {
-    if (!firestore) return;
-    const participantRef = doc(firestore, 'groups', groupId, 'trips', trip.id, 'participants', userId);
-    try {
-      await setDoc(participantRef, {
-        userId,
-        userName: userProfile?.name || 'Vizyoner',
-        userPhotoURL: userProfile?.photoURL || null,
-        status,
-        joined_at: new Date().toISOString()
-      });
-      toast({ title: status === 'yes' ? "Geziye Katılıyorsun!" : "Geziden Ayrıldın" });
-    } catch (e) {
-      toast({ variant: 'destructive', title: "Hata oluştu" });
-    }
-  };
-
-  const getGoogleMapsUrl = () => {
-    const origin = encodeURIComponent(trip.startPoint);
-    const destination = encodeURIComponent(trip.endPoint);
-    const waypoints = trip.route_points
-      ?.filter(p => p.type !== 'start' && p.type !== 'end')
-      .map(p => encodeURIComponent(p.name))
-      .join('|');
-    
-    let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-    if (waypoints) url += `&waypoints=${waypoints}`;
-    return url;
-  };
-
-  return (
-    <Card className={cn("rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl", trip.status === 'completed' && "opacity-80 grayscale-[0.3]")}>
-      <CardHeader className="bg-secondary/20 p-10 border-b border-border/40">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div className="space-y-2">
-            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3 mb-2">GEZİ PLANI</Badge>
-            <CardTitle className="text-4xl font-black uppercase tracking-tighter">{trip.title}</CardTitle>
-            <div className="flex flex-wrap gap-6 pt-4">
-              <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{trip.date}</span></div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.time}</span></div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{trip.distance}</span></div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Users size={18} className="text-primary" /><span className="text-sm font-bold">{participants?.filter(p => p.status === 'yes').length || 0} / {trip.max_participants}</span></div>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", trip.status === 'completed' ? "bg-green-600" : "bg-primary")}>
-              {TRIP_STATUS_LABELS[trip.status]}
-            </Badge>
-            <Button asChild variant="outline" className="h-10 rounded-xl font-bold border-primary/20 hover:bg-primary/5">
-              <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" /> Rotayı Haritada Aç
-              </a>
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-10 space-y-10">
-        <div className="grid lg:grid-cols-3 gap-10">
-          <div className="lg:col-span-2 space-y-10">
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
-                <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
-                  <MapPin className="text-primary mt-1 shrink-0" size={24} />
-                  <div className="space-y-4 w-full">
-                    <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
-                    {trip.route_points && trip.route_points.length > 2 && (
-                      <div className="space-y-2 py-2 border-y border-border/40">
-                        {trip.route_points.filter(p => p.type !== 'start' && p.type !== 'end').map((p, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><div className="h-1 w-1 rounded-full bg-border" /> {p.name}</div>
-                        ))}
-                      </div>
-                    )}
-                    <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Buluşma Detayları</h4>
-                <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 space-y-4">
-                  <div className="flex items-start gap-3">
-                    <MapPin size={18} className="text-primary mt-1" />
-                    <div><p className="text-[9px] font-black uppercase text-primary/70">Buluşma Noktası</p><p className="font-bold">{trip.meeting_point}</p></div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Clock size={18} className="text-primary mt-1" />
-                    <div><p className="text-[9px] font-black uppercase text-primary/70">Buluşma Saati</p><p className="font-bold">{trip.meeting_time}</p></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Açıklama</h4>
-              <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{trip.description}"</p>
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            {/* Mentor & İletişim Kartı */}
-            <Card className="rounded-[32px] border-border/40 bg-secondary/10 overflow-hidden">
-              <div className="p-6 border-b border-border/40 flex items-center gap-4">
-                <Avatar className="h-12 w-12 border-2 border-primary/20"><AvatarImage src={mentorProfile?.photoURL || ''} /><AvatarFallback>{mentorProfile?.name?.charAt(0)}</AvatarFallback></Avatar>
-                <div>
-                  <p className="text-[9px] font-black uppercase text-primary tracking-widest">MENTOR</p>
-                  <p className="font-black text-lg">@{mentorProfile?.name}</p>
-                </div>
-              </div>
-              <div className="p-6 space-y-4">
-                <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">İletişim Bilgileri</h5>
-                {isContactVisible ? (
-                  <div className="space-y-3">
-                    {mentorProfile?.phone && (
-                      <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Phone size={14} className="text-primary" /> {mentorProfile.phone}</div>
-                    )}
-                    {mentorProfile?.instagram && (
-                      <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Instagram size={14} className="text-pink-500" /> @{mentorProfile.instagram}</div>
-                    )}
-                    <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Mail size={14} className="text-blue-400" /> {mentorProfile?.email}</div>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-xl bg-muted/20 border border-dashed text-center space-y-2">
-                    <EyeOff size={20} className="mx-auto text-muted-foreground/40" />
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                      {trip.contact_visible === 'participants_only' ? 'Sadece katılımcılar görebilir' : 'İletişim bilgileri kapalı'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcı Durumu</h4>
-              <div className="flex gap-3">
-                <Button onClick={() => handleRSVP('yes')} variant={myStatus === 'yes' ? 'default' : 'outline'} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Geliyorum</Button>
-                <Button onClick={() => handleRSVP('no')} variant={myStatus === 'no' ? 'default' : 'outline'} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Gelemem</Button>
-              </div>
-            </div>
-
-            {(trip.isListPublic || isOwner) && participants && (
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılacaklar ({participants.filter(p => p.status === 'yes').length} / {trip.max_participants})</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {participants.filter(p => p.status === 'yes').map(p => (
-                    <div key={p.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40">
-                      <Avatar className="h-8 w-8 border border-white/20"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
-                      <span className="text-xs font-black truncate">@{p.userName}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
-  const [formData, setFormData] = useState({
-    title: '', description: '', startPoint: '', endPoint: '',
-    meeting_point: '', meeting_time: '',
-    date: '', time: '', duration: '', distance: '',
-    approvalRequired: false, isListPublic: true,
-    contact_visible: 'participants_only' as ContactVisible,
-    max_participants: 15,
-    route_points: [] as RoutePoint[]
-  });
-
-  const handleTemplateSelect = (templateTitle: string) => {
-    const template = ISTANBUL_TEMPLATES.find(t => t.title === templateTitle);
-    if (template) {
-      setFormData({
-        ...formData,
-        title: template.title,
-        description: `${template.city.toUpperCase()} - ${template.category.toUpperCase()} Fotoğraf Gezisi`,
-        startPoint: template.start_point,
-        endPoint: template.end_point,
-        meeting_point: template.start_point,
-        duration: `${template.duration_minutes} Dakika`,
-        distance: `${template.distance_km} KM`,
-        route_points: template.route_points
-      });
-    }
-  };
-
-  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', meeting_point: '', meeting_time: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, contact_visible: 'participants_only', max_participants: 15, route_points: [] }); } };
-  
-  return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Taslak Rotalardan Seç (İstanbul)</Label>
-        <Select onValueChange={handleTemplateSelect}>
-          <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-primary/20"><SelectValue placeholder="Bir rota şablonu seçin..." /></SelectTrigger>
-          <SelectContent>
-            {ISTANBUL_TEMPLATES.map(t => <SelectItem key={t.title} value={t.title}>{t.title}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid gap-4 pt-4 border-t border-border/40">
-        <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Gezi Başlığı" className="rounded-2xl h-12 bg-muted/30" />
-        <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Açıklama" className="rounded-2xl min-h-[80px] bg-muted/30" />
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase ml-1">Buluşma Noktası</Label>
-            <Input value={formData.meeting_point} onChange={e => setFormData({...formData, meeting_point: e.target.value})} placeholder="Örn: Kule önü" className="rounded-xl h-10" />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase ml-1">Buluşma Saati</Label>
-            <Input value={formData.meeting_time} onChange={e => setFormData({...formData, meeting_time: e.target.value})} placeholder="Örn: 14:30" className="rounded-xl h-10" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-xl h-10" />
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase ml-1">Katılımcı Limiti</Label>
-            <Input type="number" value={formData.max_participants} onChange={e => setFormData({...formData, max_participants: parseInt(e.target.value)})} className="rounded-xl h-10" />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 p-6 rounded-3xl bg-secondary/20 border border-border/40">
-          <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase">İletişim Bilgilerimi Kimler Görebilir?</Label>
-            <Select value={formData.contact_visible} onValueChange={(v: any) => setFormData({...formData, contact_visible: v})}>
-              <SelectTrigger className="h-10 rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Kimse</SelectItem>
-                <SelectItem value="group_members">Tüm Grup Üyeleri</SelectItem>
-                <SelectItem value="participants_only">Sadece Geziye Katılanlar</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Onay Gerekli mi?</Label><Switch checked={formData.approvalRequired} onCheckedChange={v => setFormData({...formData, approvalRequired: v})} /></div>
-          <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Listeyi Herkese Aç?</Label><Switch checked={formData.isListPublic} onCheckedChange={v => setFormData({...formData, isListPublic: v})} /></div>
-        </div>
-      </div>
-      <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">Geziyi Yayınla</Button>
-    </div>
-  );
-}
-
 export default function GroupDetailPage() {
   const { groupId } = useParams();
   const router = useRouter();
@@ -399,7 +130,6 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
-  // Tüm hooklar early return'den önce tanımlanmalı
   const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef);
 
@@ -854,6 +584,189 @@ export default function GroupDetailPage() {
   );
 }
 
+function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip, isOwner: boolean, userId: string, userProfile: User | null, groupId: string }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
+  const participantsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups', groupId, 'trips', trip.id, 'participants');
+  }, [firestore, groupId, trip.id]);
+  
+  const { data: participants } = useCollection<TripParticipant>(participantsQuery);
+  
+  const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'users', trip.mentorId) : null, [firestore, trip.mentorId]);
+  const { data: mentorProfile } = useDoc<User>(mentorRef);
+
+  const myParticipantDoc = participants?.find(p => p.userId === userId);
+  const myStatus = myParticipantDoc?.status || 'pending';
+
+  const isContactVisible = useMemo(() => {
+    if (isOwner) return true;
+    if (trip.contact_visible === 'none') return false;
+    if (trip.contact_visible === 'group_members') return true;
+    if (trip.contact_visible === 'participants_only' && myStatus === 'yes') return true;
+    return false;
+  }, [trip.contact_visible, myStatus, isOwner]);
+
+  const handleRSVP = async (status: ParticipantStatus) => {
+    if (!firestore) return;
+    const participantRef = doc(firestore, 'groups', groupId, 'trips', trip.id, 'participants', userId);
+    try {
+      await setDoc(participantRef, {
+        userId,
+        userName: userProfile?.name || 'Vizyoner',
+        userPhotoURL: userProfile?.photoURL || null,
+        status,
+        joined_at: new Date().toISOString()
+      });
+      toast({ title: status === 'yes' ? "Geziye Katılıyorsun!" : "Geziden Ayrıldın" });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Hata oluştu" });
+    }
+  };
+
+  const getGoogleMapsUrl = () => {
+    const origin = encodeURIComponent(trip.startPoint);
+    const destination = encodeURIComponent(trip.endPoint);
+    const waypoints = trip.route_points
+      ?.filter(p => p.type !== 'start' && p.type !== 'end')
+      .map(p => encodeURIComponent(p.name))
+      .join('|');
+    
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+    if (waypoints) url += `&waypoints=${waypoints}`;
+    return url;
+  };
+
+  return (
+    <Card className={cn("rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl", trip.status === 'completed' && "opacity-80 grayscale-[0.3]")}>
+      <CardHeader className="bg-secondary/20 p-10 border-b border-border/40">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div className="space-y-2">
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3 mb-2">GEZİ PLANI</Badge>
+            <CardTitle className="text-4xl font-black uppercase tracking-tighter">{trip.title}</CardTitle>
+            <div className="flex flex-wrap gap-6 pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{trip.date}</span></div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.time}</span></div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{trip.distance}</span></div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Users size={18} className="text-primary" /><span className="text-sm font-bold">{participants?.filter(p => p.status === 'yes').length || 0} / {trip.max_participants}</span></div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", trip.status === 'completed' ? "bg-green-600" : "bg-primary")}>
+              {TRIP_STATUS_LABELS[trip.status]}
+            </Badge>
+            <Button asChild variant="outline" className="h-10 rounded-xl font-bold border-primary/20 hover:bg-primary/5">
+              <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" /> Rotayı Haritada Aç
+              </a>
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-10 space-y-10">
+        <div className="grid lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2 space-y-10">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
+                <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
+                  <MapPin className="text-primary mt-1 shrink-0" size={24} />
+                  <div className="space-y-4 w-full">
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
+                    {trip.route_points && trip.route_points.length > 2 && (
+                      <div className="space-y-2 py-2 border-y border-border/40">
+                        {trip.route_points.filter(p => p.type !== 'start' && p.type !== 'end').map((p, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><div className="h-1 w-1 rounded-full bg-border" /> {p.name}</div>
+                        ))}
+                      </div>
+                    )}
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Buluşma Detayları</h4>
+                <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <MapPin size={18} className="text-primary mt-1" />
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Buluşma Noktası</p><p className="font-bold">{trip.meeting_point}</p></div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Clock size={18} className="text-primary mt-1" />
+                    <div><p className="text-[9px] font-black uppercase text-primary/70">Buluşma Saati</p><p className="font-bold">{trip.meeting_time}</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Açıklama</h4>
+              <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{trip.description}"</p>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <Card className="rounded-[32px] border-border/40 bg-secondary/10 overflow-hidden">
+              <div className="p-6 border-b border-border/40 flex items-center gap-4">
+                <Avatar className="h-12 w-12 border-2 border-primary/20"><AvatarImage src={mentorProfile?.photoURL || ''} /><AvatarFallback>{mentorProfile?.name?.charAt(0)}</AvatarFallback></Avatar>
+                <div>
+                  <p className="text-[9px] font-black uppercase text-primary tracking-widest">MENTOR</p>
+                  <p className="font-black text-lg">@{mentorProfile?.name}</p>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">İletişim Bilgileri</h5>
+                {isContactVisible ? (
+                  <div className="space-y-3">
+                    {mentorProfile?.phone && (
+                      <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Phone size={14} className="text-primary" /> {mentorProfile.phone}</div>
+                    )}
+                    {mentorProfile?.instagram && (
+                      <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Instagram size={14} className="text-pink-500" /> @{mentorProfile.instagram}</div>
+                    )}
+                    <div className="flex items-center gap-3 text-sm font-bold text-foreground/80"><Mail size={14} className="text-blue-400" /> {mentorProfile?.email}</div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-muted/20 border border-dashed text-center space-y-2">
+                    <EyeOff size={20} className="mx-auto text-muted-foreground/40" />
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+                      {trip.contact_visible === 'participants_only' ? 'Sadece katılımcılar görebilir' : 'İletişim bilgileri kapalı'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcı Durumu</h4>
+              <div className="flex gap-3">
+                <Button onClick={() => handleRSVP('yes')} variant={myStatus === 'yes' ? 'default' : 'outline'} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Geliyorum</Button>
+                <Button onClick={() => handleRSVP('no')} variant={myStatus === 'no' ? 'default' : 'outline'} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Gelemem</Button>
+              </div>
+            </div>
+
+            {(trip.isListPublic || isOwner) && participants && (
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılacaklar ({participants.filter(p => p.status === 'yes').length} / {trip.max_participants})</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {participants.filter(p => p.status === 'yes').map(p => (
+                    <div key={p.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40">
+                      <Avatar className="h-8 w-8 border border-white/20"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
+                      <span className="text-xs font-black truncate">@{p.userName}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
   const [formData, setFormData] = useState({
     title: '', description: '', startPoint: '', endPoint: '',
@@ -882,7 +795,14 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
     }
   };
 
-  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', meeting_point: '', meeting_time: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, contact_visible: 'participants_only', max_participants: 15, route_points: [] }); } };
+  const handleCreate = () => { 
+    if (formData.title && formData.date) { 
+      onCreate(formData); 
+      setFormData({ 
+        title: '', description: '', startPoint: '', endPoint: '', meeting_point: '', meeting_time: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, contact_visible: 'participants_only', max_participants: 15, route_points: [] 
+      }); 
+    } 
+  };
   
   return (
     <div className="space-y-6">
