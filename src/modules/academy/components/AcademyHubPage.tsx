@@ -1,4 +1,3 @@
-
 'use client';
 import { Award, BarChart3, Diamond, Lock, GraduationCap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +23,7 @@ const academyLevels = [
     subtitle: 'Kameranızın temellerini öğrenin.',
     description: 'Pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.',
     href: '/academy/temel',
-    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-basic')?.imageUrl || '',
+    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-basic')?.imageUrl || 'https://picsum.photos/seed/academy-basic/600/400',
     features: ['Kamera temelleri', 'Pozlama üçgeni', 'Temel kompozisyon']
   },
   {
@@ -36,7 +35,7 @@ const academyLevels = [
     subtitle: 'Tekniğinizi profesyonelleştirin.',
     description: 'Farklı türlerde çekim yapın ve ışığı bilinçli yönetin.',
     href: '/academy/orta',
-    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-intermediate')?.imageUrl || '',
+    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-intermediate')?.imageUrl || 'https://picsum.photos/seed/academy-intermediate/600/400',
     features: ['Tür bazlı çekim', 'Işık yönetimi', 'Görsel hikaye anlatımı']
   },
   {
@@ -48,7 +47,7 @@ const academyLevels = [
     subtitle: 'Kendi sanatsal tarzınızı yaratın.',
     description: 'Profesyonel ışık kurulumlarını öğrenin ve uzmanlaşın.',
     href: '/academy/ileri',
-    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-advanced')?.imageUrl || '',
+    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-advanced')?.imageUrl || 'https://picsum.photos/seed/academy-advanced/600/400',
     features: ['Profesyonel ışık', 'Sanatsal stil', 'Marka konumlandırma']
   },
 ];
