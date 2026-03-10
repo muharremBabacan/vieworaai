@@ -113,7 +113,8 @@ export default function PageContent() {
       
       router.push('/dashboard');
     } catch (error: any) {
-      console.error(error);
+      // Don't log to console.error to avoid dev overlay for expected auth issues
+      console.warn("Google Sign-In Error:", error.code);
       toast({
         variant: 'destructive',
         title: 'Giriş Başarısız',
@@ -150,7 +151,9 @@ export default function PageContent() {
       
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Login error:", error.code);
+      // Use warn instead of error to prevent Next.js from showing the error overlay for user input errors
+      console.warn("Email Sign-In Error:", error.code);
+      
       if (error.code === 'auth/user-not-found') {
         router.push(`/signup?email=${encodeURIComponent(email)}`);
       } else {
