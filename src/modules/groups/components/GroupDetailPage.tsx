@@ -3,9 +3,38 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
+import { 
+  doc, 
+  updateDoc, 
+  arrayRemove, 
+  collection, 
+  query, 
+  where, 
+  documentId, 
+  addDoc, 
+  arrayUnion, 
+  orderBy, 
+  increment, 
+  writeBatch, 
+  getDoc, 
+  setDoc 
+} from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus, TripTemplate, RoutePoint, ContactVisible } from '@/types';
+import type { 
+  Group, 
+  PublicUserProfile, 
+  User, 
+  GroupAssignment, 
+  GroupSubmission, 
+  GroupComment, 
+  GroupPurpose, 
+  Trip, 
+  TripParticipant, 
+  TripStatus, 
+  ParticipantStatus, 
+  RoutePoint, 
+  ContactVisible 
+} from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,7 +44,43 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ExternalLink, Instagram, Phone, Mail, Eye, EyeOff, Diamond, Zap, Sparkles } from 'lucide-react';
+import { 
+  Loader2, 
+  Crown, 
+  Users, 
+  CheckCircle2, 
+  Send, 
+  ImageIcon, 
+  Info, 
+  PlusCircle, 
+  Heart, 
+  Star, 
+  X, 
+  ShieldCheck, 
+  GraduationCap, 
+  Trophy, 
+  Map, 
+  Hash, 
+  Copy, 
+  Calendar, 
+  Clock, 
+  Ruler, 
+  MapPin, 
+  Check, 
+  UserPlus, 
+  Trash2, 
+  Archive, 
+  CheckCircle, 
+  ArrowLeft, 
+  ExternalLink, 
+  Instagram, 
+  Phone, 
+  Mail, 
+  EyeOff, 
+  Zap, 
+  Sparkles,
+  ArrowLeftRight
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -25,6 +90,11 @@ import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { typography } from "@/lib/design/typography";
+
+/* -------------------------------------------------------------------------- */
+/*                                  CONSTANTS                                 */
+/* -------------------------------------------------------------------------- */
 
 const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: string }> = {
   study: { label: 'Eğitim', icon: GraduationCap, color: 'bg-blue-500/10 text-blue-400' },
@@ -40,7 +110,7 @@ const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
   archived: 'Arşivlendi'
 };
 
-const ISTANBUL_TEMPLATES: Omit<TripTemplate, 'id'>[] = [
+const ISTANBUL_TEMPLATES = [
   {
     title: "Galata - Karaköy Mimari Rota",
     city: "istanbul",
@@ -74,21 +144,6 @@ const ISTANBUL_TEMPLATES: Omit<TripTemplate, 'id'>[] = [
     ]
   },
   {
-    title: "Kuzguncuk Mahalle Kültürü",
-    city: "istanbul",
-    category: "street",
-    duration_minutes: 60,
-    distance_km: 1.0,
-    start_point: "Kuzguncuk İskelesi",
-    end_point: "Kuzguncuk Bostanı",
-    route_points: [
-      { name: "Kuzguncuk İskelesi", type: "start" },
-      { name: "Perihan Abla Sokağı", type: "photo_stop" },
-      { name: "Nail Kitabevi", type: "break" },
-      { name: "Kuzguncuk Bostanı", type: "end" }
-    ]
-  },
-  {
     title: "Sultanahmet Tarihi Yarımada",
     city: "istanbul",
     category: "culture",
@@ -103,24 +158,12 @@ const ISTANBUL_TEMPLATES: Omit<TripTemplate, 'id'>[] = [
       { name: "Soğukçeşme Sokağı", type: "photo_stop" },
       { name: "Gülhane Parkı", type: "end" }
     ]
-  },
-  {
-    title: "Moda Sahil ve Yaşam",
-    city: "istanbul",
-    category: "lifestyle",
-    duration_minutes: 90,
-    distance_km: 2.5,
-    start_point: "Kadıköy Boğa Heykeli",
-    end_point: "Moda Burnu",
-    route_points: [
-      { name: "Kadıköy Boğa Heykeli", type: "start" },
-      { name: "Bahariye Caddesi", type: "street" },
-      { name: "Moda Caddesi", type: "photo_stop" },
-      { name: "Moda Çay Bahçesi", type: "break" },
-      { name: "Moda Burnu", type: "end" }
-    ]
   }
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                               MAIN COMPONENT                               */
+/* -------------------------------------------------------------------------- */
 
 export default function GroupDetailPage() {
   const { groupId } = useParams();
@@ -166,22 +209,25 @@ export default function GroupDetailPage() {
   const handleUploadSubmission = async (assignment: GroupAssignment, file: File) => {
     if (!user || !group || isUploading || !firestore) return;
     setIsUploading(true);
-    toast({ title: "Yükleniyor ve Analiz Ediliyor...", description: "Luma ödevini değerlendiriyor. Lütfen bekleyin..." });
+    toast({ title: "Analiz Ediliyor...", description: "Luma ödevini değerlendiriyor." });
     try {
       const hash = Math.random().toString(36).substring(7);
       const storagePath = `groups/${group.id}/submissions/${assignment.id}/${user.uid}-${hash}.jpg`;
       const storageRef = ref(storage, storagePath);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
+      
       const aiResult = await evaluateGroupSubmission({
         photoUrl: url,
         assignmentTitle: assignment.title,
         assignmentDescription: assignment.description,
         language: "tr"
       });
+
       const batch = writeBatch(firestore);
       const submissionRef = doc(collection(firestore, 'groups', group.id, 'submissions'));
       const userRef = doc(firestore, 'users', user.uid);
+      
       batch.set(submissionRef, {
         id: submissionRef.id,
         groupId: group.id,
@@ -196,6 +242,7 @@ export default function GroupDetailPage() {
         aiFeedback: aiResult,
         submittedAt: new Date().toISOString()
       } as GroupSubmission);
+      
       batch.update(userRef, { 'profile_index.activity_signals.group_activity_score': increment(10) });
       await batch.commit();
       toast({ title: "Ödev Teslim Edildi!" });
@@ -268,20 +315,15 @@ export default function GroupDetailPage() {
     
     batch.update(tripRef, updates);
 
-    const type = newStatus === 'cancelled' ? 'trip_cancelled' : 'trip_updated';
-    const messagePrefix = newStatus === 'cancelled' ? 'Gezi iptal edildi: ' : 'Gezi güncellendi: ';
-    const tripSnap = await getDoc(tripRef);
-    const tripTitle = tripSnap.exists() ? tripSnap.data().title : "Bir gezi";
-
     group.memberIds.forEach(memberId => {
       if (memberId !== user.uid) {
         const notifRef = doc(collection(firestore, 'users', memberId, 'notifications'));
         batch.set(notifRef, {
-          type: type,
+          type: newStatus === 'cancelled' ? 'trip_cancelled' : 'trip_updated',
           tripId: tripId,
           groupId: group.id,
           title: "Gezi Güncellemesi",
-          message: `${messagePrefix} ${tripTitle}`,
+          message: `${newStatus === 'cancelled' ? 'Gezi iptal edildi' : 'Gezi güncellendi'}`,
           createdAt: now,
           read: false
         });
@@ -290,7 +332,7 @@ export default function GroupDetailPage() {
 
     try {
       await batch.commit();
-      toast({ title: "Gezi Durumu Güncellendi" });
+      toast({ title: "Durum Güncellendi" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
@@ -411,9 +453,7 @@ export default function GroupDetailPage() {
                           <p className="text-sm font-medium text-muted-foreground">{new Date(ass.createdAt).toLocaleDateString('tr-TR')} tarihinde verildi</p>
                         </div>
                         {userSubmission && (
-                          <div className="flex flex-col items-end gap-2">
-                            <Badge className="bg-green-500 text-white font-black px-4 h-7 rounded-full uppercase tracking-widest text-[10px]"><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Teslim Edildi</Badge>
-                          </div>
+                          <Badge className="bg-green-500 text-white font-black px-4 h-7 rounded-full uppercase tracking-widest text-[10px]"><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Teslim Edildi</Badge>
                         )}
                       </div>
                     </CardHeader>
@@ -583,6 +623,10 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/*                              HELPER COMPONENTS                             */
+/* -------------------------------------------------------------------------- */
 
 function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip, isOwner: boolean, userId: string, userProfile: User | null, groupId: string }) {
   const firestore = useFirestore();
