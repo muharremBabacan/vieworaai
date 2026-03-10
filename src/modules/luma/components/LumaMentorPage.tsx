@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, BarChart3, Info, TrendingUp, Lock } from 'lucide-react';
+import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, BarChart3, Info, TrendingUp, Lock, Zap, Diamond } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -211,6 +211,15 @@ export default function LumaMentorPage() {
     }
   };
 
+  const getTierIcon = (tier: UserTier) => {
+    switch (tier) {
+      case 'start': return <Zap size={12} />;
+      case 'pro': return <Sparkles size={12} />;
+      case 'master': return <Diamond size={12} />;
+      default: return null;
+    }
+  };
+
   if (isProfileLoading || isHistoryLoading) {
     return <div className="container mx-auto px-4 py-20 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" /></div>;
   }
@@ -219,8 +228,14 @@ export default function LumaMentorPage() {
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-12 space-y-1">
         <p className={cn(typography.eyebrow, "ml-1")}>MENTORLUK</p>
-        <h1 className={cn(typography.h1, "leading-none uppercase")}>Luma Mentor</h1>
-        <p className={cn(typography.subtitle, "opacity-80")}>Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className={cn(typography.h1, "leading-none uppercase")}>Luma Mentor</h1>
+          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase tracking-widest text-[9px] h-7 px-4 rounded-full flex items-center gap-2">
+            {getTierIcon(currentTier)}
+            LUMA {currentTier.toUpperCase()} PAKETİ
+          </Badge>
+        </div>
+        <p className={cn(typography.subtitle, "opacity-80 pt-2")}>Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>
       </header>
 
       <div className="max-w-6xl mx-auto space-y-12">
