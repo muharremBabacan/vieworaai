@@ -115,6 +115,7 @@ export type User = {
   communication_style?: 'soft' | 'balanced' | 'technical';
   score_history?: { score: number; date: string }[];
   profile_index?: UserProfileIndex;
+  provider: 'google' | 'email';
 };
 
 export type AnalysisLog = {

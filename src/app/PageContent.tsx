@@ -1,23 +1,27 @@
-
 'use client';
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
   type UserCredential,
 } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import Logo from '@/core/components/logo';
 import Link from 'next/link';
 
-import { doc, getDoc, setDoc, updateDoc, collection, writeBatch, increment, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, writeBatch, increment } from 'firebase/firestore';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, Lock } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase';
 import type { User as UserProfile } from '@/types';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { AuthService } from '@/lib/auth/auth-service';
 
 function MilkyWayEffect() {
   const [stars, setStars] = useState<{ id: number; tx: number; ty: number; delay: number }[]>([]);
@@ -57,88 +61,44 @@ export default function PageContent() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showStars, setShowStars] = useState(false);
+  
+  // Email Login States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const calculateDailyStreak = (existingProfile: UserProfile): { streak: number; lastDate: string } => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    
-    if (!existingProfile.last_active_date) {
-      return { streak: 1, lastDate: todayStr };
-    }
-
-    const lastActiveStr = existingProfile.last_active_date.split('T')[0];
-
-    if (lastActiveStr === todayStr) {
-      return { streak: existingProfile.daily_streak || 1, lastDate: todayStr };
-    }
-
-    const yesterday = new Date();
-    yesterday.setDate(now.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-    if (lastActiveStr === yesterdayStr) {
-      return { streak: (existingProfile.daily_streak || 0) + 1, lastDate: todayStr };
-    }
-
-    return { streak: 1, lastDate: todayStr };
-  };
-
-  const processAuroRefillAndTestAdjustment = async (userId: string, existingProfile: UserProfile) => {
+  const processAuroRefillAndStats = async (userId: string, existingProfile: UserProfile) => {
     if (!firestore) return;
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', userId);
-    let needsUpdate = false;
-    let finalAuro = existingProfile.auro_balance;
-
-    // 1. Handle Daily Streak
-    const { streak, lastDate } = calculateDailyStreak(existingProfile);
-    batch.update(userRef, { daily_streak: streak, last_active_date: lastDate });
-    needsUpdate = true;
-
-    // 2. Initial Balance Sync (Test users)
-    if (!existingProfile.test_balance_reset) {
-      const testAuro = Math.floor(Math.random() * 11) + 10;
-      finalAuro = testAuro;
-      batch.update(userRef, { auro_balance: testAuro, test_balance_reset: true });
-      needsUpdate = true;
-    }
-
-    // 3. Stats Reconciliation (Rozetlerin 0 kalmaması için doğrulama)
-    // Sergi sayısını gerçek veriden say ve güncelle
+    
+    // Stats Reconciliation
     const publicPhotosSnap = await getDocs(query(collection(firestore, 'public_photos'), where('userId', '==', userId)));
-    const actualExhibitionCount = publicPhotosSnap.size;
-    if (existingProfile.total_exhibitions_count !== actualExhibitionCount) {
-      batch.update(userRef, { total_exhibitions_count: actualExhibitionCount });
-      needsUpdate = true;
+    if (existingProfile.total_exhibitions_count !== publicPhotosSnap.size) {
+      batch.update(userRef, { total_exhibitions_count: publicPhotosSnap.size });
     }
 
-    // 4. Weekly Refill Logic
+    // Weekly Refill Logic
     const now = new Date();
     const lastRefillDate = existingProfile.weekly_free_refill_date ? new Date(existingProfile.weekly_free_refill_date) : new Date(0);
     const msInWeek = 7 * 24 * 60 * 60 * 1000;
 
     if (now.getTime() - lastRefillDate.getTime() >= msInWeek) {
-      if (finalAuro < 20) {
-        const giftAmount = Math.min(5, 20 - finalAuro);
+      if (existingProfile.auro_balance < 20) {
+        const giftAmount = Math.min(5, 20 - existingProfile.auro_balance);
         if (giftAmount > 0) {
           batch.update(userRef, { auro_balance: increment(giftAmount), weekly_free_refill_date: now.toISOString() });
           const logRef = doc(collection(firestore, 'analysis_logs'));
           batch.set(logRef, { id: logRef.id, userId, userName: existingProfile.name || 'Vizyoner', type: 'gift', auroSpent: -giftAmount, timestamp: now.toISOString(), status: 'success' });
-          const notifRef = doc(collection(firestore, 'users', userId, 'notifications'));
-          batch.set(notifRef, { id: notifRef.id, title: "Haftalık Hediye!", message: `Luma senin için ${giftAmount} ${currencyName} bıraktı.`, type: 'reward', createdAt: now.toISOString() });
-          needsUpdate = true;
-          setTimeout(() => { setShowStars(true); toast({ title: `Haftalık ${currencyName} Hediyesi!` }); setTimeout(() => setShowStars(false), 3000); }, 2000);
         }
       } else {
         batch.update(userRef, { weekly_free_refill_date: now.toISOString() });
-        needsUpdate = true;
       }
     }
     
-    if (needsUpdate) await batch.commit();
+    await batch.commit();
   };
 
-  const handleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
     setIsLoading(true);
     try {
@@ -146,58 +106,67 @@ export default function PageContent() {
       provider.setCustomParameters({ prompt: 'select_account' });
       
       const result: UserCredential = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
-      const userSnap = await getDoc(doc(firestore, 'users', firebaseUser.uid));
-      const now = new Date().toISOString();
-
-      if (!userSnap.exists()) {
-        const newUser: UserProfile = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email,
-          name: firebaseUser.displayName?.split(' ')[0] || "İsimsiz Sanatçı",
-          photoURL: firebaseUser.photoURL,
-          auro_balance: 20,
-          current_xp: 0,
-          level_name: 'Neuner',
-          tier: 'start',
-          total_analyses_count: 0,
-          total_mentor_analyses_count: 0,
-          total_exhibitions_count: 0,
-          total_competitions_count: 0,
-          weekly_free_refill_date: now,
-          onboarded: false,
-          daily_streak: 1,
-          last_active_date: now.split('T')[0],
-          completed_modules: [],
-          interests: [],
-          createdAt: now,
-        };
-        await setDoc(doc(firestore, 'users', firebaseUser.uid), newUser);
-        await setDoc(doc(firestore, 'public_profiles', firebaseUser.uid), { id: firebaseUser.uid, name: newUser.name, email: newUser.email, photoURL: newUser.photoURL, level_name: 'Neuner' });
-        
-        const notifRef = doc(collection(firestore, 'users', firebaseUser.uid, 'notifications'));
-        await setDoc(notifRef, { id: notifRef.id, title: "Vizyon Analizi Bekliyor", message: "Luma seni tanımak istiyor. Lütfen anketi doldurun.", type: 'system', createdAt: now });
-      } else {
-        const existing = userSnap.data() as UserProfile;
-        await updateDoc(doc(firestore, 'users', firebaseUser.uid), { lastLoginAt: now });
-        await processAuroRefillAndTestAdjustment(firebaseUser.uid, existing);
-      }
-      setIsLoading(false);
+      const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
+      
+      await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
+      await processAuroRefillAndStats(result.user.uid, profile);
+      
+      router.push('/dashboard');
     } catch (error: any) {
       console.error(error);
-      if (error.code === 'auth/popup-blocked') {
+      toast({
+        variant: 'destructive',
+        title: 'Giriş Başarısız',
+        description: error.code === 'auth/popup-blocked' ? 'Pop-up pencerelere izin verin.' : 'Google ile giriş yapılırken bir hata oluştu.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth || !firestore || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Email verification check
+      if (!result.user.emailVerified) {
         toast({
           variant: 'destructive',
-          title: 'Giriş Penceresi Engellendi',
-          description: 'Lütfen tarayıcınızın ayarlarından açılır pencerelere (pop-up) izin verin ve tekrar deneyin.',
+          title: 'E-posta Doğrulanmamış',
+          description: 'Lütfen e-posta adresinizi doğrulamadan giriş yapamazsınız.',
         });
+        await auth.signOut();
+        setIsLoading(false);
+        return;
+      }
+
+      const profile = await AuthService.ensureUserDoc(firestore, result.user);
+      await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
+      await processAuroRefillAndStats(result.user.uid, profile);
+      
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error("Login error:", error.code);
+      if (error.code === 'auth/user-not-found') {
+        router.push(`/signup?email=${encodeURIComponent(email)}`);
       } else {
+        const messages: Record<string, string> = {
+          'auth/wrong-password': 'Şifre hatalı.',
+          'auth/invalid-email': 'Geçersiz e-posta formatı.',
+          'auth/user-disabled': 'Kullanıcı hesabı askıya alınmış.',
+          'auth/invalid-credential': 'E-posta veya şifre hatalı.'
+        };
         toast({
           variant: 'destructive',
-          title: 'Giriş Başarısız',
-          description: 'Google ile giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.',
+          title: 'Giriş Hatası',
+          description: messages[error.code] || 'Bir hata oluştu. Lütfen tekrar deneyin.',
         });
       }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -217,22 +186,66 @@ export default function PageContent() {
             </div>
           </div>
           
-          <div className="space-y-4">
-            <Button variant="outline" className="w-full h-12 rounded-2xl font-bold border-2" onClick={handleSignIn} disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Google ile Giriş Yap"}
+          <div className="space-y-6">
+            <Button variant="outline" className="w-full h-12 rounded-2xl font-bold border-2" onClick={handleGoogleSignIn} disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Google ile Devam Et"}
             </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><Separator /></div>
+              <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-background px-2 text-muted-foreground">Veya E-posta</span></div>
+            </div>
+
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest ml-1">E-posta</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="ornek@mail.com" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)} 
+                    className="pl-10 h-12 rounded-2xl bg-muted/30" 
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest ml-1">Şifre</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    className="pl-10 h-12 rounded-2xl bg-muted/30" 
+                    required 
+                  />
+                </div>
+              </div>
+              <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "Giriş Yap"}
+              </Button>
+            </form>
             
-            <p className="px-8 text-center text-[10px] text-muted-foreground leading-relaxed">
-              Giriş yaparak veya hesap oluşturarak{' '}
-              <Link href="/terms" className="underline underline-offset-4 hover:text-primary font-bold">
-                Hizmet Şartları
-              </Link>{' '}
-              ve{' '}
-              <Link href="/privacy" className="underline underline-offset-4 hover:text-primary font-bold">
-                Gizlilik Politikası
-              </Link>
-              ’nı kabul etmiş olursunuz.
-            </p>
+            <div className="text-center space-y-4">
+              <p className="text-sm font-medium text-muted-foreground">
+                Hesabın yok mu?{' '}
+                <Link href="/signup" className="text-primary font-bold hover:underline">Üye Ol</Link>
+              </p>
+              
+              <p className="px-8 text-center text-[10px] text-muted-foreground leading-relaxed">
+                Giriş yaparak veya hesap oluşturarak{' '}
+                <Link href="/terms" className="underline underline-offset-4 hover:text-primary font-bold">Hizmet Şartları</Link>
+                {' '}ve{' '}
+                <Link href="/privacy" className="underline underline-offset-4 hover:text-primary font-bold">Gizlilik Politikası</Link>
+                ’nı kabul etmiş olursunuz.
+              </p>
+            </div>
           </div>
         </div>
       </main>

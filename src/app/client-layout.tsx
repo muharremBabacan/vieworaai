@@ -19,7 +19,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   // Bağımsız sayfalar (Navigasyon barındırmazlar)
-  const isStandalonePage = pathname === '/' || pathname === '/terms' || pathname === '/privacy';
+  const isStandalonePage = [
+    '/', 
+    '/signup', 
+    '/verify-email', 
+    '/terms', 
+    '/privacy'
+  ].includes(pathname);
   
   // Yönlendirme Mantığı (Merkezi Kontrol)
   useEffect(() => {
@@ -28,30 +34,39 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     if (user) {
       // KULLANICI GİRİŞ YAPMIŞ
+      
+      // E-posta doğrulama kontrolü (Email ile giriş yapanlar için)
+      // Google ile girenlerin emailVerified değeri zaten true gelir.
+      if (!user.emailVerified) {
+        if (pathname !== '/verify-email' && pathname !== '/' && pathname !== '/signup') {
+          router.replace('/verify-email');
+        }
+        return;
+      }
+
       const onboarded = userProfile?.onboarded ?? false;
       
       if (!onboarded) {
         // Anketi doldurmamış -> Sadece onboarding, terms, privacy sayfalarına izin ver
-        // Eğer başka bir yerdeyse (Dashboard, Explore vb.), Onboarding'e zorla
-        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy') {
+        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/verify-email') {
           router.replace('/onboarding');
         }
       } else {
         // Anketi doldurmuş -> Eğer giriş veya onboarding sayfasındaysa dashboard'a gönder
-        if (pathname === '/' || pathname === '/onboarding') {
+        if (pathname === '/' || pathname === '/onboarding' || pathname === '/signup' || pathname === '/verify-email') {
           router.replace('/dashboard');
         }
       }
     } else {
       // KULLANICI GİRİŞ YAPMAMIŞ
-      // Sadece giriş, şartlar ve gizlilik sayfalarına izin ver
+      // Sadece giriş, kayıt, doğrulama, şartlar ve gizlilik sayfalarına izin ver
       if (!isStandalonePage) {
         router.replace('/');
       }
     }
   }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage]);
 
-  // Kritik veriler yüklenirken global bir loader göster (Sadece ilk girişte)
+  // Kritik veriler yüklenirken global bir loader göster
   if (isUserLoading || (user && isProfileLoading && !userProfile)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -60,8 +75,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Navigasyonu sadece giriş yapmış ve bağımsız bir sayfada olmayan kullanıcıya göster
-  // Onboarding sayfasında Header görünmeli (Bildirimler için), ama BottomNav görünmemeli.
   const showHeader = user && !isStandalonePage;
   const showBottomNav = user && !isStandalonePage && pathname !== '/onboarding';
 
