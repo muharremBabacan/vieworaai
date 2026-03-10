@@ -1,10 +1,40 @@
-import type { PhotoAnalysisOutput } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
-import type { StrategicFeedbackOutput } from '@/ai/flows/generate-strategic-feedback';
-
 export type UserTier = 'start' | 'pro' | 'master';
 
-export type PhotoAnalysis = PhotoAnalysisOutput;
-export type StrategicFeedback = StrategicFeedbackOutput;
+export type VisualMarker = {
+  type: "subject" | "distraction" | "light_direction";
+  box_2d: number[];
+  label: string;
+};
+
+export type PhotoAnalysis = {
+  genre: string;
+  scene: string;
+  dominant_subject: string;
+  light_score: number;
+  composition_score: number;
+  technical_clarity_score: number;
+  storytelling_score?: number;
+  boldness_score?: number;
+  visual_markers?: VisualMarker[];
+  style_analysis?: string;
+  tags: string[];
+  short_neutral_analysis: string;
+};
+
+export type StrategicFeedback = {
+  feedback: string;
+  actionTask: {
+    title: string;
+    purpose: string;
+    steps: string[];
+    evaluationQuestions: string[];
+    weeklyTarget: string[];
+  };
+  explanations?: Array<{
+    term: string;
+    definition: string;
+  }>;
+};
 
 export type StoredStrategicFeedback = StrategicFeedback & {
   id: string;
@@ -25,7 +55,6 @@ export type OnboardingResults = {
 };
 
 export type UserProfileIndex = {
-  // Metadata & Derived Summary
   dominant_style: string;
   strengths: string[];
   weaknesses: string[];
@@ -36,8 +65,6 @@ export type UserProfileIndex = {
   };
   consistency_gap: number;
   profile_index_score: number;
-
-  // 1. Teknik Katman (Kaynak: AI Fotoğraf Analizi)
   technical: {
     composition: number;
     light: number;
@@ -45,15 +72,12 @@ export type UserProfileIndex = {
     boldness: number;
     storytelling: number;
   };
-
-  // 2. Davranış Katmanı / Aktivite Sinyalleri (Kaynak: Kullanıcı Aktiviteleri)
   activity_signals: {
     learning_score: number;
     competition_score: number;
     exhibition_score: number;
     group_activity_score: number;
   };
-
   communication_profile: {
     tone: 'supportive' | 'direct' | 'analytical';
     explanation_depth: 'low' | 'medium' | 'high';

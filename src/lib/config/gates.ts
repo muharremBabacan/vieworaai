@@ -50,6 +50,6 @@ export const gates: Record<string, GateRule> = {
   mentorAnalysis: {
     minLevel: "vexer",
     minTier: "master",
-    auroCost: 5
+    auroCost: 10
   }
 };

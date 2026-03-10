@@ -1,7 +1,6 @@
 'use client';
 
 import { gates } from "@/lib/config/gates";
-import type { Level } from "@/lib/config/gates";
 
 /**
  * Minimal user interface to break dependency on heavy type files
@@ -38,7 +37,10 @@ export function canAccess(user: AccessUser | null | undefined, gateName: string)
     const userLevel = (user.level_name || "neuner").toLowerCase();
     const requiredLevel = rule.minLevel.toLowerCase();
     
-    if (levelOrder.indexOf(userLevel) < levelOrder.indexOf(requiredLevel)) {
+    const userIndex = levelOrder.indexOf(userLevel);
+    const requiredIndex = levelOrder.indexOf(requiredLevel);
+
+    if (userIndex < requiredIndex) {
       return false;
     }
   }
@@ -46,10 +48,13 @@ export function canAccess(user: AccessUser | null | undefined, gateName: string)
   // 2. Tier Check (Subscription depth)
   if (rule.minTier) {
     const tierOrder = ["start", "pro", "master"];
-    const userTier = user.tier || "start";
-    const requiredTier = rule.minTier;
+    const userTier = (user.tier || "start").toLowerCase();
+    const requiredTier = rule.minTier.toLowerCase();
     
-    if (tierOrder.indexOf(userTier) < tierOrder.indexOf(requiredTier)) {
+    const userTierIndex = tierOrder.indexOf(userTier);
+    const requiredTierIndex = tierOrder.indexOf(requiredTier);
+
+    if (userTierIndex < requiredTierIndex) {
       return false;
     }
   }
