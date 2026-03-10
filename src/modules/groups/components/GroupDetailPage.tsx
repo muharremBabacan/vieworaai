@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map } from 'lucide-react';
+import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -185,6 +185,13 @@ export default function GroupDetailPage() {
     } catch (e) { console.error(e); }
   };
 
+  const copyJoinCode = () => {
+    if (group?.joinCode) {
+      navigator.clipboard.writeText(group.joinCode);
+      toast({ title: "Kopyalandı!", description: "Grup katılım kodu (numarası) kopyalandı." });
+    }
+  };
+
   if (isGroupLoading) return <div className="container mx-auto px-4 pt-12 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   if (!group) return null;
 
@@ -203,7 +210,18 @@ export default function GroupDetailPage() {
                 <purpose.icon size={12} className="mr-1.5" /> {purpose.label}
               </Badge>
             </div>
-            <p className="text-muted-foreground text-lg font-medium">{group.description}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-muted-foreground text-lg font-medium">{group.description}</p>
+              <div className="h-px w-4 bg-border mx-2" />
+              <div 
+                className="flex items-center gap-1.5 px-3 py-1 bg-muted/50 rounded-lg border border-border/40 cursor-pointer hover:bg-muted transition-colors group"
+                onClick={copyJoinCode}
+              >
+                <Hash size={14} className="text-primary" />
+                <span className="text-sm font-black tracking-widest">{group.joinCode}</span>
+                <Copy size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-4 bg-secondary/30 px-6 py-3 rounded-2xl border border-border/40">
             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm"><Users size={20} /></div>
@@ -543,7 +561,7 @@ export default function GroupDetailPage() {
   );
 }
 
-function CommentInput({ onSend }: { onSend: (t: string) => void }) {
+function CommentInput({ onSend }: { onSend: (text: string) => void }) {
   const [text, setText] = useState('');
   const handleSend = () => { if (text.trim()) { onSend(text); setText(''); } };
   return (
@@ -567,7 +585,7 @@ function CommentInput({ onSend }: { onSend: (t: string) => void }) {
   );
 }
 
-function AssignmentCreator({ onCreate }: { onCreate: (t: string, d: string) => void }) {
+function AssignmentCreator({ onCreate }: { onCreate: (title: string, description: string) => void }) {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const handleAdd = () => { if (title.trim() && desc.trim()) { onCreate(title, desc); setTitle(''); setDesc(''); } };
@@ -580,7 +598,7 @@ function AssignmentCreator({ onCreate }: { onCreate: (t: string, d: string) => v
   );
 }
 
-function AssignmentUploader({ onUpload, isUploading }: { onUpload: (f: File) => void, isUploading: boolean }) {
+function AssignmentUploader({ onUpload, isUploading }: { onUpload: (file: File) => void, isUploading: boolean }) {
   const onDrop = useCallback((files: File[]) => { if (files.length > 0) onUpload(files[0]); }, [onUpload]);
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] }, multiple: false });
   return (

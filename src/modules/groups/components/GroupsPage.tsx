@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, LogIn, Users, Crown, Loader2, GraduationCap, Trophy, Map, ShieldCheck, Lock } from 'lucide-react';
+import { PlusCircle, LogIn, Users, Crown, Loader2, GraduationCap, Trophy, Map, ShieldCheck, Lock, Hash, Copy } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -189,6 +189,11 @@ export default function GroupsPage() {
       }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Kopyalandı!", description: "Grup numarası panoya kopyalandı." });
+  };
+
   const isLoading = isUserLoading || isGroupsLoading || isOwnedLoading;
 
   return (
@@ -309,19 +314,25 @@ export default function GroupsPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {memberGroups.map(group => {
                   const purpose = PURPOSE_CONFIG[group.purpose || 'study'];
+                  const isOwner = group.ownerId === user?.uid;
                   return (
                     <Card key={group.id} className="flex flex-col group overflow-hidden border-border/40 bg-card/50 rounded-[24px] transition-all hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]">
                         <CardHeader className="pb-2">
                             <CardTitle className="flex justify-between items-start text-xl font-bold">
                                 <span className="truncate mr-2">{group.name}</span>
                                 <div className="flex gap-1">
-                                    {group.ownerId === user?.uid && <Crown className="h-4 w-4 text-amber-400" />}
+                                    {isOwner && <Crown className="h-4 w-4 text-amber-400" />}
                                 </div>
                             </CardTitle>
                             <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="secondary" className={cn("px-2 py-0 h-5 text-[9px] font-black uppercase tracking-widest border-none", purpose.color)}>
                                     <purpose.icon size={10} className="mr-1" /> {purpose.label}
                                 </Badge>
+                                {isOwner && group.joinCode && (
+                                  <Badge variant="outline" className="px-2 py-0 h-5 text-[9px] font-black uppercase tracking-widest bg-muted/50 flex items-center gap-1 cursor-pointer hover:bg-muted" onClick={(e) => { e.preventDefault(); copyToClipboard(group.joinCode!); }}>
+                                    <Hash size={8} /> {group.joinCode}
+                                  </Badge>
+                                )}
                             </div>
                         </CardHeader>
                         <CardContent className="flex-grow flex flex-col">
