@@ -1,10 +1,11 @@
+
 'use client';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus } from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -36,6 +37,119 @@ const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
   cancelled: 'İptal Edildi',
   archived: 'Arşivlendi'
 };
+
+function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip, isOwner: boolean, userId: string, userProfile: User | null, groupId: string }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
+  const participantsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups', groupId, 'trips', trip.id, 'participants');
+  }, [firestore, groupId, trip.id]);
+  
+  const { data: participants } = useCollection<TripParticipant>(participantsQuery);
+  
+  const myParticipantDoc = participants?.find(p => p.userId === userId);
+  const myStatus = myParticipantDoc?.status || 'pending';
+
+  const handleRSVP = async (status: ParticipantStatus) => {
+    if (!firestore) return;
+    const participantRef = doc(firestore, 'groups', groupId, 'trips', trip.id, 'participants', userId);
+    try {
+      await setDoc(participantRef, {
+        userId,
+        userName: userProfile?.name || 'Vizyoner',
+        userPhotoURL: userProfile?.photoURL || null,
+        status,
+        joined_at: new Date().toISOString()
+      });
+      toast({ title: status === 'yes' ? "Geziye Katılıyorsun!" : "Geziden Ayrıldın" });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Hata oluştu" });
+    }
+  };
+
+  return (
+    <Card className={cn("rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl", trip.status === 'completed' && "opacity-80 grayscale-[0.3]")}>
+      <CardHeader className="bg-secondary/20 p-10 border-b border-border/40">
+        <div className="flex justify-between items-start gap-4">
+          <div className="space-y-2">
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3 mb-2">GEZİ PLANI</Badge>
+            <CardTitle className="text-4xl font-black uppercase tracking-tighter">{trip.title}</CardTitle>
+            <div className="flex flex-wrap gap-6 pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{trip.date}</span></div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.time}</span></div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{trip.distance}</span></div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.duration}</span></div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", trip.status === 'completed' ? "bg-green-600" : "bg-primary")}>
+              {TRIP_STATUS_LABELS[trip.status]}
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-10 space-y-10">
+        <div className="grid md:grid-cols-2 gap-10">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
+              <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
+                <MapPin className="text-primary mt-1 shrink-0" size={24} />
+                <div className="space-y-4">
+                  <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
+                  <div className="h-px w-full bg-border/40" />
+                  <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Açıklama</h4>
+              <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{trip.description}"</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcı Durumu</h4>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => handleRSVP('yes')} 
+                  variant={myStatus === 'yes' ? 'default' : 'outline'}
+                  className="flex-1 h-14 rounded-2xl font-black uppercase text-xs"
+                >
+                  <ThumbsUp className="mr-2 h-4 w-4" /> Geliyorum
+                </Button>
+                <Button 
+                  onClick={() => handleRSVP('no')} 
+                  variant={myStatus === 'no' ? 'default' : 'outline'}
+                  className="flex-1 h-14 rounded-2xl font-black uppercase text-xs"
+                >
+                  <ThumbsDown className="mr-2 h-4 w-4" /> Gelemem
+                </Button>
+              </div>
+            </div>
+
+            {(trip.isListPublic || isOwner) && participants && (
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılacaklar ({participants.filter(p => p.status === 'yes').length})</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {participants.filter(p => p.status === 'yes').map(p => (
+                    <div key={p.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40">
+                      <Avatar className="h-8 w-8 border border-white/20"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
+                      <span className="text-xs font-black truncate">@{p.userName}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function GroupDetailPage() {
   const { groupId } = useParams();
@@ -68,30 +182,9 @@ export default function GroupDetailPage() {
 
   const [activeTab, setActiveTab] = useState('assignments');
   const [isUploading, setIsUploading] = useState(false);
-  const [isSyncingProfile, setIsSyncingProfile] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);
 
   const isCurrentUserOwner = group?.ownerId === user?.uid;
-
-  useEffect(() => {
-    if (!user || !userProfile || !firestore || isSyncingProfile) return;
-    const checkAndSyncProfile = async () => {
-      setIsSyncingProfile(true);
-      const publicRef = doc(firestore, 'public_profiles', user.uid);
-      const snap = await getDoc(publicRef);
-      if (!snap.exists()) {
-        await setDoc(publicRef, {
-          id: user.uid,
-          name: userProfile.name || "Anonim Vizyoner",
-          email: userProfile.email,
-          photoURL: userProfile.photoURL || null,
-          level_name: userProfile.level_name || "Neuner"
-        });
-      }
-      setIsSyncingProfile(false);
-    };
-    checkAndSyncProfile();
-  }, [user, userProfile, firestore, isSyncingProfile]);
 
   useEffect(() => {
     if (group?.purpose === 'walk') {
@@ -162,7 +255,6 @@ export default function GroupDetailPage() {
       const docRef = await addDoc(collection(firestore, 'groups', group.id, 'trips'), {
         ...tripData,
         groupId: group.id,
-        participants: [],
         status: 'planned',
         created_at: new Date().toISOString()
       });
@@ -180,32 +272,6 @@ export default function GroupDetailPage() {
     try {
       await updateDoc(tripRef, updates);
       toast({ title: "Gezi Durumu Güncellendi" });
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
-  };
-
-  const handleJoinTrip = async (trip: Trip) => {
-    if (!user || !firestore || !group) return;
-    const tripRef = doc(firestore, 'groups', group.id, 'trips', trip.id);
-    const newParticipant: TripParticipant = {
-      userId: user.uid,
-      userName: userProfile?.name || 'Vizyoner',
-      userPhotoURL: userProfile?.photoURL || null,
-      status: trip.approvalRequired ? 'pending' : 'approved',
-      requestedAt: new Date().toISOString()
-    };
-    try {
-      await updateDoc(tripRef, { participants: arrayUnion(newParticipant) });
-      toast({ title: trip.approvalRequired ? "Katılım İsteği Gönderildi" : "Geziye Katıldınız!" });
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
-  };
-
-  const handleManageParticipant = async (trip: Trip, participantId: string, status: 'approved' | 'rejected') => {
-    if (!isCurrentUserOwner || !firestore || !group) return;
-    const tripRef = doc(firestore, 'groups', group.id, 'trips', trip.id);
-    const updatedParticipants = trip.participants.map(p => p.userId === participantId ? { ...p, status } : p);
-    try {
-      await updateDoc(tripRef, { participants: updatedParticipants });
-      toast({ title: status === 'approved' ? "Üye Onaylandı" : "İstek Reddedildi" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
@@ -293,79 +359,16 @@ export default function GroupDetailPage() {
           {isTripsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
            trips && trips.length > 0 ? (
             <div className="grid gap-8">
-              {trips.filter(t => t.status !== 'cancelled').map(trip => {
-                const userParticipant = trip.participants.find(p => p.userId === user?.uid);
-                return (
-                  <Card key={trip.id} className={cn("rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl", trip.status === 'completed' && "opacity-80 grayscale-[0.3]")}>
-                    <CardHeader className="bg-secondary/20 p-10 border-b border-border/40">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="space-y-2">
-                          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3 mb-2">GEZİ PLANI</Badge>
-                          <CardTitle className="text-4xl font-black uppercase tracking-tighter">{trip.title}</CardTitle>
-                          <div className="flex flex-wrap gap-6 pt-4">
-                            <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{trip.date}</span></div>
-                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.time}</span></div>
-                            <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{trip.distance}</span></div>
-                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.duration}</span></div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", trip.status === 'completed' ? "bg-green-600" : "bg-primary")}>
-                            {TRIP_STATUS_LABELS[trip.status]}
-                          </Badge>
-                          {userParticipant && (
-                            <Badge variant="outline" className={cn("px-3 h-6 rounded-full font-bold uppercase text-[9px]", userParticipant.status === 'approved' ? "text-green-500 border-green-500/30" : "text-amber-500 border-amber-500/30")}>
-                              Kayıt: {userParticipant.status === 'approved' ? "ONAYLANDI" : "BEKLEMEDE"}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-10 space-y-10">
-                      <div className="grid md:grid-cols-2 gap-10">
-                        <div className="space-y-6">
-                          <div className="space-y-2">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
-                            <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
-                              <MapPin className="text-primary mt-1 shrink-0" size={24} />
-                              <div className="space-y-4">
-                                <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
-                                <div className="h-px w-full bg-border/40" />
-                                <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Açıklama</h4>
-                            <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{trip.description}"</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-6">
-                          {(trip.isListPublic || isCurrentUserOwner) && (
-                            <div className="space-y-4">
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcılar ({trip.participants.filter(p => p.status === 'approved').length})</h4>
-                              <div className="grid grid-cols-2 gap-3">
-                                {trip.participants.filter(p => p.status === 'approved').map(p => (
-                                  <div key={p.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40">
-                                    <Avatar className="h-8 w-8 border border-white/20"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
-                                    <span className="text-xs font-black truncate">@{p.userName}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {!userParticipant && trip.status === 'planned' && (
-                            <Button onClick={() => handleJoinTrip(trip)} className="w-full h-16 rounded-3xl font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20">
-                              <UserPlus className="mr-3" /> Geziye Katıl
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {trips.filter(t => t.status !== 'cancelled').map(trip => (
+                <TripCard 
+                  key={trip.id} 
+                  trip={trip} 
+                  isOwner={isCurrentUserOwner} 
+                  userId={user?.uid || ''} 
+                  userProfile={userProfile || null}
+                  groupId={group.id}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5">
@@ -505,18 +508,6 @@ export default function GroupDetailPage() {
                                 </>
                               )}
                               {trip.status === 'completed' && <Button size="sm" variant="secondary" className="h-8" onClick={() => handleUpdateTripStatus(trip.id, 'archived')}><Archive size={14} className="mr-1"/> Arşivle</Button>}
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-black uppercase text-muted-foreground">Onay Bekleyenler</p>
-                              {trip.participants.filter(p => p.status === 'pending').map(p => (
-                                <div key={p.userId} className="flex items-center justify-between p-2 rounded-xl bg-background/50">
-                                  <span className="text-xs font-bold">@{p.userName}</span>
-                                  <div className="flex gap-1">
-                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleManageParticipant(trip, p.userId, 'rejected')}><X size={12}/></Button>
-                                    <Button size="icon" className="h-7 w-7 bg-green-600" onClick={() => handleManageParticipant(trip, p.userId, 'approved')}><Check size={12}/></Button>
-                                  </div>
-                                </div>
-                              ))}
                             </div>
                           </div>
                         ))}

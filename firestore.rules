@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -96,10 +97,14 @@ service cloud.firestore {
         allow read: if isGroupMember(groupId);
         allow create: if isGroupOwner(groupId);
         allow update: if isGroupMember(groupId);
-        allow delete: if false; // Physical deletion is prohibited.
+        allow delete: if false;
+
+        match /participants/{userId} {
+          allow read: if isGroupMember(groupId);
+          allow create, update: if isSignedIn() && request.auth.uid == userId;
+        }
       }
       
-      // Backward compatibility for 'events' path
       match /events/{eventId} {
         allow read: if isGroupMember(groupId);
         allow create, delete: if isGroupOwner(groupId);

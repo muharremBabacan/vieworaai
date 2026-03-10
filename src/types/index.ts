@@ -1,3 +1,4 @@
+
 export type UserTier = 'start' | 'pro' | 'master';
 
 export type VisualMarker = {
@@ -291,12 +292,14 @@ export type CurriculumTopic = {
   topics: string[];
 };
 
+export type ParticipantStatus = 'pending' | 'yes' | 'no';
+
 export type TripParticipant = {
   userId: string;
   userName: string;
   userPhotoURL?: string | null;
-  status: 'pending' | 'approved' | 'rejected';
-  requestedAt: string;
+  status: ParticipantStatus;
+  joined_at: string;
 };
 
 export type TripStatus = 'planned' | 'completed' | 'cancelled' | 'archived';
@@ -314,7 +317,6 @@ export type Trip = {
   distance: string;
   approvalRequired: boolean;
   isListPublic: boolean;
-  participants: TripParticipant[];
   status: TripStatus;
   created_at: string;
   completed_at?: string;

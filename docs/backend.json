@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -98,6 +99,18 @@
         "completed_at": { "type": "string" },
         "cancelled_at": { "type": "string" }
       }
+    },
+    "TripParticipant": {
+      "title": "Trip Participant",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhotoURL": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "yes", "no"] },
+        "joined_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "status", "joined_at"]
     }
   },
   "auth": {
@@ -123,6 +136,10 @@
     "groups/{groupId}/trips/{tripId}": {
       "schema": { "$ref": "#/backend/entities/Trip" },
       "description": "Scheduled photo walks and trips within a group."
+    },
+    "groups/{groupId}/trips/{tripId}/participants/{userId}": {
+      "schema": { "$ref": "#/backend/entities/TripParticipant" },
+      "description": "Individual participation status for a trip."
     }
   }
 }
