@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -13,6 +14,7 @@ import { Loader2, Mail, Lock, User as UserIcon, ArrowLeft } from 'lucide-react';
 import Logo from '@/core/components/logo';
 import Link from 'next/link';
 import { AuthService } from '@/lib/auth/auth-service';
+import { ToastAction } from '@/components/ui/toast';
 
 function SignupForm() {
   const { auth, firestore } = useFirebase();
@@ -61,18 +63,34 @@ function SignupForm() {
       
       router.push('/verify-email');
     } catch (error: any) {
-      console.error(error);
-      const messages: Record<string, string> = {
-        'auth/email-already-in-use': 'Bu e-posta adresi zaten kullanımda.',
-        'auth/invalid-email': 'Geçersiz e-posta formatı.',
-        'auth/operation-not-allowed': 'E-posta kaydı şu an kapalı.',
-        'auth/weak-password': 'Şifre çok zayıf.'
-      };
-      toast({
-        variant: 'destructive',
-        title: 'Kayıt Hatası',
-        description: messages[error.code] || 'Hesap oluşturulurken bir hata oluştu.',
-      });
+      // Dev ortamında Next.js overlay'ini tetiklememek için warn kullanıyoruz
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("Signup error caught:", error.code);
+      }
+
+      if (error.code === 'auth/email-already-in-use') {
+        toast({
+          variant: 'destructive',
+          title: 'Bu e-posta zaten kayıtlı',
+          description: 'Bu e-posta adresiyle daha önce hesap oluşturulmuş. Lütfen giriş yapın.',
+          action: (
+            <ToastAction altText="Giriş Yap" onClick={() => router.push('/')}>
+              Giriş Yap
+            </ToastAction>
+          ),
+        });
+      } else {
+        const messages: Record<string, string> = {
+          'auth/invalid-email': 'Geçersiz e-posta formatı.',
+          'auth/operation-not-allowed': 'E-posta kaydı şu an kapalı.',
+          'auth/weak-password': 'Şifre çok zayıf.'
+        };
+        toast({
+          variant: 'destructive',
+          title: 'Kayıt Hatası',
+          description: messages[error.code] || 'Hesap oluşturulurken bir hata oluştu. Lütfen bilgilerinizi kontrol edin.',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
