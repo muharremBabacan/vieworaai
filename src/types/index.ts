@@ -367,8 +367,3 @@ export type TripTemplate = {
   end_point: string;
   route_points: RoutePoint[];
 };
-
-/** @deprecated Use Trip instead. Kept for temporary compatibility during migration. */
-export type GroupEventParticipant = TripParticipant;
-/** @deprecated Use Trip instead. Kept for temporary compatibility during migration. */
-export type GroupEvent = Trip;

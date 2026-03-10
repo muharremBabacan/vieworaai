@@ -104,12 +104,6 @@ service cloud.firestore {
           allow create, update: if isSignedIn() && request.auth.uid == userId;
         }
       }
-      
-      match /events/{eventId} {
-        allow read: if isGroupMember(groupId);
-        allow create, delete: if isGroupOwner(groupId);
-        allow update: if isGroupMember(groupId);
-      }
     }
 
     match /trip_templates/{templateId} {

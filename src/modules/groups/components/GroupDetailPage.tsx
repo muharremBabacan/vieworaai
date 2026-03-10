@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -174,6 +175,7 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
+  // HOOKS MUST BE AT THE TOP
   const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef);
 
@@ -375,7 +377,9 @@ export default function GroupDetailPage() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-12 space-y-4">
-        <Button variant="ghost" onClick={() => router.push('/groups')} className="rounded-xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Gruplarım</Button>
+        <Button variant="ghost" onClick={() => router.push('/groups')} className="rounded-xl font-bold text-muted-foreground">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Gruplarım
+        </Button>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
@@ -580,47 +584,6 @@ export default function GroupDetailPage() {
           </TabsContent>
         )}
       </Tabs>
-
-      {/* Submission Detail Dialog */}
-      <Dialog open={!!selectedSubmission} onOpenChange={(o) => !o && setSelectedSubmission(null)}>
-        {selectedSubmission && (
-          <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row">
-            <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40"><Image src={selectedSubmission.photoUrl} alt="Eser" fill className="object-contain" unoptimized /></div>
-            <div className="md:w-2/5 w-full flex flex-col p-8 space-y-6 overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-black tracking-tight">{assignments?.find(a => a.id === selectedSubmission.assignmentId)?.title || 'Ödev Detayı'}</DialogTitle>
-                <div className="flex items-center gap-2 mt-2">
-                  <Avatar className="h-6 w-6"><AvatarImage src={selectedSubmission.userPhotoURL || ''}/><AvatarFallback>{selectedSubmission.userName.charAt(0)}</AvatarFallback></Avatar>
-                  <span className="text-xs font-bold text-muted-foreground uppercase">@{selectedSubmission.userName}</span>
-                </div>
-              </DialogHeader>
-              <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-6">
-                  {selectedSubmission.aiFeedback && (
-                    <Card className="p-5 border-primary/20 bg-primary/5 rounded-2xl space-y-4">
-                      <h4 className="text-[10px] font-black uppercase text-primary">Luma Analizi</h4>
-                      <p className="text-xs italic leading-relaxed">"{selectedSubmission.aiFeedback.feedback}"</p>
-                    </Card>
-                  )}
-                  <div className="flex items-center gap-4 py-4 border-y border-border/40">
-                    <Button variant="ghost" className="h-10 px-4 rounded-xl gap-2 font-black text-xs" onClick={() => handleToggleLike(selectedSubmission)}>
-                      <Heart className={cn("h-4 w-4", selectedSubmission.likes.includes(user?.uid || '') && "fill-current text-red-500")} /> {selectedSubmission.likes.length} Beğeni
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    {selectedSubmission.comments.map((comment, i) => (
-                      <div key={i} className="flex gap-3"><Avatar className="h-8 w-8 shrink-0"><AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback></Avatar>
-                        <div className="flex-1 bg-secondary/20 p-2.5 rounded-xl border border-border/40"><p className="text-xs text-foreground/80 leading-relaxed">{comment.text}</p></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </ScrollArea>
-              <div className="pt-4 border-t border-border/40"><CommentInput onSend={(text) => handleAddComment(selectedSubmission, text)} /></div>
-            </div>
-          </DialogContent>
-        )}
-      </Dialog>
     </div>
   );
 }
