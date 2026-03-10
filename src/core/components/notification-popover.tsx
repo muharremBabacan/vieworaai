@@ -3,11 +3,11 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy, updateDoc, getDoc } from 'firebase/firestore';
 import type { GroupInvite, GlobalNotification, User } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Button } from '@/shared/ui/button';
-import { Bell, Users, Check, X, Trophy, Globe, Gift, Info, Sparkles } from 'lucide-react';
+import { Bell, Users, Trophy, Globe, Gift, Info, Sparkles } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
@@ -47,33 +47,32 @@ export function NotificationCenter() {
     return query(
         collection(firestore, 'global_notifications'),
         orderBy('createdAt', 'desc'),
-        limit(20)
+        limit(10)
     );
   }, [firestore]);
 
   const { data: globalNotifsData, error: notifsError } = useCollection<GlobalNotification>(notificationsQuery);
 
-  // Personal Notifications Query (Refills, Level ups etc.)
+  // Personal Notifications Query
   const personalNotifsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'users', user.uid, 'notifications'),
       orderBy('createdAt', 'desc'),
-      limit(10)
+      limit(5)
     );
   }, [user, firestore]);
 
   const { data: personalNotifsData } = useCollection<any>(personalNotifsQuery);
 
+  // Combined and Limited Notifications (Only last 3 as requested)
   const notifications = useMemo(() => {
     let combined: any[] = [];
     
-    // Add invites
     if (invitesData) {
       combined = [...combined, ...invitesData.map(i => ({ ...i, category: 'invite' }))];
     }
     
-    // Add global notifications filtered by level
     if (globalNotifsData && userProfile) {
       const filtered = globalNotifsData.filter(n => 
         !n.targetLevel || n.targetLevel === 'all' || n.targetLevel === userProfile.level_name
@@ -81,15 +80,16 @@ export function NotificationCenter() {
       combined = [...combined, ...filtered.map(n => ({ ...n, category: 'global' }))];
     }
 
-    // Add personal notifications
     if (personalNotifsData) {
       combined = [...combined, ...personalNotifsData.map(n => ({ ...n, category: 'personal' }))];
     }
     
-    return combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return combined
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 3); // LIMIT TO 3 MOST RECENT
   }, [invitesData, globalNotifsData, personalNotifsData, userProfile]);
   
-  // Calculate unread count based on timestamp
+  // Calculate unread count
   const unreadCount = useMemo(() => {
     if (!userProfile?.lastNotificationsViewedAt) return notifications.length;
     const lastViewed = new Date(userProfile.lastNotificationsViewedAt).getTime();
@@ -99,7 +99,7 @@ export function NotificationCenter() {
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (open && user && firestore) {
-      // Mark all as viewed by updating the timestamp in user profile
+      // Mark as viewed to clear the badge
       updateDoc(doc(firestore, 'users', user.uid), {
         lastNotificationsViewedAt: new Date().toISOString()
       }).catch(err => console.error("Failed to update notification viewed timestamp", err));
@@ -118,7 +118,6 @@ export function NotificationCenter() {
          batch.update(inviteRef, { status: 'accepted' });
          batch.update(groupRef, { memberIds: arrayUnion(user.uid) });
          
-         // Daveti kabul ederken public_profiles garantisi
          const publicRef = doc(firestore, 'public_profiles', user.uid);
          const publicSnap = await getDoc(publicRef);
          if (!publicSnap.exists()) {
@@ -163,21 +162,21 @@ export function NotificationCenter() {
     <div id="notification-anchor" className="relative">
       <Popover open={isOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full">
+          <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full transition-transform active:scale-90">
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground border-2 border-background">
+              <span className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground border-2 border-background animate-in zoom-in duration-300">
                 {unreadCount}
               </span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 p-0 overflow-hidden border-border/40 shadow-2xl" align="end">
+        <PopoverContent className="w-80 p-0 overflow-hidden border-border/40 shadow-2xl rounded-[24px]" align="end">
           <div className="bg-secondary/30 px-4 py-3 border-b flex items-center justify-between">
-            <h4 className="font-bold text-sm">Bildirimler</h4>
-            {unreadCount > 0 && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">{unreadCount} YENİ</span>}
+            <h4 className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Son Bildirimler</h4>
+            {unreadCount > 0 && <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase">YENİ</span>}
           </div>
-          <ScrollArea className="h-[400px]">
+          <div className="max-h-[350px] overflow-y-auto">
             <div className="divide-y divide-border/40">
               {invitesError || notifsError ? (
                 <div className="p-8 text-center text-xs text-muted-foreground">
@@ -193,7 +192,7 @@ export function NotificationCenter() {
                       key={item.id} 
                       className={cn(
                         "p-4 transition-colors group relative",
-                        isUnread ? "bg-primary/5 hover:bg-primary/10" : "opacity-60 hover:bg-accent/50"
+                        isUnread ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-accent/50"
                       )}
                     >
                       <div className="flex gap-3">
@@ -205,32 +204,28 @@ export function NotificationCenter() {
                         </div>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                              {item.category === 'invite' ? 'Grup Daveti' : (item.title || 'Sistem Duyurusu')}
+                            <p className="text-[9px] font-black uppercase tracking-wider text-primary/70">
+                              {item.category === 'invite' ? 'Grup Daveti' : (item.title || 'Duyuru')}
                             </p>
                             {isUnread && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
                           </div>
                           <p className={cn(
-                            "text-sm leading-relaxed text-foreground/90",
-                            isUnread && "font-medium"
+                            "text-xs leading-relaxed text-foreground/90",
+                            isUnread && "font-bold"
                           )}>
                             {item.category === 'invite' ? (
                               <><b>{item.fromUserName}</b> sizi "<b>{item.groupName}</b>" grubuna davet etti.</>
                             ) : item.message.replace(/Auro/g, currencyName)}
                           </p>
-                          <p className="text-[10px] text-muted-foreground/70 font-medium">
+                          <p className="text-[9px] text-muted-foreground/70 font-bold uppercase tracking-tight">
                             {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}
                           </p>
                           
                           {item.category === 'invite' && (
                             <div className="mt-3 flex gap-2">
-                               <Button size="sm" variant="secondary" className="h-8 flex-1 rounded-lg text-xs" onClick={() => handleInviteAction(item, 'accepted')}>Kabul Et</Button>
-                               <Button size="sm" variant="ghost" className="h-8 px-3 rounded-lg text-xs text-muted-foreground hover:text-destructive" onClick={() => handleInviteAction(item, 'declined')}>Reddet</Button>
+                               <Button size="sm" variant="secondary" className="h-8 flex-1 rounded-lg text-[10px] font-black uppercase" onClick={() => handleInviteAction(item, 'accepted')}>Kabul Et</Button>
+                               <Button size="sm" variant="ghost" className="h-8 px-3 rounded-lg text-[10px] font-black uppercase text-muted-foreground hover:text-destructive" onClick={() => handleInviteAction(item, 'declined')}>Reddet</Button>
                             </div>
-                          )}
-                          
-                          {item.type === 'competition' && (
-                            <Button variant="outline" size="sm" className="mt-2 h-7 text-[10px] rounded-lg border-primary/20 hover:bg-primary/10" onClick={() => { setIsOpen(false); router.push('/competitions'); }}>Yarışmaya Git</Button>
                           )}
                         </div>
                       </div>
@@ -238,15 +233,20 @@ export function NotificationCenter() {
                   );
                 })
               ) : (
-                <div className="py-20 text-center space-y-3">
+                <div className="py-16 text-center space-y-3 px-6">
                   <div className="h-12 w-12 bg-secondary/50 rounded-full flex items-center justify-center mx-auto">
                     <Bell className="h-6 w-6 text-muted-foreground/30" />
                   </div>
-                  <p className="text-sm text-muted-foreground">Henüz yeni bir bildiriminiz yok.</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">Henüz yeni bir bildiriminiz yok.</p>
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
+          {notifications.length > 0 && (
+            <div className="p-3 bg-muted/20 border-t border-border/40 text-center">
+               <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">En son güncellemeler gösteriliyor</p>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
     </div>
