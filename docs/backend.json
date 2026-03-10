@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -78,8 +77,8 @@
         "submittedAt": { "type": "string" }
       }
     },
-    "GroupEvent": {
-      "title": "Group Event (Photo Walk)",
+    "Trip": {
+      "title": "Group Trip (Photo Walk)",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -94,7 +93,10 @@
         "distance": { "type": "string" },
         "approvalRequired": { "type": "boolean" },
         "isListPublic": { "type": "boolean" },
-        "createdAt": { "type": "string" }
+        "status": { "type": "string", "enum": ["planned", "completed", "cancelled", "archived"] },
+        "created_at": { "type": "string" },
+        "completed_at": { "type": "string" },
+        "cancelled_at": { "type": "string" }
       }
     }
   },
@@ -118,9 +120,9 @@
       "schema": { "$ref": "#/backend/entities/GroupSubmission" },
       "description": "Member photo submissions for assignments."
     },
-    "groups/{groupId}/events/{eventId}": {
-      "schema": { "$ref": "#/backend/entities/GroupEvent" },
-      "description": "Scheduled photo walks and events within a group."
+    "groups/{groupId}/trips/{tripId}": {
+      "schema": { "$ref": "#/backend/entities/Trip" },
+      "description": "Scheduled photo walks and trips within a group."
     }
   }
 }

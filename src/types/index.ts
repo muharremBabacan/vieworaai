@@ -291,7 +291,7 @@ export type CurriculumTopic = {
   topics: string[];
 };
 
-export type GroupEventParticipant = {
+export type TripParticipant = {
   userId: string;
   userName: string;
   userPhotoURL?: string | null;
@@ -299,7 +299,9 @@ export type GroupEventParticipant = {
   requestedAt: string;
 };
 
-export type GroupEvent = {
+export type TripStatus = 'planned' | 'completed' | 'cancelled' | 'archived';
+
+export type Trip = {
   id: string;
   groupId: string;
   title: string;
@@ -312,6 +314,14 @@ export type GroupEvent = {
   distance: string;
   approvalRequired: boolean;
   isListPublic: boolean;
-  participants: GroupEventParticipant[];
-  createdAt: string;
+  participants: TripParticipant[];
+  status: TripStatus;
+  created_at: string;
+  completed_at?: string;
+  cancelled_at?: string;
 };
+
+/** @deprecated Use Trip instead. Kept for temporary compatibility during migration. */
+export type GroupEventParticipant = TripParticipant;
+/** @deprecated Use Trip instead. Kept for temporary compatibility during migration. */
+export type GroupEvent = Trip;

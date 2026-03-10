@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, GroupEvent, GroupEventParticipant } from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -14,14 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus } from 'lucide-react';
+import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
 import { Switch } from '@/components/ui/switch';
 
@@ -32,6 +30,13 @@ const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: st
   mentor: { label: 'Eğitimci', icon: ShieldCheck, color: 'bg-purple-500/10 text-purple-400' },
 };
 
+const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
+  planned: 'Planlandı',
+  completed: 'Tamamlandı',
+  cancelled: 'İptal Edildi',
+  archived: 'Arşivlendi'
+};
+
 export default function GroupDetailPage() {
   const { groupId } = useParams();
   const router = useRouter();
@@ -40,37 +45,33 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState('assignments');
-  const [isUploading, setIsUploading] = useState(false);
-  const [isSyncingProfile, setIsSyncingProfile] = useState(false);
-  const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);
-
-  // 1. Group Data
+  // 1. ALL HOOKS MUST BE AT THE TOP LEVEL
   const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef);
 
-  // 2. User Profile Data
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
-  // 3. Profiles of All Group Members
   const profilesQuery = useMemoFirebase(() => {
     if (!firestore || !group?.memberIds || group.memberIds.length === 0) return null;
     return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds));
   }, [firestore, group?.memberIds]);
   const { data: memberProfiles } = useCollection<PublicUserProfile>(profilesQuery);
 
-  // 4. Assignments Data
   const assignmentsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'assignments'), orderBy('createdAt', 'desc')) : null, [firestore, groupId]);
-  const { data: assignments, isLoading: isAssignmentsLoading } = useCollection<GroupAssignment>(assignmentsQuery);
+  const { data: assignments } = useCollection<GroupAssignment>(assignmentsQuery);
 
-  // 5. Submissions Data
   const submissionsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'submissions'), orderBy('submittedAt', 'desc')) : null, [firestore, groupId]);
-  const { data: submissions, isLoading: isSubmissionsLoading } = useCollection<GroupSubmission>(submissionsQuery);
+  const { data: submissions } = useCollection<GroupSubmission>(submissionsQuery);
 
-  // 6. Events Data
-  const eventsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'events'), orderBy('createdAt', 'desc')) : null, [firestore, groupId]);
-  const { data: events, isLoading: isEventsLoading } = useCollection<GroupEvent>(eventsQuery);
+  const tripsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'trips'), orderBy('created_at', 'desc')) : null, [firestore, groupId]);
+  const { data: trips, isLoading: isTripsLoading } = useCollection<Trip>(tripsQuery);
+
+  // 2. STATE DEFINITIONS
+  const [activeTab, setActiveTab] = useState('assignments');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSyncingProfile, setIsSyncingProfile] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);
 
   const isCurrentUserOwner = group?.ownerId === user?.uid;
 
@@ -97,34 +98,30 @@ export default function GroupDetailPage() {
 
   useEffect(() => {
     if (group?.purpose === 'walk') {
-      setActiveTab('events');
+      setActiveTab('trips');
     }
   }, [group?.purpose]);
 
+  // 3. ACTION HANDLERS
   const handleUploadSubmission = async (assignment: GroupAssignment, file: File) => {
     if (!user || !group || isUploading || !firestore) return;
-    
     setIsUploading(true);
     toast({ title: "Yükleniyor ve Analiz Ediliyor...", description: "Luma ödevini değerlendiriyor. Lütfen bekleyin..." });
-    
     try {
       const hash = Math.random().toString(36).substring(7);
       const storagePath = `groups/${group.id}/submissions/${assignment.id}/${user.uid}-${hash}.jpg`;
       const storageRef = ref(storage, storagePath);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-
       const aiResult = await evaluateGroupSubmission({
         photoUrl: url,
         assignmentTitle: assignment.title,
         assignmentDescription: assignment.description,
         language: "tr"
       });
-
       const batch = writeBatch(firestore);
       const submissionRef = doc(collection(firestore, 'groups', group.id, 'submissions'));
       const userRef = doc(firestore, 'users', user.uid);
-
       batch.set(submissionRef, {
         id: submissionRef.id,
         groupId: group.id,
@@ -139,16 +136,11 @@ export default function GroupDetailPage() {
         aiFeedback: aiResult,
         submittedAt: new Date().toISOString()
       } as GroupSubmission);
-
-      batch.update(userRef, {
-        'profile_index.activity_signals.group_activity_score': increment(10)
-      });
-
+      batch.update(userRef, { 'profile_index.activity_signals.group_activity_score': increment(10) });
       await batch.commit();
-      toast({ title: "Ödev Teslim Edildi!", description: "AI analizi tamamlandı ve galeriye eklendi." });
+      toast({ title: "Ödev Teslim Edildi!" });
     } catch (e) {
-      console.error("Upload error:", e);
-      toast({ variant: 'destructive', title: "Hata", description: "İşlem tamamlanamadı." });
+      toast({ variant: 'destructive', title: "Hata" });
     } finally {
       setIsUploading(false);
     }
@@ -168,46 +160,55 @@ export default function GroupDetailPage() {
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
-  const handleCreateEvent = async (eventData: Omit<GroupEvent, 'id' | 'groupId' | 'participants' | 'createdAt'>) => {
+  const handleCreateTrip = async (tripData: any) => {
     if (!firestore || !group) return;
     try {
-      const docRef = await addDoc(collection(firestore, 'groups', group.id, 'events'), {
-        ...eventData,
+      const docRef = await addDoc(collection(firestore, 'groups', group.id, 'trips'), {
+        ...tripData,
         groupId: group.id,
         participants: [],
-        createdAt: new Date().toISOString()
+        status: 'planned',
+        created_at: new Date().toISOString()
       });
       await updateDoc(docRef, { id: docRef.id });
       toast({ title: "Gezi Planı Yayınlandı!" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
-  const handleJoinEvent = async (event: GroupEvent) => {
-    if (!user || !firestore || !group) return;
-    const eventRef = doc(firestore, 'groups', group.id, 'events', event.id);
-    const newParticipant: GroupEventParticipant = {
-      userId: user.uid,
-      userName: userProfile?.name || 'Vizyoner',
-      userPhotoURL: userProfile?.photoURL || null,
-      status: event.approvalRequired ? 'pending' : 'approved',
-      requestedAt: new Date().toISOString()
-    };
+  const handleUpdateTripStatus = async (tripId: string, newStatus: TripStatus) => {
+    if (!isCurrentUserOwner || !firestore || !group) return;
+    const tripRef = doc(firestore, 'groups', group.id, 'trips', tripId);
+    const updates: any = { status: newStatus };
+    if (newStatus === 'completed') updates.completed_at = new Date().toISOString();
+    if (newStatus === 'cancelled') updates.cancelled_at = new Date().toISOString();
     try {
-      await updateDoc(eventRef, {
-        participants: arrayUnion(newParticipant)
-      });
-      toast({ title: event.approvalRequired ? "Katılım İsteği Gönderildi" : "Geziye Katıldınız!" });
+      await updateDoc(tripRef, updates);
+      toast({ title: "Gezi Durumu Güncellendi" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
-  const handleManageParticipant = async (event: GroupEvent, participantId: string, status: 'approved' | 'rejected') => {
-    if (!isCurrentUserOwner || !firestore || !group) return;
-    const eventRef = doc(firestore, 'groups', group.id, 'events', event.id);
-    const updatedParticipants = event.participants.map(p => 
-      p.userId === participantId ? { ...p, status } : p
-    );
+  const handleJoinTrip = async (trip: Trip) => {
+    if (!user || !firestore || !group) return;
+    const tripRef = doc(firestore, 'groups', group.id, 'trips', trip.id);
+    const newParticipant: TripParticipant = {
+      userId: user.uid,
+      userName: userProfile?.name || 'Vizyoner',
+      userPhotoURL: userProfile?.photoURL || null,
+      status: trip.approvalRequired ? 'pending' : 'approved',
+      requestedAt: new Date().toISOString()
+    };
     try {
-      await updateDoc(eventRef, { participants: updatedParticipants });
+      await updateDoc(tripRef, { participants: arrayUnion(newParticipant) });
+      toast({ title: trip.approvalRequired ? "Katılım İsteği Gönderildi" : "Geziye Katıldınız!" });
+    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
+  };
+
+  const handleManageParticipant = async (trip: Trip, participantId: string, status: 'approved' | 'rejected') => {
+    if (!isCurrentUserOwner || !firestore || !group) return;
+    const tripRef = doc(firestore, 'groups', group.id, 'trips', trip.id);
+    const updatedParticipants = trip.participants.map(p => p.userId === participantId ? { ...p, status } : p);
+    try {
+      await updateDoc(tripRef, { participants: updatedParticipants });
       toast({ title: status === 'approved' ? "Üye Onaylandı" : "İstek Reddedildi" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
@@ -217,9 +218,7 @@ export default function GroupDetailPage() {
     const subRef = doc(firestore, 'groups', group.id, 'submissions', submission.id);
     const isLiked = submission.likes.includes(user.uid);
     try {
-      await updateDoc(subRef, {
-        likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
-      });
+      await updateDoc(subRef, { likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
     } catch (e) { console.error(e); }
   };
 
@@ -233,19 +232,18 @@ export default function GroupDetailPage() {
       createdAt: new Date().toISOString()
     };
     try {
-      await updateDoc(subRef, {
-        comments: arrayUnion(newComment)
-      });
+      await updateDoc(subRef, { comments: arrayUnion(newComment) });
     } catch (e) { console.error(e); }
   };
 
   const copyJoinCode = () => {
     if (group?.joinCode) {
       navigator.clipboard.writeText(group.joinCode);
-      toast({ title: "Kopyalandı!", description: "Grup katılım kodu (numarası) kopyalandı." });
+      toast({ title: "Kopyalandı!", description: "Grup katılım kodu kopyalandı." });
     }
   };
 
+  // 4. CONDITIONAL RENDERING (AFTER ALL HOOKS)
   if (isGroupLoading) return <div className="container mx-auto px-4 pt-12 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   if (!group) return null;
 
@@ -289,38 +287,43 @@ export default function GroupDetailPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
         <TabsList className="bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40">
-          <TabsTrigger value="events" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Etkinlikler</TabsTrigger>
+          <TabsTrigger value="trips" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Geziler</TabsTrigger>
           <TabsTrigger value="assignments" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
           <TabsTrigger value="gallery" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Galeri</TabsTrigger>
           <TabsTrigger value="members" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Grup Listesi</TabsTrigger>
           {isCurrentUserOwner && <TabsTrigger value="admin" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl text-amber-500">Kurucu Paneli</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="events" className="space-y-8">
-          {isEventsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
-           events && events.length > 0 ? (
+        <TabsContent value="trips" className="space-y-8">
+          {isTripsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
+           trips && trips.length > 0 ? (
             <div className="grid gap-8">
-              {events.map(event => {
-                const userParticipant = event.participants.find(p => p.userId === user?.uid);
+              {trips.filter(t => t.status !== 'cancelled').map(trip => {
+                const userParticipant = trip.participants.find(p => p.userId === user?.uid);
                 return (
-                  <Card key={event.id} className="rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl">
+                  <Card key={trip.id} className={cn("rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl", trip.status === 'completed' && "opacity-80 grayscale-[0.3]")}>
                     <CardHeader className="bg-secondary/20 p-10 border-b border-border/40">
                       <div className="flex justify-between items-start gap-4">
                         <div className="space-y-2">
                           <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3 mb-2">GEZİ PLANI</Badge>
-                          <CardTitle className="text-4xl font-black uppercase tracking-tighter">{event.title}</CardTitle>
+                          <CardTitle className="text-4xl font-black uppercase tracking-tighter">{trip.title}</CardTitle>
                           <div className="flex flex-wrap gap-6 pt-4">
-                            <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{event.date}</span></div>
-                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{event.time}</span></div>
-                            <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{event.distance}</span></div>
-                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{event.duration}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{trip.date}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.time}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{trip.distance}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.duration}</span></div>
                           </div>
                         </div>
-                        {userParticipant && (
-                          <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", userParticipant.status === 'approved' ? "bg-green-500" : userParticipant.status === 'pending' ? "bg-amber-500" : "bg-destructive")}>
-                            {userParticipant.status === 'approved' ? "Onaylandı" : userParticipant.status === 'pending' ? "Onay Bekliyor" : "Reddedildi"}
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", trip.status === 'completed' ? "bg-green-600" : "bg-primary")}>
+                            {TRIP_STATUS_LABELS[trip.status]}
                           </Badge>
-                        )}
+                          {userParticipant && (
+                            <Badge variant="outline" className={cn("px-3 h-6 rounded-full font-bold uppercase text-[9px]", userParticipant.status === 'approved' ? "text-green-500 border-green-500/30" : "text-amber-500 border-amber-500/30")}>
+                              Kayıt: {userParticipant.status === 'approved' ? "ONAYLANDI" : "BEKLEMEDE"}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-10 space-y-10">
@@ -331,40 +334,34 @@ export default function GroupDetailPage() {
                             <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
                               <MapPin className="text-primary mt-1 shrink-0" size={24} />
                               <div className="space-y-4">
-                                <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{event.startPoint}</p></div>
+                                <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
                                 <div className="h-px w-full bg-border/40" />
-                                <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{event.endPoint}</p></div>
+                                <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
                               </div>
                             </div>
                           </div>
                           <div className="space-y-2">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Açıklama</h4>
-                            <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{event.description}"</p>
+                            <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{trip.description}"</p>
                           </div>
                         </div>
 
                         <div className="space-y-6">
-                          {(event.isListPublic || isCurrentUserOwner) && (
+                          {(trip.isListPublic || isCurrentUserOwner) && (
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcı Listesi ({event.participants.filter(p => p.status === 'approved').length})</h4>
-                                {!event.isListPublic && isCurrentUserOwner && <Badge variant="outline" className="text-[8px] font-black uppercase border-amber-500/30 text-amber-500">Sadece Sen Görüyorsun</Badge>}
-                              </div>
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcılar ({trip.participants.filter(p => p.status === 'approved').length})</h4>
                               <div className="grid grid-cols-2 gap-3">
-                                {event.participants.filter(p => p.status === 'approved').map(p => (
+                                {trip.participants.filter(p => p.status === 'approved').map(p => (
                                   <div key={p.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40">
                                     <Avatar className="h-8 w-8 border border-white/20"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
                                     <span className="text-xs font-black truncate">@{p.userName}</span>
                                   </div>
                                 ))}
-                                {event.participants.filter(p => p.status === 'approved').length === 0 && (
-                                  <div className="col-span-2 py-8 text-center border-2 border-dashed rounded-3xl text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-40">Henüz onaylı üye yok</div>
-                                )}
                               </div>
                             </div>
                           )}
-                          {!userParticipant && (
-                            <Button onClick={() => handleJoinEvent(event)} className="w-full h-16 rounded-3xl font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20">
+                          {!userParticipant && trip.status === 'planned' && (
+                            <Button onClick={() => handleJoinTrip(trip)} className="w-full h-16 rounded-3xl font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20">
                               <UserPlus className="mr-3" /> Geziye Katıl
                             </Button>
                           )}
@@ -379,14 +376,12 @@ export default function GroupDetailPage() {
             <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5">
               <Calendar className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" />
               <h3 className="text-2xl font-black tracking-tight uppercase">Planlanmış Gezi Yok</h3>
-              <p className="text-muted-foreground mt-2">Grup kurucusu bir gezi rotası eklediğinde burada listelenecektir.</p>
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="assignments" className="space-y-8">
-          {isAssignmentsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
-           assignments && assignments.length > 0 ? (
+          {assignments && assignments.length > 0 ? (
             <div className="grid gap-6">
               {assignments.map(ass => {
                 const userSubmission = submissions?.find(s => s.assignmentId === ass.id && s.userId === user?.uid);
@@ -401,7 +396,6 @@ export default function GroupDetailPage() {
                         {userSubmission && (
                           <div className="flex flex-col items-end gap-2">
                             <Badge className="bg-green-500 text-white font-black px-4 h-7 rounded-full uppercase tracking-widest text-[10px]"><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Teslim Edildi</Badge>
-                            {userSubmission.aiFeedback && <Badge variant="secondary" className="bg-primary/10 text-primary font-black px-2 h-5 text-[9px]">LUMA: {userSubmission.aiFeedback.score}/10</Badge>}
                           </div>
                         )}
                       </div>
@@ -415,17 +409,15 @@ export default function GroupDetailPage() {
                           <AssignmentUploader onUpload={(file) => handleUploadSubmission(ass, file)} isUploading={isUploading} />
                         </div>
                       ) : (
-                        <div className="space-y-6">
-                          <div className="flex items-center gap-6 p-6 rounded-[24px] bg-green-500/5 border border-green-500/20">
-                            <div className="relative h-24 w-24 rounded-2xl overflow-hidden border-2 border-white shadow-lg shrink-0">
-                              <Image src={userSubmission.photoUrl} alt="Teslimatım" fill className="object-cover" unoptimized />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-lg font-black tracking-tight text-green-500 uppercase">Görevi Başardın!</p>
-                              <p className="text-sm text-muted-foreground font-medium">Ödevin başarıyla teslim edildi ve AI tarafından analiz edildi.</p>
-                            </div>
-                            <Button onClick={() => setSelectedSubmission(userSubmission)} variant="outline" className="rounded-xl h-10 px-6 font-bold">Detay ve Yorumlar</Button>
+                        <div className="flex items-center gap-6 p-6 rounded-[24px] bg-green-500/5 border border-green-500/20">
+                          <div className="relative h-24 w-24 rounded-2xl overflow-hidden border-2 border-white shadow-lg shrink-0">
+                            <Image src={userSubmission.photoUrl} alt="Teslimatım" fill className="object-cover" unoptimized />
                           </div>
+                          <div className="flex-1">
+                            <p className="text-lg font-black tracking-tight text-green-500 uppercase">Görevi Başardın!</p>
+                            <p className="text-sm text-muted-foreground font-medium">Ödevin başarıyla teslim edildi.</p>
+                          </div>
+                          <Button onClick={() => setSelectedSubmission(userSubmission)} variant="outline" className="rounded-xl h-10 px-6 font-bold">Detay</Button>
                         </div>
                       )}
                     </CardContent>
@@ -434,86 +426,46 @@ export default function GroupDetailPage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5">
-              <Info className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" />
-              <h3 className="text-2xl font-black tracking-tight">Henüz Ödev Yok</h3>
-              <p className="text-muted-foreground mt-2">Kurucunuz ödev eklediğinde burada göreceksiniz.</p>
-            </div>
+            <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5"><Info className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" /><h3 className="text-2xl font-black tracking-tight">Henüz Ödev Yok</h3></div>
           )}
         </TabsContent>
 
         <TabsContent value="gallery" className="space-y-8">
-          {isSubmissionsLoading ? <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">{[...Array(12)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}</div> :
-           submissions && submissions.length > 0 ? (
+          {submissions && submissions.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {submissions.map(sub => (
-                <Card 
-                  key={sub.id} 
-                  className="group relative aspect-square rounded-[32px] overflow-hidden border-none shadow-2xl transition-all hover:scale-[1.02] cursor-pointer"
-                  onClick={() => setSelectedSubmission(sub)}
-                >
+                <Card key={sub.id} className="group relative aspect-square rounded-[32px] overflow-hidden border-none shadow-2xl transition-all hover:scale-[1.02] cursor-pointer" onClick={() => setSelectedSubmission(sub)}>
                   <Image src={sub.photoUrl} alt="Teslim" fill className="object-cover" unoptimized />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  
-                  {sub.aiFeedback && (
-                    <div className="absolute top-4 right-4">
-                      <Badge className="bg-black/50 backdrop-blur-md text-white border-white/10 px-2 h-6 font-black text-[10px]">
-                        <Star className="h-3 w-3 mr-1 fill-current text-yellow-400" /> {sub.aiFeedback.score.toFixed(1)}
-                      </Badge>
-                    </div>
-                  )}
-
                   <div className="absolute bottom-6 left-6 right-6 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8 border-2 border-white shadow-sm">
-                        <AvatarImage src={sub.userPhotoURL || ''} className="object-cover" />
-                        <AvatarFallback className="text-[10px] bg-secondary font-black">{sub.userName?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-black text-white drop-shadow-md">@{sub.userName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-white">
-                      <div className="flex items-center gap-1 text-[10px] font-bold"><Heart size={12} className={sub.likes.includes(user?.uid || '') ? "fill-red-500 text-red-500" : ""} /> {sub.likes.length}</div>
-                      <div className="flex items-center gap-1 text-[10px] font-bold"><MessageSquare size={12} /> {sub.comments.length}</div>
+                      <Avatar className="h-8 w-8 border-2 border-white shadow-sm"><AvatarImage src={sub.userPhotoURL || ''} /><AvatarFallback>{sub.userName?.charAt(0)}</AvatarFallback></Avatar>
+                      <span className="text-xs font-black text-white">@{sub.userName}</span>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5">
-              <ImageIcon className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" />
-              <h3 className="text-2xl font-black tracking-tight">Galeri Boş</h3>
-              <p className="text-muted-foreground mt-2">Henüz kimse ödev teslim etmedi.</p>
-            </div>
+            <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5"><ImageIcon className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" /><h3 className="text-2xl font-black tracking-tight">Galeri Boş</h3></div>
           )}
         </TabsContent>
 
         <TabsContent value="members" className="space-y-8">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
-            <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
-              <CardTitle className="text-xl font-black tracking-tight flex items-center gap-3"><Users className="text-primary h-6 w-6" /> Grup Listesi</CardTitle>
-            </CardHeader>
+            <CardHeader className="bg-secondary/20 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><Users className="text-primary h-6 w-6" /> Grup Listesi</CardTitle></CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
                 {group.memberIds.map(memberId => {
                   const profile = memberProfiles?.find(p => p.id === memberId);
                   const isOwner = memberId === group.ownerId;
                   return (
-                    <div key={memberId} className="p-6 flex items-center justify-between hover:bg-muted/30 transition-colors group">
+                    <div key={memberId} className="p-6 flex items-center justify-between hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-5">
-                        <div className="relative">
-                          <Avatar className="h-14 w-14 border-2 border-border/60 transition-transform group-hover:scale-105">
-                            <AvatarImage src={profile?.photoURL || ''} className="object-cover" />
-                            <AvatarFallback className="text-xl font-black bg-secondary">{profile?.name?.charAt(0) || '?'}</AvatarFallback>
-                          </Avatar>
-                          {isOwner && <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-amber-500 border-2 border-background flex items-center justify-center shadow-lg"><Crown size={12} className="text-black" /></div>}
-                        </div>
+                        <Avatar className="h-14 w-14 border-2 border-border/60"><AvatarImage src={profile?.photoURL || ''} /><AvatarFallback>{profile?.name?.charAt(0) || '?'}</AvatarFallback></Avatar>
                         <div>
-                          <div className="text-lg font-black tracking-tight flex items-center gap-2">
-                            {profile ? profile.name : <span className="text-muted-foreground italic font-medium">Yükleniyor...</span>}
-                            {profile?.id === user?.uid && <Badge variant="outline" className="text-[8px] font-black h-4 px-1.5 border-primary text-primary uppercase">SEN</Badge>}
-                          </div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{profile?.level_name || 'Neuner'}</p>
+                          <div className="text-lg font-black tracking-tight flex items-center gap-2">{profile?.name || 'Yükleniyor...'}{isOwner && <Crown size={14} className="text-amber-500" />}</div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase">{profile?.level_name || 'Neuner'}</p>
                         </div>
                       </div>
                     </div>
@@ -525,85 +477,54 @@ export default function GroupDetailPage() {
         </TabsContent>
 
         {isCurrentUserOwner && (
-          <TabsContent value="admin" className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
+          <TabsContent value="admin" className="space-y-10">
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-8">
                 <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-                  <CardHeader className="bg-primary/5 p-8 border-b border-border/40">
-                    <CardTitle className="text-xl font-black flex items-center gap-3"><Map className="text-primary" /> Gezi Rotaları</CardTitle>
-                    <CardDescription>Grup üyeleri için yeni bir gezi planı tasarlayın.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    <EventCreator onCreate={handleCreateEvent} />
-                  </CardContent>
+                  <CardHeader className="bg-primary/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><Map className="text-primary" /> Gezi Rotaları</CardTitle></CardHeader>
+                  <CardContent className="p-8"><EventCreator onCreate={handleCreateTrip} /></CardContent>
                 </Card>
-
                 <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-                  <CardHeader className="bg-primary/5 p-8 border-b border-border/40">
-                    <CardTitle className="text-xl font-black flex items-center gap-3"><PlusCircle className="text-primary" /> Yeni Ödev Ver</CardTitle>
-                    <CardDescription>Grup üyeleri için yeni bir pratik görevi oluştur.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    <AssignmentCreator onCreate={handleCreateAssignment} />
-                  </CardContent>
+                  <CardHeader className="bg-primary/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><PlusCircle className="text-primary" /> Yeni Ödev Ver</CardTitle></CardHeader>
+                  <CardContent className="p-8"><AssignmentCreator onCreate={handleCreateAssignment} /></CardContent>
                 </Card>
               </div>
 
               <div className="space-y-8">
                 <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-                  <CardHeader className="bg-amber-500/5 p-8 border-b border-border/40">
-                    <CardTitle className="text-xl font-black flex items-center gap-3"><UserCheck className="text-amber-500" /> Gezi Katılım Onayları</CardTitle>
-                    <CardDescription>Onay bekleyen gezi başvuruları.</CardDescription>
-                  </CardHeader>
+                  <CardHeader className="bg-amber-500/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><Clock className="text-amber-500" /> Gezi Yönetimi</CardTitle></CardHeader>
                   <CardContent className="p-8">
-                    <ScrollArea className="h-[300px]">
-                      <div className="space-y-4">
-                        {events?.map(event => (
-                          <div key={event.id} className="space-y-3">
-                            <p className="text-[10px] font-black uppercase text-primary/70 border-b pb-1">{event.title}</p>
-                            {event.participants.filter(p => p.status === 'pending').map(p => (
-                              <div key={p.userId} className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-8 w-8"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
-                                  <span className="text-xs font-bold">@{p.userName}</span>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleManageParticipant(event, p.userId, 'rejected')}><X size={14}/></Button>
-                                  <Button size="sm" className="h-8 px-3 rounded-lg text-[10px] font-black uppercase" onClick={() => handleManageParticipant(event, p.userId, 'approved')}><Check size={14} className="mr-1"/> Onayla</Button>
-                                </div>
-                              </div>
-                            ))}
-                            {event.participants.filter(p => p.status === 'pending').length === 0 && <p className="text-[10px] text-muted-foreground italic text-center py-2">Bekleyen istek yok</p>}
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-                  <CardHeader className="bg-green-500/5 p-8 border-b border-border/40">
-                    <CardTitle className="text-xl font-black flex items-center gap-3"><ShieldCheck className="text-green-500" /> Bekleyen Ödevler</CardTitle>
-                    <CardDescription>Henüz incelenmemiş yeni ödev teslimleri.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    <ScrollArea className="h-[300px]">
-                      <div className="space-y-4">
-                        {submissions?.filter(s => s.status === 'pending').map(sub => (
-                          <div key={sub.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/40">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10 border border-white/20"><AvatarImage src={sub.userPhotoURL || ''} /><AvatarFallback>{sub.userName.charAt(0)}</AvatarFallback></Avatar>
-                              <div>
-                                <p className="text-sm font-black tracking-tight">@{sub.userName}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase">{assignments?.find(a => a.id === sub.assignmentId)?.title || 'Ödev'}</p>
-                              </div>
+                    <ScrollArea className="h-[400px]">
+                      <div className="space-y-6">
+                        {trips?.filter(t => t.status !== 'cancelled').map(trip => (
+                          <div key={trip.id} className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-4">
+                            <div className="flex justify-between items-center">
+                              <p className="font-black uppercase text-sm truncate">{trip.title}</p>
+                              <Badge variant="outline">{TRIP_STATUS_LABELS[trip.status]}</Badge>
                             </div>
-                            <Button size="sm" variant="outline" className="rounded-xl h-8 text-[9px] font-black uppercase" onClick={() => setSelectedSubmission(sub)}>İncele</Button>
+                            <div className="flex flex-wrap gap-2">
+                              {trip.status === 'planned' && (
+                                <>
+                                  <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700" onClick={() => handleUpdateTripStatus(trip.id, 'completed')}><CheckCircle size={14} className="mr-1"/> Bitir</Button>
+                                  <Button size="sm" variant="destructive" className="h-8" onClick={() => handleUpdateTripStatus(trip.id, 'cancelled')}><Trash2 size={14} className="mr-1"/> İptal Et</Button>
+                                </>
+                              )}
+                              {trip.status === 'completed' && <Button size="sm" variant="secondary" className="h-8" onClick={() => handleUpdateTripStatus(trip.id, 'archived')}><Archive size={14} className="mr-1"/> Arşivle</Button>}
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase text-muted-foreground">Onay Bekleyenler</p>
+                              {trip.participants.filter(p => p.status === 'pending').map(p => (
+                                <div key={p.userId} className="flex items-center justify-between p-2 rounded-xl bg-background/50">
+                                  <span className="text-xs font-bold">@{p.userName}</span>
+                                  <div className="flex gap-1">
+                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleManageParticipant(trip, p.userId, 'rejected')}><X size={12}/></Button>
+                                    <Button size="icon" className="h-7 w-7 bg-green-600" onClick={() => handleManageParticipant(trip, p.userId, 'approved')}><Check size={12}/></Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
-                        {submissions?.filter(s => s.status === 'pending').length === 0 && (
-                          <div className="text-center py-10 italic text-muted-foreground text-sm font-medium">Henüz yeni teslim yok.</div>
-                        )}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -618,84 +539,38 @@ export default function GroupDetailPage() {
       <Dialog open={!!selectedSubmission} onOpenChange={(o) => !o && setSelectedSubmission(null)}>
         {selectedSubmission && (
           <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row">
-            <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40">
-              <Image src={selectedSubmission.photoUrl} alt="Eser" fill className="object-contain" unoptimized />
-            </div>
+            <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40"><Image src={selectedSubmission.photoUrl} alt="Eser" fill className="object-contain" unoptimized /></div>
             <div className="md:w-2/5 w-full flex flex-col p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
-                <div className="flex justify-between items-start mb-2">
-                  <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase text-[9px] tracking-widest">ÖDEV TESLİMİ</Badge>
-                </div>
                 <DialogTitle className="text-2xl font-black tracking-tight">{assignments?.find(a => a.id === selectedSubmission.assignmentId)?.title || 'Ödev Detayı'}</DialogTitle>
                 <div className="flex items-center gap-2 mt-2">
                   <Avatar className="h-6 w-6"><AvatarImage src={selectedSubmission.userPhotoURL || ''}/><AvatarFallback>{selectedSubmission.userName.charAt(0)}</AvatarFallback></Avatar>
                   <span className="text-xs font-bold text-muted-foreground uppercase">@{selectedSubmission.userName}</span>
                 </div>
               </DialogHeader>
-
-              <ScrollArea className="flex-1 -mx-2 pr-4">
+              <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-6">
-                  {selectedSubmission.aiFeedback ? (
+                  {selectedSubmission.aiFeedback && (
                     <Card className="p-5 border-primary/20 bg-primary/5 rounded-2xl space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2"><Sparkles size={12}/> Luma Ödev Analizi</h4>
-                        <Badge className="bg-primary text-white h-5 px-2 text-[9px] font-black">{selectedSubmission.aiFeedback.score}/10</Badge>
-                      </div>
-                      <p className="text-xs italic leading-relaxed text-foreground/90 bg-background/40 p-3 rounded-xl">"{selectedSubmission.aiFeedback.feedback}"</p>
-                      <div className="grid gap-2">
-                        {selectedSubmission.aiFeedback.technicalPoints.map((pt, i) => (
-                          <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
-                            <CheckCircle2 size={10} className="text-green-500" /> {pt}
-                          </div>
-                        ))}
-                      </div>
+                      <h4 className="text-[10px] font-black uppercase text-primary">Luma Analizi</h4>
+                      <p className="text-xs italic leading-relaxed">"{selectedSubmission.aiFeedback.feedback}"</p>
                     </Card>
-                  ) : (
-                    <div className="p-6 border-dashed border-border/60 bg-muted/10 rounded-2xl text-center">
-                      <Loader2 className="h-6 w-6 mx-auto mb-2 text-muted-foreground/40 animate-spin" />
-                      <p className="text-xs font-bold text-muted-foreground italic">Analiz yükleniyor...</p>
-                    </div>
                   )}
-
                   <div className="flex items-center gap-4 py-4 border-y border-border/40">
-                    <Button 
-                      variant="ghost" 
-                      className={cn("h-10 px-4 rounded-xl gap-2 font-black text-xs", selectedSubmission.likes.includes(user?.uid || '') ? "text-red-500 bg-red-500/5" : "")}
-                      onClick={() => handleToggleLike(selectedSubmission)}
-                    >
-                      <Heart className={cn("h-4 w-4", selectedSubmission.likes.includes(user?.uid || '') && "fill-current")} />
-                      {selectedSubmission.likes.length} Beğeni
+                    <Button variant="ghost" className="h-10 px-4 rounded-xl gap-2 font-black text-xs" onClick={() => handleToggleLike(selectedSubmission)}>
+                      <Heart className={cn("h-4 w-4", selectedSubmission.likes.includes(user?.uid || '') && "fill-current text-red-500")} /> {selectedSubmission.likes.length} Beğeni
                     </Button>
-                    <div className="flex items-center gap-2 text-muted-foreground font-black text-xs px-2">
-                      <MessageSquare className="h-4 w-4" />
-                      {selectedSubmission.comments.length} Yorum
-                    </div>
                   </div>
-
                   <div className="space-y-4">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Topluluk Geri Bildirimi</h5>
-                    <div className="space-y-4">
-                      {selectedSubmission.comments.map((comment, i) => (
-                        <div key={i} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-                          <Avatar className="h-8 w-8 shrink-0"><AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback></Avatar>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-black uppercase tracking-tight">{comment.userName}</span>
-                              <span className="text-[8px] text-muted-foreground uppercase">{new Date(comment.createdAt).toLocaleTimeString('tr-TR')}</span>
-                            </div>
-                            <p className="text-xs text-foreground/80 leading-relaxed bg-secondary/20 p-2.5 rounded-xl border border-border/40">{comment.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                      {selectedSubmission.comments.length === 0 && <p className="text-center py-6 text-xs italic text-muted-foreground">Henüz yorum yapılmamış.</p>}
-                    </div>
+                    {selectedSubmission.comments.map((comment, i) => (
+                      <div key={i} className="flex gap-3"><Avatar className="h-8 w-8 shrink-0"><AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback></Avatar>
+                        <div className="flex-1 bg-secondary/20 p-2.5 rounded-xl border border-border/40"><p className="text-xs text-foreground/80 leading-relaxed">{comment.text}</p></div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </ScrollArea>
-
-              <div className="pt-4 border-t border-border/40">
-                <CommentInput onSend={(text) => handleAddComment(selectedSubmission, text)} />
-              </div>
+              <div className="pt-4 border-t border-border/40"><CommentInput onSend={(text) => handleAddComment(selectedSubmission, text)} /></div>
             </div>
           </DialogContent>
         )}
@@ -710,47 +585,30 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
     date: '', time: '', duration: '', distance: '',
     approvalRequired: false, isListPublic: true
   });
-
-  const handleCreate = () => {
-    if (formData.title && formData.description && formData.date) {
-      onCreate(formData);
-      setFormData({
-        title: '', description: '', startPoint: '', endPoint: '',
-        date: '', time: '', duration: '', distance: '',
-        approvalRequired: false, isListPublic: true
-      });
-    }
-  };
-
+  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true }); } };
   return (
     <div className="space-y-6">
       <div className="grid gap-4">
-        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Gezi Başlığı</Label><Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Örn: Galata Sokakları Foto Maraton" className="rounded-2xl h-12 bg-muted/30" /></div>
-        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Açıklama</Label><Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Gezi detayları ve ekipman önerileri..." className="rounded-2xl min-h-[80px] bg-muted/30" /></div>
+        <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Gezi Başlığı" className="rounded-2xl h-12 bg-muted/30" />
+        <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Açıklama" className="rounded-2xl min-h-[80px] bg-muted/30" />
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç Noktası</Label><Input value={formData.startPoint} onChange={e => setFormData({...formData, startPoint: e.target.value})} placeholder="Örn: Galata Kulesi Önü" className="rounded-xl h-10 bg-muted/30" /></div>
-          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Bitiş Noktası</Label><Input value={formData.endPoint} onChange={e => setFormData({...formData, endPoint: e.target.value})} placeholder="Örn: Karaköy Sahil" className="rounded-xl h-10 bg-muted/30" /></div>
+          <Input value={formData.startPoint} onChange={e => setFormData({...formData, startPoint: e.target.value})} placeholder="Başlangıç Noktası" className="rounded-xl h-10" />
+          <Input value={formData.endPoint} onChange={e => setFormData({...formData, endPoint: e.target.value})} placeholder="Bitiş Noktası" className="rounded-xl h-10" />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Tarih</Label><Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-xl h-10 bg-muted/30" /></div>
-          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Saat</Label><Input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="rounded-xl h-10 bg-muted/30" /></div>
+          <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-xl h-10" />
+          <Input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="rounded-xl h-10" />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Tahmini Süre</Label><Input value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} placeholder="Örn: 3 Saat" className="rounded-xl h-10 bg-muted/30" /></div>
-          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Tahmini Mesafe</Label><Input value={formData.distance} onChange={e => setFormData({...formData, distance: e.target.value})} placeholder="Örn: 2.5 KM" className="rounded-xl h-10 bg-muted/30" /></div>
+          <Input value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} placeholder="Tahmini Süre" className="rounded-xl h-10" />
+          <Input value={formData.distance} onChange={e => setFormData({...formData, distance: e.target.value})} placeholder="Mesafe" className="rounded-xl h-10" />
         </div>
-        <div className="flex flex-col gap-4 p-4 rounded-2xl bg-secondary/20 border border-border/40">
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-black uppercase tracking-widest">Katılım Onayı Gerekli mi?</Label>
-            <Switch checked={formData.approvalRequired} onCheckedChange={checked => setFormData({...formData, approvalRequired: checked})} />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-black uppercase tracking-widest">Listeyi Herkese Aç?</Label>
-            <Switch checked={formData.isListPublic} onCheckedChange={checked => setFormData({...formData, isListPublic: checked})} />
-          </div>
+        <div className="flex flex-col gap-4 p-4 rounded-2xl bg-secondary/20 border">
+          <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Onay Gerekli mi?</Label><Switch checked={formData.approvalRequired} onCheckedChange={v => setFormData({...formData, approvalRequired: v})} /></div>
+          <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Listeyi Herkese Aç?</Label><Switch checked={formData.isListPublic} onCheckedChange={v => setFormData({...formData, isListPublic: v})} /></div>
         </div>
       </div>
-      <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Geziyi Yayınla</Button>
+      <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase">Geziyi Yayınla</Button>
     </div>
   );
 }
@@ -760,21 +618,8 @@ function CommentInput({ onSend }: { onSend: (text: string) => void }) {
   const handleSend = () => { if (text.trim()) { onSend(text); setText(''); } };
   return (
     <div className="relative">
-      <Input 
-        value={text} 
-        onChange={e => setText(e.target.value)} 
-        placeholder="Yorumunu yaz..." 
-        className="h-12 pr-14 rounded-2xl bg-muted/30 border-border/60 focus:border-primary/40 transition-all font-medium text-sm"
-        onKeyDown={e => e.key === 'Enter' && handleSend()}
-      />
-      <Button 
-        size="icon" 
-        onClick={handleSend} 
-        disabled={!text.trim()} 
-        className="absolute right-1.5 top-1.5 h-9 w-9 rounded-xl shadow-lg shadow-primary/20"
-      >
-        <Send size={16} />
-      </Button>
+      <Input value={text} onChange={e => setText(e.target.value)} placeholder="Yorumunu yaz..." className="h-12 pr-14 rounded-2xl bg-muted/30" onKeyDown={e => e.key === 'Enter' && handleSend()} />
+      <Button size="icon" onClick={handleSend} disabled={!text.trim()} className="absolute right-1.5 top-1.5 h-9 w-9 rounded-xl"><Send size={16} /></Button>
     </div>
   );
 }
@@ -785,24 +630,21 @@ function AssignmentCreator({ onCreate }: { onCreate: (title: string, description
   const handleAdd = () => { if (title.trim() && desc.trim()) { onCreate(title, desc); setTitle(''); setDesc(''); } };
   return (
     <div className="space-y-5">
-      <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Ödev Başlığı</Label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Örn: Pencere Portresi" className="rounded-2xl h-12 bg-muted/30" /></div>
-      <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Detaylar & Kurallar</Label><Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Örn: Doğal pencere ışığını kullanarak derinlikli bir portre çekin..." className="rounded-2xl min-h-[120px] bg-muted/30" /></div>
-      <Button onClick={handleAdd} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Ödevi Yayınla</Button>
+      <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ödev Başlığı" className="rounded-2xl h-12" />
+      <Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Kurallar..." className="rounded-2xl min-h-[120px]" />
+      <Button onClick={handleAdd} className="w-full h-14 rounded-2xl font-black uppercase">Ödevi Yayınla</Button>
     </div>
   );
 }
 
 function AssignmentUploader({ onUpload, isUploading }: { onUpload: (file: File) => void, isUploading: boolean }) {
   const onDrop = useCallback((files: File[]) => { if (files.length > 0) onUpload(files[0]); }, [onUpload]);
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] }, multiple: false });
+  const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: { 'image/*': [] }, multiple: false });
   return (
-    <div {...getRootProps()} className={cn("border-2 border-dashed rounded-[32px] p-12 text-center cursor-pointer transition-all hover:bg-primary/5 hover:border-primary/40 group bg-muted/10", isDragActive && "border-primary bg-primary/10", isUploading && "opacity-50 pointer-events-none")}>
+    <div {...getRootProps()} className="border-2 border-dashed rounded-[32px] p-12 text-center cursor-pointer hover:bg-primary/5 transition-all">
       <input {...getInputProps()} />
-      <div className="h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-        {isUploading ? <Loader2 className="animate-spin text-primary" size={32} /> : <ImageIcon className="text-muted-foreground group-hover:text-primary transition-colors" size={32} />}
-      </div>
-      <p className="font-black text-xl tracking-tight uppercase">Ödevini Teslim Et</p>
-      <p className="text-sm text-muted-foreground mt-2 font-medium">Fotoğrafını buraya sürükle veya seç.</p>
+      <div className="h-16 w-16 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4">{isUploading ? <Loader2 className="animate-spin text-primary" /> : <ImageIcon size={32} />}</div>
+      <p className="font-black text-xl uppercase">Ödevini Teslim Et</p>
     </div>
   );
 }
