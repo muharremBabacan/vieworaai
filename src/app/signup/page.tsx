@@ -15,6 +15,36 @@ import Link from 'next/link';
 import { AuthService } from '@/lib/auth/auth-service';
 import { ToastAction } from '@/components/ui/toast';
 
+function MilkyWayEffect() {
+  const [stars, setStars] = useState<{ id: number; tx: number; ty: number; delay: number }[]>([]);
+
+  useEffect(() => {
+    const newStars = Array.from({ length: 30 }).map((_, i) => ({
+      id: i,
+      tx: 200 + Math.random() * 200,
+      ty: -200 - Math.random() * 200,
+      delay: Math.random() * 0.8,
+    }));
+    setStars(newStars);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-40">
+      {stars.map((star) => (
+        <div
+          key={star.id}
+          className="absolute h-1.5 w-1.5 bg-yellow-400 rounded-full blur-[1px] animate-star-trail"
+          style={{
+            '--tw-translate-x': `${star.tx}px`,
+            '--tw-translate-y': `${star.ty}px`,
+            animationDelay: `${star.delay}s`,
+          } as any}
+        />
+      ))}
+    </div>
+  );
+}
+
 function SignupForm() {
   const { auth, firestore } = useFirebase();
   const router = useRouter();
@@ -48,44 +78,24 @@ function SignupForm() {
 
     setIsLoading(true);
     try {
-      // 1. Create user
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // 2. Ensure Firestore doc
       await AuthService.ensureUserDoc(firestore, result.user, name, 'email');
-      
-      // 3. Send verification
       await sendEmailVerification(result.user);
-      
-      // 4. Sign out (as they need to verify first)
       await signOut(auth);
-      
       router.push('/verify-email');
     } catch (error: any) {
-      console.warn("Signup error caught:", error.code);
-
+      console.warn("Signup error:", error.code);
       if (error.code === 'auth/email-already-in-use') {
         toast({
           variant: 'destructive',
-          title: 'Bu e-posta zaten kayıtlı',
-          description: 'Bu e-posta adresiyle daha önce hesap oluşturulmuş. Lütfen giriş yapın.',
+          title: 'Zaten Kayıtlı',
+          description: 'Bu e-posta ile daha önce hesap oluşturulmuş.',
           action: (
-            <ToastAction altText="Giriş Yap" onClick={() => router.push('/login')}>
-              Giriş Yap
-            </ToastAction>
+            <ToastAction altText="Giriş Yap" onClick={() => router.push('/login')}>Giriş Yap</ToastAction>
           ),
         });
       } else {
-        const messages: Record<string, string> = {
-          'auth/invalid-email': 'Geçersiz e-posta formatı.',
-          'auth/operation-not-allowed': 'E-posta kaydı şu an kapalı.',
-          'auth/weak-password': 'Şifre çok zayıf.'
-        };
-        toast({
-          variant: 'destructive',
-          title: 'Kayıt Hatası',
-          description: messages[error.code] || 'Hesap oluşturulurken bir hata oluştu. Lütfen bilgilerinizi kontrol edin.',
-        });
+        toast({ variant: 'destructive', title: 'Kayıt Hatası', description: 'Bilgilerinizi kontrol edip tekrar deneyin.' });
       }
     } finally {
       setIsLoading(false);
@@ -93,43 +103,44 @@ function SignupForm() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background p-4 items-center justify-center">
-      <div className="w-full max-w-[400px] space-y-8 animate-in fade-in duration-700">
+    <div className="flex min-h-screen flex-col bg-background p-4 items-center justify-center relative overflow-hidden">
+      <MilkyWayEffect />
+      <div className="w-full max-w-[400px] space-y-8 animate-in fade-in duration-700 relative z-10">
         <div className="flex flex-col items-center text-center space-y-4">
           <Logo className="scale-90" />
           <h1 className="text-3xl font-black tracking-tighter uppercase">Hesap Oluştur</h1>
           <p className="text-sm text-muted-foreground font-medium">Luma ile fotoğraf yolculuğuna başla.</p>
         </div>
 
-        <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-2xl overflow-hidden">
+        <Card className="rounded-[32px] border-border/40 bg-card/50 backdrop-blur-md shadow-2xl overflow-hidden">
           <CardContent className="p-8 space-y-6">
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest ml-1">Adın</Label>
+                <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest ml-1 text-muted-foreground">Adın</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="name" placeholder="Adınız" value={name} onChange={e => setName(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30" required />
+                  <Input id="name" placeholder="Adınız" value={name} onChange={e => setName(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30 border-border/60" required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest ml-1">E-posta</Label>
+                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest ml-1 text-muted-foreground">E-posta</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="ornek@mail.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30" required />
+                  <Input id="email" type="email" placeholder="ornek@mail.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30 border-border/60" required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest ml-1">Şifre</Label>
+                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest ml-1 text-muted-foreground">Şifre</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30" required />
+                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30 border-border/60" required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-widest ml-1">Şifre Tekrar</Label>
+                <Label htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-widest ml-1 text-muted-foreground">Şifre Tekrar</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30" required />
+                  <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pl-10 h-12 rounded-2xl bg-muted/30 border-border/60" required />
                 </div>
               </div>
               <Button type="submit" disabled={isLoading} className="w-full h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
@@ -153,7 +164,7 @@ function SignupForm() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
       <SignupForm />
     </Suspense>
   );
