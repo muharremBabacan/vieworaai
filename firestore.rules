@@ -92,6 +92,12 @@ service cloud.firestore {
         allow update: if isGroupMember(groupId);
         allow delete: if isGroupOwner(groupId) || (isGroupMember(groupId) && resource.data.userId == request.auth.uid);
       }
+
+      match /events/{eventId} {
+        allow read: if isGroupMember(groupId);
+        allow create, delete: if isGroupOwner(groupId);
+        allow update: if isGroupMember(groupId);
+      }
     }
 
     match /analysis_logs/{logId} {

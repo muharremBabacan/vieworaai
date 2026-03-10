@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -66,14 +67,13 @@ export function useCollection<T = any>(
         // Çıkış yaparken oluşan yetki hatasını yakala
         const auth = getAuth();
         if (err.code === 'permission-denied' && !auth.currentUser) {
-          console.warn("Firestore access revoked due to sign out.");
           setData(null);
           setIsLoading(false);
           return;
         }
 
-        console.error("Firestore useCollection Error:", err.code, err.message);
-
+        // We emit a specialized error for the developer overlay instead of a simple console.error
+        // which prevents confusing duplicate error states in Next.js.
         if (err.code === 'permission-denied') {
           const contextualError = new FirestorePermissionError({
             operation: 'list',

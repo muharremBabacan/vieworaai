@@ -65,16 +65,36 @@
         "comments": {
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "userId": { "type": "string" },
-              "userName": { "type": "string" },
-              "text": { "type": "string" },
-              "createdAt": { "type": "string" }
+            "object": {
+              "properties": {
+                "userId": { "type": "string" },
+                "userName": { "type": "string" },
+                "text": { "type": "string" },
+                "createdAt": { "type": "string" }
+              }
             }
           }
         },
         "submittedAt": { "type": "string" }
+      }
+    },
+    "GroupEvent": {
+      "title": "Group Event (Photo Walk)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "groupId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startPoint": { "type": "string" },
+        "endPoint": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "duration": { "type": "string" },
+        "distance": { "type": "string" },
+        "approvalRequired": { "type": "boolean" },
+        "isListPublic": { "type": "boolean" },
+        "createdAt": { "type": "string" }
       }
     }
   },
@@ -97,6 +117,10 @@
     "groups/{groupId}/submissions/{submissionId}": {
       "schema": { "$ref": "#/backend/entities/GroupSubmission" },
       "description": "Member photo submissions for assignments."
+    },
+    "groups/{groupId}/events/{eventId}": {
+      "schema": { "$ref": "#/backend/entities/GroupEvent" },
+      "description": "Scheduled photo walks and events within a group."
     }
   }
 }
