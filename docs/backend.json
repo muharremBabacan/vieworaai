@@ -95,6 +95,16 @@
         "approvalRequired": { "type": "boolean" },
         "isListPublic": { "type": "boolean" },
         "status": { "type": "string", "enum": ["planned", "completed", "cancelled", "archived"] },
+        "route_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["start", "photo_stop", "break", "viewpoint", "end"] }
+            }
+          }
+        },
         "created_at": { "type": "string" },
         "completed_at": { "type": "string" },
         "cancelled_at": { "type": "string" }
@@ -111,6 +121,30 @@
         "joined_at": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "status", "joined_at"]
+    },
+    "TripTemplate": {
+      "title": "Trip Template",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "city": { "type": "string" },
+        "category": { "type": "string" },
+        "duration_minutes": { "type": "number" },
+        "distance_km": { "type": "number" },
+        "start_point": { "type": "string" },
+        "end_point": { "type": "string" },
+        "route_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string" }
+            }
+          }
+        }
+      }
     }
   },
   "auth": {
@@ -140,6 +174,10 @@
     "groups/{groupId}/trips/{tripId}/participants/{userId}": {
       "schema": { "$ref": "#/backend/entities/TripParticipant" },
       "description": "Individual participation status for a trip."
+    },
+    "trip_templates/{templateId}": {
+      "schema": { "$ref": "#/backend/entities/TripTemplate" },
+      "description": "Predefined photography route templates."
     }
   }
 }

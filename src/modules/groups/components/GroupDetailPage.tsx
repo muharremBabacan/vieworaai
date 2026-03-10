@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus } from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus, TripTemplate, RoutePoint } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Loader2, Crown, Users, CheckCircle2, MessageSquare, Send, ImageIcon, Info, PlusCircle, Heart, Star, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus, Trash2, Archive, CheckCircle, ArrowLeft, ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -23,6 +23,7 @@ import { useDropzone } from 'react-dropzone';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: string }> = {
   study: { label: 'Eğitim', icon: GraduationCap, color: 'bg-blue-500/10 text-blue-400' },
@@ -37,6 +38,167 @@ const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
   cancelled: 'İptal Edildi',
   archived: 'Arşivlendi'
 };
+
+const ISTANBUL_TEMPLATES: Omit<TripTemplate, 'id'>[] = [
+  {
+    title: "Galata - Karaköy Mimari Rota",
+    city: "istanbul",
+    category: "architecture",
+    duration_minutes: 90,
+    distance_km: 1.5,
+    start_point: "Galata Kulesi",
+    end_point: "Galataport",
+    route_points: [
+      { name: "Galata Kulesi", type: "start" },
+      { name: "Serdar-ı Ekrem Sokak", type: "photo_stop" },
+      { name: "Kamondo Merdivenleri", type: "photo_stop" },
+      { name: "Karaköy Sahil", type: "break" },
+      { name: "Galataport", type: "end" }
+    ]
+  },
+  {
+    title: "Balat Renkli Sokaklar",
+    city: "istanbul",
+    category: "street",
+    duration_minutes: 120,
+    distance_km: 2.0,
+    start_point: "Balat Renkli Evler",
+    end_point: "Fener Rum Patrikhanesi",
+    route_points: [
+      { name: "Balat Renkli Evler", type: "start" },
+      { name: "Merdivenli Yokuş", type: "viewpoint" },
+      { name: "Çıfıt Çarşısı", type: "photo_stop" },
+      { name: "Balat Sahil", type: "break" },
+      { name: "Fener Rum Patrikhanesi", type: "end" }
+    ]
+  },
+  {
+    title: "Kuzguncuk Mahalle Kültürü",
+    city: "istanbul",
+    category: "street",
+    duration_minutes: 60,
+    distance_km: 1.0,
+    start_point: "Kuzguncuk İskelesi",
+    end_point: "Kuzguncuk Bostanı",
+    route_points: [
+      { name: "Kuzguncuk İskelesi", type: "start" },
+      { name: "Perihan Abla Sokağı", type: "photo_stop" },
+      { name: "Nail Kitabevi", type: "break" },
+      { name: "Kuzguncuk Bostanı", type: "end" }
+    ]
+  },
+  {
+    title: "Sultanahmet Tarihi Yarımada",
+    city: "istanbul",
+    category: "culture",
+    duration_minutes: 180,
+    distance_km: 3.5,
+    start_point: "Ayasofya Camii",
+    end_point: "Gülhane Parkı",
+    route_points: [
+      { name: "Ayasofya Camii", type: "start" },
+      { name: "Sultanahmet Meydanı", type: "viewpoint" },
+      { name: "Yerebatan Sarnıcı", type: "photo_stop" },
+      { name: "Soğukçeşme Sokağı", type: "photo_stop" },
+      { name: "Gülhane Parkı", type: "end" }
+    ]
+  },
+  {
+    title: "Moda Sahil ve Yaşam",
+    city: "istanbul",
+    category: "lifestyle",
+    duration_minutes: 90,
+    distance_km: 2.5,
+    start_point: "Kadıköy Boğa Heykeli",
+    end_point: "Moda Burnu",
+    route_points: [
+      { name: "Kadıköy Boğa Heykeli", type: "start" },
+      { name: "Bahariye Caddesi", type: "street" },
+      { name: "Moda Caddesi", type: "photo_stop" },
+      { name: "Moda Çay Bahçesi", type: "break" },
+      { name: "Moda Burnu", type: "end" }
+    ]
+  },
+  {
+    title: "Eminönü - Mısır Çarşısı Kaosu",
+    city: "istanbul",
+    category: "street",
+    duration_minutes: 120,
+    distance_km: 1.8,
+    start_point: "Eminönü Meydanı",
+    end_point: "Sirkeci Garı",
+    route_points: [
+      { name: "Eminönü Meydanı", type: "start" },
+      { name: "Yeni Camii", type: "viewpoint" },
+      { name: "Mısır Çarşısı", type: "photo_stop" },
+      { name: "Tahtakale Sokakları", type: "photo_stop" },
+      { name: "Sirkeci Garı", type: "end" }
+    ]
+  },
+  {
+    title: "Arnavutköy - Bebek Sahil",
+    city: "istanbul",
+    category: "lifestyle",
+    duration_minutes: 100,
+    distance_km: 3.0,
+    start_point: "Arnavutköy İskelesi",
+    end_point: "Bebek Parkı",
+    route_points: [
+      { name: "Arnavutköy İskelesi", type: "start" },
+      { name: "Renkli Arnavutköy Evleri", type: "photo_stop" },
+      { name: "Akıntıburnu", type: "viewpoint" },
+      { name: "Bebek Sahili", type: "break" },
+      { name: "Bebek Parkı", type: "end" }
+    ]
+  },
+  {
+    title: "İstiklal Caddesi Gece Çekimi",
+    city: "istanbul",
+    category: "night",
+    duration_minutes: 90,
+    distance_km: 1.4,
+    start_point: "Taksim Meydanı",
+    end_point: "Tünel Meydanı",
+    route_points: [
+      { name: "Taksim Meydanı", type: "start" },
+      { name: "Fransız Konsolosluğu", type: "photo_stop" },
+      { name: "St. Antuan Kilisesi", type: "viewpoint" },
+      { name: "Çiçek Pasajı", type: "break" },
+      { name: "Tünel Meydanı", type: "end" }
+    ]
+  },
+  {
+    title: "Nişantaşı Moda ve Stil",
+    city: "istanbul",
+    category: "fashion",
+    duration_minutes: 75,
+    distance_km: 1.2,
+    start_point: "Maçka Parkı",
+    end_point: "Abdi İpekçi Caddesi",
+    route_points: [
+      { name: "Maçka Parkı", type: "start" },
+      { name: "Teşvikiye Camii", type: "photo_stop" },
+      { name: "City's Nişantaşı", type: "break" },
+      { name: "Abdi İpekçi Caddesi", type: "end" }
+    ]
+  },
+  {
+    title: "Pierre Loti Manzara Rotası",
+    city: "istanbul",
+    category: "landscape",
+    duration_minutes: 120,
+    distance_km: 2.2,
+    start_point: "Eyüp Sultan Camii",
+    end_point: "Pierre Loti Tepesi",
+    route_points: [
+      { name: "Eyüp Sultan Camii", type: "start" },
+      { name: "Tarihi Eyüp Mezarlığı", type: "photo_stop" },
+      { name: "Teleferik İstasyonu", type: "viewpoint" },
+      { name: "Haliç Manzarası", type: "viewpoint" },
+      { name: "Pierre Loti Tepesi", type: "end" }
+    ]
+  }
+];
 
 function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip, isOwner: boolean, userId: string, userProfile: User | null, groupId: string }) {
   const firestore = useFirestore();
@@ -69,10 +231,23 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
     }
   };
 
+  const getGoogleMapsUrl = () => {
+    const origin = encodeURIComponent(trip.startPoint);
+    const destination = encodeURIComponent(trip.endPoint);
+    const waypoints = trip.route_points
+      ?.filter(p => p.type !== 'start' && p.type !== 'end')
+      .map(p => encodeURIComponent(p.name))
+      .join('|');
+    
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+    if (waypoints) url += `&waypoints=${waypoints}`;
+    return url;
+  };
+
   return (
     <Card className={cn("rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl", trip.status === 'completed' && "opacity-80 grayscale-[0.3]")}>
       <CardHeader className="bg-secondary/20 p-10 border-b border-border/40">
-        <div className="flex justify-between items-start gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div className="space-y-2">
             <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3 mb-2">GEZİ PLANI</Badge>
             <CardTitle className="text-4xl font-black uppercase tracking-tighter">{trip.title}</CardTitle>
@@ -83,10 +258,15 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
               <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{trip.duration}</span></div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-2 shrink-0">
             <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", trip.status === 'completed' ? "bg-green-600" : "bg-primary")}>
               {TRIP_STATUS_LABELS[trip.status]}
             </Badge>
+            <Button asChild variant="outline" className="h-10 rounded-xl font-bold border-primary/20 hover:bg-primary/5">
+              <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" /> Rotayı Haritada Aç
+              </a>
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -97,9 +277,21 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
               <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
                 <MapPin className="text-primary mt-1 shrink-0" size={24} />
-                <div className="space-y-4">
+                <div className="space-y-4 w-full">
                   <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{trip.startPoint}</p></div>
-                  <div className="h-px w-full bg-border/40" />
+                  
+                  {trip.route_points && trip.route_points.length > 2 && (
+                    <div className="space-y-3 py-2 border-y border-border/40">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Ara Duraklar</p>
+                      {trip.route_points.filter(p => p.type !== 'start' && p.type !== 'end').map((p, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm font-medium">
+                          <div className="h-1.5 w-1.5 rounded-full bg-border" />
+                          {p.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{trip.endPoint}</p></div>
                 </div>
               </div>
@@ -264,7 +456,6 @@ export default function GroupDetailPage() {
         created_at: now
       });
 
-      // Send notifications to all group members except creator
       group.memberIds.forEach(memberId => {
         if (memberId !== user.uid) {
           const notifRef = doc(collection(firestore, 'users', memberId, 'notifications'));
@@ -274,7 +465,7 @@ export default function GroupDetailPage() {
             groupId: group.id,
             title: "Yeni Gezi Planı",
             message: `${tripData.title} gezisi planlandı.`,
-            created_at: now,
+            createdAt: now,
             read: false
           });
         }
@@ -297,7 +488,6 @@ export default function GroupDetailPage() {
     
     batch.update(tripRef, updates);
 
-    // Send notifications
     const type = newStatus === 'cancelled' ? 'trip_cancelled' : 'trip_updated';
     const messagePrefix = newStatus === 'cancelled' ? 'Gezi iptal edildi: ' : 'Gezi güncellendi: ';
     const tripSnap = await getDoc(tripRef);
@@ -312,7 +502,7 @@ export default function GroupDetailPage() {
           groupId: group.id,
           title: "Gezi Güncellemesi",
           message: `${messagePrefix} ${tripTitle}`,
-          created_at: now,
+          createdAt: now,
           read: false
         });
       }
@@ -618,12 +808,45 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
   const [formData, setFormData] = useState({
     title: '', description: '', startPoint: '', endPoint: '',
     date: '', time: '', duration: '', distance: '',
-    approvalRequired: false, isListPublic: true
+    approvalRequired: false, isListPublic: true,
+    route_points: [] as RoutePoint[]
   });
-  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true }); } };
+
+  const handleTemplateSelect = (templateTitle: string) => {
+    const template = ISTANBUL_TEMPLATES.find(t => t.title === templateTitle);
+    if (template) {
+      setFormData({
+        ...formData,
+        title: template.title,
+        description: `${template.city.toUpperCase()} - ${template.category.toUpperCase()} Fotoğraf Gezisi`,
+        startPoint: template.start_point,
+        endPoint: template.end_point,
+        duration: `${template.duration_minutes} Dakika`,
+        distance: `${template.distance_km} KM`,
+        route_points: template.route_points
+      });
+    }
+  };
+
+  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); setFormData({ title: '', description: '', startPoint: '', endPoint: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, route_points: [] }); } };
+  
   return (
     <div className="space-y-6">
-      <div className="grid gap-4">
+      <div className="space-y-2">
+        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Taslak Rotalardan Seç (İstanbul)</Label>
+        <Select onValueChange={handleTemplateSelect}>
+          <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-primary/20">
+            <SelectValue placeholder="Bir rota şablonu seçin..." />
+          </SelectTrigger>
+          <SelectContent>
+            {ISTANBUL_TEMPLATES.map(t => (
+              <SelectItem key={t.title} value={t.title}>{t.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-4 pt-4 border-t border-border/40">
         <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Gezi Başlığı" className="rounded-2xl h-12 bg-muted/30" />
         <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Açıklama" className="rounded-2xl min-h-[80px] bg-muted/30" />
         <div className="grid grid-cols-2 gap-4">
@@ -643,7 +866,7 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
           <div className="flex items-center justify-between"><Label className="text-[10px] font-black uppercase">Listeyi Herkese Aç?</Label><Switch checked={formData.isListPublic} onCheckedChange={v => setFormData({...formData, isListPublic: v})} /></div>
         </div>
       </div>
-      <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase">Geziyi Yayınla</Button>
+      <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">Geziyi Yayınla</Button>
     </div>
   );
 }

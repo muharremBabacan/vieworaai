@@ -318,6 +318,13 @@ export type TripParticipant = {
 
 export type TripStatus = 'planned' | 'completed' | 'cancelled' | 'archived';
 
+export type RoutePointType = 'start' | 'photo_stop' | 'break' | 'viewpoint' | 'end';
+
+export type RoutePoint = {
+  name: string;
+  type: RoutePointType;
+};
+
 export type Trip = {
   id: string;
   groupId: string;
@@ -332,9 +339,22 @@ export type Trip = {
   approvalRequired: boolean;
   isListPublic: boolean;
   status: TripStatus;
+  route_points?: RoutePoint[];
   created_at: string;
   completed_at?: string;
   cancelled_at?: string;
+};
+
+export type TripTemplate = {
+  id: string;
+  title: string;
+  city: string;
+  category: string;
+  duration_minutes: number;
+  distance_km: number;
+  start_point: string;
+  end_point: string;
+  route_points: RoutePoint[];
 };
 
 /** @deprecated Use Trip instead. Kept for temporary compatibility during migration. */

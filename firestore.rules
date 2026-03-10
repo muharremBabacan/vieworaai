@@ -112,6 +112,11 @@ service cloud.firestore {
       }
     }
 
+    match /trip_templates/{templateId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     match /analysis_logs/{logId} {
       allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
       allow create: if isSignedIn();
