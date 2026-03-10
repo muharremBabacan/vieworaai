@@ -112,7 +112,7 @@ export default function ExplorePage() {
           <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-primary/20">
             <div className="relative h-32 w-full overflow-hidden">
               <Image 
-                src="https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=600" 
+                src="/temel14a.jpg" 
                 alt="Sergiler" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -141,7 +141,7 @@ export default function ExplorePage() {
           <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-amber-500/20">
             <div className="relative h-32 w-full overflow-hidden">
               <Image 
-                src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600" 
+                src="/temel15a.jpg" 
                 alt="Yarışmalar" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -170,7 +170,7 @@ export default function ExplorePage() {
           <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-blue-400/20">
             <div className="relative h-32 w-full overflow-hidden">
               <Image 
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=600" 
+                src="/temel12a.jpg" 
                 alt="Gruplar" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -199,7 +199,7 @@ export default function ExplorePage() {
           <Card className="flex flex-col rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-yellow-400/20">
             <div className="relative h-32 w-full overflow-hidden">
               <Image 
-                src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=600" 
+                src="/temel13a.jpg" 
                 alt="Öne Çıkanlar" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -246,7 +246,7 @@ export default function ExplorePage() {
           <div className="grid md:grid-cols-2 gap-10">
             {exhibitions.map((ex) => (
               <Card key={ex.id} className="group relative h-96 rounded-[48px] overflow-hidden border-none cursor-pointer shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
-                <Image src={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/800/600`} alt={ex.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+                <Image src={ex.imageUrl || `/temel15a.jpg`} alt={ex.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div className="absolute top-8 left-8 flex gap-3">
                   <Badge className="bg-primary/20 backdrop-blur-xl text-primary border-primary/20 text-[10px] font-black uppercase px-4 h-7 rounded-full">AÇIK</Badge>

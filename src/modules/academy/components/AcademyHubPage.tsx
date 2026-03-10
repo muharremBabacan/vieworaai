@@ -3,7 +3,7 @@
 import { Award, BarChart3, Diamond, Lock, GraduationCap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -80,7 +80,7 @@ export default function AcademyHubPage() {
             )}>
               <div className="relative h-40 w-full overflow-hidden">
                 <Image 
-                  src={level.imageUrl || '/temel15a.jpg'} 
+                  src={level.imageUrl} 
                   alt={level.title} 
                   fill 
                   className={cn(
