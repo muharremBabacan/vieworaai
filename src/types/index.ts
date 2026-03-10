@@ -290,3 +290,28 @@ export type CurriculumTopic = {
   category: string;
   topics: string[];
 };
+
+export type GroupEventParticipant = {
+  userId: string;
+  userName: string;
+  userPhotoURL?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: string;
+};
+
+export type GroupEvent = {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string;
+  startPoint: string;
+  endPoint: string;
+  date: string;
+  time: string;
+  duration: string;
+  distance: string;
+  approvalRequired: boolean;
+  isListPublic: boolean;
+  participants: GroupEventParticipant[];
+  createdAt: string;
+};

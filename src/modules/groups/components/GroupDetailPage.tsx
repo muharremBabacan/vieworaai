@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc, arrayRemove, collection, query, where, documentId, deleteDoc, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose } from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupComment, GroupPurpose, GroupEvent, GroupEventParticipant } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -16,13 +16,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy } from 'lucide-react';
+import { ArrowLeft, Crown, Users, CheckCircle2, MessageSquare, Send, Loader2, ImageIcon, Info, PlusCircle, Heart, UserCheck, Star, Sparkles, X, ShieldCheck, GraduationCap, Trophy, Map, Hash, Copy, Calendar, Clock, Ruler, MapPin, Check, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
+import { Switch } from '@/components/ui/switch';
 
 const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: string }> = {
   study: { label: 'Eğitim', icon: GraduationCap, color: 'bg-blue-500/10 text-blue-400' },
@@ -67,6 +68,10 @@ export default function GroupDetailPage() {
   const submissionsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'submissions'), orderBy('submittedAt', 'desc')) : null, [firestore, groupId]);
   const { data: submissions, isLoading: isSubmissionsLoading } = useCollection<GroupSubmission>(submissionsQuery);
 
+  // 6. Events Data
+  const eventsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'events'), orderBy('createdAt', 'desc')) : null, [firestore, groupId]);
+  const { data: events, isLoading: isEventsLoading } = useCollection<GroupEvent>(eventsQuery);
+
   const isCurrentUserOwner = group?.ownerId === user?.uid;
 
   // AUTO-SYNC: Ensure user has a public profile
@@ -90,6 +95,12 @@ export default function GroupDetailPage() {
     checkAndSyncProfile();
   }, [user, userProfile, firestore, isSyncingProfile]);
 
+  useEffect(() => {
+    if (group?.purpose === 'walk') {
+      setActiveTab('events');
+    }
+  }, [group?.purpose]);
+
   const handleUploadSubmission = async (assignment: GroupAssignment, file: File) => {
     if (!user || !group || isUploading || !firestore) return;
     
@@ -103,7 +114,6 @@ export default function GroupDetailPage() {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
-      // Trigger Specific AI Analysis for this assignment
       const aiResult = await evaluateGroupSubmission({
         photoUrl: url,
         assignmentTitle: assignment.title,
@@ -155,6 +165,50 @@ export default function GroupDetailPage() {
       });
       await updateDoc(docRef, { id: docRef.id });
       toast({ title: "Ödev Oluşturuldu" });
+    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
+  };
+
+  const handleCreateEvent = async (eventData: Omit<GroupEvent, 'id' | 'groupId' | 'participants' | 'createdAt'>) => {
+    if (!firestore || !group) return;
+    try {
+      const docRef = await addDoc(collection(firestore, 'groups', group.id, 'events'), {
+        ...eventData,
+        groupId: group.id,
+        participants: [],
+        createdAt: new Date().toISOString()
+      });
+      await updateDoc(docRef, { id: docRef.id });
+      toast({ title: "Gezi Planı Yayınlandı!" });
+    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
+  };
+
+  const handleJoinEvent = async (event: GroupEvent) => {
+    if (!user || !firestore || !group) return;
+    const eventRef = doc(firestore, 'groups', group.id, 'events', event.id);
+    const newParticipant: GroupEventParticipant = {
+      userId: user.uid,
+      userName: userProfile?.name || 'Vizyoner',
+      userPhotoURL: userProfile?.photoURL || null,
+      status: event.approvalRequired ? 'pending' : 'approved',
+      requestedAt: new Date().toISOString()
+    };
+    try {
+      await updateDoc(eventRef, {
+        participants: arrayUnion(newParticipant)
+      });
+      toast({ title: event.approvalRequired ? "Katılım İsteği Gönderildi" : "Geziye Katıldınız!" });
+    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
+  };
+
+  const handleManageParticipant = async (event: GroupEvent, participantId: string, status: 'approved' | 'rejected') => {
+    if (!isCurrentUserOwner || !firestore || !group) return;
+    const eventRef = doc(firestore, 'groups', group.id, 'events', event.id);
+    const updatedParticipants = event.participants.map(p => 
+      p.userId === participantId ? { ...p, status } : p
+    );
+    try {
+      await updateDoc(eventRef, { participants: updatedParticipants });
+      toast({ title: status === 'approved' ? "Üye Onaylandı" : "İstek Reddedildi" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
@@ -235,11 +289,100 @@ export default function GroupDetailPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
         <TabsList className="bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40">
+          <TabsTrigger value="events" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Etkinlikler</TabsTrigger>
           <TabsTrigger value="assignments" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
           <TabsTrigger value="gallery" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Galeri</TabsTrigger>
           <TabsTrigger value="members" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Grup Listesi</TabsTrigger>
           {isCurrentUserOwner && <TabsTrigger value="admin" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl text-amber-500">Kurucu Paneli</TabsTrigger>}
         </TabsList>
+
+        <TabsContent value="events" className="space-y-8">
+          {isEventsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
+           events && events.length > 0 ? (
+            <div className="grid gap-8">
+              {events.map(event => {
+                const userParticipant = event.participants.find(p => p.userId === user?.uid);
+                return (
+                  <Card key={event.id} className="rounded-[40px] border-border/40 overflow-hidden bg-card/50 shadow-2xl">
+                    <CardHeader className="bg-secondary/20 p-10 border-b border-border/40">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-2">
+                          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3 mb-2">GEZİ PLANI</Badge>
+                          <CardTitle className="text-4xl font-black uppercase tracking-tighter">{event.title}</CardTitle>
+                          <div className="flex flex-wrap gap-6 pt-4">
+                            <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={18} className="text-primary" /><span className="text-sm font-bold">{event.date}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{event.time}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Ruler size={18} className="text-primary" /><span className="text-sm font-bold">{event.distance}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Clock size={18} className="text-primary" /><span className="text-sm font-bold">{event.duration}</span></div>
+                          </div>
+                        </div>
+                        {userParticipant && (
+                          <Badge className={cn("px-4 h-8 rounded-full font-black uppercase tracking-widest text-xs", userParticipant.status === 'approved' ? "bg-green-500" : userParticipant.status === 'pending' ? "bg-amber-500" : "bg-destructive")}>
+                            {userParticipant.status === 'approved' ? "Onaylandı" : userParticipant.status === 'pending' ? "Onay Bekliyor" : "Reddedildi"}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-10 space-y-10">
+                      <div className="grid md:grid-cols-2 gap-10">
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Rota Bilgisi</h4>
+                            <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 flex items-start gap-4">
+                              <MapPin className="text-primary mt-1 shrink-0" size={24} />
+                              <div className="space-y-4">
+                                <div><p className="text-[9px] font-black uppercase text-primary/70">Başlangıç</p><p className="font-bold">{event.startPoint}</p></div>
+                                <div className="h-px w-full bg-border/40" />
+                                <div><p className="text-[9px] font-black uppercase text-primary/70">Bitiş</p><p className="font-bold">{event.endPoint}</p></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Açıklama</h4>
+                            <p className="text-lg leading-relaxed text-foreground/80 font-medium italic">"{event.description}"</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                          {(event.isListPublic || isCurrentUserOwner) && (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katılımcı Listesi ({event.participants.filter(p => p.status === 'approved').length})</h4>
+                                {!event.isListPublic && isCurrentUserOwner && <Badge variant="outline" className="text-[8px] font-black uppercase border-amber-500/30 text-amber-500">Sadece Sen Görüyorsun</Badge>}
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                {event.participants.filter(p => p.status === 'approved').map(p => (
+                                  <div key={p.userId} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40">
+                                    <Avatar className="h-8 w-8 border border-white/20"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
+                                    <span className="text-xs font-black truncate">@{p.userName}</span>
+                                  </div>
+                                ))}
+                                {event.participants.filter(p => p.status === 'approved').length === 0 && (
+                                  <div className="col-span-2 py-8 text-center border-2 border-dashed rounded-3xl text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-40">Henüz onaylı üye yok</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {!userParticipant && (
+                            <Button onClick={() => handleJoinEvent(event)} className="w-full h-16 rounded-3xl font-black uppercase tracking-widest text-lg shadow-2xl shadow-primary/20">
+                              <UserPlus className="mr-3" /> Geziye Katıl
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5">
+              <Calendar className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" />
+              <h3 className="text-2xl font-black tracking-tight uppercase">Planlanmış Gezi Yok</h3>
+              <p className="text-muted-foreground mt-2">Grup kurucusu bir gezi rotası eklediğinde burada listelenecektir.</p>
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="assignments" className="space-y-8">
           {isAssignmentsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
@@ -384,90 +527,94 @@ export default function GroupDetailPage() {
         {isCurrentUserOwner && (
           <TabsContent value="admin" className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
             <div className="grid md:grid-cols-2 gap-8">
-              <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-                <CardHeader className="bg-primary/5 p-8 border-b border-border/40">
-                  <CardTitle className="text-xl font-black flex items-center gap-3"><PlusCircle className="text-primary" /> Yeni Ödev Ver</CardTitle>
-                  <CardDescription>Grup üyeleri için yeni bir pratik görevi oluştur.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-8">
-                  <AssignmentCreator onCreate={handleCreateAssignment} />
-                </CardContent>
-              </Card>
+              <div className="space-y-8">
+                <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
+                  <CardHeader className="bg-primary/5 p-8 border-b border-border/40">
+                    <CardTitle className="text-xl font-black flex items-center gap-3"><Map className="text-primary" /> Gezi Rotaları</CardTitle>
+                    <CardDescription>Grup üyeleri için yeni bir gezi planı tasarlayın.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <EventCreator onCreate={handleCreateEvent} />
+                  </CardContent>
+                </Card>
 
-              <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-                <CardHeader className="bg-green-500/5 p-8 border-b border-border/40">
-                  <CardTitle className="text-xl font-black flex items-center gap-3"><ShieldCheck className="text-green-500" /> Bekleyen Teslimler</CardTitle>
-                  <CardDescription>Henüz incelenmemiş yeni ödev teslimleri.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-8">
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-4">
-                      {submissions?.filter(s => s.status === 'pending').map(sub => (
-                        <div key={sub.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/40">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 border border-white/20"><AvatarImage src={sub.userPhotoURL || ''} /><AvatarFallback>{sub.userName.charAt(0)}</AvatarFallback></Avatar>
-                            <div>
-                              <p className="text-sm font-black tracking-tight">@{sub.userName}</p>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase">{assignments?.find(a => a.id === sub.assignmentId)?.title || 'Ödev'}</p>
-                            </div>
+                <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
+                  <CardHeader className="bg-primary/5 p-8 border-b border-border/40">
+                    <CardTitle className="text-xl font-black flex items-center gap-3"><PlusCircle className="text-primary" /> Yeni Ödev Ver</CardTitle>
+                    <CardDescription>Grup üyeleri için yeni bir pratik görevi oluştur.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <AssignmentCreator onCreate={handleCreateAssignment} />
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-8">
+                <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
+                  <CardHeader className="bg-amber-500/5 p-8 border-b border-border/40">
+                    <CardTitle className="text-xl font-black flex items-center gap-3"><UserCheck className="text-amber-500" /> Gezi Katılım Onayları</CardTitle>
+                    <CardDescription>Onay bekleyen gezi başvuruları.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <ScrollArea className="h-[300px]">
+                      <div className="space-y-4">
+                        {events?.map(event => (
+                          <div key={event.id} className="space-y-3">
+                            <p className="text-[10px] font-black uppercase text-primary/70 border-b pb-1">{event.title}</p>
+                            {event.participants.filter(p => p.status === 'pending').map(p => (
+                              <div key={p.userId} className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-8 w-8"><AvatarImage src={p.userPhotoURL || ''} /><AvatarFallback>{p.userName.charAt(0)}</AvatarFallback></Avatar>
+                                  <span className="text-xs font-bold">@{p.userName}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleManageParticipant(event, p.userId, 'rejected')}><X size={14}/></Button>
+                                  <Button size="sm" className="h-8 px-3 rounded-lg text-[10px] font-black uppercase" onClick={() => handleManageParticipant(event, p.userId, 'approved')}><Check size={14} className="mr-1"/> Onayla</Button>
+                                </div>
+                              </div>
+                            ))}
+                            {event.participants.filter(p => p.status === 'pending').length === 0 && <p className="text-[10px] text-muted-foreground italic text-center py-2">Bekleyen istek yok</p>}
                           </div>
-                          <Button size="sm" variant="outline" className="rounded-xl h-8 text-[9px] font-black uppercase" onClick={() => setSelectedSubmission(sub)}>İncele</Button>
-                        </div>
-                      ))}
-                      {submissions?.filter(s => s.status === 'pending').length === 0 && (
-                        <div className="text-center py-10 italic text-muted-foreground text-sm font-medium">Henüz yeni teslim yok.</div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-2xl">
-              <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
-                <CardTitle className="text-xl font-black flex items-center gap-3 uppercase tracking-tighter"><UserCheck className="text-primary" /> Üye Takip Çizelgesi</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="w-full">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableHead className="px-8 font-black uppercase text-[10px] h-14">Vizyoner</TableHead>
-                        {assignments?.map(ass => (
-                          <TableHead key={ass.id} className="text-center font-black uppercase text-[10px] min-w-[120px] h-14">{ass.title}</TableHead>
                         ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {group.memberIds.map(memberId => {
-                        const profile = memberProfiles?.find(p => p.id === memberId);
-                        return (
-                          <TableRow key={memberId} className="hover:bg-muted/20 border-border/40 transition-colors">
-                            <TableCell className="px-8 py-5 flex items-center gap-3">
-                              <Avatar className="h-8 w-8 border border-border/60"><AvatarImage src={profile?.photoURL || ''} /><AvatarFallback>{profile?.name?.charAt(0) || '?'}</AvatarFallback></Avatar>
-                              <span className="font-black text-sm tracking-tight">{profile?.name || '...'}</span>
-                            </TableCell>
-                            {assignments?.map(ass => {
-                              const done = submissions?.some(s => s.assignmentId === ass.id && s.userId === memberId);
-                              return (
-                                <TableCell key={ass.id} className="text-center">
-                                  {done ? <div className="h-8 w-8 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mx-auto border border-green-500/20"><CheckCircle2 size={16} /></div> : <div className="h-2 w-2 rounded-full bg-muted/40 mx-auto" />}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
+                  <CardHeader className="bg-green-500/5 p-8 border-b border-border/40">
+                    <CardTitle className="text-xl font-black flex items-center gap-3"><ShieldCheck className="text-green-500" /> Bekleyen Ödevler</CardTitle>
+                    <CardDescription>Henüz incelenmemiş yeni ödev teslimleri.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <ScrollArea className="h-[300px]">
+                      <div className="space-y-4">
+                        {submissions?.filter(s => s.status === 'pending').map(sub => (
+                          <div key={sub.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/40">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10 border border-white/20"><AvatarImage src={sub.userPhotoURL || ''} /><AvatarFallback>{sub.userName.charAt(0)}</AvatarFallback></Avatar>
+                              <div>
+                                <p className="text-sm font-black tracking-tight">@{sub.userName}</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase">{assignments?.find(a => a.id === sub.assignmentId)?.title || 'Ödev'}</p>
+                              </div>
+                            </div>
+                            <Button size="sm" variant="outline" className="rounded-xl h-8 text-[9px] font-black uppercase" onClick={() => setSelectedSubmission(sub)}>İncele</Button>
+                          </div>
+                        ))}
+                        {submissions?.filter(s => s.status === 'pending').length === 0 && (
+                          <div className="text-center py-10 italic text-muted-foreground text-sm font-medium">Henüz yeni teslim yok.</div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         )}
       </Tabs>
 
-      {/* Submission Detail & Interaction Dialog */}
+      {/* Submission Detail Dialog */}
       <Dialog open={!!selectedSubmission} onOpenChange={(o) => !o && setSelectedSubmission(null)}>
         {selectedSubmission && (
           <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row">
@@ -488,7 +635,6 @@ export default function GroupDetailPage() {
 
               <ScrollArea className="flex-1 -mx-2 pr-4">
                 <div className="space-y-6">
-                  {/* AI Evaluation Section */}
                   {selectedSubmission.aiFeedback ? (
                     <Card className="p-5 border-primary/20 bg-primary/5 rounded-2xl space-y-4">
                       <div className="flex items-center justify-between">
@@ -511,7 +657,6 @@ export default function GroupDetailPage() {
                     </div>
                   )}
 
-                  {/* Interaction Buttons */}
                   <div className="flex items-center gap-4 py-4 border-y border-border/40">
                     <Button 
                       variant="ghost" 
@@ -527,7 +672,6 @@ export default function GroupDetailPage() {
                     </div>
                   </div>
 
-                  {/* Comments Section */}
                   <div className="space-y-4">
                     <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Topluluk Geri Bildirimi</h5>
                     <div className="space-y-4">
@@ -549,7 +693,6 @@ export default function GroupDetailPage() {
                 </div>
               </ScrollArea>
 
-              {/* Comment Input */}
               <div className="pt-4 border-t border-border/40">
                 <CommentInput onSend={(text) => handleAddComment(selectedSubmission, text)} />
               </div>
@@ -557,6 +700,57 @@ export default function GroupDetailPage() {
           </DialogContent>
         )}
       </Dialog>
+    </div>
+  );
+}
+
+function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
+  const [formData, setFormData] = useState({
+    title: '', description: '', startPoint: '', endPoint: '',
+    date: '', time: '', duration: '', distance: '',
+    approvalRequired: false, isListPublic: true
+  });
+
+  const handleCreate = () => {
+    if (formData.title && formData.description && formData.date) {
+      onCreate(formData);
+      setFormData({
+        title: '', description: '', startPoint: '', endPoint: '',
+        date: '', time: '', duration: '', distance: '',
+        approvalRequired: false, isListPublic: true
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4">
+        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Gezi Başlığı</Label><Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Örn: Galata Sokakları Foto Maraton" className="rounded-2xl h-12 bg-muted/30" /></div>
+        <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Açıklama</Label><Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Gezi detayları ve ekipman önerileri..." className="rounded-2xl min-h-[80px] bg-muted/30" /></div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Başlangıç Noktası</Label><Input value={formData.startPoint} onChange={e => setFormData({...formData, startPoint: e.target.value})} placeholder="Örn: Galata Kulesi Önü" className="rounded-xl h-10 bg-muted/30" /></div>
+          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Bitiş Noktası</Label><Input value={formData.endPoint} onChange={e => setFormData({...formData, endPoint: e.target.value})} placeholder="Örn: Karaköy Sahil" className="rounded-xl h-10 bg-muted/30" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Tarih</Label><Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-xl h-10 bg-muted/30" /></div>
+          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Saat</Label><Input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="rounded-xl h-10 bg-muted/30" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Tahmini Süre</Label><Input value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} placeholder="Örn: 3 Saat" className="rounded-xl h-10 bg-muted/30" /></div>
+          <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest ml-1">Tahmini Mesafe</Label><Input value={formData.distance} onChange={e => setFormData({...formData, distance: e.target.value})} placeholder="Örn: 2.5 KM" className="rounded-xl h-10 bg-muted/30" /></div>
+        </div>
+        <div className="flex flex-col gap-4 p-4 rounded-2xl bg-secondary/20 border border-border/40">
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-black uppercase tracking-widest">Katılım Onayı Gerekli mi?</Label>
+            <Switch checked={formData.approvalRequired} onCheckedChange={checked => setFormData({...formData, approvalRequired: checked})} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] font-black uppercase tracking-widest">Listeyi Herkese Aç?</Label>
+            <Switch checked={formData.isListPublic} onCheckedChange={checked => setFormData({...formData, isListPublic: checked})} />
+          </div>
+        </div>
+      </div>
+      <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Geziyi Yayınla</Button>
     </div>
   );
 }
