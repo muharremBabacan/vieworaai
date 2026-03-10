@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -12,13 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, BarChart3, Info, TrendingUp } from 'lucide-react';
+import { Loader2, Sparkles, History, Target, Compass, Award, Gem, CheckCircle2, ChevronRight, BarChart3, Info, TrendingUp, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
 import { typography } from "@/lib/design/typography";
+import { canAccess } from '@/lib/auth/canAccess';
 
 const MENTOR_COSTS: Record<UserTier, number> = {
   start: 2,
@@ -91,6 +91,7 @@ export default function LumaMentorPage() {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
+  const hasAccessToAnalysis = canAccess(userProfile, "mentorAnalysis");
   const currentTier = userProfile?.tier || 'start';
   const strategicCost = MENTOR_COSTS[currentTier];
 
@@ -117,7 +118,16 @@ export default function LumaMentorPage() {
   const { data: photos } = useCollection<Photo>(photosQuery);
 
   const handleStartAnalysis = async () => {
-    if (!user || !userProfile || !firestore || !photos) return;
+    if (!user || !userProfile || !firestore || !photos || !hasAccessToAnalysis) {
+      if (!hasAccessToAnalysis) {
+        toast({
+          variant: 'destructive',
+          title: "Erişim Engellendi",
+          description: "Stratejik analiz için Vexer seviyesi ve Master paket gereklidir.",
+        });
+      }
+      return;
+    }
 
     if (userProfile.auro_balance < strategicCost) {
       toast({
@@ -233,11 +243,14 @@ export default function LumaMentorPage() {
                 <div className="flex flex-col items-center gap-4">
                   <Button 
                     onClick={handleStartAnalysis} 
-                    disabled={isAnalyzing}
-                    className={cn(typography.button, "px-12 h-14 rounded-2xl shadow-2xl shadow-primary/20 transition-all active:scale-95")}
+                    disabled={isAnalyzing || !hasAccessToAnalysis}
+                    className={cn(typography.button, "px-12 h-14 rounded-2xl shadow-2xl shadow-primary/20 transition-all active:scale-95", !hasAccessToAnalysis && "bg-secondary text-muted-foreground border-border")}
                   >
                     {isAnalyzing ? <Loader2 className="animate-spin h-5 w-5" /> : (
-                      <>Stratejik Analiz ({strategicCost} {currencyName})</>
+                      <>
+                        {!hasAccessToAnalysis && <Lock className="mr-2 h-4 w-4" />}
+                        Stratejik Analiz ({strategicCost} {currencyName})
+                      </>
                     )}
                   </Button>
                   

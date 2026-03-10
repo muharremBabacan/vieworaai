@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /upload
+Disallow: /notifications
+
+Sitemap: https://viewora.ai/sitemap.xml

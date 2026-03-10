@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import type { Group, User, GroupPurpose } from '@/types';
@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/shared/hooks/use-toast';
 import { getGroupLimits } from '@/lib/gamification';
+import { canAccess } from '@/lib/auth/canAccess';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, LogIn, Users, Crown, Loader2, GraduationCap, Trophy, Map, ShieldCheck } from 'lucide-react';
+import { PlusCircle, LogIn, Users, Crown, Loader2, GraduationCap, Trophy, Map, ShieldCheck, Lock } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,9 @@ export default function GroupsPage() {
   );
   const { data: ownedGroups, isLoading: isOwnedLoading } = useCollection<Group>(ownedGroupsQuery);
   
+  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<User>(userDocRef);
+
   const createFormSchema = z.object({
     name: z.string().min(3, 'Grup adı en az 3 karakter olmalıdır.').max(50, 'Grup adı en fazla 50 karakter olabilir.'),
     description: z.string().max(200, 'Açıklama 200 karakteri geçemez.').optional(),
@@ -80,15 +84,13 @@ export default function GroupsPage() {
     resolver: zodResolver(joinFormSchema),
     defaultValues: { code: '' },
   });
-  
-  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userDocRef);
 
+  const hasAccessToCreate = canAccess(userProfile, "createGroup");
   const groupLimits = getGroupLimits(userProfile?.level_name);
-  const canCreateGroup = (ownedGroups?.length || 0) < groupLimits.maxGroups;
+  const canCreateGroup = hasAccessToCreate && (ownedGroups?.length || 0) < groupLimits.maxGroups;
 
   const onCreateGroup = async (values: z.infer<typeof createFormSchema>) => {
-    if (!user || !firestore || isCreating) return;
+    if (!user || !firestore || isCreating || !hasAccessToCreate) return;
     setIsCreating(true);
     try {
       const newGroup: Omit<Group, 'id'> = {
@@ -202,13 +204,21 @@ export default function GroupsPage() {
                         <TooltipTrigger asChild>
                             <div className="w-full sm:w-auto">
                                 <DialogTrigger asChild>
-                                    <Button disabled={!canCreateGroup} className="w-full sm:w-auto h-11 px-6 shadow-md transition-all active:scale-95">
-                                        <PlusCircle className="mr-2 h-4 w-4" /> Yeni Grup Oluştur
+                                    <Button 
+                                      disabled={!canCreateGroup} 
+                                      className={cn("w-full sm:w-auto h-11 px-6 shadow-md transition-all active:scale-95", !hasAccessToCreate && "opacity-70 bg-secondary")}
+                                    >
+                                        {!hasAccessToCreate ? <Lock className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                                        Yeni Grup Oluştur
                                     </Button>
                                 </DialogTrigger>
                             </div>
                         </TooltipTrigger>
-                        {!canCreateGroup && <TooltipContent><p>Grup oluşturma limitine ulaştınız ({ownedGroups?.length || 0}/{groupLimits.maxGroups}).</p></TooltipContent>}
+                        <TooltipContent className="rounded-xl font-bold text-xs">
+                            {!hasAccessToCreate 
+                              ? <p>Grup kurmak için <b>Viewner</b> seviyesine ulaşmalısın.</p>
+                              : <p>Grup oluşturma limitine ulaştınız ({ownedGroups?.length || 0}/{groupLimits.maxGroups}).</p>}
+                        </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
                 <DialogContent>

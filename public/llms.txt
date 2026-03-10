@@ -1,0 +1,67 @@
+Project: Viewora
+
+Tagline:
+Her yaştan fotoğrafçının buluşma noktası.
+
+Description:
+Viewora is an AI-powered photography platform designed to help photographers improve their skills through automated analysis, personalized coaching and community learning.
+
+The system analyzes user photos and provides feedback on composition, light, sharpness, storytelling and creativity.
+
+Core Concept:
+Artificial intelligence acts as a personal photography coach for every user.
+
+Main Features:
+
+AI Photo Analysis
+Viewora analyzes uploaded photos and evaluates multiple photography dimensions including:
+- light
+- composition
+- sharpness
+- storytelling
+- creative courage
+
+Personal AI Photography Coach
+Each user receives guidance based on their photos and performance history.
+
+AI Personalized Learning Plan
+The platform generates a custom learning path tailored specifically for the user’s skill level and interests.
+
+Photography Academy
+Structured photography lessons for beginners and advanced photographers including mobile photography.
+
+Global Competitions
+Users can participate in international photography challenges and contests.
+
+Exhibitions
+Users can showcase their work through curated digital exhibitions.
+
+Groups
+Users can create or join groups for:
+- education
+- mentorship
+- photography trips
+- private communities
+
+Photographer Profile Intelligence
+Viewora builds a photographer profile index using AI analysis to understand the user’s style, strengths and improvement areas.
+
+Target Audience:
+- mobile photographers
+- photography students
+- hobby photographers
+- visual storytellers
+
+Mission:
+To democratize photography education through artificial intelligence and global community learning.
+
+Technology:
+Next.js
+Firebase
+AI visual analysis systems
+
+Founder:
+Muharrem Babacan
+
+Website:
+https://viewora.ai

@@ -1,4 +1,3 @@
-
 'use client';
 import { Award, BarChart3, Diamond, Lock, CheckCircle2, GraduationCap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,47 +7,57 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { typography } from "@/lib/design/typography";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { doc } from 'firebase/firestore';
+import type { User } from '@/types';
+import { canAccess } from '@/lib/auth/canAccess';
 
 const academyLevels = [
   {
     name: 'Temel',
     id: 'temel',
+    gate: 'joinGroup', // Neuner access
     icon: Award,
     title: 'Temel Seviye',
     subtitle: 'Kameranızın temellerini öğrenin.',
     description: 'Pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.',
     href: '/academy/temel',
-    unlocked: true,
     imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600',
     features: ['Kamera temelleri', 'Pozlama üçgeni', 'Temel kompozisyon']
   },
   {
     name: 'Orta',
     id: 'orta',
+    gate: 'academy', // Viewner access
     icon: BarChart3,
     title: 'Orta Seviye',
     subtitle: 'Tekniğinizi profesyonelleştirin.',
     description: 'Farklı türlerde çekim yapın ve ışığı bilinçli yönetin.',
     href: '/academy/orta',
-    unlocked: false,
     imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=600',
     features: ['Tür bazlı çekim', 'Işık yönetimi', 'Görsel hikaye anlatımı']
   },
   {
     name: 'İleri',
     id: 'ileri',
+    gate: 'challenge', // Sytner access
     icon: Diamond,
     title: 'İleri Seviye',
     subtitle: 'Kendi sanatsal tarzınızı yaratın.',
     description: 'Profesyonel ışık kurulumlarını öğrenin ve uzmanlaşın.',
     href: '/academy/ileri',
-    unlocked: false,
     imageUrl: 'https://images.unsplash.com/photo-1578476719994-464aef88d2da?q=80&w=600',
     features: ['Profesyonel ışık', 'Sanatsal stil', 'Marka konumlandırma']
   },
 ];
 
 export default function AcademyHubPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  
+  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<User>(userDocRef);
+
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-10 space-y-1">
@@ -59,10 +68,12 @@ export default function AcademyHubPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {academyLevels.map((level) => {
+          const unlocked = canAccess(userProfile, level.gate);
+          
           const content = (
             <Card className={cn(
               "flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all",
-              level.unlocked 
+              unlocked 
                 ? "hover:border-primary/20" 
                 : "opacity-60 grayscale-[0.5] cursor-default"
             )}>
@@ -73,18 +84,18 @@ export default function AcademyHubPage() {
                   fill 
                   className={cn(
                     "object-cover transition-transform duration-700",
-                    level.unlocked && "group-hover:scale-110"
+                    unlocked && "group-hover:scale-110"
                   )} 
                   unoptimized 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className={cn(
                   "absolute -bottom-5 left-5 h-10 w-10 rounded-xl backdrop-blur-xl border border-white/10 flex items-center justify-center",
-                  level.unlocked ? "bg-primary/20 text-primary" : "bg-muted/20 text-muted-foreground"
+                  unlocked ? "bg-primary/20 text-primary" : "bg-muted/20 text-muted-foreground"
                 )}>
                   <level.icon className="h-5 w-5" />
                 </div>
-                {!level.unlocked && (
+                {!unlocked && (
                   <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/60">
                     <Lock className="h-4 w-4" />
                   </div>
@@ -104,28 +115,28 @@ export default function AcademyHubPage() {
                 <ul className="space-y-2 flex-grow">
                   {level.features.map((feature, idx) => (
                     <li key={idx} className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
-                      <div className={cn("h-1 w-1 rounded-full", level.unlocked ? "bg-primary" : "bg-muted-foreground")} /> 
+                      <div className={cn("h-1 w-1 rounded-full", unlocked ? "bg-primary" : "bg-muted-foreground")} /> 
                       {feature}
                     </li>
                   ))}
                 </ul>
 
                 <Button 
-                  asChild={level.unlocked} 
+                  asChild={unlocked} 
                   className={cn(
                     typography.button,
                     "w-full rounded-xl h-11 transition-all",
-                    level.unlocked 
+                    unlocked 
                       ? "bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30" 
                       : "bg-secondary text-muted-foreground hover:bg-secondary"
                   )}
-                  disabled={!level.unlocked}
+                  disabled={!unlocked}
                 >
-                  {level.unlocked ? (
+                  {unlocked ? (
                     <Link href={level.href}>Dersleri Gör</Link>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <Lock className="h-3 w-3" /> Yakında Açılacak
+                      <Lock className="h-3 w-3" /> Seviye Yetersiz
                     </span>
                   )}
                 </Button>
@@ -133,7 +144,7 @@ export default function AcademyHubPage() {
             </Card>
           );
 
-          if (level.unlocked) {
+          if (unlocked) {
             return (
               <div key={level.id} className="h-full">
                 {content}
@@ -142,8 +153,8 @@ export default function AcademyHubPage() {
           }
 
           const tooltipText = level.id === 'orta' 
-            ? 'Orta Seviye — İlerlemeye devam et, kilit açılıyor.' 
-            : 'İleri Seviye için Uzman içerik. Kilidi açmak için gelişimine devam et.';
+            ? 'Orta Seviye — Viewner (101+ XP) olduğunda açılır.' 
+            : 'İleri Seviye — Sytner (501+ XP) olduğunda açılır.';
 
           return (
             <TooltipProvider key={level.id}>
