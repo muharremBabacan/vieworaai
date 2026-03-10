@@ -55,6 +55,24 @@
       "imageHint": "travel destination"
     },
     {
+      "id": "academy-level-basic",
+      "description": "Educational image showing sensor sizes and camera bodies.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Flesons%2Ftemel11a.jpg?alt=media",
+      "imageHint": "camera technology"
+    },
+    {
+      "id": "academy-level-intermediate",
+      "description": "Technical photography illustration from storage.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Flesons%2Ftemel13a.jpg?alt=media",
+      "imageHint": "photography technique"
+    },
+    {
+      "id": "academy-level-advanced",
+      "description": "Professional artistic photography illustration from storage.",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Flesons%2Ftemel15a.jpg?alt=media",
+      "imageHint": "artistic photography"
+    },
+    {
       "id": "academy-composition",
       "description": "A photo demonstrating the rule of thirds in composition.",
       "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-composition.jpg?alt=media",
@@ -89,84 +107,6 @@
       "description": "A candid street photography moment.",
       "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-street.jpg?alt=media",
       "imageHint": "street candid"
-    },
-    {
-      "id": "user-avatar",
-      "description": "Avatar for the sample user.",
-      "imageUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBmYWNlfGVufDB8fHx8MTc3MDY1MTEzMXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "person face"
-    },
-    {
-      "id": "academy-camera-modes",
-      "description": "A camera's mode dial showing P, A, S, M modes.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-camera-modes.jpg?alt=media",
-      "imageHint": "camera mode dial"
-    },
-    {
-      "id": "academy-aperture",
-      "description": "The aperture blades of a camera lens.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-aperture.jpg?alt=media",
-      "imageHint": "aperture f-stop"
-    },
-    {
-      "id": "academy-shutter",
-      "description": "A photo showing motion blur from a slow shutter speed.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-shutter.jpg?alt=media",
-      "imageHint": "shutter speed blur"
-    },
-    {
-      "id": "academy-iso",
-      "description": "A grainy photo demonstrating high ISO.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-iso.jpg?alt=media",
-      "imageHint": "iso grain photo"
-    },
-    {
-      "id": "academy-sensor",
-      "description": "A close-up of a digital camera's image sensor.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-sensor.jpg?alt=media",
-      "imageHint": "camera sensor"
-    },
-    {
-      "id": "academy-lens",
-      "description": "A collection of different camera lenses.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-lens.jpg?alt=media",
-      "imageHint": "camera lens"
-    },
-    {
-      "id": "academy-focus",
-      "description": "A viewfinder showing focus points on a subject.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-focus.jpg?alt=media",
-      "imageHint": "camera focus point"
-    },
-    {
-      "id": "academy-storytelling",
-      "description": "A series of photos that tell a story.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-storytelling.jpg?alt=media",
-      "imageHint": "storytelling photo series"
-    },
-    {
-      "id": "academy-post-production",
-      "description": "A person editing a photo on a computer.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-post-production.jpg?alt=media",
-      "imageHint": "photo editing software"
-    },
-    {
-      "id": "academy-studio-light",
-      "description": "A professional photo studio lighting setup.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Facademy-studio-light.jpg?alt=media",
-      "imageHint": "studio lighting setup"
-    },
-    {
-      "id": "academy-uploaded-1",
-      "description": "User uploaded image.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Fimage%20%281%29.jpg?alt=media",
-      "imageHint": "camera photo"
-    },
-    {
-      "id": "academy-uploaded-2",
-      "description": "User uploaded image.",
-      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.appspot.com/o/user-uploads%2Flessons%2Ftemel11a.jpg?alt=media",
-      "imageHint": "camera photo"
     }
   ]
 }

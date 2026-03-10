@@ -1,5 +1,6 @@
+
 'use client';
-import { Award, BarChart3, Diamond, Lock, CheckCircle2, GraduationCap } from 'lucide-react';
+import { Award, BarChart3, Diamond, Lock, GraduationCap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,6 +12,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/types';
 import { canAccess } from '@/lib/auth/canAccess';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const academyLevels = [
   {
@@ -22,7 +24,7 @@ const academyLevels = [
     subtitle: 'Kameranızın temellerini öğrenin.',
     description: 'Pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.',
     href: '/academy/temel',
-    imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600',
+    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-basic')?.imageUrl || '',
     features: ['Kamera temelleri', 'Pozlama üçgeni', 'Temel kompozisyon']
   },
   {
@@ -34,7 +36,7 @@ const academyLevels = [
     subtitle: 'Tekniğinizi profesyonelleştirin.',
     description: 'Farklı türlerde çekim yapın ve ışığı bilinçli yönetin.',
     href: '/academy/orta',
-    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=600',
+    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-intermediate')?.imageUrl || '',
     features: ['Tür bazlı çekim', 'Işık yönetimi', 'Görsel hikaye anlatımı']
   },
   {
@@ -46,7 +48,7 @@ const academyLevels = [
     subtitle: 'Kendi sanatsal tarzınızı yaratın.',
     description: 'Profesyonel ışık kurulumlarını öğrenin ve uzmanlaşın.',
     href: '/academy/ileri',
-    imageUrl: 'https://images.unsplash.com/photo-1578476719994-464aef88d2da?q=80&w=600',
+    imageUrl: PlaceHolderImages.find(img => img.id === 'academy-level-advanced')?.imageUrl || '',
     features: ['Profesyonel ışık', 'Sanatsal stil', 'Marka konumlandırma']
   },
 ];
