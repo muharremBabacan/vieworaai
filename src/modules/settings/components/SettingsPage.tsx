@@ -1,5 +1,6 @@
+
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref } from 'firebase/storage';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, Settings as SettingsIcon, User as UserIcon, Camera, Check, ShieldAlert, Sparkles, Diamond, Zap, Flame, Award, HelpCircle, GraduationCap } from 'lucide-react';
+import { LogOut, Settings as SettingsIcon, User as UserIcon, Camera, Check, ShieldAlert, Sparkles, Diamond, Zap, Flame, Award, HelpCircle, GraduationCap, Phone, Instagram } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -41,7 +42,6 @@ const BadgeGlossary = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-8 space-y-8">
-        {/* Günlük Seri */}
         <div className="flex gap-4">
           <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0 border border-orange-500/20">
             <Flame size={24} className="fill-current" />
@@ -52,7 +52,6 @@ const BadgeGlossary = () => {
           </div>
         </div>
 
-        {/* Seviyeler */}
         <div className="flex gap-4">
           <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-500/20">
             <Award size={24} />
@@ -71,7 +70,6 @@ const BadgeGlossary = () => {
           </div>
         </div>
 
-        {/* Paket Tierları */}
         <div className="flex gap-4">
           <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0 border border-cyan-500/20">
             <Sparkles size={24} />
@@ -84,7 +82,6 @@ const BadgeGlossary = () => {
           </div>
         </div>
 
-        {/* Mentorluk */}
         <div className="flex gap-4">
           <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 shrink-0 border border-green-500/20">
             <GraduationCap size={24} />
@@ -101,6 +98,8 @@ const BadgeGlossary = () => {
 
 const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
   const [nickname, setNickname] = useState(userProfile.name || '');
+  const [phone, setPhone] = useState(userProfile.phone || '');
+  const [instagram, setInstagram] = useState(userProfile.instagram || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -111,8 +110,8 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
       const userRef = doc(firestore, 'users', user.uid);
       const publicRef = doc(firestore, 'public_profiles', user.uid);
       await Promise.all([
-        updateDoc(userRef, { name: nickname }),
-        updateDoc(publicRef, { name: nickname }),
+        updateDoc(userRef, { name: nickname, phone, instagram }),
+        updateDoc(publicRef, { name: nickname, phone, instagram }),
         updateProfile(user, { displayName: nickname })
       ]);
       toast({ title: "Profil Güncellendi" });
@@ -153,12 +152,24 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
             <AvatarImage src={userProfile.photoURL || ''} className="object-cover" />
             <AvatarFallback className="text-4xl font-bold bg-secondary">{userProfile.name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 w-full space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nickname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Takma Ad</Label>
-              <Input id="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-bold" />
+          <div className="flex-1 w-full space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="nickname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Takma Ad</Label>
+                <Input id="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-bold" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Phone size={10} /> Telefon</Label>
+                  <Input id="phone" placeholder="05xx..." value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="instagram" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Instagram size={10} /> Instagram</Label>
+                  <Input id="instagram" placeholder="@kullaniciadi" value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
+                </div>
+              </div>
             </div>
-            <Button onClick={handleUpdateProfile} disabled={isUpdating || nickname === userProfile.name} className="rounded-xl h-11 px-8 font-bold">Kaydet</Button>
+            <Button onClick={handleUpdateProfile} disabled={isUpdating} className="rounded-xl h-11 px-8 font-bold">Kaydet</Button>
           </div>
         </div>
         <div className="space-y-4">
@@ -237,7 +248,7 @@ export default function SettingsPage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  const isDevUser = userProfile?.email === 'babacan.muharrem@gmail.com' || userProfile?.email === 'admin@viewora.ai' || userProfile?.id === '01DT86bQwWUVrewnEb8c6bd8H43';
+  const isDevUser = userProfile?.email === 'babacan.muharrem@gmail.com' || userProfile?.email === 'admin@viewora.ai' || userProfile?.id === '01DT86bQwWUVrewnEb8c6bd8H43' || userProfile?.email === 'm.babacan@hotmail.com';
 
   const handleSignOut = async () => {
     await signOut(auth);

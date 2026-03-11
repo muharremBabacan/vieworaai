@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -59,7 +60,9 @@ export const AuthService = {
         name: newUser.name, 
         email: newUser.email, 
         photoURL: newUser.photoURL, 
-        level_name: 'Neuner' 
+        level_name: 'Neuner',
+        phone: newUser.phone || '',
+        instagram: newUser.instagram || ''
       });
       
       // Initial notification

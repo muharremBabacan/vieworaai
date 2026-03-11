@@ -121,6 +121,16 @@ export type User = {
   provider: 'google' | 'email';
 };
 
+export type PublicUserProfile = {
+  id: string;
+  name: string;
+  email?: string | null;
+  photoURL?: string | null;
+  level_name?: string;
+  phone?: string;
+  instagram?: string;
+};
+
 export type AnalysisLog = {
   id: string;
   userId: string;

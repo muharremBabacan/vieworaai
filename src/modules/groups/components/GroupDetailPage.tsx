@@ -175,7 +175,6 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
-  // HOOKS MUST BE AT THE TOP
   const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
   const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef);
 
@@ -412,7 +411,7 @@ export default function GroupDetailPage() {
         </div>
       </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
+      <Tabs value={activeTab} onOpenChange={setActiveTab} className="space-y-10">
         <TabsList className="bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40">
           <TabsTrigger value="trips" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Geziler</TabsTrigger>
           <TabsTrigger value="assignments" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
@@ -584,6 +583,62 @@ export default function GroupDetailPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Submission Detail Dialog */}
+      <Dialog open={!!selectedSubmission} onOpenChange={(o) => !o && setSelectedSubmission(null)}>
+        {selectedSubmission && (
+          <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background/95 backdrop-blur-xl">
+            <div className="flex flex-col md:flex-row">
+              <div className="relative md:w-3/5 aspect-square md:aspect-auto bg-black/40">
+                <Image src={selectedSubmission.photoUrl} alt="Eser" fill className="object-contain" unoptimized />
+              </div>
+              <div className="md:w-2/5 p-8 flex flex-col space-y-6 overflow-y-auto">
+                <DialogHeader>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="h-10 w-10 border-2 border-primary/20"><AvatarImage src={selectedSubmission.userPhotoURL || ''} /><AvatarFallback>{selectedSubmission.userName?.charAt(0)}</AvatarFallback></Avatar>
+                    <div>
+                      <p className="text-lg font-black tracking-tight">@{selectedSubmission.userName}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{new Date(selectedSubmission.submittedAt).toLocaleDateString('tr-TR')}</p>
+                    </div>
+                  </div>
+                  <DialogTitle className="text-2xl font-black uppercase">Luma Değerlendirmesi</DialogTitle>
+                </DialogHeader>
+                
+                {selectedSubmission.aiFeedback && (
+                  <div className="space-y-6">
+                    <div className="p-6 rounded-[24px] bg-primary/5 border border-primary/20 space-y-4">
+                      <div className="flex justify-between items-end">
+                        <p className="text-[10px] font-black uppercase text-primary tracking-widest">ÖDEV PUANI</p>
+                        <p className="text-4xl font-black tracking-tighter text-primary">{selectedSubmission.aiFeedback.score}/10</p>
+                      </div>
+                      <Progress value={selectedSubmission.aiFeedback.score * 10} className="h-1.5" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Luma Geri Bildirimi</p>
+                      <p className="text-sm font-medium leading-relaxed italic text-foreground/90 bg-muted/20 p-4 rounded-xl border border-border/40">"{selectedSubmission.aiFeedback.feedback}"</p>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Teknik Kazanımlar</p>
+                      <div className="grid gap-2">
+                        {selectedSubmission.aiFeedback.technicalPoints.map((point, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 text-xs font-bold"><CheckCircle2 className="h-4 w-4 text-green-500" /> {point}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="pt-6 border-t border-border/40 flex items-center justify-between">
+                  <Button variant="ghost" onClick={() => handleToggleLike(selectedSubmission)} className={cn("rounded-xl gap-2", selectedSubmission.likes.includes(user?.uid || '') && "text-red-500")}>
+                    <Heart size={18} className={cn(selectedSubmission.likes.includes(user?.uid || '') && "fill-current")} />
+                    <span className="font-black">{selectedSubmission.likes.length} Beğeni</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }
@@ -603,8 +658,8 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
   
   const { data: participants } = useCollection<TripParticipant>(participantsQuery);
   
-  const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'users', trip.mentorId) : null, [firestore, trip.mentorId]);
-  const { data: mentorProfile } = useDoc<User>(mentorRef);
+  const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'public_profiles', trip.mentorId) : null, [firestore, trip.mentorId]);
+  const { data: mentorProfile } = useDoc<PublicUserProfile>(mentorRef);
 
   const myParticipantDoc = participants?.find(p => p.userId === userId);
   const myStatus = myParticipantDoc?.status || 'pending';

@@ -1,17 +1,13 @@
 {
   "hosting": {
-    "rewrites": [
-      {
-        "source": "/__/auth/**",
-        "destination": "/__/auth/handler"
-      },
-      {
-        "source": "**",
-        "run": {
-          "serviceId": "studyo-1093513393552",
-          "region": "us-central1"
-        }
-      }
-    ]
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
   }
 }
