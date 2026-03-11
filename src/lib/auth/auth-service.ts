@@ -3,18 +3,13 @@
 
 import { 
   Auth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  sendEmailVerification, 
-  signOut,
   User as FirebaseUser
 } from 'firebase/auth';
 import { 
   Firestore, 
   doc, 
   getDoc, 
-  setDoc, 
-  serverTimestamp 
+  setDoc 
 } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 
@@ -36,6 +31,8 @@ export const AuthService = {
         email: firebaseUser.email,
         name: name || firebaseUser.displayName?.split(' ')[0] || "İsimsiz Sanatçı",
         photoURL: firebaseUser.photoURL || null,
+        phone: '',
+        instagram: '',
         auro_balance: 20,
         current_xp: 0,
         level_name: 'Neuner',
@@ -54,18 +51,21 @@ export const AuthService = {
         provider: provider
       };
       
+      // ÖZEL PROFİL
       await setDoc(userRef, newUser);
+      
+      // KAMUYA AÇIK PROFİL (GEZİLER İÇİN)
       await setDoc(doc(firestore, 'public_profiles', firebaseUser.uid), { 
         id: firebaseUser.uid, 
         name: newUser.name, 
         email: newUser.email, 
         photoURL: newUser.photoURL, 
         level_name: 'Neuner',
-        phone: newUser.phone || '',
-        instagram: newUser.instagram || ''
+        phone: '',
+        instagram: ''
       });
       
-      // Initial notification
+      // Başlangıç bildirimi
       const notifRef = doc(firestore, 'users', firebaseUser.uid, 'notifications', 'welcome');
       await setDoc(notifRef, { 
         id: 'welcome', 
@@ -79,16 +79,5 @@ export const AuthService = {
     }
     
     return userSnap.data() as UserProfile;
-  },
-
-  /**
-   * Validates if email is verified. Signs out if not.
-   */
-  async checkEmailVerification(auth: Auth, firebaseUser: FirebaseUser): Promise<boolean> {
-    if (!firebaseUser.emailVerified) {
-      await signOut(auth);
-      return false;
-    }
-    return true;
   }
 };

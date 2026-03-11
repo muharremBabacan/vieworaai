@@ -411,7 +411,7 @@ export default function GroupDetailPage() {
         </div>
       </header>
 
-      <Tabs value={activeTab} onOpenChange={setActiveTab} className="space-y-10">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
         <TabsList className="bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40">
           <TabsTrigger value="trips" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Geziler</TabsTrigger>
           <TabsTrigger value="assignments" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
@@ -543,11 +543,15 @@ export default function GroupDetailPage() {
               <div className="space-y-8">
                 <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
                   <CardHeader className="bg-primary/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><Map className="text-primary" /> Gezi Rotaları</CardTitle></CardHeader>
-                  <CardContent className="p-8"><EventCreator onCreate={handleCreateTrip} /></CardContent>
+                  <CardContent className="p-8">
+                    <EventCreator onCreate={handleCreateTrip} />
+                  </CardContent>
                 </Card>
                 <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
                   <CardHeader className="bg-primary/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><PlusCircle className="text-primary" /> Yeni Ödev Ver</CardTitle></CardHeader>
-                  <CardContent className="p-8"><AssignmentCreator onCreate={handleCreateAssignment} /></CardContent>
+                  <CardContent className="p-8">
+                    <AssignmentCreator onCreate={handleCreateAssignment} />
+                  </CardContent>
                 </Card>
               </div>
 
@@ -658,6 +662,7 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
   
   const { data: participants } = useCollection<TripParticipant>(participantsQuery);
   
+  // MENTOR PROFILINI ARTIK PUBLIC_PROFILES ÜZERİNDEN ÇEKİYORUZ (YETKİ HATASI ÇÖZÜMÜ)
   const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'public_profiles', trip.mentorId) : null, [firestore, trip.mentorId]);
   const { data: mentorProfile } = useDoc<PublicUserProfile>(mentorRef);
 
@@ -847,7 +852,7 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
       setFormData({
         ...formData,
         title: template.title,
-        description: `${template.city.toUpperCase()} - ${template.category.toUpperCase()} Fotoğraf Gezisi`,
+        description: `${template.category.toUpperCase()} Fotoğraf Gezisi`,
         startPoint: template.start_point,
         endPoint: template.end_point,
         meeting_point: template.start_point,
@@ -919,17 +924,6 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
         </div>
       </div>
       <Button onClick={handleCreate} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">Geziyi Yayınla</Button>
-    </div>
-  );
-}
-
-function CommentInput({ onSend }: { onSend: (text: string) => void }) {
-  const [text, setText] = useState('');
-  const handleSend = () => { if (text.trim()) { onSend(text); setText(''); } };
-  return (
-    <div className="relative">
-      <Input value={text} onChange={e => setText(e.target.value)} placeholder="Yorumunu yaz..." className="h-12 pr-14 rounded-2xl bg-muted/30" onKeyDown={e => e.key === 'Enter' && handleSend()} />
-      <Button size="icon" onClick={handleSend} disabled={!text.trim()} className="absolute right-1.5 top-1.5 h-9 w-9 rounded-xl"><Send size={16} /></Button>
     </div>
   );
 }

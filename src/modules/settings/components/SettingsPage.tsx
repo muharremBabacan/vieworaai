@@ -1,9 +1,8 @@
 
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { getStorage, ref } from 'firebase/storage';
 import type { User, UserTier } from '@/types';
 import { levels } from '@/lib/gamification';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -31,71 +30,6 @@ const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   };
 });
 
-const BadgeGlossary = () => {
-  const { currencyName } = useAppConfig();
-  
-  return (
-    <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/30">
-      <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
-        <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight uppercase">
-          <HelpCircle className="h-6 w-6 text-primary" /> Rozet ve Seviye Rehberi
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-8 space-y-8">
-        <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0 border border-orange-500/20">
-            <Flame size={24} className="fill-current" />
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-black text-sm uppercase">Günlük Seri (Streak)</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">Viewora'da kaç gün üst üste aktif olduğunuzu gösterir. Her gün giriş yaparak serinizi koruyabilir ve disiplininizi kanıtlayabilirsiniz.</p>
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-500/20">
-            <Award size={24} />
-          </div>
-          <div className="space-y-2 flex-1">
-            <h4 className="font-black text-sm uppercase">Rütbeler ve XP</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed mb-3">Fotoğraf analiz ettirerek ve ödev tamamlayarak XP kazanırsınız. XP biriktikçe rütbeniz yükselir:</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {levels.map(l => (
-                <div key={l.name} className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
-                  <p className="text-[10px] font-black uppercase text-primary">{l.name}</p>
-                  <p className="text-[8px] font-bold text-muted-foreground">{l.minXp} XP</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0 border border-cyan-500/20">
-            <Sparkles size={24} />
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-black text-sm uppercase">Analiz Derinliği (Tier)</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Luma'nın analiz kapasitesini belirler. <b>Start</b> temel teknikleri, <b>Pro</b> stratejik mentorluğu, <b>Master</b> ise sanatsal kimlik danışmanlığını açar. Her analiz harcaması bu derinliğe göre {currencyName} maliyeti oluşturur.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 shrink-0 border border-green-500/20">
-            <GraduationCap size={24} />
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-black text-sm uppercase">Vexer & Mentorluk</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">En üst rütbe olan <b>Vexer</b> seviyesine ulaşanlar, topluluk içinde mentorluk yapma ve diğer vizyonerlere yol gösterme hakkı kazanırlar.</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
   const [nickname, setNickname] = useState(userProfile.name || '');
   const [phone, setPhone] = useState(userProfile.phone || '');
@@ -109,6 +43,8 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
     try {
       const userRef = doc(firestore, 'users', user.uid);
       const publicRef = doc(firestore, 'public_profiles', user.uid);
+      
+      // AYNI ANDA HEM ÖZEL HEM KAMUYA AÇIK PROFİLİ GÜNCELLE
       await Promise.all([
         updateDoc(userRef, { name: nickname, phone, instagram }),
         updateDoc(publicRef, { name: nickname, phone, instagram }),
@@ -188,6 +124,46 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
   );
 };
 
+const BadgeGlossary = () => {
+  const { currencyName } = useAppConfig();
+  return (
+    <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/30">
+      <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
+        <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight uppercase">
+          <HelpCircle className="h-6 w-6 text-primary" /> Rozet ve Seviye Rehberi
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-8 space-y-8">
+        <div className="flex gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0 border border-orange-500/20">
+            <Flame size={24} className="fill-current" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-black text-sm uppercase">Günlük Seri (Streak)</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">Viewora'da kaç gün üst üste aktif olduğunuzu gösterir.</p>
+          </div>
+        </div>
+        <div className="flex gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-500/20">
+            <Award size={24} />
+          </div>
+          <div className="space-y-2 flex-1">
+            <h4 className="font-black text-sm uppercase">Rütbeler ve XP</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {levels.map(l => (
+                <div key={l.name} className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                  <p className="text-[10px] font-black uppercase text-primary">{l.name}</p>
+                  <p className="text-[8px] font-bold text-muted-foreground">{l.minXp} XP</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
   const handleLevelChange = async (newLevelName: string) => {
     if (!user || !firestore) return;
@@ -248,7 +224,7 @@ export default function SettingsPage() {
   const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  const isDevUser = userProfile?.email === 'babacan.muharrem@gmail.com' || userProfile?.email === 'admin@viewora.ai' || userProfile?.id === '01DT86bQwWUVrewnEb8c6bd8H43' || userProfile?.email === 'm.babacan@hotmail.com';
+  const isDevUser = userProfile?.email === 'babacan.muharrem@gmail.com' || userProfile?.email === 'admin@viewora.ai' || userProfile?.id === '01DT86bQwWUVrewnEb8c6bd8H43';
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -261,13 +237,9 @@ export default function SettingsPage() {
   return (
     <div className="container mx-auto max-w-3xl space-y-10 px-4 pt-10 pb-24 animate-in fade-in duration-700">
       <h1 className="text-5xl font-black tracking-tighter uppercase">Ayarlar</h1>
-      
       <ProfileSettings userProfile={userProfile} user={user} firestore={firestore} toast={toast} />
-      
       <BadgeGlossary />
-
       {isDevUser && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
-      
       <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50">
         <CardHeader className="p-8 border-b bg-secondary/10">
           <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><SettingsIcon className="h-6 w-6" /> Uygulama & Hesap</CardTitle>
