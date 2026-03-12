@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -12,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X, Camera, Trophy, LayoutGrid, Layers, Lightbulb } from 'lucide-react';
+import { Sparkles, Trash2, Star, Lock, ChevronRight, Heart, Globe, X, Camera, Trophy, LayoutGrid, Layers, Lightbulb, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -163,7 +162,6 @@ export default function GalleryPage() {
       const batch = writeBatch(firestore);
       const userPhotoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
       
-      // 1. Veritabanı kayıtlarını Batch ile sil
       batch.delete(userPhotoRef);
       
       if (photo.isSubmittedToExhibition) {
@@ -175,7 +173,6 @@ export default function GalleryPage() {
       
       await batch.commit();
       
-      // 2. Fiziksel dosyayı Storage'dan sil (Hata verse de devam et)
       if (photo.filePath) {
         const storageRef = ref(storage, photo.filePath);
         deleteObject(storageRef).catch((err) => {
