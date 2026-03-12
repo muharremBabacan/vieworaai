@@ -106,65 +106,65 @@ export default function GalleryPage() {
   const handleToggleExhibition = async (photo: Photo) => {
     if (!user || !userProfile || !firestore) return;
     
-    if (photo.isSubmittedToExhibition) {
-        setIsProcessing(true);
-        try {
-            const batch = writeBatch(firestore);
-            batch.delete(doc(firestore, 'public_photos', photo.id));
-            batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: false, exhibitionId: null });
-            
-            batch.update(doc(firestore, 'users', user.uid), { 
-              total_exhibitions_count: increment(-1)
-            });
-
-            await batch.commit();
-            toast({ title: "Sergiden çekildi" });
-            setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false, exhibitionId: null } : null);
-        } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsProcessing(false); }
-        return;
-    }
-
-    if (!targetExhibitionId) { toast({ title: "Sergi Seçin" }); return; }
-    const SUBMIT_TO_EXHIBITION_COST = 1;
-
-    if (userProfile.auro_balance < SUBMIT_TO_EXHIBITION_COST) {
-        toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
-        return;
-    }
-
     setIsProcessing(true);
     try {
         const batch = writeBatch(firestore);
-        const publicData = { 
-          ...photo, 
-          isSubmittedToExhibition: true, 
-          exhibitionId: targetExhibitionId, 
-          userName: userProfile.name || 'Sanatçı', 
-          userPhotoURL: userProfile.photoURL || null, 
-          userLevelName: userProfile.level_name 
-        };
-        batch.set(doc(firestore, 'public_photos', photo.id), publicData);
-        batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
-        batch.update(doc(firestore, 'users', user.uid), { 
-          auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST),
-          total_exhibitions_count: increment(1),
-          'profile_index.activity_signals.exhibition_score': increment(5) 
-        });
-        await batch.commit();
-        toast({ title: "Sergiye gönderildi!" });
-        setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true, exhibitionId: targetExhibitionId } : null);
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsProcessing(false); }
+        
+        if (photo.isSubmittedToExhibition) {
+            batch.delete(doc(firestore, 'public_photos', photo.id));
+            batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: false, exhibitionId: null });
+            batch.update(doc(firestore, 'users', user.uid), { 
+              total_exhibitions_count: increment(-1)
+            });
+            await batch.commit();
+            toast({ title: "Sergiden çekildi" });
+            setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false, exhibitionId: null } : null);
+        } else {
+            if (!targetExhibitionId) { toast({ title: "Sergi Seçin" }); setIsProcessing(false); return; }
+            const SUBMIT_TO_EXHIBITION_COST = 1;
+
+            if (userProfile.auro_balance < SUBMIT_TO_EXHIBITION_COST) {
+                toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
+                setIsProcessing(false);
+                return;
+            }
+
+            const publicData = { 
+              ...photo, 
+              isSubmittedToExhibition: true, 
+              exhibitionId: targetExhibitionId, 
+              userName: userProfile.name || 'Sanatçı', 
+              userPhotoURL: userProfile.photoURL || null, 
+              userLevelName: userProfile.level_name 
+            };
+            batch.set(doc(firestore, 'public_photos', photo.id), publicData);
+            batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
+            batch.update(doc(firestore, 'users', user.uid), { 
+              auro_balance: increment(-SUBMIT_TO_EXHIBITION_COST),
+              total_exhibitions_count: increment(1),
+              'profile_index.activity_signals.exhibition_score': increment(5) 
+            });
+            await batch.commit();
+            toast({ title: "Sergiye gönderildi!" });
+            setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true, exhibitionId: targetExhibitionId } : null);
+        }
+    } catch (e) { 
+      console.error(e);
+      toast({ variant: 'destructive', title: "İşlem Başarısız" }); 
+    } finally { setIsProcessing(false); }
   };
 
   const handleDeletePhoto = async (photo: Photo) => {
     if (!user || !firestore || isProcessing) return;
+    
     setIsProcessing(true);
     try {
       const storage = getStorage();
-      if (photo.filePath) await deleteObject(ref(storage, photo.filePath)).catch(() => {});
-      
       const batch = writeBatch(firestore);
-      batch.delete(doc(firestore, 'users', user.uid, 'photos', photo.id));
+      const userPhotoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      
+      // 1. Veritabanı kayıtlarını Batch ile sil
+      batch.delete(userPhotoRef);
       
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
@@ -173,10 +173,23 @@ export default function GalleryPage() {
         });
       }
       
+      // Firestore işlemini önce bitir (UI hızlı güncellenir)
       await batch.commit();
-      toast({ title: "Fotoğraf Silindi" });
+      
+      // 2. Fiziksel dosyayı Storage'dan sil (Arka planda, hata verse de kaydı etkilemez)
+      if (photo.filePath) {
+        const storageRef = ref(storage, photo.filePath);
+        deleteObject(storageRef).catch((err) => {
+          console.warn("Dosya depodan silinemedi (zaten yok olabilir):", err);
+        });
+      }
+      
+      toast({ title: "Fotoğraf Silindi", description: "Kare galerinden kalıcı olarak kaldırıldı." });
       setSelectedPhoto(null);
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsProcessing(false); }
+    } catch (e: any) { 
+      console.error("Delete error:", e);
+      toast({ variant: 'destructive', title: "Silme Hatası", description: "Bir sorun oluştu, lütfen tekrar deneyin." }); 
+    } finally { setIsProcessing(false); }
   };
 
   return (
