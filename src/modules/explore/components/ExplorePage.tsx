@@ -147,7 +147,7 @@ export default function ExplorePage() {
               <div className="absolute -bottom-5 left-5 h-10 w-10 rounded-xl bg-yellow-500/20 backdrop-blur-xl border border-white/10 flex items-center justify-center"><Sparkles className="h-5 w-5 text-yellow-400" /></div>
             </div>
             <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
-              <div><h3 className={cn(typography.cardTitle, "leading-none uppercase")}>Öne Çıkanlar</h3><p className={cn(typography.meta, "font-bold mt-1 leading-tight")}>Topluluğun en iyileri.</p></div>
+              <div><h3 className={cn(typography.cardTitle, "leading-none uppercase")}>Öne Çıkanlar</h3><p className={cn(typography.meta, "font-bold mt-1 leading-tight")}>Toplulukun en iyileri.</p></div>
               <Button onClick={() => setView('featured')} className={cn(typography.button, "w-full rounded-xl h-10 bg-primary")}>Fotoğrafları Gör</Button>
             </CardContent>
           </Card>
@@ -163,7 +163,7 @@ export default function ExplorePage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 mb-16">
         <div className="space-y-4">
           <h1 className={cn(typography.h1, "uppercase")}>{view === 'featured' ? 'Öne Çıkan Kareler' : selectedExhibition?.title}</h1>
-          <p className={cn(typography.subtitle, "max-w-3xl")}>{view === 'featured' ? 'Topluluğun en çok beğeni alan ve AI tarafından yüksek puanlanan eserleri.' : selectedExhibition?.description}</p>
+          <p className={cn(typography.subtitle, "max-w-3xl")}>{view === 'featured' ? 'Topluluktan en çok beğeni alan ve AI tarafından yüksek puanlanan eserler.' : selectedExhibition?.description}</p>
         </div>
       </div>
 

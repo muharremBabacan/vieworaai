@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -376,7 +377,8 @@ export default function GalleryPage() {
                   </div>
 
                   <Button onClick={() => handleDeletePhoto(selectedPhoto)} disabled={isProcessing} variant="ghost" className={cn(typography.button, "w-full h-12 rounded-xl text-destructive hover:bg-destructive/10")}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Fotoğrafı Sil
+                    {isProcessing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                    Fotoğrafı Sil
                   </Button>
                 </div>
               </div>

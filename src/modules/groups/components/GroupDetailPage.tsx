@@ -523,8 +523,7 @@ export default function GroupDetailPage() {
                   <CardContent className="p-8">
                     <AssignmentCreator onCreate={handleCreateAssignment} />
                   </CardContent>
-                </Card>
-              </div>
+                </div>
 
               <div className="space-y-8">
                 <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">

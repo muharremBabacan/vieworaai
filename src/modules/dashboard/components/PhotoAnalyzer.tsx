@@ -299,9 +299,11 @@ export default function PhotoAnalyzer() {
         setAnalysisResult(photoData);
         toast({ title: 'Analiz Tamamlandı' });
       } else {
-        toast({ title: 'Fotoğraf Yüklendi' });
-        setFile(null);
-        setPreview(null);
+        toast({ title: 'Fotoğraf Yüklendi', description: 'Galerine giderek istediğin zaman analiz edebilirsin.' });
+        // Sadece yükle yapınca galeriye yönlendirerek işlendiğini gösteriyoruz
+        setTimeout(() => {
+          router.push('/gallery');
+        }, 1500);
       }
 
     } catch (error: any) {
@@ -544,7 +546,7 @@ export default function PhotoAnalyzer() {
                 disabled={isDuplicate || isLoading}
                 className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest"
               >
-                Sadece Yükle
+                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "Sadece Yükle"}
               </Button>
             </div>
           </div>
