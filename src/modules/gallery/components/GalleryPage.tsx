@@ -173,22 +173,21 @@ export default function GalleryPage() {
         });
       }
       
-      // Firestore işlemini önce bitir (UI hızlı güncellenir)
       await batch.commit();
       
-      // 2. Fiziksel dosyayı Storage'dan sil (Arka planda, hata verse de kaydı etkilemez)
+      // 2. Fiziksel dosyayı Storage'dan sil (Hata verse de devam et)
       if (photo.filePath) {
         const storageRef = ref(storage, photo.filePath);
         deleteObject(storageRef).catch((err) => {
-          console.warn("Dosya depodan silinemedi (zaten yok olabilir):", err);
+          console.warn("Storage deletion skipped (file might not exist):", err.message);
         });
       }
       
-      toast({ title: "Fotoğraf Silindi", description: "Kare galerinden kalıcı olarak kaldırıldı." });
+      toast({ title: "Fotoğraf Silindi" });
       setSelectedPhoto(null);
     } catch (e: any) { 
       console.error("Delete error:", e);
-      toast({ variant: 'destructive', title: "Silme Hatası", description: "Bir sorun oluştu, lütfen tekrar deneyin." }); 
+      toast({ variant: 'destructive', title: "Silme Hatası" }); 
     } finally { setIsProcessing(false); }
   };
 
@@ -302,11 +301,11 @@ export default function GalleryPage() {
 
       <Dialog open={!!selectedPhoto} onOpenChange={(o) => !o && setSelectedPhoto(null)}>
         {selectedPhoto && (
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row rounded-[48px]">
-            <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40">
+          <DialogContent className="max-w-4xl max-h-[95vh] md:max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row rounded-[32px] md:rounded-[48px]">
+            <div className="relative w-full md:w-3/5 h-[35vh] md:h-auto bg-black/40 shrink-0">
               <Image src={selectedPhoto.imageUrl} alt="Galeri" fill className="object-contain" unoptimized />
             </div>
-            <div className="md:w-2/5 w-full flex flex-col p-8 space-y-6 overflow-y-auto">
+            <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>
                   Detaylar
@@ -321,71 +320,69 @@ export default function GalleryPage() {
                 </DialogDescription>
               </DialogHeader>
 
-              <ScrollArea className="flex-1 -mx-2 pr-2">
-                <div className="space-y-6">
-                  {selectedPhoto.aiFeedback ? (
-                    <>
-                      <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-5">
-                        <h4 className={cn(typography.eyebrow, "text-primary flex items-center gap-2")}>
-                          <Sparkles size={12} /> Teknik Analiz Özeti
-                        </h4>
-                        <div className="space-y-4">
-                          <div className="space-y-1.5">
-                            <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
-                            <Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1.5" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
-                            <Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1.5" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
-                            <Progress value={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) * 10} className="h-1.5" />
-                          </div>
+              <div className="space-y-6">
+                {selectedPhoto.aiFeedback ? (
+                  <>
+                    <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-5">
+                      <h4 className={cn(typography.eyebrow, "text-primary flex items-center gap-2")}>
+                        <Sparkles size={12} /> Teknik Analiz Özeti
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
+                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1.5" />
                         </div>
-                      </Card>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Lightbulb size={16} className="text-amber-400" />
-                          <span className={typography.eyebrow}>Luma Notu</span>
+                        <div className="space-y-1.5">
+                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
+                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1.5" />
                         </div>
-                        <p className={cn(typography.body, "italic text-foreground/90 bg-muted/30 p-4 rounded-xl border border-border/40 leading-relaxed")}>
-                          "{selectedPhoto.aiFeedback.short_neutral_analysis}"
-                        </p>
+                        <div className="space-y-1.5">
+                          <div className={cn(typography.meta, "flex justify-between font-black uppercase")}><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
+                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) * 10} className="h-1.5" />
+                        </div>
                       </div>
-                    </>
-                  ) : (
-                    <div className="p-8 border-dashed border-border/60 bg-muted/10 rounded-[32px] text-center">
-                      <Sparkles className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
-                      <p className={cn(typography.meta, "font-bold italic")}>Bu kare henüz analiz edilmemiş.</p>
-                    </div>
-                  )}
+                    </Card>
 
-                  <div className="space-y-4 pt-6 border-t border-border/40">
-                    <div className="space-y-3">
-                      <Label className={cn(typography.eyebrow, "ml-1")}>Sergi İşlemleri</Label>
-                      {!selectedPhoto.isSubmittedToExhibition && (
-                        <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId}>
-                          <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
-                            <SelectValue placeholder="Sergi Salonu Seç..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {exhibitions?.map(ex => <SelectItem key={ex.id} value={ex.id}>{ex.title}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      <Button onClick={() => handleToggleExhibition(selectedPhoto)} disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}>
-                        {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> Sergiden Çek</> : <><Globe className="mr-2 h-4 w-4" /> Sergiye Gönder (1 {currencyName})</>}
-                      </Button>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Lightbulb size={16} className="text-amber-400" />
+                        <span className={typography.eyebrow}>Luma Notu</span>
+                      </div>
+                      <p className={cn(typography.body, "italic text-foreground/90 bg-muted/30 p-4 rounded-xl border border-border/40 leading-relaxed")}>
+                        "{selectedPhoto.aiFeedback.short_neutral_analysis}"
+                      </p>
                     </div>
+                  </>
+                ) : (
+                  <div className="p-8 border-dashed border-border/60 bg-muted/10 rounded-[32px] text-center">
+                    <Sparkles className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
+                    <p className={cn(typography.meta, "font-bold italic")}>Bu kare henüz analiz edilmemiş.</p>
+                  </div>
+                )}
 
-                    <Button onClick={() => handleDeletePhoto(selectedPhoto)} disabled={isProcessing} variant="ghost" className={cn(typography.button, "w-full h-12 rounded-xl text-destructive hover:bg-destructive/10")}>
-                      <Trash2 className="mr-2 h-4 w-4" /> Fotoğrafı Sil
+                <div className="space-y-4 pt-6 border-t border-border/40">
+                  <div className="space-y-3">
+                    <Label className={cn(typography.eyebrow, "ml-1")}>Sergi İşlemleri</Label>
+                    {!selectedPhoto.isSubmittedToExhibition && (
+                      <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId}>
+                        <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
+                          <SelectValue placeholder="Sergi Salonu Seç..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {exhibitions?.map(ex => <SelectItem key={ex.id} value={ex.id}>{ex.title}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Button onClick={() => handleToggleExhibition(selectedPhoto)} disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}>
+                      {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> Sergiden Çek</> : <><Globe className="mr-2 h-4 w-4" /> Sergiye Gönder (1 {currencyName})</>}
                     </Button>
                   </div>
+
+                  <Button onClick={() => handleDeletePhoto(selectedPhoto)} disabled={isProcessing} variant="ghost" className={cn(typography.button, "w-full h-12 rounded-xl text-destructive hover:bg-destructive/10")}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Fotoğrafı Sil
+                  </Button>
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           </DialogContent>
         )}
