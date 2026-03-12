@@ -1,8 +1,8 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# =========================
+# Dependencies
+# =========================
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,38 +10,59 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# =========================
+# Next.js build files
+# =========================
+.next/
+out/
+build/
+coverage/
 
-# next.js
-/.next/
-/out/
+# =========================
+# Firebase
+# =========================
+.firebase/
+firebase-debug.log
+firestore-debug.log
+studio-*.json
 
-# production
-/build
-
-# misc
-.DS_Store
+# =========================
+# Secrets / credentials
+# =========================
+serviceAccount.json
+serviceAccountKey.json
 *.pem
 
-# debug
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# =========================
+# Logs
+# =========================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# vercel
-.vercel
-
-# typescript
+# =========================
+# OS / misc
+# =========================
+.DS_Store
 *.tsbuildinfo
 next-env.d.ts
 
-.genkit/*
-.env*
+# =========================
+# Vercel (if present)
+# =========================
+.vercel
 
-# firebase
-firebase-debug.log
-firestore-debug.log
-serviceAccountKey.json
-studio-*.json
+# =========================
+# Genkit
+# =========================
+.genkit/
