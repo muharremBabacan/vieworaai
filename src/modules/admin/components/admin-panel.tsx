@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,9 +16,9 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap
+  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CheckCircle2, XCircle
 } from 'lucide-react';
-import type { Competition, Exhibition, AnalysisLog, User, AppSettings } from '@/types';
+import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
@@ -29,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import AcademyAdminPanel from './AcademyAdminPanel';
+import { Switch } from '@/components/ui/switch';
 
 const exhibitionSchema = z.object({
   title: z.string().min(3, 'En az 3 karakter'),
@@ -54,6 +56,80 @@ const configSchema = z.object({
   currencyName: z.string().min(2, 'En az 2 karakter').max(10, 'En fazla 10 karakter'),
 });
 
+const packageSchema = z.object({
+  name: z.string().min(2, 'Gerekli'),
+  description: z.string().min(5, 'Gerekli'),
+  price: z.coerce.number().min(1),
+  payment_link: z.string().url('Geçerli bir URL girin'),
+  active: z.boolean(),
+  order: z.number()
+});
+
+function PackageEditor({ pkg, onSave }: { pkg: PixPackage, onSave: (values: any) => Promise<void> }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(packageSchema),
+    defaultValues: {
+      name: pkg.name,
+      description: pkg.description,
+      price: pkg.price,
+      payment_link: pkg.payment_link,
+      active: pkg.active,
+      order: pkg.order
+    }
+  });
+
+  const handleSubmit = async (values: any) => {
+    setIsSaving(true);
+    await onSave({ ...values, id: pkg.id });
+    setIsSaving(false);
+  };
+
+  return (
+    <Card className="rounded-2xl border-border/40 bg-muted/20">
+      <CardHeader className="pb-4">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-sm font-black uppercase tracking-widest">{pkg.name}</CardTitle>
+          <Badge variant={form.watch('active') ? 'default' : 'secondary'} className="h-5 text-[9px]">
+            {form.watch('active') ? 'AKTİF' : 'PASİF'}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <FormField control={form.control} name="name" render={({ field }) => (
+                <FormItem><FormLabel className="text-[9px] font-black uppercase">İsim</FormLabel><FormControl><Input {...field} className="h-9 text-xs" /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="price" render={({ field }) => (
+                <FormItem><FormLabel className="text-[9px] font-black uppercase">Fiyat (TL)</FormLabel><FormControl><Input type="number" {...field} className="h-9 text-xs" /></FormControl></FormItem>
+              )} />
+            </div>
+            <FormField control={form.control} name="description" render={({ field }) => (
+              <FormItem><FormLabel className="text-[9px] font-black uppercase">Açıklama</FormLabel><FormControl><Textarea {...field} className="text-xs min-h-[60px]" /></FormControl></FormItem>
+            )} />
+            <FormField control={form.control} name="payment_link" render={({ field }) => (
+              <FormItem><FormLabel className="text-[9px] font-black uppercase">Ödeme Linki</FormLabel><FormControl><Input {...field} className="h-9 text-xs" /></FormControl></FormItem>
+            )} />
+            <div className="flex items-center justify-between pt-2">
+              <FormField control={form.control} name="active" render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  <FormLabel className="text-[10px] font-bold">Aktif</FormLabel>
+                </FormItem>
+              )} />
+              <Button type="submit" disabled={isSaving} size="sm" className="h-8 rounded-lg font-black uppercase text-[10px]">
+                {isSaving ? <Loader2 className="animate-spin h-3 w-3" /> : <><Save className="mr-1.5 h-3 w-3" /> Kaydet</>}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminPanel() {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -63,6 +139,10 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
+  // All Queries
+  const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
+  const { data: appConfig } = useDoc<AppSettings>(configRef);
+
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
@@ -70,9 +150,24 @@ export default function AdminPanel() {
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);
 
-  const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
-  const { data: appConfig } = useDoc<AppSettings>(configRef);
+  const logsQuery = useMemoFirebase(() =>
+    firestore && isAdmin ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
+    [firestore, isAdmin]
+  );
+  const usersQuery = useMemoFirebase(() =>
+    firestore && isAdmin ? collection(firestore, 'users') : null,
+    [firestore, isAdmin]
+  );
+  const packagesQuery = useMemoFirebase(() =>
+    firestore && isAdmin ? query(collection(firestore, 'pix_packages'), orderBy('order', 'asc')) : null,
+    [firestore, isAdmin]
+  );
 
+  const { data: logs } = useCollection<AnalysisLog>(logsQuery);
+  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
+  const { data: dbPackages } = useCollection<PixPackage>(packagesQuery);
+
+  // Forms
   const configForm = useForm({
     resolver: zodResolver(configSchema),
     defaultValues: { currencyName: currentCurrency }
@@ -93,17 +188,15 @@ export default function AdminPanel() {
     } finally { setIsSubmitting(false); }
   };
 
-  const logsQuery = useMemoFirebase(() =>
-    firestore && isAdmin ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
-    [firestore, isAdmin]
-  );
-  const usersQuery = useMemoFirebase(() =>
-    firestore && isAdmin ? collection(firestore, 'users') : null,
-    [firestore, isAdmin]
-  );
-
-  const { data: logs } = useCollection<AnalysisLog>(logsQuery);
-  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
+  const handleUpdatePackage = async (values: any) => {
+    if (!firestore) return;
+    try {
+      await setDoc(doc(firestore, 'pix_packages', values.id), values, { merge: true });
+      toast({ title: "Paket Güncellendi" });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Hata" });
+    }
+  };
 
   const metrics = useMemo(() => {
     if (!logs) return null;
@@ -311,6 +404,37 @@ export default function AdminPanel() {
                 )} />
                 <Button type="submit" disabled={isSubmitting} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/10">Ayarları Güncelle</Button>
               </form></Form>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden">
+            <CardHeader className="bg-secondary/10 border-b p-8">
+              <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight uppercase">
+                <Package className="h-6 w-6 text-primary" /> PIX Paket Yönetimi
+              </CardTitle>
+              <CardDescription>Pricing sayfasında görünen paketleri buradan yönetin.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {(dbPackages || []).length > 0 ? dbPackages?.map(pkg => (
+                  <PackageEditor key={pkg.id} pkg={pkg} onSave={handleUpdatePackage} />
+                )) : (
+                  <div className="col-span-full py-12 text-center space-y-4 border-2 border-dashed rounded-[32px]">
+                    <Package className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                    <p className="text-muted-foreground font-medium">Henüz paket oluşturulmamış.</p>
+                    <Button variant="outline" className="rounded-xl font-black uppercase text-[10px]" onClick={async () => {
+                      if(!firestore) return;
+                      const defaults = [
+                        { id: 'starter', name: 'Starter Paket', description: 'Hızlı başlangıç için temel paket.', price: 99, payment_link: 'https://iyzi.link/AKg9LA', active: true, order: 1 },
+                        { id: 'creator', name: 'Creator Paket', description: 'Stratejik mentorluk ve tam erişim.', price: 199, payment_link: '#', active: true, order: 2 },
+                        { id: 'pro', name: 'Pro Paket', description: 'Gelişmiş stil analizi ve profesyonel araçlar.', price: 349, payment_link: '#', active: true, order: 3 }
+                      ];
+                      for(const d of defaults) await setDoc(doc(firestore, 'pix_packages', d.id), d);
+                      toast({ title: "Varsayılan Paketler Oluşturuldu" });
+                    }}>Varsayılanları Oluştur</Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -47,6 +47,17 @@ export type AppSettings = {
   maintenanceMode?: boolean;
 };
 
+export type PixPackage = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  payment_link: string;
+  active: boolean;
+  order: number;
+  pix_amount?: number;
+};
+
 export type OnboardingResults = {
   device_type: 'mobile' | 'camera' | 'hybrid';
   interest: 'portrait' | 'landscape' | 'street' | 'food' | 'social' | 'art';
