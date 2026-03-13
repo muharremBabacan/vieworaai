@@ -72,20 +72,20 @@ export default function GalleryPage() {
   // ALL HOOKS AT TOP
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const photosQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!user || !firestore) return undefined;
     return query(
       collection(firestore, 'users', user.uid, 'photos'),
       orderBy('createdAt', 'desc')
     );
   }, [user, firestore]);
   const exhibitionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore) return undefined;
     return query(collection(firestore, 'exhibitions'), where('isActive', '==', true));
   }, [firestore]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-  const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
-  const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
+  const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery ?? undefined);
+  const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery ?? undefined);
 
   const filteredPhotos = useMemo(() => {
     if (!photos) return [];
