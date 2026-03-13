@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -11,13 +10,14 @@ import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-sug
 import { useToast } from '@/shared/hooks/use-toast';
 import type { User, Photo, AnalysisLog, UserTier } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Loader2, Sparkles, Gem, Check, Info, TrendingUp, Star, ChevronRight, RefreshCw, Lock, BarChart3, GraduationCap, Globe, Trophy, Users, Scan, SearchCode, Lightbulb } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
+import { typography } from "@/lib/design/typography";
 
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -90,21 +90,18 @@ export default function PhotoAnalyzer() {
   const router = useRouter();
   const { currencyName } = useAppConfig();
   
-  const userDocRef = useMemoFirebase(
-    () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
-    [user, firestore]
-  );
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<Photo | null>(null);
 
-  const currentTier = userProfile?.tier || 'start';
-  const analysisCost = TIER_COSTS[currentTier];
+  const userDocRef = useMemoFirebase(
+    () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
+    [user, firestore]
+  );
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     if (selectedFile.size > 10 * 1024 * 1024) {
@@ -124,16 +121,14 @@ export default function PhotoAnalyzer() {
     accept: { 'image/*': ['.jpeg', '.png', '.jpg', '.webp'] }
   });
 
+  const currentTier = userProfile?.tier || 'start';
+  const analysisCost = TIER_COSTS[currentTier];
+
   const updateUserProfileIndex = async (userId: string, newOverallScore: number) => {
     if (!firestore) return;
     
     const photosRef = collection(firestore, 'users', userId, 'photos');
-    const q = query(
-      photosRef, 
-      where('aiFeedback', '!=', null), 
-      orderBy('createdAt', 'desc'), 
-      limit(12)
-    );
+    const q = query(photosRef, where('aiFeedback', '!=', null), orderBy('createdAt', 'desc'), limit(12));
     
     const snap = await getDocs(q);
     if (snap.empty) return;
@@ -160,41 +155,10 @@ export default function PhotoAnalyzer() {
       boldness: totals.boldness / count
     };
 
-    const allTags = analyzedPhotos.flatMap(p => p.tags || []);
-    const tagCounts: Record<string, number> = {};
-    allTags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
-    const dominantStyle = Object.entries(tagCounts).sort((a,b) => b[1] - a[1])[0]?.[0] || "unknown";
-
-    const metricEntries = Object.entries(technicalMetrics);
-    const strengths = [metricEntries.sort((a,b) => b[1] - a[1])[0][0]];
-    const weaknesses = [metricEntries.sort((a,b) => a[1] - b[1])[0][0]];
-
-    const totalAvg = (technicalMetrics.light + technicalMetrics.composition + technicalMetrics.technical_clarity) / 3;
-    const dominantLevel = totalAvg > 7 ? 'advanced' : totalAvg > 4 ? 'intermediate' : 'beginner';
-
     const mean = totals.overall.reduce((a, b) => a + b, 0) / count;
-    const variance = totals.overall.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count;
-    const stdDev = Math.sqrt(variance);
-    const consistencyGap = Math.round(stdDev * 10);
-
-    let trendDirection: 'improving' | 'stagnant' | 'declining' = 'stagnant';
-    let trendPercentage = 0;
-    if (count > 1) {
-        const recentAvg = (totals.overall[0] + (totals.overall[1] || totals.overall[0])) / 2;
-        const pastAvg = mean;
-        trendPercentage = Math.round(((recentAvg - pastAvg) / pastAvg) * 100) || 0;
-        trendDirection = trendPercentage > 5 ? 'improving' : trendPercentage < -5 ? 'declining' : 'stagnant';
-    }
-
     const userRef = doc(firestore, 'users', userId);
     await updateDoc(userRef, {
-      'profile_index.dominant_style': dominantStyle,
-      'profile_index.strengths': strengths,
-      'profile_index.weaknesses': weaknesses,
-      'profile_index.dominant_technical_level': dominantLevel,
       'profile_index.technical': technicalMetrics,
-      'profile_index.consistency_gap': consistencyGap,
-      'profile_index.trend': { direction: trendDirection, percentage: Math.abs(trendPercentage) },
       'profile_index.profile_index_score': mean * 10,
       score_history: arrayUnion({ score: newOverallScore, date: new Date().toISOString() })
     });
@@ -205,20 +169,13 @@ export default function PhotoAnalyzer() {
 
     if (analyze && userProfile.auro_balance < analysisCost) {
       toast({ 
-        variant: 'destructive', 
-        title: `Yetersiz ${currencyName}`, 
-        description: `Bu analiz derinliği için ${analysisCost} ${currencyName} gereklidir.`,
-        action: (
-          <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>
-            {currencyName} Yükle
-          </Button>
-        )
+        variant: 'destructive', title: `Yetersiz ${currencyName}`, 
+        action: <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>{currencyName} Yükle</Button>
       });
       return;
     }
 
     setIsLoading(true);
-
     try {
       const hash = await generateImageHash(file);
       const q = query(collection(firestore, 'users', user.uid, 'photos'), where('imageHash', '==', hash));
@@ -228,10 +185,10 @@ export default function PhotoAnalyzer() {
         const existingPhoto = dupSnap.docs[0].data() as Photo;
         if (existingPhoto.aiFeedback) {
             setAnalysisResult(existingPhoto);
-            toast({ title: 'Zaten Analiz Edilmiş', description: 'Bu fotoğrafın analizi sistemde kayıtlı.' });
+            toast({ title: 'Zaten Analiz Edilmiş' });
         } else {
             setIsDuplicate(true);
-            toast({ variant: 'destructive', title: 'Bu kare zaten galerinizde.', description: 'Henüz analiz edilmemiş.' });
+            toast({ variant: 'destructive', title: 'Bu kare zaten galerinizde.' });
         }
         setIsLoading(false);
         return;
@@ -259,54 +216,31 @@ export default function PhotoAnalyzer() {
         analysisTier: analyze ? currentTier : undefined
       };
 
-      let overallScore = 0;
-
       if (analyze) {
-        const analysis = await generatePhotoAnalysis({ 
-          photoUrl: imageUrl, 
-          language: 'tr',
-          tier: currentTier
-        });
+        const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr', tier: currentTier });
         photoData.aiFeedback = analysis;
         photoData.tags = analysis.tags || [];
-        overallScore = getOverallScore(photoData);
+        const score = getOverallScore(photoData);
 
-        batch.update(userRef, {
-          auro_balance: increment(-analysisCost),
-          total_auro_spent: increment(analysisCost),
-          total_analyses_count: increment(1)
-        });
-
+        batch.update(userRef, { auro_balance: increment(-analysisCost), total_auro_spent: increment(analysisCost), total_analyses_count: increment(1) });
         const logRef = doc(collection(firestore, 'analysis_logs'));
-        batch.set(logRef, {
-          id: logRef.id,
-          userId: user.uid,
-          userName: userProfile.name || 'Sanatçı',
-          type: 'technical',
-          auroSpent: analysisCost,
-          timestamp: new Date().toISOString(),
-          status: 'success'
-        } as AnalysisLog);
-      }
-
-      batch.set(photoDocRef, photoData);
-      batch.update(userRef, { current_xp: increment(analyze ? 20 : 5) });
-
-      await batch.commit();
-      
-      if (analyze) {
-        await updateUserProfileIndex(user.uid, overallScore);
+        batch.set(logRef, { id: logRef.id, userId: user.uid, userName: userProfile.name || 'Sanatçı', type: 'technical', auroSpent: analysisCost, timestamp: new Date().toISOString(), status: 'success' });
+        
+        batch.set(photoDocRef, photoData);
+        batch.update(userRef, { current_xp: increment(20) });
+        await batch.commit();
+        await updateUserProfileIndex(user.uid, score);
         setAnalysisResult(photoData);
         toast({ title: 'Analiz Tamamlandı' });
       } else {
-        toast({ title: 'Fotoğraf Yüklendi', description: 'Galerine giderek istediğin zaman analiz edebilirsin.' });
-        setTimeout(() => {
-          router.push('/gallery');
-        }, 1500);
+        batch.set(photoDocRef, photoData);
+        batch.update(userRef, { current_xp: increment(5) });
+        await batch.commit();
+        toast({ title: 'Fotoğraf Yüklendi' });
+        router.push('/gallery');
       }
-
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'İşlem Başarısız', description: error.message });
+      toast({ variant: 'destructive', title: 'İşlem Başarısız' });
     } finally {
       setIsLoading(false);
     }
@@ -343,50 +277,21 @@ export default function PhotoAnalyzer() {
               </Card>
               
               <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                    <SearchCode size={20} />
-                  </div>
-                  <h3 className="text-lg font-black uppercase tracking-tight">Algılanan Detaylar</h3>
-                </div>
+                <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div><h3 className="text-lg font-black uppercase tracking-tight">Algılanan Detaylar</h3></div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Tür</p>
-                    <p className="text-sm font-bold capitalize">{analysisResult.aiFeedback!.genre}</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Sahne</p>
-                    <p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.scene}</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Ana Özne</p>
-                    <p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.dominant_subject}</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {analysisResult.tags?.map(tag => (
-                    <Badge key={tag} variant="secondary" className="bg-secondary/50 text-foreground/70 font-bold px-3 py-1 rounded-lg">#{tag}</Badge>
-                  ))}
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Tür</p><p className="text-sm font-bold capitalize">{analysisResult.aiFeedback!.genre}</p></div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Sahne</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.scene}</p></div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Ana Özne</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.dominant_subject}</p></div>
                 </div>
               </Card>
             </div>
 
             <div className="lg:col-span-5 space-y-6">
               <Card className="p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8">
-                  <Star className="h-16 w-16 text-primary/5 -mr-4 -mt-4 fill-current" />
-                </div>
-                
                 <div className="relative z-10 flex flex-col items-center text-center space-y-2 mb-10">
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">GENEL SKOR</p>
                   <div className="text-7xl font-black tracking-tighter text-primary">{getOverallScore(analysisResult).toFixed(1)}</div>
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={14} className={cn(i < Math.floor(getOverallScore(analysisResult) / 2) ? "text-yellow-400 fill-current" : "text-muted-foreground/30")} />
-                    ))}
-                  </div>
                 </div>
-
                 <div className="space-y-6">
                   <RatingBar label="Işık Kullanımı" score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
                   <RatingBar label="Kompozisyon" score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
@@ -395,25 +300,10 @@ export default function PhotoAnalyzer() {
                   <RatingBar label="Cesur Kadraj" score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
                 </div>
               </Card>
-
               <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Lightbulb size={18} className="text-amber-400" />
-                  <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Luma'nın Notu</h4>
-                </div>
-                <p className="text-base italic text-foreground/90 leading-relaxed font-medium">
-                  "{analysisResult.aiFeedback!.short_neutral_analysis}"
-                </p>
+                <div className="flex items-center gap-2"><Lightbulb size={18} className="text-amber-400" /><h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Luma'nın Notu</h4></div>
+                <p className="text-base italic text-foreground/90 leading-relaxed font-medium">"{analysisResult.aiFeedback!.short_neutral_analysis}"</p>
               </Card>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Button asChild variant="outline" className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]">
-                  <a href="/academy"><GraduationCap className="mr-2 h-4 w-4" /> Eğitime Git</a>
-                </Button>
-                <Button asChild className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
-                  <a href="/luma"><Sparkles className="mr-2 h-4 w-4 text-yellow-400" /> Mentor'a Sor</a>
-                </Button>
-              </div>
             </div>
           </div>
         </div>
@@ -424,128 +314,28 @@ export default function PhotoAnalyzer() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="text-center md:text-left space-y-4 max-w-md">
                 <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">Fotoğrafını yükle</h2>
-                <p className="text-xl md:text-2xl font-bold text-muted-foreground">Yapay zeka fotoğrafını analiz etsin</p>
-                <p className="text-sm font-medium text-muted-foreground/70">Işık, kompozisyon ve hikaye gücünü keşfet.</p>
+                <p className="text-xl md:text-2xl font-bold text-muted-foreground">Yapay zeka analiz etsin</p>
               </div>
               <div className="flex flex-col items-center gap-4">
-                <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                  <Camera className="text-primary" size={40} />
-                </div>
-                <Button onClick={open} className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95">
-                  Fotoğraf Seç
-                </Button>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">veya buraya sürükle bırak</p>
+                <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform"><Camera className="text-primary" size={40} /></div>
+                <Button onClick={open} className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95">Fotoğraf Seç</Button>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
-            <h3 className="text-xl font-black tracking-tight uppercase ml-2">Viewora ile neler yapabilirsin</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                    <BarChart3 size={18} />
-                  </div>
-                  <h4 className="font-black text-sm uppercase tracking-tight">AI Fotoğraf Analizi</h4>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Fotoğrafını yükle. Yapay zeka ışık, kompozisyon ve hikaye gücünü analiz etsin.</p>
-              </Card>
-
-              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                    <GraduationCap size={18} />
-                  </div>
-                  <h4 className="font-black text-sm uppercase tracking-tight">Fotoğraf Akademisi</h4>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Seviyene göre hazırlanmış derslerle fotoğraf bilgisini geliştir.</p>
-              </Card>
-
-              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                    <Trophy size={18} />
-                  </div>
-                  <h4 className="font-black text-sm uppercase tracking-tight">Sergiler ve Yarışmalar</h4>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Global yarışmalara katıl, eserlerini tematik sergilerde dünyaya göster.</p>
-              </Card>
-
-              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                    <Users size={18} />
-                  </div>
-                  <h4 className="font-black text-sm uppercase tracking-tight">Topluluk ve Gruplar</h4>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Diğer sanatçılarla tanış, özel gruplara katıl ve birlikte öğren.</p>
-              </Card>
-
-              <Card className="bg-secondary/20 border-border/40 p-6 rounded-[24px] space-y-4 hover:border-primary/30 transition-all group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                    <Sparkles size={18} />
-                  </div>
-                  <h4 className="font-black text-sm uppercase tracking-tight">Luma – Özel Koçluk</h4>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Fotoğraf gelişim koçun. Kişisel geri bildirimler ve gelişim önerileri al.</p>
-              </Card>
-            </div>
-            <p className="text-center pt-10 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">Türkiye'de geliştirilen küresel bir mobil fotoğraf ve yapay zekâ platformu.</p>
           </div>
         </div>
       ) : (
         <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm relative overflow-hidden">
           {isLoading && <ScanningOverlay />}
-          
           <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12">
             <Image src={preview!} alt="Preview" fill className="object-cover" unoptimized />
           </div>
-
-          <div className="flex flex-col items-center gap-8">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl">
-              <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'start' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Start</p>
-                <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
-                  <Gem className="h-4 w-4 text-cyan-400" /> 1 <span className="text-[9px] uppercase">{currencyName}</span>
-                </div>
-              </Card>
-              <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'pro' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Pro</p>
-                <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
-                  <Gem className="h-4 w-4 text-cyan-400" /> 2 <span className="text-[9px] uppercase">{currencyName}</span>
-                </div>
-              </Card>
-              <Card className={cn("p-6 border-2 transition-all rounded-[24px]", currentTier === 'master' ? "border-primary bg-primary/5" : "border-border opacity-50")}>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-2">Luma Master</p>
-                <div className="flex items-center justify-center gap-1 mb-4 text-xl font-bold">
-                  <Gem className="h-4 w-4 text-cyan-400" /> 3 <span className="text-[9px] uppercase">{currencyName}</span>
-                </div>
-              </Card>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-5">
-              <Button
-                onClick={() => handleUploadAndOptionalAnalysis(true)}
-                disabled={isDuplicate || isLoading}
-                className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30"
-              >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : (
-                  <>
-                    <Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> Analiz Et ({analysisCost} {currencyName})
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={() => handleUploadAndOptionalAnalysis(false)}
-                variant="secondary"
-                disabled={isDuplicate || isLoading}
-                className="h-16 px-12 rounded-[20px] font-black uppercase tracking-widest"
-              >
-                {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "Sadece Yükle"}
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row justify-center gap-5">
+            <Button onClick={() => handleUploadAndOptionalAnalysis(true)} disabled={isDuplicate || isLoading} className="h-16 px-12 rounded-[20px] font-black uppercase shadow-2xl shadow-primary/30">
+              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> Analiz Et ({analysisCost} {currencyName})</>}
+            </Button>
+            <Button onClick={() => handleUploadAndOptionalAnalysis(false)} variant="secondary" disabled={isDuplicate || isLoading} className="h-16 px-12 rounded-[20px] font-black uppercase">
+              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "Sadece Yükle"}
+            </Button>
           </div>
         </Card>
       )}
