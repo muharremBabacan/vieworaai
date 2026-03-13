@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="tr" className="dark">
       <head>
-        {/* Google tag (gtag.js) */}
+        {/* Google Tag Manager / Ads (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
           strategy="afterInteractive"

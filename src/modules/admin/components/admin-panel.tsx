@@ -150,7 +150,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
-  // 🪝 HOOKS - ALL AT THE TOP
+  // 🪝 HOOKS - ALWAYS AT TOP
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
@@ -229,8 +229,6 @@ export default function AdminPanel() {
     const term = userSearch.toLowerCase();
     return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
-
-  if (!isAdmin) return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
 
   const onUpdateConfig = async (values: z.infer<typeof configSchema>) => {
     if (!firestore || isSubmitting) return;
@@ -325,6 +323,8 @@ export default function AdminPanel() {
       competitionForm.reset();
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsSubmitting(false); }
   };
+
+  if (!isAdmin) return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
 
   return (
     <div className="container mx-auto px-4 pb-24 pt-10 animate-in fade-in duration-700">

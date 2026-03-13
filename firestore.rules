@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- YARDIMCI FONKSİYONLAR ---
+    // --- HELPER FUNCTIONS ---
     function isSignedIn() {
       return request.auth != null;
     }
@@ -22,21 +22,21 @@ service cloud.firestore {
       );
     }
 
-    // --- PIX PAKETLERİ ---
+    // --- PIX PACKAGES ---
     match /pix_packages/{packageId} {
-      allow get, list: if true; // Herkes paketleri listeleyebilir ve görebilir
+      allow get, list: if true; // Everyone can see packages
       allow write: if isAdmin();
     }
 
-    // --- SATIN ALMA TALEPLERİ ---
+    // --- PIX PURCHASES ---
     match /pix_purchases/{purchaseId} {
       allow get: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
-      allow list: if isAdmin(); // Sadece admin tüm listeyi görebilir
+      allow list: if isAdmin(); // Only admin can list all purchases
       allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
       allow update, delete: if isAdmin();
     }
 
-    // --- KULLANICI PROFİLLERİ ---
+    // --- USER PROFILES ---
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -57,7 +57,7 @@ service cloud.firestore {
       }
     }
     
-    // --- DİĞER KOLEKSİYONLAR ---
+    // --- OTHER COLLECTIONS ---
     match /exhibitions/{exhibitionId} {
       allow get, list: if isSignedIn();
       allow write: if isAdmin();

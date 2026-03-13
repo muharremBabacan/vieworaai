@@ -22,7 +22,7 @@ export default function PricingPage() {
   
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
-  // 🪝 HOOKS
+  // 🪝 HOOKS - ALWAYS AT TOP
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const packagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
