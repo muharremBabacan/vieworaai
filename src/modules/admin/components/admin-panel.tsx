@@ -150,7 +150,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
-  // 🪝 HOOKS - ALWAYS AT TOP
+  // ALL HOOKS AT TOP
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
@@ -518,7 +518,7 @@ export default function AdminPanel() {
                         { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar ve mentorluk.', price: 349, pix_amount: 150, payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
                       ];
                       for(const d of defaults) await setDoc(doc(firestore, 'pix_packages', d.id), d);
-                      toast({ title: "Varsayılanlar Oluşturuldu" });
+                      toast({ title: "Varsayılanları Yükle" });
                     }}>Varsayılanları Yükle</Button>
                   </div>
                 )}

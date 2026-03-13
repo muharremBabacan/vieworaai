@@ -24,14 +24,14 @@ service cloud.firestore {
 
     // --- PIX PACKAGES ---
     match /pix_packages/{packageId} {
-      allow get, list: if true; // Everyone can see and list packages
+      allow get, list: if true; 
       allow write: if isAdmin();
     }
 
     // --- PIX PURCHASES ---
     match /pix_purchases/{purchaseId} {
       allow get: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
-      allow list: if isAdmin(); // Only admin can list all purchases
+      allow list: if isAdmin(); 
       allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
       allow update, delete: if isAdmin();
     }
