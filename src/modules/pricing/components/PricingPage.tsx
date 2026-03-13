@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
 import { collection, query, where, orderBy, addDoc, doc } from 'firebase/firestore';
-import type { PixPackage, User } from '@/types';
+import type { PixPackage, User, PixPurchase } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,47 +36,49 @@ export default function PricingPage() {
 
   const activePackages = useMemo(() => {
     if (!dbPackages || dbPackages.length === 0) {
-      return [{
-        id: 'starter',
-        name: 'Starter Paket',
-        price: 99,
-        pix_amount: 20,
-        description: 'Hızlı başlangıç için temel paket.',
-        payment_link: 'https://iyzi.link/AKg9LA',
-        active: true,
-        order: 1
-      },
-      {
-        id: 'creator',
-        name: 'Creator Paket',
-        price: 199,
-        pix_amount: 60,
-        description: 'Gelişmiş analizler ve tam erişim.',
-        payment_link: 'https://iyzi.link/AKg9OQ',
-        active: true,
-        order: 2
-      },
-      {
-        id: 'pro',
-        name: 'Pro Paket',
-        price: 349,
-        pix_amount: 150,
-        description: 'Profesyonel araçlar ve mentorluk.',
-        payment_link: 'https://iyzi.link/AKg9Og',
-        active: true,
-        order: 3
-      }];
+      return [
+        {
+          id: 'starter',
+          name: 'Starter Paket',
+          price: 99,
+          pix_amount: 20,
+          description: 'Hızlı başlangıç için temel paket.',
+          payment_link: 'https://iyzi.link/AKg9LA',
+          active: true,
+          order: 1
+        },
+        {
+          id: 'creator',
+          name: 'Creator Paket',
+          price: 199,
+          pix_amount: 60,
+          description: 'Gelişmiş analizler ve tam erişim.',
+          payment_link: 'https://iyzi.link/AKg9OQ',
+          active: true,
+          order: 2
+        },
+        {
+          id: 'pro',
+          name: 'Pro Paket',
+          price: 349,
+          pix_amount: 150,
+          description: 'Profesyonel araçlar ve mentorluk.',
+          payment_link: 'https://iyzi.link/AKg9Og',
+          active: true,
+          order: 3
+        }
+      ];
     }
-    return dbPackages.filter(p => !p.name.toLowerCase().includes('elite'));
+    return dbPackages;
   }, [dbPackages]);
 
-  const handlePurchaseClick = async (pkg: PixPackage) => {
+  const handlePurchaseClick = async (pkg: any) => {
     if (!user || !firestore || !userProfile) {
       toast({ variant: 'destructive', title: "Giriş Gerekli", description: "Satın alma işlemi için lütfen giriş yapın." });
       return;
     }
 
-    if (pkg.payment_link === '#' || !pkg.payment_link) {
+    if (!pkg.payment_link || pkg.payment_link === '#') {
       toast({ variant: 'destructive', title: "Bağlantı Hazırlanıyor", description: "Bu paket için ödeme linki henüz tanımlanmamış." });
       return;
     }
@@ -103,7 +105,7 @@ export default function PricingPage() {
       
       toast({ 
         title: "Yönlendiriliyorsunuz", 
-        description: "Ödeme sayfasını yeni sekmede açtık. Ödeme sonrası bakiyeniz admin onayıyla yüklenecektir." 
+        description: "Ödeme sayfasını yeni sekmede açtık. Ödeme sonrası bakiyeniz onaylandığında yüklenecektir." 
       });
     } catch (e) {
       console.error("Purchase error:", e);
@@ -115,26 +117,6 @@ export default function PricingPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 animate-in fade-in duration-700">
-      <div className="max-w-4xl mx-auto mb-16">
-        <div className="bg-primary/10 border border-primary/20 rounded-[32px] p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left shadow-2xl shadow-primary/5">
-          <div className="h-16 w-16 rounded-3xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shrink-0">
-            <Sparkles size={32} />
-          </div>
-          <div className="flex-1 space-y-1">
-            <h2 className="text-2xl font-black tracking-tight uppercase text-primary">Viewora Mağaza</h2>
-            <p className="text-foreground/90 font-bold text-lg leading-tight">
-              Yapay zeka analizleri için {currencyName} paketlerini kullanın.
-            </p>
-            <p className="text-muted-foreground font-medium text-base">
-              Paket satın aldıktan sonra ödemeniz sistem tarafından onaylanarak bakiyenize eklenir.
-            </p>
-          </div>
-          <Badge className="bg-primary text-primary-foreground font-black px-6 h-10 rounded-full text-xs tracking-widest uppercase border-none">
-            GÜVENLİ ÖDEME
-          </Badge>
-        </div>
-      </div>
-
       <header className="text-center mb-16 space-y-4">
         <h1 className="text-6xl font-black tracking-tighter uppercase">{currencyName} Paketleri</h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto font-medium">Sanatsal vizyonunu geliştirmek için sana en uygun paketi seç.</p>
@@ -187,7 +169,7 @@ export default function PricingPage() {
 
               <CardFooter className="p-8 pt-0 flex flex-col gap-4">
                 <Button 
-                  onClick={() => handlePurchaseClick(pkg as PixPackage)}
+                  onClick={() => handlePurchaseClick(pkg)}
                   disabled={isProcessingId === pkg.id}
                   className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/10 transition-transform active:scale-95"
                 >

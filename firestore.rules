@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -21,17 +20,17 @@ service cloud.firestore {
       );
     }
 
-    function isGroupMember(groupId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)) && 
-             (request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds ||
-              get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+    match /pix_packages/{packageId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    function isGroupOwner(groupId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)) && 
-             get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
+    match /pix_purchases/{purchaseId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow update: if isAdmin();
     }
-    
+
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -64,17 +63,6 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
     
-    match /competitions/{competitionId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-      
-      match /entries/{entryId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      }
-    }
-    
     match /groups/{groupId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
@@ -82,69 +70,27 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       match /assignments/{assignmentId} {
-        allow read: if isGroupMember(groupId);
-        allow create, update, delete: if isGroupOwner(groupId);
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdmin() || (exists(/databases/$(database)/documents/groups/$(groupId)) && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
       }
 
       match /submissions/{submissionId} {
-        allow read: if isGroupMember(groupId);
-        allow create: if isGroupMember(groupId) && request.resource.data.userId == request.auth.uid;
-        allow update: if isGroupMember(groupId);
-        allow delete: if isGroupOwner(groupId) || (isGroupMember(groupId) && resource.data.userId == request.auth.uid);
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update: if isSignedIn();
+        allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       }
 
       match /trips/{tripId} {
-        allow read: if isGroupMember(groupId);
-        allow create: if isGroupOwner(groupId);
-        allow update: if isGroupMember(groupId);
-        allow delete: if false;
-
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        
         match /participants/{userId} {
-          allow read: if isGroupMember(groupId);
+          allow read: if isSignedIn();
           allow create, update: if isSignedIn() && request.auth.uid == userId;
         }
       }
-    }
-
-    match /trip_templates/{templateId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /analysis_logs/{logId} {
-      allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
-      allow create: if isSignedIn();
-    }
-    
-    match /global_stats/{statId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn();
-    }
-
-    match /public_profiles/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isOwner(userId) || isAdmin();
-    }
-
-    match /group_invites/{inviteId} {
-      allow read: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
-    }
-
-    match /global_notifications/{notifId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /academy_lessons/{lessonId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /academy_curriculum/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
     }
 
     match /app_settings/{docId} {
@@ -152,15 +98,24 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /pix_packages/{packageId} {
+    match /analysis_logs/{logId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
+      allow create: if isSignedIn();
+    }
+
+    match /public_profiles/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    match /academy_curriculum/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    match /pix_purchases/{purchaseId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
-      allow update: if isAdmin();
+    match /academy_lessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }
