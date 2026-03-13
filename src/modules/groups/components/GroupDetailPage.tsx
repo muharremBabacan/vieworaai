@@ -626,7 +626,6 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
   const participantsQuery = useMemoFirebase(() => (firestore) ? collection(firestore, 'groups', groupId, 'trips', trip.id, 'participants') : null, [firestore, groupId, trip.id]);
   const { data: participants } = useCollection<TripParticipant>(participantsQuery);
   
-  // MENTOR BILGILERINI PUBLIC_PROFILES'DAN ALARAK YETKI SORUNUNU COZDUK
   const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'public_profiles', trip.mentorId) : null, [firestore, trip.mentorId]);
   const { data: mentorProfile } = useDoc<PublicUserProfile>(mentorRef);
 

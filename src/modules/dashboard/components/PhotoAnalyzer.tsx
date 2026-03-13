@@ -335,7 +335,6 @@ export default function PhotoAnalyzer() {
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Sol: Büyük Görsel */}
             <div className="lg:col-span-7 space-y-6">
               <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
                 <div className="relative aspect-square md:aspect-video">
@@ -372,7 +371,6 @@ export default function PhotoAnalyzer() {
               </Card>
             </div>
 
-            {/* Sağ: Puanlar ve Notlar */}
             <div className="lg:col-span-5 space-y-6">
               <Card className="p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8">

@@ -36,17 +36,6 @@ const getOverallScore = (photo: Photo): number => {
     return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
 };
 
-const safeFormatDistance = (dateStr: string | undefined) => {
-  if (!dateStr) return 'Süresiz';
-  const date = new Date(dateStr);
-  if (!isValid(date)) return 'Süresiz';
-  try {
-    return formatDistanceToNow(date, { addSuffix: true, locale: tr });
-  } catch (e) {
-    return 'Süresiz';
-  }
-};
-
 export default function ExplorePage() {
   const router = useRouter();
   const { user } = useUser();
@@ -58,7 +47,6 @@ export default function ExplorePage() {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
-  // Queries
   const exhibitionsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
     [firestore]
@@ -120,7 +108,7 @@ export default function ExplorePage() {
             <div className="relative h-32 w-full overflow-hidden">
               <Image src="/temel15a.jpg" alt="Yarışmalar" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute -bottom-5 left-5 h-10 w-10 rounded-xl bg-amber-500/20 backdrop-blur-xl border border-white/10 flex items-center justify-center"><Trophy className="h-5 w-5 text-amber-500" /></div>
+              <div className="absolute -bottom-5 left-10 h-10 w-10 rounded-xl bg-amber-500/20 backdrop-blur-xl border border-white/10 flex items-center justify-center"><Trophy className="h-5 w-5 text-amber-500" /></div>
             </div>
             <CardContent className="pt-8 p-5 space-y-4 flex-grow flex flex-col">
               <div><h3 className={cn(typography.cardTitle, "leading-none uppercase")}>Global Yarışmalar</h3><p className={cn(typography.meta, "font-bold mt-1 leading-tight")}>Yarış ve ödüller kazan.</p></div>

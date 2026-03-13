@@ -44,7 +44,6 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
       const userRef = doc(firestore, 'users', user.uid);
       const publicRef = doc(firestore, 'public_profiles', user.uid);
       
-      // AYNI ANDA HEM ÖZEL HEM KAMUYA AÇIK PROFİLİ GÜNCELLE
       await Promise.all([
         updateDoc(userRef, { name: nickname, phone, instagram }),
         updateDoc(publicRef, { name: nickname, phone, instagram }),

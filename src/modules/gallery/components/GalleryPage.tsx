@@ -163,7 +163,6 @@ export default function GalleryPage() {
       const batch = writeBatch(firestore);
       const userPhotoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
       
-      // 1. Veritabanı kayıtlarını sil
       batch.delete(userPhotoRef);
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
@@ -173,12 +172,13 @@ export default function GalleryPage() {
       }
       await batch.commit();
       
-      // 2. Storage dosyasını silmeyi dene
       if (photo.filePath) {
         const storageRef = ref(storage, photo.filePath);
-        deleteObject(storageRef).catch((err) => {
-          console.warn("Storage deletion skipped (file might not exist or removed):", err.message);
-        });
+        try {
+          await deleteObject(storageRef);
+        } catch (err) {
+          console.warn("Storage deletion skipped (file might not exist):", err);
+        }
       }
       
       toast({ title: "Fotoğraf Silindi" });

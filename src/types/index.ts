@@ -270,17 +270,6 @@ export type GlobalNotification = {
   read?: boolean;
 };
 
-export type TripNotification = {
-  id: string;
-  type: 'trip_created' | 'trip_cancelled' | 'trip_updated';
-  tripId: string;
-  groupId: string;
-  title: string;
-  message: string;
-  created_at: string;
-  read: boolean;
-};
-
 export type Exhibition = {
   id: string;
   title: string;
