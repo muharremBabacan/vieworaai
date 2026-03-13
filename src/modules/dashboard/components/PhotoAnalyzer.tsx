@@ -300,7 +300,6 @@ export default function PhotoAnalyzer() {
         toast({ title: 'Analiz Tamamlandı' });
       } else {
         toast({ title: 'Fotoğraf Yüklendi', description: 'Galerine giderek istediğin zaman analiz edebilirsin.' });
-        // Sadece yükle yapınca galeriye yönlendirerek işlendiğini gösteriyoruz
         setTimeout(() => {
           router.push('/gallery');
         }, 1500);

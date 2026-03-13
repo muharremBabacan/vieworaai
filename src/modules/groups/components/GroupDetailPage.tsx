@@ -523,7 +523,8 @@ export default function GroupDetailPage() {
                   <CardContent className="p-8">
                     <AssignmentCreator onCreate={handleCreateAssignment} />
                   </CardContent>
-                </div>
+                </Card>
+              </div>
 
               <div className="space-y-8">
                 <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
@@ -625,6 +626,7 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
   const participantsQuery = useMemoFirebase(() => (firestore) ? collection(firestore, 'groups', groupId, 'trips', trip.id, 'participants') : null, [firestore, groupId, trip.id]);
   const { data: participants } = useCollection<TripParticipant>(participantsQuery);
   
+  // MENTOR BILGILERINI PUBLIC_PROFILES'DAN ALARAK YETKI SORUNUNU COZDUK
   const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'public_profiles', trip.mentorId) : null, [firestore, trip.mentorId]);
   const { data: mentorProfile } = useDoc<PublicUserProfile>(mentorRef);
 

@@ -163,21 +163,21 @@ export default function GalleryPage() {
       const batch = writeBatch(firestore);
       const userPhotoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
       
+      // 1. Veritabanı kayıtlarını sil
       batch.delete(userPhotoRef);
-      
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
         batch.update(doc(firestore, 'users', user.uid), { 
           total_exhibitions_count: increment(-1)
         });
       }
-      
       await batch.commit();
       
+      // 2. Storage dosyasını silmeyi dene
       if (photo.filePath) {
         const storageRef = ref(storage, photo.filePath);
         deleteObject(storageRef).catch((err) => {
-          console.warn("Storage deletion skipped (file might not exist):", err.message);
+          console.warn("Storage deletion skipped (file might not exist or removed):", err.message);
         });
       }
       
