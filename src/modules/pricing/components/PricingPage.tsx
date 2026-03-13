@@ -4,12 +4,12 @@
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
 import { collection, query, where, orderBy, addDoc, doc } from 'firebase/firestore';
-import type { PixPackage, User, PixPurchase } from '@/types';
+import type { PixPackage, User } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, ExternalLink, Loader2, CreditCard, Gem } from 'lucide-react';
+import { Gem, ExternalLink, Loader2, CreditCard } from 'lucide-react';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -78,7 +78,9 @@ export default function PricingPage() {
         approved_by: null
       });
 
-      window.open(`${pkg.payment_link}?merchantOrderId=${purchaseRef.id}`, '_blank');
+      // Redirect to payment link with merchantOrderId
+      const sep = pkg.payment_link.includes('?') ? '&' : '?';
+      window.open(`${pkg.payment_link}${sep}merchantOrderId=${purchaseRef.id}`, '_blank');
       
       toast({ 
         title: "Yönlendiriliyorsunuz", 

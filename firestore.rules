@@ -24,7 +24,7 @@ service cloud.firestore {
 
     // --- PIX PACKAGES ---
     match /pix_packages/{packageId} {
-      allow get, list: if true; // Everyone can see packages
+      allow get, list: if true; // Everyone can see and list packages
       allow write: if isAdmin();
     }
 

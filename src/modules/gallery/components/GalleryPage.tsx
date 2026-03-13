@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Star, Heart, Globe, X, Camera, Trophy, Layers, Lightbulb, Loader2, Search, ArrowLeft } from 'lucide-react';
+import { Sparkles, Trash2, Star, Globe, X, Camera, Trophy, Layers, Lightbulb, Loader2, Search, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
