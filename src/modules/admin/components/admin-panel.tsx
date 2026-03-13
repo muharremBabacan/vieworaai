@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -148,7 +149,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
-  // Memoize refs/queries at the TOP level
+  // Memoize refs/queries
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,

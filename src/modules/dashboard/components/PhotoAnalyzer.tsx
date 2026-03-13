@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -85,7 +86,7 @@ const ScanningOverlay = () => (
 
 export default function PhotoAnalyzer() {
   const { toast } = useToast();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { currencyName } = useAppConfig();
@@ -238,7 +239,7 @@ export default function PhotoAnalyzer() {
     setIsDuplicate(false);
   };
 
-  if (isUserLoading || isProfileLoading)
+  if (isProfileLoading)
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
   return (

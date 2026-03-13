@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -21,7 +22,6 @@ export default function PricingPage() {
   
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
-  // Memoize refs/queries at the TOP level
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const packagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -87,7 +87,7 @@ export default function PricingPage() {
     setIsProcessingId(pkg.id);
     
     try {
-      await addDoc(collection(firestore, 'pix_purchases'), {
+      const purchaseRef = await addDoc(collection(firestore, 'pix_purchases'), {
         user_id: user.uid,
         user_name: userProfile.name || "İsimsiz Vizyoner",
         package_id: pkg.id,
@@ -102,7 +102,9 @@ export default function PricingPage() {
         approved_by: null
       });
 
-      window.open(pkg.payment_link, '_blank');
+      // Pass the doc ID as a reference to iyzico if possible, 
+      // otherwise we use it to track on our side.
+      window.open(`${pkg.payment_link}?merchantOrderId=${purchaseRef.id}`, '_blank');
       
       toast({ 
         title: "Yönlendiriliyorsunuz", 

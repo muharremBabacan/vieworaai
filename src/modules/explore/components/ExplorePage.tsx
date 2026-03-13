@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -148,7 +149,7 @@ export default function ExplorePage() {
             <div className="relative w-full md:w-3/5 h-[35vh] md:h-auto bg-black/40 shrink-0"><Image src={selectedPhoto.imageUrl} alt="Eser" fill className="object-contain" unoptimized /></div>
             <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>Eser Detayları<Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px]"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge></DialogTitle>
+                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>Eser Detayları<Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge></DialogTitle>
                 <DialogDescription className="font-bold uppercase">Sanatçı: @{selectedPhoto.userName || 'Sanatçı'}</DialogDescription>
               </DialogHeader>
               <div className="space-y-6">
