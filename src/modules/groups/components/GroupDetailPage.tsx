@@ -1,39 +1,12 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { 
-  doc, 
-  updateDoc, 
-  arrayRemove, 
-  collection, 
-  query, 
-  where, 
-  documentId, 
-  addDoc, 
-  arrayUnion, 
-  orderBy, 
-  increment, 
-  writeBatch, 
-  getDoc, 
-  setDoc 
-} from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { 
-  Group, 
-  PublicUserProfile, 
-  User, 
-  GroupAssignment, 
-  GroupSubmission, 
-  GroupPurpose, 
-  Trip, 
-  TripParticipant, 
-  TripStatus, 
-  ParticipantStatus, 
-  RoutePoint, 
-  ContactVisible 
-} from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus, RoutePoint, ContactVisible } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -44,13 +17,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Loader2, Crown, Users, Send, ImageIcon, Info, Heart, Star, 
-  GraduationCap, Trophy, Map, MapPin, Calendar, Check, 
-  Instagram, Phone, Sparkles, ArrowLeft
-} from 'lucide-react';
+import { Loader2, Crown, Users, Send, ImageIcon, Info, Heart, Star, GraduationCap, Trophy, Map, MapPin, Calendar, Check, Instagram, Phone, Sparkles, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/badge';
+import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -60,10 +29,6 @@ import { Progress } from '@/components/ui/progress';
 import { typography } from "@/lib/design/typography";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-/* -------------------------------------------------------------------------- */
-/*                                  CONSTANTS                                 */
-/* -------------------------------------------------------------------------- */
-
 const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: string }> = {
   study: { label: 'Eğitim', icon: GraduationCap, color: 'bg-blue-500/10 text-blue-400' },
   challenge: { label: 'Yarışma', icon: Trophy, color: 'bg-amber-500/10 text-amber-400' },
@@ -72,43 +37,9 @@ const PURPOSE_CONFIG: Record<GroupPurpose, { label: string; icon: any; color: st
 };
 
 const ISTANBUL_TEMPLATES = [
-  {
-    title: "Galata - Karaköy Mimari Rota",
-    city: "istanbul",
-    category: "architecture",
-    duration_minutes: 90,
-    distance_km: 1.5,
-    start_point: "Galata Kulesi",
-    end_point: "Galataport",
-    route_points: [
-      { name: "Galata Kulesi", type: "start" },
-      { name: "Serdar-ı Ekrem Sokak", type: "photo_stop" },
-      { name: "Kamondo Merdivenleri", type: "photo_stop" },
-      { name: "Karaköy Sahil", type: "break" },
-      { name: "Galataport", type: "end" }
-    ]
-  },
-  {
-    title: "Balat Renkli Sokaklar",
-    city: "istanbul",
-    category: "street",
-    duration_minutes: 120,
-    distance_km: 2.0,
-    start_point: "Balat Renkli Evler",
-    end_point: "Fener Rum Patrikhanesi",
-    route_points: [
-      { name: "Balat Renkli Evler", type: "start" },
-      { name: "Merdivenli Yokuş", type: "viewpoint" },
-      { name: "Çıfıt Çarşısı", type: "photo_stop" },
-      { name: "Balat Sahil", type: "break" },
-      { name: "Fener Rum Patrikhanesi", type: "end" }
-    ]
-  }
+  { title: "Galata - Karaköy Mimari Rota", start_point: "Galata Kulesi", end_point: "Galataport", duration_minutes: 90, distance_km: 1.5, route_points: [{ name: "Galata Kulesi", type: "start" }, { name: "Serdar-ı Ekrem Sokak", type: "photo_stop" }, { name: "Kamondo Merdivenleri", type: "photo_stop" }, { name: "Karaköy Sahil", type: "break" }, { name: "Galataport", type: "end" }] },
+  { title: "Balat Renkli Sokaklar", start_point: "Balat Renkli Evler", end_point: "Fener Rum Patrikhanesi", duration_minutes: 120, distance_km: 2.0, route_points: [{ name: "Balat Renkli Evler", type: "start" }, { name: "Merdivenli Yokuş", type: "viewpoint" }, { name: "Çıfıt Çarşısı", type: "photo_stop" }, { name: "Balat Sahil", type: "break" }, { name: "Fener Rum Patrikhanesi", type: "end" }] }
 ];
-
-/* -------------------------------------------------------------------------- */
-/*                               MAIN COMPONENT                               */
-/* -------------------------------------------------------------------------- */
 
 export default function GroupDetailPage() {
   const { groupId } = useParams();
@@ -145,9 +76,7 @@ export default function GroupDetailPage() {
   const { data: trips, isLoading: isTripsLoading } = useCollection<Trip>(tripsQuery);
 
   useEffect(() => {
-    if (group?.purpose === 'walk') {
-      setActiveTab('trips');
-    }
+    if (group?.purpose === 'walk') setActiveTab('trips');
   }, [group?.purpose]);
 
   const isCurrentUserOwner = group?.ownerId === user?.uid;
@@ -162,9 +91,7 @@ export default function GroupDetailPage() {
       const storageRef = ref(storage, storagePath);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      
       const aiResult = await evaluateGroupSubmission({ photoUrl: url, assignmentTitle: assignment.title, assignmentDescription: assignment.description, language: "tr" });
-
       const batch = writeBatch(firestore);
       const submissionRef = doc(collection(firestore, 'groups', group.id, 'submissions'));
       batch.set(submissionRef, { id: submissionRef.id, groupId: group.id, assignmentId: assignment.id, userId: user.uid, userName: userProfile?.name || 'Sanatçı', userPhotoURL: userProfile?.photoURL || null, photoUrl: url, status: aiResult.isSuccess ? 'approved' : 'pending', likes: [], comments: [], aiFeedback: aiResult, submittedAt: new Date().toISOString() });
@@ -182,14 +109,7 @@ export default function GroupDetailPage() {
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
-  const handleToggleLike = async (submission: GroupSubmission) => {
-    if (!user || !firestore || !group) return;
-    const subRef = doc(firestore, 'groups', group.id, 'submissions', submission.id);
-    const isLiked = submission.likes.includes(user.uid);
-    try { await updateDoc(subRef, { likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid) }); } catch (e) { console.error(e); }
-  };
-
-  if (isGroupLoading) return <div className="container mx-auto px-4 pt-12 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  if (isGroupLoading) return <div className="container mx-auto px-4 py-20 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   if (!group) return null;
 
   const purpose = PURPOSE_CONFIG[group.purpose || 'study'];
@@ -202,7 +122,6 @@ export default function GroupDetailPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-5xl font-black tracking-tighter uppercase">{group.name}</h1>
-              {isCurrentUserOwner && <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black h-6 uppercase tracking-widest px-3">KURUCU</Badge>}
               <Badge variant="secondary" className={cn("px-3 h-6 text-[10px] font-black uppercase tracking-widest border-none", purpose.color)}><purpose.icon size={12} className="mr-1.5" /> {purpose.label}</Badge>
             </div>
             <p className="text-muted-foreground text-lg font-medium">{group.description}</p>
@@ -223,9 +142,7 @@ export default function GroupDetailPage() {
           {isTripsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
            trips && trips.length > 0 ? (
             <div className="grid gap-8">{trips.filter(t => t.status !== 'cancelled').map(trip => <TripCard key={trip.id} trip={trip} isOwner={isCurrentUserOwner} userId={user?.uid || ''} userProfile={userProfile || null} groupId={group.id} />)}</div>
-          ) : (
-            <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5"><Calendar className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" /><h3 className="text-2xl font-black uppercase">Planlanmış Gezi Yok</h3></div>
-          )}
+          ) : <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5"><Calendar className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" /><h3 className="text-2xl font-black uppercase">Planlanmış Gezi Yok</h3></div>}
         </TabsContent>
 
         <TabsContent value="assignments" className="space-y-8">
@@ -250,7 +167,7 @@ export default function GroupDetailPage() {
                 );
               })}
             </div>
-          ) : <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5"><Info className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30" /><h3>Henüz Ödev Yok</h3></div>}
+          ) : <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5"><Info size={64} className="mx-auto mb-6 text-muted-foreground/20" /></div>}
         </TabsContent>
 
         <TabsContent value="gallery" className="space-y-8">
@@ -271,12 +188,7 @@ export default function GroupDetailPage() {
 
         {isCurrentUserOwner && (
           <TabsContent value="admin" className="space-y-10">
-            <div className="grid md:grid-cols-2 gap-8">
-              <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-                <CardHeader className="bg-primary/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><Map className="text-primary" /> Gezi Rotaları</CardTitle></CardHeader>
-                <CardContent className="p-8"><EventCreator onCreate={handleCreateTrip} /></CardContent>
-              </Card>
-            </div>
+            <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl"><CardHeader className="bg-primary/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><Map className="text-primary" /> Gezi Planla</CardTitle></CardHeader><CardContent className="p-8"><EventCreator onCreate={handleCreateTrip} /></CardContent></Card>
           </TabsContent>
         )}
       </Tabs>
@@ -292,14 +204,13 @@ export default function GroupDetailPage() {
               </DialogHeader>
               {selectedSubmission.aiFeedback && (
                 <div className="space-y-6">
-                  <div className="p-6 rounded-[24px] bg-primary/5 border border-primary/20 space-y-4">
+                  <div className="p-6 rounded-[24px] bg-primary/5 border border-primary/20 space-y-4 shadow-inner">
                     <div className="flex justify-between items-end"><p className="text-[10px] font-black uppercase text-primary tracking-widest">ÖDEV PUANI</p><p className="text-4xl font-black tracking-tighter text-primary">{selectedSubmission.aiFeedback.score}/10</p></div>
                     <Progress value={selectedSubmission.aiFeedback.score * 10} className="h-1.5" />
                   </div>
                   <p className="text-sm font-medium leading-relaxed italic text-foreground/90 bg-muted/20 p-4 rounded-xl">"{selectedSubmission.aiFeedback.feedback}"</p>
                 </div>
               )}
-              <div className="pt-6 border-t border-border/40"><Button variant="ghost" onClick={() => handleToggleLike(selectedSubmission)} className={cn("rounded-xl gap-2", selectedSubmission.likes.includes(user?.uid || '') && "text-red-500")}><Heart size={18} className={cn(selectedSubmission.likes.includes(user?.uid || '') && "fill-current")} /><span className="font-black">{selectedSubmission.likes.length} Beğeni</span></Button></div>
             </div>
           </DialogContent>
         )}
@@ -314,7 +225,6 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
   
   const participantsQuery = useMemoFirebase(() => (firestore) ? collection(firestore, 'groups', groupId, 'trips', trip.id, 'participants') : null, [firestore, groupId, trip.id]);
   const { data: participants } = useCollection<TripParticipant>(participantsQuery);
-  
   const mentorRef = useMemoFirebase(() => (firestore && trip.mentorId) ? doc(firestore, 'public_profiles', trip.mentorId) : null, [firestore, trip.mentorId]);
   const { data: mentorProfile } = useDoc<PublicUserProfile>(mentorRef);
   
@@ -349,16 +259,15 @@ function TripCard({ trip, isOwner, userId, userProfile, groupId }: { trip: Trip,
 }
 
 function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
-  const [formData, setFormData] = useState({ title: '', description: '', startPoint: '', endPoint: '', meeting_point: '', meeting_time: '', date: '', time: '', duration: '', distance: '', approvalRequired: false, isListPublic: true, contact_visible: 'participants_only' as ContactVisible, max_participants: 15, route_points: [] as RoutePoint[] });
-  const handleTemplateSelect = (title: string) => { const t = ISTANBUL_TEMPLATES.find(x => x.title === title); if (t) setFormData({ ...formData, title: t.title, startPoint: t.start_point, endPoint: t.end_point, meeting_point: t.start_point, duration: `${t.duration_minutes}dk`, distance: `${t.distance_km}km`, route_points: t.route_points }); };
-  const handleCreate = () => { if (formData.title && formData.date) { onCreate(formData); } };
+  const [formData, setFormData] = useState({ title: '', description: '', startPoint: '', endPoint: '', date: '', max_participants: 15 });
+  const handleTemplateSelect = (title: string) => { const t = ISTANBUL_TEMPLATES.find(x => x.title === title); if (t) setFormData({ ...formData, title: t.title, startPoint: t.start_point, endPoint: t.end_point }); };
   return (
     <div className="space-y-4">
       <Select onValueChange={handleTemplateSelect}><SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Rota Şablonu Seç..." /></SelectTrigger><SelectContent>{ISTANBUL_TEMPLATES.map(t => <SelectItem key={t.title} value={t.title}>{t.title}</SelectItem>)}</SelectContent></Select>
       <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Gezi Başlığı" className="rounded-xl h-11" />
       <Textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Açıklama..." className="rounded-xl" />
       <div className="grid grid-cols-2 gap-2"><Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="h-10" /><Input type="number" value={formData.max_participants} onChange={e => setFormData({...formData, max_participants: parseInt(e.target.value)})} placeholder="Kişi Sayısı" className="h-10" /></div>
-      <Button onClick={handleCreate} className="w-full h-12 rounded-xl font-black uppercase">Geziyi Yayınla</Button>
+      <Button onClick={() => onCreate(formData)} className="w-full h-12 rounded-xl font-black uppercase">Geziyi Yayınla</Button>
     </div>
   );
 }

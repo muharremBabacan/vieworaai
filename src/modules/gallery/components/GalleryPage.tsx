@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, doc, writeBatch, increment, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, increment, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import type { Photo, User, Exhibition } from '@/types';
@@ -11,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Star, Globe, X, Camera, Layers, Lightbulb, Loader2 } from 'lucide-react';
+import { Sparkles, Trash2, Star, Heart, Globe, X, Camera, Trophy, Layers, Lightbulb, Loader2, Search, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -22,28 +23,21 @@ import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
 
 const normalizeScore = (score: number | undefined | null): number => {
-    if (score === undefined || score === null || !isFinite(score)) return 0;
-    return score > 1 ? score : score * 10;
+  if (score === undefined || score === null || !isFinite(score)) return 0;
+  return score > 1 ? score : score * 10;
 };
 
 const getOverallScore = (photo: Photo): number => {
-    if (!photo.aiFeedback) return 0;
-    const scores = [
-        normalizeScore(photo.aiFeedback.light_score),
-        normalizeScore(photo.aiFeedback.composition_score),
-        normalizeScore(photo.aiFeedback.technical_clarity_score),
-        normalizeScore(photo.aiFeedback.storytelling_score),
-        normalizeScore(photo.aiFeedback.boldness_score)
-    ].filter(s => s > 0);
-    return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+  if (!photo.aiFeedback) return 0;
+  const scores = [
+    normalizeScore(photo.aiFeedback.light_score),
+    normalizeScore(photo.aiFeedback.composition_score),
+    normalizeScore(photo.aiFeedback.technical_clarity_score),
+    normalizeScore(photo.aiFeedback.storytelling_score),
+    normalizeScore(photo.aiFeedback.boldness_score)
+  ].filter(s => s > 0);
+  return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
 };
-
-const STATUS_FILTERS = [
-  { id: 'all', label: 'Tümü', icon: Layers },
-  { id: 'analyzed', label: 'Analiz Edilenler', icon: Sparkles },
-  { id: 'exhibition', label: 'Sergidekiler', icon: Globe },
-  { id: 'best', label: 'En İyiler', icon: Star },
-];
 
 export default function GalleryPage() {
   const { user } = useUser();
@@ -59,16 +53,15 @@ export default function GalleryPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [targetExhibitionId, setTargetExhibitionId] = useState<string>('');
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
+  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<User>(userDocRef);
 
   const photosQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'photos'), orderBy('createdAt', 'desc'));
+    return query(
+      collection(firestore, 'users', user.uid, 'photos'),
+      orderBy('createdAt', 'desc')
+    );
   }, [user, firestore]);
 
   const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
@@ -83,89 +76,18 @@ export default function GalleryPage() {
   const filteredPhotos = useMemo(() => {
     if (!photos) return [];
     let result = [...photos];
-
     if (statusFilter !== 'all') {
       switch (statusFilter) {
-        case 'analyzed':
-          result = result.filter(p => !!p.aiFeedback);
-          break;
-        case 'exhibition':
-          result = result.filter(p => p.isSubmittedToExhibition);
-          break;
-        case 'best':
-          result = result.filter(p => getOverallScore(p) >= 8);
-          break;
+        case 'analyzed': result = result.filter(p => !!p.aiFeedback); break;
+        case 'exhibition': result = result.filter(p => p.isSubmittedToExhibition); break;
+        case 'best': result = result.filter(p => getOverallScore(p) >= 8); break;
       }
     }
-
     if (categoryFilter !== 'all') {
       result = result.filter(p => p.tags?.some(t => t.toLowerCase() === categoryFilter));
     }
-
     return result;
   }, [photos, statusFilter, categoryFilter]);
-
-  const handleToggleExhibition = async (photo: Photo) => {
-    if (!user || !userProfile || !firestore) return;
-
-    setIsProcessing(true);
-    try {
-        const batch = writeBatch(firestore);
-
-        if (photo.isSubmittedToExhibition) {
-            batch.delete(doc(firestore, 'public_photos', photo.id));
-            batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), { isSubmittedToExhibition: false, exhibitionId: null });
-            batch.update(doc(firestore, 'users', user.uid), {
-              total_exhibitions_count: increment(-1)
-            });
-
-            await batch.commit();
-            toast({ title: "Sergiden çekildi" });
-            setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: false, exhibitionId: null } : null);
-        } else {
-            if (!targetExhibitionId) {
-              toast({ title: "Sergi Seçin" });
-              setIsProcessing(false);
-              return;
-            }
-
-            const cost = 1;
-            if (userProfile.auro_balance < cost) {
-                toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
-                setIsProcessing(false);
-                return;
-            }
-
-            const publicData = {
-              ...photo,
-              isSubmittedToExhibition: true,
-              exhibitionId: targetExhibitionId,
-              userName: userProfile.name || 'Sanatçı',
-              userPhotoURL: userProfile.photoURL || null,
-              userLevelName: userProfile.level_name
-            };
-
-            batch.set(doc(firestore, 'public_photos', photo.id), publicData);
-            batch.update(doc(firestore, 'users', user.uid, 'photos', photo.id), {
-              isSubmittedToExhibition: true,
-              exhibitionId: targetExhibitionId
-            });
-            batch.update(doc(firestore, 'users', user.uid), {
-              auro_balance: increment(-cost),
-              total_exhibitions_count: increment(1),
-              'profile_index.activity_signals.exhibition_score': increment(5)
-            });
-
-            await batch.commit();
-            toast({ title: "Sergiye gönderildi!" });
-            setSelectedPhoto(p => p ? { ...p, isSubmittedToExhibition: true, exhibitionId: targetExhibitionId } : null);
-        }
-    } catch (e) {
-      toast({ variant: 'destructive', title: "İşlem Başarısız" });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleDeletePhoto = async (photo: Photo) => {
     if (!user || !firestore || isProcessing) return;
@@ -173,160 +95,199 @@ export default function GalleryPage() {
     try {
       const storage = getStorage();
       const batch = writeBatch(firestore);
-      
-      batch.delete(doc(firestore, 'users', user.uid, 'photos', photo.id));
+      const userPhotoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      batch.delete(userPhotoRef);
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
-        batch.update(doc(firestore, 'users', user.uid), {
-          total_exhibitions_count: increment(-1)
-        });
+        batch.update(doc(firestore, 'users', user.uid), { total_exhibitions_count: increment(-1) });
       }
-      
       await batch.commit();
-
       if (photo.filePath) {
-        try {
-          const fileRef = ref(storage, photo.filePath);
-          await deleteObject(fileRef);
-        } catch (storageError) {
-          console.warn("Storage file already deleted or not found.");
-        }
+        const storageRef = ref(storage, photo.filePath);
+        try { await deleteObject(storageRef); } catch (e) { console.warn("Storage file not found or already deleted"); }
       }
-
       toast({ title: "Fotoğraf Silindi" });
       setSelectedPhoto(null);
     } catch (e) {
-      toast({ variant: 'destructive', title: "Hata" });
+      toast({ variant: 'destructive', title: "Silme Hatası" });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (isPhotosLoading || isProfileLoading) {
-    return <div className="container mx-auto px-4 py-20 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" /></div>;
-  }
+  const handleToggleExhibition = async (photo: Photo) => {
+    if (!user || !firestore || isProcessing || !userProfile) return;
+    setIsProcessing(true);
+    try {
+      const batch = writeBatch(firestore);
+      const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      const isSubmitting = !photo.isSubmittedToExhibition;
+
+      if (isSubmitting) {
+        if (!targetExhibitionId) {
+          toast({ variant: 'destructive', title: "Lütfen bir sergi seçin" });
+          setIsProcessing(false);
+          return;
+        }
+        if (userProfile.auro_balance < 1) {
+          toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
+          setIsProcessing(false);
+          return;
+        }
+        const publicPhotoRef = doc(firestore, 'public_photos', photo.id);
+        batch.set(publicPhotoRef, {
+          ...photo,
+          exhibitionId: targetExhibitionId,
+          isSubmittedToExhibition: true,
+          userName: userProfile.name || 'Sanatçı',
+          userPhotoURL: userProfile.photoURL || null,
+          likes: [],
+          createdAt: new Date().toISOString()
+        });
+        batch.update(photoRef, { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
+        batch.update(doc(firestore, 'users', user.uid), { 
+          auro_balance: increment(-1), 
+          total_exhibitions_count: increment(1),
+          'profile_index.activity_signals.exhibition_score': increment(10)
+        });
+        toast({ title: "Sergiye Gönderildi" });
+      } else {
+        batch.delete(doc(firestore, 'public_photos', photo.id));
+        batch.update(photoRef, { isSubmittedToExhibition: false, exhibitionId: null });
+        batch.update(doc(firestore, 'users', user.uid), { total_exhibitions_count: increment(-1) });
+        toast({ title: "Sergiden Çekildi" });
+      }
+      await batch.commit();
+      setSelectedPhoto(null);
+    } catch (e) {
+      toast({ variant: 'destructive', title: "İşlem Başarısız" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
-      <header className="mb-10 space-y-4">
-        <div className="space-y-1">
-          <p className={typography.eyebrow}>GALERİM</p>
-          <h1 className={cn(typography.h1, "uppercase")}>Fotoğrafların</h1>
-        </div>
+      <header className="mb-10 space-y-1">
+        <p className={cn(typography.eyebrow, "ml-1")}>KÜTÜPHANE</p>
+        <h1 className={cn(typography.h1, "leading-none uppercase")}>Galerim</h1>
+      </header>
 
-        <div className="flex bg-secondary/30 p-1 rounded-2xl border border-border/40 overflow-x-auto no-scrollbar">
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map(f => (
-            <Button key={f.id} variant={statusFilter === f.id ? 'default' : 'ghost'} size="sm" onClick={() => setStatusFilter(f.id)} className="rounded-xl px-4 font-black uppercase text-[10px] tracking-widest whitespace-nowrap">
-              <f.icon className="mr-2 h-3 w-3" /> {f.label}
+            <Button key={f.id} variant={statusFilter === f.id ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter(f.id)} className="rounded-full h-9 px-4 text-[10px] font-black uppercase tracking-widest">
+              <f.icon className="mr-2 h-3.5 w-3.5" /> {f.label}
             </Button>
           ))}
         </div>
-      </header>
+      </div>
 
-      {filteredPhotos.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-          {filteredPhotos.map((photo) => (
-            <Card key={photo.id} className="group relative aspect-square rounded-[32px] overflow-hidden border-none shadow-2xl transition-all hover:scale-[1.02] cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
-              <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                <div className="flex gap-1.5">
+      {isPhotosLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[...Array(12)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}
+        </div>
+      ) : filteredPhotos.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {filteredPhotos.map(photo => {
+            const overallScore = getOverallScore(photo);
+            return (
+              <Card key={photo.id} className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all hover:scale-[1.02]" onClick={() => setSelectedPhoto(photo)}>
+                <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover" unoptimized />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-3 right-3">
                   {photo.aiFeedback && (
-                    <Badge variant="secondary" className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 font-black h-6 rounded-full text-[9px]">
-                      <Star className="h-2.5 w-2.5 mr-1 fill-current text-yellow-400" /> {getOverallScore(photo).toFixed(1)}
+                    <Badge className="bg-black/60 text-white border-white/10 backdrop-blur-md px-2 h-6 font-black text-[10px]">
+                      <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" /> {overallScore.toFixed(1)}
                     </Badge>
                   )}
-                  {photo.isSubmittedToExhibition && <Badge className="bg-green-500/20 backdrop-blur-md text-green-400 border-green-500/20 font-black h-6 rounded-full text-[9px] uppercase">SERGİDE</Badge>}
                 </div>
-              </div>
-            </Card>
-          ))}
+                {photo.isSubmittedToExhibition && (
+                  <div className="absolute top-3 left-3">
+                    <Badge className="bg-primary text-white border-none h-6 px-2 font-black text-[9px] uppercase tracking-tighter">SERGİDE</Badge>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
       ) : (
-        <div className="text-center py-32 rounded-[48px] border-2 border-dashed border-border/40 bg-muted/5">
-          <Camera className="h-16 w-16 mx-auto mb-6 text-muted-foreground/20" />
-          <h3 className={cn(typography.h2, "text-2xl uppercase")}>Henüz Fotoğraf Yok</h3>
-          <p className={typography.body}>İlk fotoğrafını yükle ve analiz etmeye başla.</p>
-          <Button asChild className="mt-8 rounded-xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-            <a href="/dashboard">Fotoğraf Yükle</a>
-          </Button>
+        <div className="text-center py-40 rounded-[48px] border-2 border-dashed bg-muted/5 animate-in zoom-in duration-500">
+          <Camera className="mx-auto h-16 w-16 text-muted-foreground/20 mb-6" />
+          <h3 className="text-2xl font-black uppercase tracking-tight">Galeri Henüz Boş</h3>
+          <p className="text-muted-foreground mt-2 max-w-xs mx-auto font-medium text-sm">İlk fotoğrafını yapay zeka ile analiz ederek kütüphaneni oluşturmaya başla.</p>
+          <Button onClick={() => router.push('/dashboard')} className="mt-8 rounded-2xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">Fotoğraf Yükle</Button>
         </div>
       )}
 
-      <Dialog open={!!selectedPhoto} onOpenChange={(o) => !o && setSelectedPhoto(null)}>
+      <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
         {selectedPhoto && (
           <DialogContent className="max-w-4xl max-h-[95vh] md:max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row rounded-[32px] md:rounded-[48px]">
             <div className="relative w-full md:w-3/5 h-[35vh] md:h-auto bg-black/40 shrink-0">
-              <Image src={selectedPhoto.imageUrl} alt="Eser" fill className="object-contain" unoptimized />
+              <Image src={selectedPhoto.imageUrl} alt="photo" fill className="object-contain" unoptimized />
             </div>
             <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black uppercase")}>Fotoğraf Detayı</DialogTitle>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeletePhoto(selectedPhoto)} className="text-muted-foreground hover:text-destructive h-10 w-10 rounded-full bg-secondary/50">
-                    <Trash2 size={18} />
-                  </Button>
-                </div>
-                <DialogDescription className={cn(typography.meta, "font-bold uppercase")}>
-                  Yükleme: {new Date(selectedPhoto.createdAt).toLocaleDateString('tr-TR')}
+                <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center justify-between">
+                  Eser Detayları
+                  {selectedPhoto.aiFeedback && <Badge className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge>}
+                </DialogTitle>
+                <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {new Date(selectedPhoto.createdAt).toLocaleDateString('tr-TR')} tarihinde yüklendi
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-6">
-                {selectedPhoto.aiFeedback ? (
-                  <>
-                    <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
-                      <div className="flex justify-between items-end">
-                        <h4 className={cn(typography.eyebrow, "text-primary")}>Luma Analizi</h4>
-                        <p className="text-3xl font-black text-primary tracking-tighter">{getOverallScore(selectedPhoto).toFixed(1)}</p>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <div className={cn(typography.meta, "flex justify-between font-bold")}><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div>
-                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1" />
+              {selectedPhoto.aiFeedback ? (
+                <div className="space-y-6">
+                  <div className="p-6 rounded-[24px] bg-primary/5 border border-primary/20 space-y-4 shadow-inner">
+                    <h4 className={cn(typography.eyebrow, "text-primary")}>Luma Karnesi</h4>
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Işık', score: normalizeScore(selectedPhoto.aiFeedback.light_score) },
+                        { label: 'Kompozisyon', score: normalizeScore(selectedPhoto.aiFeedback.composition_score) },
+                        { label: 'Teknik Netlik', score: normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) }
+                      ].map(item => (
+                        <div key={item.label} className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight"><span>{item.label}</span><span>{item.score.toFixed(1)}</span></div>
+                          <Progress value={item.score * 10} className="h-1" />
                         </div>
-                        <div className="space-y-1">
-                          <div className={cn(typography.meta, "flex justify-between font-bold")}><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div>
-                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className={cn(typography.meta, "flex justify-between font-bold")}><span>Teknik Netlik</span><span>{normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score).toFixed(1)}</span></div>
-                          <Progress value={normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) * 10} className="h-1" />
-                        </div>
-                      </div>
-                    </Card>
-                    <div className="bg-muted/30 p-4 rounded-xl border border-border/40 space-y-2">
-                      <div className="flex items-center gap-2"><Lightbulb size={14} className="text-amber-400" /><span className="text-[10px] font-black uppercase text-muted-foreground">Luma'nın Özeti</span></div>
-                      <p className="text-sm italic font-medium leading-relaxed">"{selectedPhoto.aiFeedback.short_neutral_analysis}"</p>
+                      ))}
                     </div>
-                  </>
-                ) : (
-                  <Card className="p-8 border-dashed border-border/60 bg-muted/10 text-center space-y-4 rounded-[32px]">
-                    <Sparkles className="h-8 w-8 mx-auto text-primary animate-pulse" />
-                    <p className={cn(typography.cardTitle, "uppercase")}>Analiz Bekliyor</p>
-                    <Button onClick={() => router.push('/dashboard')} variant="outline" className="rounded-xl font-black text-[10px] uppercase">Hemen Analiz Et</Button>
-                  </Card>
-                )}
-
-                <div className="space-y-4 pt-4 border-t border-border/40">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Sergi Seçimi</Label>
-                    <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId} disabled={selectedPhoto.isSubmittedToExhibition}>
-                      <SelectTrigger className="h-12 rounded-xl bg-muted/30"><SelectValue placeholder="Aktif bir sergi seç..." /></SelectTrigger>
-                      <SelectContent>
-                        {exhibitions?.map(ex => <SelectItem key={ex.id} value={ex.id}>{ex.title}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
                   </div>
-                  <Button 
-                    onClick={() => handleToggleExhibition(selectedPhoto)} 
-                    disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} 
-                    className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} 
-                    variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}
-                  >
-                    {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> Sergiden Çek</> : <><Globe className="mr-2 h-4 w-4" /> Sergiye Gönder (1 {currencyName})</>}
-                  </Button>
+                  <div className="p-5 rounded-2xl bg-muted/30 border border-border/40 space-y-3">
+                    <div className="flex items-center gap-2"><Lightbulb size={16} className="text-amber-400" /><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Luma'nın Notu</span></div>
+                    <p className="text-sm italic font-medium leading-relaxed text-foreground/90">"{selectedPhoto.aiFeedback.short_neutral_analysis}"</p>
+                  </div>
+                  <div className="space-y-4 pt-4 border-t border-border/40">
+                    {!selectedPhoto.isSubmittedToExhibition && (
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Sergi Salonu Seç</Label>
+                        <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId}>
+                          <SelectTrigger className="h-11 rounded-xl bg-muted/30 border-border/60"><SelectValue placeholder="Salon seç..." /></SelectTrigger>
+                          <SelectContent>{exhibitions?.map(ex => <SelectItem key={f.id} value={ex.id}>{ex.title}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <Button onClick={() => handleToggleExhibition(selectedPhoto)} disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}>
+                      {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> Sergiden Çek</> : <><Globe className="mr-2 h-4 w-4" /> Sergiye Gönder (1 {currencyName})</>}
+                    </Button>
+                  </div>
                 </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
+                  <div className="h-16 w-16 rounded-3xl bg-secondary flex items-center justify-center text-muted-foreground/40"><Search size={32} /></div>
+                  <div className="space-y-1">
+                    <p className="font-black uppercase text-sm">Analiz Edilmemiş</p>
+                    <p className="text-xs text-muted-foreground">Bu fotoğraf sadece yüklendi, yapay zeka tarafından taranmadı.</p>
+                  </div>
+                  <Button variant="outline" className="rounded-xl h-10 px-6 font-bold" onClick={() => router.push('/dashboard')}>Analiz Et</Button>
+                </div>
+              )}
+
+              <div className="pt-6 border-t border-border/40">
+                <Button onClick={() => handleDeletePhoto(selectedPhoto)} variant="ghost" disabled={isProcessing} className="w-full h-12 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive font-black uppercase text-[10px] tracking-widest">
+                  {isProcessing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Trash2 className="mr-2 h-4 w-4" />} Fotoğrafı Kalıcı Olarak Sil
+                </Button>
               </div>
             </div>
           </DialogContent>

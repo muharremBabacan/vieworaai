@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -90,6 +91,7 @@ export default function PhotoAnalyzer() {
   const router = useRouter();
   const { currencyName } = useAppConfig();
   
+  // 1. ALL HOOKS AT TOP
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,16 +128,12 @@ export default function PhotoAnalyzer() {
 
   const updateUserProfileIndex = async (userId: string, newOverallScore: number) => {
     if (!firestore) return;
-    
     const photosRef = collection(firestore, 'users', userId, 'photos');
     const q = query(photosRef, where('aiFeedback', '!=', null), orderBy('createdAt', 'desc'), limit(12));
-    
     const snap = await getDocs(q);
     if (snap.empty) return;
-
     const analyzedPhotos = snap.docs.map(d => d.data() as Photo);
     const count = analyzedPhotos.length;
-
     const totals = analyzedPhotos.reduce((acc, p) => {
       const f = p.aiFeedback!;
       acc.light += normalizeScore(f.light_score);
@@ -146,7 +144,6 @@ export default function PhotoAnalyzer() {
       acc.overall.push(getOverallScore(p));
       return acc;
     }, { light: 0, composition: 0, clarity: 0, story: 0, boldness: 0, overall: [] as number[] });
-
     const technicalMetrics = {
       light: totals.light / count,
       composition: totals.composition / count,
@@ -154,7 +151,6 @@ export default function PhotoAnalyzer() {
       storytelling: totals.story / count,
       boldness: totals.boldness / count
     };
-
     const mean = totals.overall.reduce((a, b) => a + b, 0) / count;
     const userRef = doc(firestore, 'users', userId);
     await updateDoc(userRef, {
@@ -166,21 +162,15 @@ export default function PhotoAnalyzer() {
 
   const handleUploadAndOptionalAnalysis = async (analyze = false) => {
     if (!file || !user || !firestore || !userProfile) return;
-
     if (analyze && userProfile.auro_balance < analysisCost) {
-      toast({ 
-        variant: 'destructive', title: `Yetersiz ${currencyName}`, 
-        action: <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>{currencyName} Yükle</Button>
-      });
+      toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
       return;
     }
-
     setIsLoading(true);
     try {
       const hash = await generateImageHash(file);
       const q = query(collection(firestore, 'users', user.uid, 'photos'), where('imageHash', '==', hash));
       const dupSnap = await getDocs(q);
-
       if (!dupSnap.empty) {
         const existingPhoto = dupSnap.docs[0].data() as Photo;
         if (existingPhoto.aiFeedback) {
@@ -193,39 +183,23 @@ export default function PhotoAnalyzer() {
         setIsLoading(false);
         return;
       }
-
       const storage = getStorage();
       const filePath = `users/${user.uid}/photos/${hash}.jpg`;
       const storageRef = ref(storage, filePath);
       const uploadTask = await uploadBytes(storageRef, file);
       const imageUrl = await getDownloadURL(uploadTask.ref);
-
       const batch = writeBatch(firestore);
       const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'));
       const userRef = doc(firestore, 'users', user.uid);
-
-      let photoData: Photo = {
-        id: photoDocRef.id,
-        userId: user.uid,
-        imageUrl,
-        filePath,
-        imageHash: hash,
-        createdAt: new Date().toISOString(),
-        aiFeedback: null,
-        tags: [],
-        analysisTier: analyze ? currentTier : undefined
-      };
-
+      let photoData: Photo = { id: photoDocRef.id, userId: user.uid, imageUrl, filePath, imageHash: hash, createdAt: new Date().toISOString(), aiFeedback: null, tags: [], analysisTier: analyze ? currentTier : undefined };
       if (analyze) {
         const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr', tier: currentTier });
         photoData.aiFeedback = analysis;
         photoData.tags = analysis.tags || [];
         const score = getOverallScore(photoData);
-
         batch.update(userRef, { auro_balance: increment(-analysisCost), total_auro_spent: increment(analysisCost), total_analyses_count: increment(1) });
         const logRef = doc(collection(firestore, 'analysis_logs'));
         batch.set(logRef, { id: logRef.id, userId: user.uid, userName: userProfile.name || 'Sanatçı', type: 'technical', auroSpent: analysisCost, timestamp: new Date().toISOString(), status: 'success' });
-        
         batch.set(photoDocRef, photoData);
         batch.update(userRef, { current_xp: increment(20) });
         await batch.commit();
@@ -267,7 +241,6 @@ export default function PhotoAnalyzer() {
             </div>
             <Button onClick={resetAnalyzer} variant="ghost" className="rounded-xl font-bold text-muted-foreground"><RefreshCw size={16} className="mr-2" /> Yeni Analiz</Button>
           </header>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-6">
               <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
@@ -275,7 +248,6 @@ export default function PhotoAnalyzer() {
                   <Image src={analysisResult.imageUrl} alt="Analiz" fill className="object-contain" unoptimized />
                 </div>
               </Card>
-              
               <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-6">
                 <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div><h3 className="text-lg font-black uppercase tracking-tight">Algılanan Detaylar</h3></div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -285,7 +257,6 @@ export default function PhotoAnalyzer() {
                 </div>
               </Card>
             </div>
-
             <div className="lg:col-span-5 space-y-6">
               <Card className="p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
                 <div className="relative z-10 flex flex-col items-center text-center space-y-2 mb-10">
