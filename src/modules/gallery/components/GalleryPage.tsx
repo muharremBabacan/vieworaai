@@ -69,8 +69,6 @@ export default function GalleryPage() {
   const [targetExhibitionId, setTargetExhibitionId] = useState<string>('');
 
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userDocRef);
-
   const photosQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -78,14 +76,13 @@ export default function GalleryPage() {
       orderBy('createdAt', 'desc')
     );
   }, [user, firestore]);
-
-  const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
-
   const exhibitionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'exhibitions'), where('isActive', '==', true));
   }, [firestore]);
 
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
+  const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
   const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
 
   const filteredPhotos = useMemo(() => {
@@ -188,7 +185,7 @@ export default function GalleryPage() {
     }
   };
 
-  if (isPhotosLoading) {
+  if (isPhotosLoading || isProfileLoading) {
     return (
       <div className="container mx-auto px-4 pt-6 pb-24">
         <Skeleton className="h-12 w-48 mb-10" />

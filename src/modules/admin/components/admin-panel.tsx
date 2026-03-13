@@ -148,33 +148,26 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
+  // Memoize refs/queries at the TOP level
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
-  const { data: appConfig } = useDoc<AppSettings>(configRef);
-
-  const isAdmin = useMemo(() => {
-    if (!user) return false;
-    const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
-    const adminUids = ['01DT86bQwWUVrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
-    return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
-  }, [user]);
-
   const logsQuery = useMemoFirebase(() =>
-    firestore && isAdmin ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
-    [firestore, isAdmin]
+    firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
+    [firestore]
   );
   const usersQuery = useMemoFirebase(() =>
-    firestore && isAdmin ? collection(firestore, 'users') : null,
-    [firestore, isAdmin]
+    firestore ? collection(firestore, 'users') : null,
+    [firestore]
   );
   const packagesQuery = useMemoFirebase(() =>
-    firestore && isAdmin ? query(collection(firestore, 'pix_packages'), orderBy('order', 'asc')) : null,
-    [firestore, isAdmin]
+    firestore ? query(collection(firestore, 'pix_packages'), orderBy('order', 'asc')) : null,
+    [firestore]
   );
   const purchasesQuery = useMemoFirebase(() =>
-    firestore && isAdmin ? query(collection(firestore, 'pix_purchases'), where('status', '==', 'pending'), orderBy('created_at', 'desc')) : null,
-    [firestore, isAdmin]
+    firestore ? query(collection(firestore, 'pix_purchases'), where('status', '==', 'pending'), orderBy('created_at', 'desc')) : null,
+    [firestore]
   );
 
+  const { data: appConfig } = useDoc<AppSettings>(configRef);
   const { data: logs } = useCollection<AnalysisLog>(logsQuery);
   const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
   const { data: dbPackages } = useCollection<PixPackage>(packagesQuery);
@@ -208,6 +201,15 @@ export default function AdminPanel() {
   useEffect(() => {
     if (appConfig) configForm.reset({ currencyName: appConfig.currencyName });
   }, [appConfig, configForm]);
+
+  const isAdmin = useMemo(() => {
+    if (!user) return false;
+    const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
+    const adminUids = ['01DT86bQwWUVrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
+    return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
+  }, [user]);
+
+  if (!isAdmin) return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
 
   const onUpdateConfig = async (values: z.infer<typeof configSchema>) => {
     if (!firestore || isSubmitting) return;
@@ -321,8 +323,6 @@ export default function AdminPanel() {
       competitionForm.reset();
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsSubmitting(false); }
   };
-
-  if (!isAdmin) return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
 
   return (
     <div className="container mx-auto px-4 pb-24 pt-10 animate-in fade-in duration-700">
@@ -500,7 +500,7 @@ export default function AdminPanel() {
 
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
             <CardHeader className="bg-secondary/10 border-b p-8">
-              <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight uppercase"><Package className="h-6 w-6 text-primary" /> PIX Paket Yönetimi</CardTitle>
+              <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Package className="h-6 w-6 text-primary" /> PIX Paket Yönetimi</CardTitle>
               <CardDescription>Aktif paketlerinizi düzenleyin ve ödeme linklerini tanımlayın.</CardDescription>
             </CardHeader>
             <CardContent className="p-8">

@@ -21,9 +21,8 @@ export default function PricingPage() {
   
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
+  // Memoize refs/queries at the TOP level
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userRef);
-
   const packagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -33,6 +32,7 @@ export default function PricingPage() {
     );
   }, [firestore]);
 
+  const { data: userProfile } = useDoc<User>(userRef);
   const { data: dbPackages, isLoading } = useCollection<PixPackage>(packagesQuery);
 
   const activePackages = useMemo(() => {
