@@ -348,7 +348,7 @@ export default function AdminPanel() {
               </TabsTrigger>
               <TabsTrigger value="content" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">İçerik</TabsTrigger>
               <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Akademi</TabsTrigger>
-              <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
+              <TabsTrigger value="users" className="shrink-0 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
               <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Genel</TabsTrigger>
             </TabsList>
           </div>
