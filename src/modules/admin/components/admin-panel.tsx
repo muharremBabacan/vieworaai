@@ -148,7 +148,6 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
-  // All Hooks at top
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const { data: appConfig } = useDoc<AppSettings>(configRef);
 

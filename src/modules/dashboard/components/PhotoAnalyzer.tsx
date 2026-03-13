@@ -90,7 +90,6 @@ export default function PhotoAnalyzer() {
   const router = useRouter();
   const { currencyName } = useAppConfig();
   
-  // 🪝 Hooks at the top
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

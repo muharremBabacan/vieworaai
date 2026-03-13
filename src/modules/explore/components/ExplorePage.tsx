@@ -38,7 +38,6 @@ export default function ExplorePage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // 🪝 Hooks at the top
   const [view, setView] = useState<'hub' | 'exhibitions' | 'exhibition-detail' | 'featured'>('hub');
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
