@@ -91,7 +91,6 @@ export default function PhotoAnalyzer() {
   const router = useRouter();
   const { currencyName } = useAppConfig();
   
-  // 1. ALL HOOKS AT TOP
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -189,9 +188,21 @@ export default function PhotoAnalyzer() {
       const uploadTask = await uploadBytes(storageRef, file);
       const imageUrl = await getDownloadURL(uploadTask.ref);
       const batch = writeBatch(firestore);
-      const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'));
+      const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), crypto.randomUUID());
       const userRef = doc(firestore, 'users', user.uid);
-      let photoData: Photo = { id: photoDocRef.id, userId: user.uid, imageUrl, filePath, imageHash: hash, createdAt: new Date().toISOString(), aiFeedback: null, tags: [], analysisTier: analyze ? currentTier : undefined };
+      
+      let photoData: Photo = { 
+        id: photoDocRef.id, 
+        userId: user.uid, 
+        imageUrl, 
+        filePath, 
+        imageHash: hash, 
+        createdAt: new Date().toISOString(), 
+        aiFeedback: null, 
+        tags: [], 
+        analysisTier: analyze ? currentTier : undefined 
+      };
+
       if (analyze) {
         const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr', tier: currentTier });
         photoData.aiFeedback = analysis;
@@ -214,6 +225,7 @@ export default function PhotoAnalyzer() {
         router.push('/gallery');
       }
     } catch (error: any) {
+      console.error(error);
       toast({ variant: 'destructive', title: 'İşlem Başarısız' });
     } finally {
       setIsLoading(false);

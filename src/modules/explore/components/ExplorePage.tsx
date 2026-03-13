@@ -39,7 +39,6 @@ export default function ExplorePage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // 1. ALL HOOKS AT TOP
   const [view, setView] = useState<'hub' | 'exhibitions' | 'exhibition-detail' | 'featured'>('hub');
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -85,13 +84,13 @@ export default function ExplorePage() {
           <h1 className={cn(typography.h1, "leading-none uppercase")}>İlhamı Keşfet</h1>
         </header>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-primary/20">
+          <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-primary/20 cursor-pointer" onClick={() => setView('exhibitions')}>
             <div className="relative h-32 w-full"><Image src="/temel14a.jpg" alt="S" fill className="object-cover" unoptimized /><div className="absolute inset-0 bg-black/40" /></div>
-            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Sergiler</h3><Button onClick={() => setView('exhibitions')} className="w-full rounded-xl">Salonları Gör</Button></CardContent>
+            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Sergiler</h3><Button className="w-full rounded-xl">Salonları Gör</Button></CardContent>
           </Card>
-          <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-yellow-400/20">
+          <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-yellow-400/20 cursor-pointer" onClick={() => setView('featured')}>
             <div className="relative h-32 w-full"><Image src="/temel13a.jpg" alt="F" fill className="object-cover" unoptimized /><div className="absolute inset-0 bg-black/40" /></div>
-            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Öne Çıkanlar</h3><Button onClick={() => setView('featured')} className="w-full rounded-xl">Hemen Gör</Button></CardContent>
+            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Öne Çıkanlar</h3><Button className="w-full rounded-xl">Hemen Gör</Button></CardContent>
           </Card>
         </div>
       </div>
@@ -101,30 +100,47 @@ export default function ExplorePage() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in slide-in-from-right-10 duration-700">
       <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 rounded-2xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Geri Dön</Button>
-      <h1 className={cn(typography.h1, "uppercase mb-10")}>{view === 'featured' ? 'Öne Çıkan Kareler' : selectedExhibition?.title}</h1>
+      <h1 className={cn(typography.h1, "uppercase mb-10")}>{view === 'featured' ? 'Öne Çıkan Kareler' : selectedExhibition?.title || 'Sergiler'}</h1>
 
-      {isPhotosLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}</div>
-      ) : photos && photos.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {photos.map((photo) => {
-            const isLiked = photo.likes?.includes(user?.uid || '');
-            return (
-              <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
-                <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover" unoptimized />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
-                  <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[10px] h-8 px-4 rounded-full font-bold">@{photo.userName || 'Sanatçı'}</Badge>
-                  <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isLiked ? "text-red-500" : "text-white")} onClick={(e) => handleToggleLike(photo, e)}>
-                    <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
+      {view === 'exhibitions' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {isExLoading ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[32px]" />) : 
+           exhibitions?.map(ex => (
+             <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
+               <div className="relative h-48 w-full"><Image src={ex.imageUrl} alt={ex.title} fill className="object-cover" unoptimized /></div>
+               <CardContent className="p-6">
+                 <h3 className="text-xl font-black uppercase">{ex.title}</h3>
+                 <p className="text-sm text-muted-foreground mt-2">{ex.description}</p>
+               </CardContent>
+             </Card>
+           ))}
         </div>
       ) : (
-        <div className="text-center py-40 rounded-[64px] border-2 border-dashed bg-muted/5"><Camera size={64} className="mx-auto mb-8 text-muted-foreground/20" /></div>
+        <>
+          {isPhotosLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}</div>
+          ) : photos && photos.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {photos.map((photo) => {
+                const isLiked = photo.likes?.includes(user?.uid || '');
+                return (
+                  <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
+                    <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover" unoptimized />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
+                      <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[10px] h-8 px-4 rounded-full font-bold">@{photo.userName || 'Sanatçı'}</Badge>
+                      <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isLiked ? "text-red-500" : "text-white")} onClick={(e) => handleToggleLike(photo, e)}>
+                        <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-40 rounded-[64px] border-2 border-dashed bg-muted/5"><Camera size={64} className="mx-auto mb-8 text-muted-foreground/20" /></div>
+          )}
+        </>
       )}
 
       <Dialog open={!!selectedPhoto} onOpenChange={(o) => !o && setSelectedPhoto(null)}>

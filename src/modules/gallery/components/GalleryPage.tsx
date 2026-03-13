@@ -22,6 +22,13 @@ import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
 
+const STATUS_FILTERS = [
+  { id: 'all', label: 'Tümü', icon: Layers },
+  { id: 'analyzed', label: 'Analiz Edilenler', icon: Sparkles },
+  { id: 'exhibition', label: 'Sergidekiler', icon: Globe },
+  { id: 'best', label: 'En İyilerim', icon: Trophy },
+];
+
 const normalizeScore = (score: number | undefined | null): number => {
   if (score === undefined || score === null || !isFinite(score)) return 0;
   return score > 1 ? score : score * 10;
@@ -46,7 +53,6 @@ export default function GalleryPage() {
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
 
-  // 1. ALL HOOKS AT TOP
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -83,11 +89,8 @@ export default function GalleryPage() {
         case 'best': result = result.filter(p => getOverallScore(p) >= 8); break;
       }
     }
-    if (categoryFilter !== 'all') {
-      result = result.filter(p => p.tags?.some(t => t.toLowerCase() === categoryFilter));
-    }
     return result;
-  }, [photos, statusFilter, categoryFilter]);
+  }, [photos, statusFilter]);
 
   const handleDeletePhoto = async (photo: Photo) => {
     if (!user || !firestore || isProcessing) return;
@@ -96,16 +99,20 @@ export default function GalleryPage() {
       const storage = getStorage();
       const batch = writeBatch(firestore);
       const userPhotoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      
       batch.delete(userPhotoRef);
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
         batch.update(doc(firestore, 'users', user.uid), { total_exhibitions_count: increment(-1) });
       }
+      
       await batch.commit();
+      
       if (photo.filePath) {
         const storageRef = ref(storage, photo.filePath);
-        try { await deleteObject(storageRef); } catch (e) { console.warn("Storage file not found or already deleted"); }
+        try { await deleteObject(storageRef); } catch (e) { console.warn("Storage file not found"); }
       }
+      
       toast({ title: "Fotoğraf Silindi" });
       setSelectedPhoto(null);
     } catch (e) {
@@ -166,6 +173,17 @@ export default function GalleryPage() {
     }
   };
 
+  if (isPhotosLoading) {
+    return (
+      <div className="container mx-auto px-4 pt-6 pb-24">
+        <Skeleton className="h-12 w-48 mb-10" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[...Array(12)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-10 space-y-1">
@@ -176,23 +194,29 @@ export default function GalleryPage() {
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map(f => (
-            <Button key={f.id} variant={statusFilter === f.id ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter(f.id)} className="rounded-full h-9 px-4 text-[10px] font-black uppercase tracking-widest">
+            <Button 
+              key={f.id} 
+              variant={statusFilter === f.id ? 'default' : 'outline'} 
+              size="sm" 
+              onClick={() => setStatusFilter(f.id)} 
+              className="rounded-full h-9 px-4 text-[10px] font-black uppercase tracking-widest"
+            >
               <f.icon className="mr-2 h-3.5 w-3.5" /> {f.label}
             </Button>
           ))}
         </div>
       </div>
 
-      {isPhotosLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {[...Array(12)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}
-        </div>
-      ) : filteredPhotos.length > 0 ? (
+      {filteredPhotos.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {filteredPhotos.map(photo => {
             const overallScore = getOverallScore(photo);
             return (
-              <Card key={photo.id} className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all hover:scale-[1.02]" onClick={() => setSelectedPhoto(photo)}>
+              <Card 
+                key={photo.id} 
+                className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all hover:scale-[1.02]" 
+                onClick={() => setSelectedPhoto(photo)}
+              >
                 <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover" unoptimized />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-3 right-3">
@@ -214,8 +238,8 @@ export default function GalleryPage() {
       ) : (
         <div className="text-center py-40 rounded-[48px] border-2 border-dashed bg-muted/5 animate-in zoom-in duration-500">
           <Camera className="mx-auto h-16 w-16 text-muted-foreground/20 mb-6" />
-          <h3 className="text-2xl font-black uppercase tracking-tight">Galeri Henüz Boş</h3>
-          <p className="text-muted-foreground mt-2 max-w-xs mx-auto font-medium text-sm">İlk fotoğrafını yapay zeka ile analiz ederek kütüphaneni oluşturmaya başla.</p>
+          <h3 className="text-2xl font-black uppercase tracking-tight">Galeri Boş</h3>
+          <p className="text-muted-foreground mt-2 max-w-xs mx-auto font-medium text-sm">Henüz bu kategoride fotoğraf bulunmuyor.</p>
           <Button onClick={() => router.push('/dashboard')} className="mt-8 rounded-2xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">Fotoğraf Yükle</Button>
         </div>
       )}
@@ -264,11 +288,18 @@ export default function GalleryPage() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Sergi Salonu Seç</Label>
                         <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId}>
                           <SelectTrigger className="h-11 rounded-xl bg-muted/30 border-border/60"><SelectValue placeholder="Salon seç..." /></SelectTrigger>
-                          <SelectContent>{exhibitions?.map(ex => <SelectItem key={f.id} value={ex.id}>{ex.title}</SelectItem>)}</SelectContent>
+                          <SelectContent>
+                            {exhibitions?.map(ex => <SelectItem key={ex.id} value={ex.id}>{ex.title}</SelectItem>)}
+                          </SelectContent>
                         </Select>
                       </div>
                     )}
-                    <Button onClick={() => handleToggleExhibition(selectedPhoto)} disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}>
+                    <Button 
+                      onClick={() => handleToggleExhibition(selectedPhoto)} 
+                      disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} 
+                      className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} 
+                      variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}
+                    >
                       {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> Sergiden Çek</> : <><Globe className="mr-2 h-4 w-4" /> Sergiye Gönder (1 {currencyName})</>}
                     </Button>
                   </div>

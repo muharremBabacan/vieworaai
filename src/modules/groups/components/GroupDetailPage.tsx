@@ -49,7 +49,6 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
-  // 1. ALL HOOKS AT TOP
   const [activeTab, setActiveTab] = useState('assignments');
   const [isUploading, setIsUploading] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);
@@ -86,8 +85,7 @@ export default function GroupDetailPage() {
     setIsUploading(true);
     toast({ title: "Analiz Ediliyor..." });
     try {
-      const hash = Math.random().toString(36).substring(7);
-      const storagePath = `groups/${group.id}/submissions/${assignment.id}/${user.uid}-${hash}.jpg`;
+      const storagePath = `groups/${group.id}/submissions/${assignment.id}/${user.uid}-${Date.now()}.jpg`;
       const storageRef = ref(storage, storagePath);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
@@ -134,8 +132,8 @@ export default function GroupDetailPage() {
           <TabsTrigger value="trips" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Geziler</TabsTrigger>
           <TabsTrigger value="assignments" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
           <TabsTrigger value="gallery" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Galeri</TabsTrigger>
-          <TabsTrigger value="members" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Grup Listesi</TabsTrigger>
-          {isCurrentUserOwner && <TabsTrigger value="admin" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl text-amber-500">Kurucu Paneli</TabsTrigger>}
+          <TabsTrigger value="members" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Üyeler</TabsTrigger>
+          {isCurrentUserOwner && <TabsTrigger value="admin" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl text-amber-500">Yönetim</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="trips" className="space-y-8">
@@ -186,6 +184,17 @@ export default function GroupDetailPage() {
           ) : <div className="text-center py-32 rounded-[48px] border-2 border-dashed bg-muted/5"><ImageIcon size={64} className="mx-auto mb-6 text-muted-foreground/20" /></div>}
         </TabsContent>
 
+        <TabsContent value="members" className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {memberProfiles?.map(profile => (
+              <Card key={profile.id} className="p-4 rounded-2xl border-border/40 bg-card/50 flex items-center gap-4">
+                <Avatar><AvatarImage src={profile.photoURL || ''} /></Avatar>
+                <div><p className="font-bold">@{profile.name}</p><p className="text-[10px] uppercase font-black text-primary">{profile.level_name}</p></div>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
         {isCurrentUserOwner && (
           <TabsContent value="admin" className="space-y-10">
             <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl"><CardHeader className="bg-primary/5 p-8 border-b border-border/40"><CardTitle className="text-xl font-black flex items-center gap-3"><Map className="text-primary" /> Gezi Planla</CardTitle></CardHeader><CardContent className="p-8"><EventCreator onCreate={handleCreateTrip} /></CardContent></Card>
@@ -200,12 +209,12 @@ export default function GroupDetailPage() {
             <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-4"><Avatar className="h-10 w-10"><AvatarImage src={selectedSubmission.userPhotoURL || ''} /></Avatar><div><p className="text-lg font-black tracking-tight">@{selectedSubmission.userName}</p></div></div>
-                <DialogTitle className="text-2xl font-black uppercase">Luma Değerlendirmesi</DialogTitle>
+                <DialogTitle className="text-2xl font-black uppercase">Değerlendirme</DialogTitle>
               </DialogHeader>
               {selectedSubmission.aiFeedback && (
                 <div className="space-y-6">
                   <div className="p-6 rounded-[24px] bg-primary/5 border border-primary/20 space-y-4 shadow-inner">
-                    <div className="flex justify-between items-end"><p className="text-[10px] font-black uppercase text-primary tracking-widest">ÖDEV PUANI</p><p className="text-4xl font-black tracking-tighter text-primary">{selectedSubmission.aiFeedback.score}/10</p></div>
+                    <div className="flex justify-between items-end"><p className="text-[10px] font-black uppercase text-primary tracking-widest">PUAN</p><p className="text-4xl font-black tracking-tighter text-primary">{selectedSubmission.aiFeedback.score}/10</p></div>
                     <Progress value={selectedSubmission.aiFeedback.score * 10} className="h-1.5" />
                   </div>
                   <p className="text-sm font-medium leading-relaxed italic text-foreground/90 bg-muted/20 p-4 rounded-xl">"{selectedSubmission.aiFeedback.feedback}"</p>
