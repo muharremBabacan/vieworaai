@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -62,7 +63,6 @@ export default function GalleryPage() {
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
 
-  // 🪝 Hooks at the top
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -208,7 +208,6 @@ export default function GalleryPage() {
       </header>
 
       <div className="space-y-6 mb-10">
-        {/* Status Filters */}
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map(f => (
             <Button 
@@ -223,7 +222,6 @@ export default function GalleryPage() {
           ))}
         </div>
 
-        {/* Category Filters */}
         <div className="relative filter-scroll">
           <div className="w-full overflow-x-auto no-scrollbar pb-2 flex gap-2 snap-x">
             {CATEGORY_FILTERS.map(f => (

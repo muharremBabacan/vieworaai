@@ -1,27 +1,27 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { doc, updateDoc, arrayRemove, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, documentId, addDoc, arrayUnion, orderBy, increment, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupPurpose, Trip, TripParticipant, TripStatus, ParticipantStatus, RoutePoint, ContactVisible } from '@/types';
+import type { Group, PublicUserProfile, User, GroupAssignment, GroupSubmission, GroupPurpose, Trip, TripParticipant, ParticipantStatus, AnalysisLog } from '@/types';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Crown, Users, Send, ImageIcon, Info, Heart, Star, GraduationCap, Trophy, Map, MapPin, Calendar, Check, Instagram, Phone, Sparkles, ArrowLeft, ShieldCheck, Globe } from 'lucide-react';
+import { Loader2, Users, ImageIcon, Info, Heart, GraduationCap, Trophy, Map, MapPin, Calendar, Instagram, Phone, ShieldCheck, ArrowLeft, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { Progress } from '@/components/ui/progress';
@@ -48,7 +48,6 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
-  // 🪝 Hooks at the top
   const [activeTab, setActiveTab] = useState('assignments');
   const [isUploading, setIsUploading] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);
@@ -128,13 +127,17 @@ export default function GroupDetailPage() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
-        <TabsList className="bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40">
-          <TabsTrigger value="trips" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Geziler</TabsTrigger>
-          <TabsTrigger value="assignments" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
-          <TabsTrigger value="gallery" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Galeri</TabsTrigger>
-          <TabsTrigger value="members" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Üyeler</TabsTrigger>
-          {isCurrentUserOwner && <TabsTrigger value="admin" className="px-8 font-black uppercase text-[10px] tracking-widest rounded-xl text-amber-500">Yönetim</TabsTrigger>}
-        </TabsList>
+        <div className="relative filter-scroll">
+          <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth">
+            <TabsList className="inline-flex w-max bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40 gap-1 px-1">
+              <TabsTrigger value="trips" className="shrink-0 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Geziler</TabsTrigger>
+              <TabsTrigger value="assignments" className="shrink-0 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
+              <TabsTrigger value="gallery" className="shrink-0 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Galeri</TabsTrigger>
+              <TabsTrigger value="members" className="shrink-0 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Üyeler</TabsTrigger>
+              {isCurrentUserOwner && <TabsTrigger value="admin" className="shrink-0 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl text-amber-500">Yönetim</TabsTrigger>}
+            </TabsList>
+          </div>
+        </div>
 
         <TabsContent value="trips" className="space-y-8">
           {isTripsLoading ? <Skeleton className="h-40 w-full rounded-3xl" /> : 
