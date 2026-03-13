@@ -18,6 +18,7 @@ export default function PricingPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
+  
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);

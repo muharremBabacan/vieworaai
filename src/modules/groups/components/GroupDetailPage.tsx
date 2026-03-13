@@ -127,7 +127,7 @@ export default function GroupDetailPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
         <div className="relative filter-scroll">
-          <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth">
+          <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x">
             <TabsList className="inline-flex w-max bg-secondary/30 p-1 rounded-2xl h-12 border border-border/40 gap-1 px-1">
               <TabsTrigger value="trips" className="shrink-0 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Geziler</TabsTrigger>
               <TabsTrigger value="assignments" className="shrink-0 px-8 font-black uppercase text-[10px] tracking-widest rounded-xl">Ödevler</TabsTrigger>
