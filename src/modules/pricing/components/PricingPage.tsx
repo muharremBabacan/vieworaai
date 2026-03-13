@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -21,6 +20,7 @@ export default function PricingPage() {
   const { currencyName } = useAppConfig();
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
+  // All Hooks at top
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userRef);
 
@@ -46,6 +46,26 @@ export default function PricingPage() {
         payment_link: 'https://iyzi.link/AKg9LA',
         active: true,
         order: 1
+      },
+      {
+        id: 'creator',
+        name: 'Creator Paket',
+        price: 199,
+        pix_amount: 60,
+        description: 'Gelişmiş analizler ve tam erişim.',
+        payment_link: 'https://iyzi.link/AKg9OQ',
+        active: true,
+        order: 2
+      },
+      {
+        id: 'pro',
+        name: 'Pro Paket',
+        price: 349,
+        pix_amount: 150,
+        description: 'Profesyonel araçlar ve mentorluk.',
+        payment_link: 'https://iyzi.link/AKg9Og',
+        active: true,
+        order: 3
       }];
     }
     return dbPackages.filter(p => !p.name.toLowerCase().includes('elite'));
@@ -104,7 +124,7 @@ export default function PricingPage() {
           <div className="flex-1 space-y-1">
             <h2 className="text-2xl font-black tracking-tight uppercase text-primary">Viewora Mağaza</h2>
             <p className="text-foreground/90 font-bold text-lg leading-tight">
-              Yapay zeka analizleri için PIX paketlerini kullanın.
+              Yapay zeka analizleri için {currencyName} paketlerini kullanın.
             </p>
             <p className="text-muted-foreground font-medium text-base">
               Paket satın aldıktan sonra ödemeniz sistem tarafından onaylanarak bakiyenize eklenir.

@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -149,7 +148,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
-  // 🪝 All Hooks at Top
+  // All Hooks at top
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const { data: appConfig } = useDoc<AppSettings>(configRef);
 
@@ -514,8 +513,8 @@ export default function AdminPanel() {
                       if(!firestore) return;
                       const defaults = [
                         { id: 'starter', name: 'Starter Paket', description: 'Hızlı başlangıç için temel paket.', price: 99, pix_amount: 20, payment_link: 'https://iyzi.link/AKg9LA', active: true, order: 1 },
-                        { id: 'creator', name: 'Creator Paket', description: 'Gelişmiş analizler ve tam erişim.', price: 199, pix_amount: 60, payment_link: '#', active: true, order: 2 },
-                        { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar ve mentorluk.', price: 349, pix_amount: 150, payment_link: '#', active: true, order: 3 }
+                        { id: 'creator', name: 'Creator Paket', description: 'Gelişmiş analizler ve tam erişim.', price: 199, pix_amount: 60, payment_link: 'https://iyzi.link/AKg9OQ', active: true, order: 2 },
+                        { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar ve mentorluk.', price: 349, pix_amount: 150, payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
                       ];
                       for(const d of defaults) await setDoc(doc(firestore, 'pix_packages', d.id), d);
                       toast({ title: "Varsayılanlar Oluşturuldu" });
