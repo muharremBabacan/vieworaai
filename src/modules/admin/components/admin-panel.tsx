@@ -175,7 +175,7 @@ export default function AdminPanel() {
 
   const configForm = useForm({
     resolver: zodResolver(configSchema),
-    defaultValues: { currencyName: currentCurrency }
+    defaultValues: { currencyName: currentCurrency || 'Pix' }
   });
 
   const exhibitionForm = useForm({

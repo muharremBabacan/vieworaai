@@ -46,6 +46,7 @@ export default function PricingPage() {
         package_name: pkg.name,
         pix_amount: pkg.auro,
         price: pkg.price,
+        payment_provider: "iyzico_link",
         payment_link: paymentLink,
         status: "pending",
         created_at: new Date().toISOString()
@@ -85,7 +86,7 @@ export default function PricingPage() {
                   <Gem size={14} /> {pkg.auro} {currencyName} YÜKLEMESİ
                 </p>
               </div>
-              <p className="text-sm font-medium text-foreground/70 leading-relaxed">{pkg.description || pkg.slogan}</p>
+              <p className="text-sm font-medium text-foreground/70 leading-relaxed">{pkg.slogan}</p>
             </CardContent>
             <CardFooter className="p-8 pt-0">
               <Button onClick={() => handlePurchaseClick(pkg)} disabled={isProcessingId === pkg.id} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl">

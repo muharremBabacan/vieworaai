@@ -32,8 +32,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       
@@ -112,6 +111,23 @@ service cloud.firestore {
     match /academy_lessons/{lessonId} {
       allow get, list: if isSignedIn();
       allow write: if isAdmin();
+    }
+    
+    match /group_invites/{inviteId} {
+      allow get, list: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (resource.data.toUserId == request.auth.uid || isAdmin());
+    }
+    
+    match /competitions/{compId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+      
+      match /entries/{entryId} {
+        allow get, list: if true;
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+      }
     }
   }
 }
