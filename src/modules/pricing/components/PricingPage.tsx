@@ -24,8 +24,10 @@ export default function PricingPage() {
 
   // 🪝 HOOKS - ALWAYS AT TOP
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  
   const packagesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore) return undefined;
+
     return query(
       collection(firestore, 'pix_packages'),
       where('active', '==', true),
@@ -34,7 +36,7 @@ export default function PricingPage() {
   }, [firestore]);
 
   const { data: userProfile } = useDoc<User>(userRef);
-  const { data: dbPackages, isLoading } = useCollection<PixPackage>(packagesQuery);
+  const { data: dbPackages, isLoading } = useCollection<PixPackage>(packagesQuery ?? undefined);
 
   const activePackages = useMemo(() => {
     if (!dbPackages || dbPackages.length === 0) {

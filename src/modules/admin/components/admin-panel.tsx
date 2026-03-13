@@ -500,7 +500,7 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
+          <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
             <CardHeader className="bg-secondary/10 border-b p-8">
               <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Package className="h-6 w-6 text-primary" /> PIX Paket Yönetimi</CardTitle>
               <CardDescription>Aktif paketlerinizi düzenleyin ve ödeme linklerini tanımlayın.</CardDescription>
