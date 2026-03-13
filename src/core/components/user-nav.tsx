@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -62,7 +61,7 @@ export function UserNav() {
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
-  const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVrewnEb8c6bd8H43';
+  const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
   const streak = userProfile.daily_streak || 1;
   const exhibitionCount = userProfile.total_exhibitions_count || 0;
