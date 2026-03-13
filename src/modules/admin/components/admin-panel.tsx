@@ -15,12 +15,12 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CheckCircle2, CreditCard, Check, X
+  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -275,7 +275,7 @@ export default function AdminPanel() {
         auroSpent: -purchase.pix_amount,
         timestamp: new Date().toISOString(),
         status: 'success'
-      });
+      } as AnalysisLog);
 
       await batch.commit();
       toast({ title: "Ödeme Onaylandı" });
@@ -346,7 +346,7 @@ export default function AdminPanel() {
             <Card className="bg-green-500/5 border-green-500/20 rounded-[32px] shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-green-400/70">Hediye</CardDescription></CardHeader><CardContent><p className="text-3xl font-black">{metrics?.totalGifts || 0}</p></CardContent></Card>
           </div>
           <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-card/50">
-            <CardHeader className="bg-secondary/20 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><Activity className="h-6 w-6 text-primary" /> Son İşlemler</CardTitle></CardHeader>
+            <CardHeader className="bg-secondary/20 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><ActivityIcon className="h-6 w-6 text-primary" /> Son İşlemler</CardTitle></CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
                 <div className="divide-y divide-border/40">

@@ -30,9 +30,9 @@ export default function PricingPage() {
     }
 
     const links: Record<string, string> = {
-      '1': 'https://iyzi.link/AKg9LA',
-      '2': 'https://iyzi.link/AKg9OQ',
-      '3': 'https://iyzi.link/AKg9Og'
+      'starter': 'https://iyzi.link/AKg9LA',
+      'creator': 'https://iyzi.link/AKg9OQ',
+      'pro': 'https://iyzi.link/AKg9Og'
     };
 
     const paymentLink = links[pkg.id] || '#';
