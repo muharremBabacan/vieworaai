@@ -9,10 +9,7 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { FirestorePermissionError } from '@/lib/firebase/errors';
-import { errorEmitter } from '@/lib/firebase/error-emitter';
 
-/** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
 
 export interface UseDocResult<T> {
@@ -26,14 +23,15 @@ export function useDoc<T = any>(
 ): UseDocResult<T> {
 
   const [data, setData] = useState<WithId<T> | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(!!memoizedDocRef);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+
     if (!memoizedDocRef) {
       setData(null);
-      setIsLoading(false);
       setError(null);
+      setIsLoading(false);
       return;
     }
 
@@ -42,39 +40,47 @@ export function useDoc<T = any>(
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
+
       (snapshot: DocumentSnapshot<DocumentData>) => {
+
         if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
+          setData({
+            ...(snapshot.data() as T),
+            id: snapshot.id,
+          });
         } else {
           setData(null);
         }
-        setError(null);
+
         setIsLoading(false);
       },
+
       (err: FirestoreError) => {
-        // Çıkış yaparken oluşan yetki hatasını yakala
+
         const auth = getAuth();
+
+        // Logout sırasında gelen permission hatasını ignore et
         if (err.code === 'permission-denied' && !auth.currentUser) {
           setData(null);
           setIsLoading(false);
           return;
         }
 
-        const contextualError = new FirestorePermissionError({
-          operation: 'get',
-          path: memoizedDocRef.path,
-        });
+        console.error('Firestore useDoc error:', err);
 
-        setError(contextualError);
+        setError(err);
         setData(null);
         setIsLoading(false);
-
-        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
+
   }, [memoizedDocRef]);
 
-  return { data, isLoading, error };
+  return {
+    data,
+    isLoading,
+    error,
+  };
 }

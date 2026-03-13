@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -16,12 +15,12 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CheckCircle2, XCircle, CreditCard, Check, X
+  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CheckCircle2, CreditCard, Check, X
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -150,7 +149,6 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
-  // ALL HOOKS AT TOP
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
@@ -207,8 +205,7 @@ export default function AdminPanel() {
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
-    // Fixed UID with typo correction (WUVmrewn)
-    const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', '01DT86bQwWUVrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
+    const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);
 
@@ -281,19 +278,10 @@ export default function AdminPanel() {
       });
 
       await batch.commit();
-      toast({ title: "Ödeme Onaylandı", description: `${purchase.user_name} hesabına ${purchase.pix_amount} PIX eklendi.` });
+      toast({ title: "Ödeme Onaylandı" });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Onay Hatası" });
+      toast({ variant: 'destructive', title: "Hata" });
     } finally { setIsSubmitting(false); }
-  };
-
-  const handleRejectPurchase = async (purchase: PixPurchase) => {
-    if (!firestore || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await updateDoc(doc(firestore, 'pix_purchases', purchase.id), { status: 'rejected' });
-      toast({ title: "Ödeme Reddedildi" });
-    } catch (e) { toast({ variant: 'destructive', title: "Red Hatası" }); } finally { setIsSubmitting(false); }
   };
 
   const onCreateExhibition = async (values: z.infer<typeof exhibitionSchema>) => {
@@ -339,14 +327,7 @@ export default function AdminPanel() {
           <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
             <TabsList className="inline-flex w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 gap-1 px-1">
               <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Muhasebe</TabsTrigger>
-              <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start relative">
-                Ödemeler
-                {pendingPurchases && pendingPurchases.length > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] text-white border-2 border-background animate-pulse">
-                    {pendingPurchases.length}
-                  </span>
-                )}
-              </TabsTrigger>
+              <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start relative">Ödemeler</TabsTrigger>
               <TabsTrigger value="content" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">İçerik</TabsTrigger>
               <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Akademi</TabsTrigger>
               <TabsTrigger value="users" className="shrink-0 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
@@ -391,44 +372,25 @@ export default function AdminPanel() {
         <TabsContent value="payments" className="space-y-8">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
             <CardHeader className="bg-secondary/20 border-b p-8">
-              <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight uppercase tracking-widest"><CreditCard className="h-6 w-6 text-primary" /> Bekleyen Ödemeler</CardTitle>
-              <CardDescription>İyzico linki üzerinden yapılan taleplerin onaylanması ve bakiyelerin yüklenmesi.</CardDescription>
+              <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><CreditCard className="h-6 w-6 text-primary" /> Bekleyen Ödemeler</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {pendingPurchases && pendingPurchases.length > 0 ? (
                 <Table>
-                  <TableHeader className="bg-muted/30">
-                    <TableRow>
-                      <TableHead className="px-8 font-black uppercase text-[10px]">Vizyoner</TableHead>
-                      <TableHead className="font-black uppercase text-[10px]">Paket</TableHead>
-                      <TableHead className="font-black uppercase text-[10px]">Fiyat</TableHead>
-                      <TableHead className="font-black uppercase text-[10px]">PIX</TableHead>
-                      <TableHead className="font-black uppercase text-[10px]">Tarih</TableHead>
-                      <TableHead className="text-right px-8 font-black uppercase text-[10px]">İşlem</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <TableHeader><TableRow><TableHead>Vizyoner</TableHead><TableHead>Paket</TableHead><TableHead>Fiyat</TableHead><TableHead>PIX</TableHead><TableHead className="text-right">İşlem</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {pendingPurchases.map(p => (
-                      <TableRow key={p.id} className="hover:bg-muted/20 transition-colors">
-                        <TableCell className="px-8 py-5 font-black">{p.user_name}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase">{p.package_name}</Badge></TableCell>
-                        <TableCell className="font-bold">{p.price} TL</TableCell>
+                      <TableRow key={p.id}>
+                        <TableCell className="font-bold">{p.user_name}</TableCell>
+                        <TableCell>{p.package_name}</TableCell>
+                        <TableCell>{p.price} TL</TableCell>
                         <TableCell className="font-black text-primary">{p.pix_amount}</TableCell>
-                        <TableCell className="text-[10px] font-medium opacity-60">{formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: tr })}</TableCell>
-                        <TableCell className="text-right px-8 space-x-2">
-                          <Button onClick={() => handleRejectPurchase(p)} variant="ghost" size="sm" className="h-9 rounded-xl text-destructive hover:bg-destructive/10"><X className="h-4 w-4" /></Button>
-                          <Button onClick={() => handleApprovePurchase(p)} size="sm" className="h-9 rounded-xl bg-green-600 hover:bg-green-700"><Check className="h-4 w-4" /></Button>
-                        </TableCell>
+                        <TableCell className="text-right px-8"><Button onClick={() => handleApprovePurchase(p)} size="sm" className="bg-green-600 hover:bg-green-700">Onayla</Button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              ) : (
-                <div className="py-20 text-center space-y-4">
-                  <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground/20" />
-                  <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs">Bekleyen ödeme bulunmuyor.</p>
-                </div>
-              )}
+              ) : <div className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">Bekleyen ödeme bulunmuyor.</div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -436,22 +398,22 @@ export default function AdminPanel() {
         <TabsContent value="content" className="space-y-12">
           <div className="grid md:grid-cols-2 gap-8">
             <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
-              <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase"><Globe className="h-6 w-6 text-primary" /> Yeni Sergi</CardTitle></CardHeader>
+              <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Globe className="h-6 w-6 text-primary" /> Yeni Sergi</CardTitle></CardHeader>
               <CardContent className="p-8">
                 <Form {...exhibitionForm}><form onSubmit={exhibitionForm.handleSubmit(onCreateExhibition)} className="space-y-6">
                   <FormField control={exhibitionForm.control} name="title" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Salon Adı</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
                   <FormField control={exhibitionForm.control} name="description" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Açıklama</FormLabel><FormControl><Textarea {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
-                  <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase shadow-xl shadow-primary/20">Aktif Et</Button>
+                  <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase">Aktif Et</Button>
                 </form></Form>
               </CardContent>
             </Card>
             <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
-              <CardHeader className="bg-amber-500/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase"><Trophy className="h-6 w-6 text-amber-400" /> Yeni Yarışma</CardTitle></CardHeader>
+              <CardHeader className="bg-amber-500/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Trophy className="h-6 w-6 text-amber-400" /> Yeni Yarışma</CardTitle></CardHeader>
               <CardContent className="p-8">
                 <Form {...competitionForm}><form onSubmit={competitionForm.handleSubmit(onCreateCompetition)} className="space-y-6">
                   <FormField control={competitionForm.control} name="title" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Yarışma Adı</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
                   <FormField control={competitionForm.control} name="prize" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Ödül</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
-                  <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase shadow-xl shadow-amber-500/20 bg-amber-500 text-black hover:bg-amber-600">Başlat</Button>
+                  <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase bg-amber-500 text-black hover:bg-amber-600">Başlat</Button>
                 </form></Form>
               </CardContent>
             </Card>
@@ -464,22 +426,20 @@ export default function AdminPanel() {
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
             <CardHeader className="bg-secondary/20 border-b p-8">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase"><Users className="h-6 w-6 text-primary" /> Kullanıcılar</CardTitle>
+                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Users className="h-6 w-6 text-primary" /> Kullanıcılar</CardTitle>
                 <Input placeholder="İsim veya e-posta ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="max-w-xs rounded-xl h-10 bg-background/50" />
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow><TableHead className="px-8 font-black uppercase text-[10px]">Vizyoner</TableHead><TableHead className="font-black uppercase text-[10px]">Seviye</TableHead><TableHead className="font-black uppercase text-[10px]">PIX</TableHead><TableHead className="text-right px-8 font-black uppercase text-[10px]">İşlem</TableHead></TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>Seviye</TableHead><TableHead>PIX</TableHead><TableHead className="text-right px-8">İşlem</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {filteredUsers.map(u => (
-                    <TableRow key={u.id} className="hover:bg-muted/20 transition-colors">
+                    <TableRow key={u.id}>
                       <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase">{u.email}</span></div></TableCell>
                       <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase">{u.level_name}</Badge></TableCell>
                       <TableCell className="font-black text-primary">{u.auro_balance}</TableCell>
-                      <TableCell className="text-right px-8"><Button variant="ghost" size="sm" className="rounded-xl h-9 font-black uppercase text-[10px]">Yönet</Button></TableCell>
+                      <TableCell className="text-right px-8"><Button variant="ghost" size="sm">Yönet</Button></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -489,12 +449,12 @@ export default function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-12">
-          <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden">
-            <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase"><Settings2 className="h-6 w-6 text-primary" /> Markalama</CardTitle></CardHeader>
+          <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
+            <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Settings2 className="h-6 w-6 text-primary" /> Markalama</CardTitle></CardHeader>
             <CardContent className="p-8">
               <Form {...configForm}><form onSubmit={configForm.handleSubmit(onUpdateConfig)} className="space-y-8 max-w-md">
                 <FormField control={configForm.control} name="currencyName" render={({ field }) => (
-                  <FormItem><FormLabel className="text-[10px] font-black uppercase">Para Birimi İsmi</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel className="text-[10px] font-black uppercase">Para Birimi İsmi</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>
                 )} />
                 <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase shadow-xl shadow-primary/10">Kaydet</Button>
               </form></Form>
@@ -503,23 +463,21 @@ export default function AdminPanel() {
 
           <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
             <CardHeader className="bg-secondary/10 border-b p-8">
-              <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Package className="h-6 w-6 text-primary" /> PIX Paket Yönetimi</CardTitle>
-              <CardDescription>Aktif paketlerinizi düzenleyin ve ödeme linklerini tanımlayın.</CardDescription>
+              <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Package className="h-6 w-6 text-primary" /> PIX Paketleri</CardTitle>
             </CardHeader>
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {dbPackages?.map(pkg => (<PackageEditor key={pkg.id} pkg={pkg} onSave={handleUpdatePackage} />)) || (
                   <div className="col-span-full py-12 text-center space-y-4 border-2 border-dashed rounded-[32px]">
-                    <Package className="mx-auto h-12 w-12 text-muted-foreground/30" /><p className="text-muted-foreground font-medium">Paket bulunamadı.</p>
                     <Button variant="outline" className="rounded-xl font-black uppercase text-[10px]" onClick={async () => {
                       if(!firestore) return;
                       const defaults = [
-                        { id: 'starter', name: 'Starter Paket', description: 'Hızlı başlangıç için temel paket.', price: 99, pix_amount: 20, payment_link: 'https://iyzi.link/AKg9LA', active: true, order: 1 },
-                        { id: 'creator', name: 'Creator Paket', description: 'Gelişmiş analizler ve tam erişim.', price: 199, pix_amount: 60, payment_link: 'https://iyzi.link/AKg9OQ', active: true, order: 2 },
-                        { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar ve mentorluk.', price: 349, pix_amount: 150, payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
+                        { id: 'starter', name: 'Starter Paket', description: 'Hızlı başlangıç.', price: 99, pix_amount: 20, payment_link: 'https://iyzi.link/AKg9LA', active: true, order: 1 },
+                        { id: 'creator', name: 'Creator Paket', description: 'Gelişmiş analizler.', price: 199, pix_amount: 60, payment_link: 'https://iyzi.link/AKg9OQ', active: true, order: 2 },
+                        { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar.', price: 349, pix_amount: 150, payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
                       ];
                       for(const d of defaults) await setDoc(doc(firestore, 'pix_packages', d.id), d);
-                      toast({ title: "Varsayılanları Yükle" });
+                      toast({ title: "Varsayılanlar Yüklendi" });
                     }}>Varsayılanları Yükle</Button>
                   </div>
                 )}

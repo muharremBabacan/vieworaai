@@ -1,4 +1,3 @@
-
 export const dynamic = 'force-dynamic';
 import { ClientProviders } from '@/components/ClientProviders';
 import { Metadata } from 'next';
@@ -18,7 +17,6 @@ export default function RootLayout({
   return (
     <html lang="tr" className="dark">
       <head>
-        {/* Google Tag Manager / Ads (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
           strategy="afterInteractive"
