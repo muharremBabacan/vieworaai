@@ -3,6 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- YARDIMCI FONKSİYONLAR ---
     function isSignedIn() {
       return request.auth != null;
     }
@@ -21,17 +22,21 @@ service cloud.firestore {
       );
     }
 
+    // --- PIX PAKETLERİ ---
     match /pix_packages/{packageId} {
-      allow read: if isSignedIn();
+      allow get, list: if true; // Herkes paketleri listeleyebilir
       allow write: if isAdmin();
     }
 
+    // --- SATIN ALMA TALEPLERİ ---
     match /pix_purchases/{purchaseId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100); 
       allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
-      allow update: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
+    // --- KULLANICI PROFİLLERİ ---
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -48,74 +53,71 @@ service cloud.firestore {
         allow read, write: if isOwner(userId) || isAdmin();
       }
       match /notifications/{notifId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
     
+    // --- DİĞER KOLEKSİYONLAR ---
     match /exhibitions/{exhibitionId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
     
     match /public_photos/{photoId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
     
     match /groups/{groupId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn();
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       match /assignments/{assignmentId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if isAdmin() || (exists(/databases/$(database)/documents/groups/$(groupId)) && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+        allow get, list: if isSignedIn();
+        allow write: if isAdmin() || (get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
       }
 
       match /submissions/{submissionId} {
-        allow read: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update: if isSignedIn();
-        allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+        allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       }
 
       match /trips/{tripId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if isSignedIn();
+        allow get, list: if isSignedIn();
+        allow create, update: if isSignedIn();
         
         match /participants/{userId} {
-          allow read: if isSignedIn();
+          allow get, list: if isSignedIn();
           allow create, update: if isSignedIn() && request.auth.uid == userId;
         }
       }
     }
 
     match /app_settings/{docId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /analysis_logs/{logId} {
-      allow read: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
+      allow get, list: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
       allow create: if isSignedIn();
     }
 
     match /public_profiles/{userId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isOwner(userId) || isAdmin();
     }
 
     match /academy_curriculum/{docId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /academy_lessons/{lessonId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
   }

@@ -69,6 +69,7 @@ export default function GalleryPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [targetExhibitionId, setTargetExhibitionId] = useState<string>('');
 
+  // 🪝 HOOKS
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const photosQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;

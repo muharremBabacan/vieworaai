@@ -145,11 +145,12 @@ export default function AdminPanel() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { currencyName: currentCurrency } = useAppConfig();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
-  // Memoize refs/queries
+  // 🪝 HOOKS - ALL AT THE TOP
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
@@ -209,6 +210,25 @@ export default function AdminPanel() {
     const adminUids = ['01DT86bQwWUVrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);
+
+  const metrics = useMemo(() => {
+    if (!logs) return null;
+    return {
+      totalAuro: logs.filter(l => l.auroSpent > 0).reduce((sum, log) => sum + (log.auroSpent || 0), 0),
+      techAuro: logs.filter(l => l.type === 'technical').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
+      mentorAuro: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
+      exhibitionAuro: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
+      competitionAuro: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
+      totalGifts: Math.abs(logs.filter(l => l.type === 'gift').reduce((sum, log) => sum + (log.auroSpent || 0), 0)),
+    };
+  }, [logs]);
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (!userSearch) return users;
+    const term = userSearch.toLowerCase();
+    return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
+  }, [users, userSearch]);
 
   if (!isAdmin) return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
 
@@ -276,25 +296,6 @@ export default function AdminPanel() {
       toast({ title: "Ödeme Reddedildi" });
     } catch (e) { toast({ variant: 'destructive', title: "Red Hatası" }); } finally { setIsSubmitting(false); }
   };
-
-  const metrics = useMemo(() => {
-    if (!logs) return null;
-    return {
-      totalAuro: logs.filter(l => l.auroSpent > 0).reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      techAuro: logs.filter(l => l.type === 'technical').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      mentorAuro: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      exhibitionAuro: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      competitionAuro: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      totalGifts: Math.abs(logs.filter(l => l.type === 'gift').reduce((sum, log) => sum + (log.auroSpent || 0), 0)),
-    };
-  }, [logs]);
-
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    if (!userSearch) return users;
-    const term = userSearch.toLowerCase();
-    return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
-  }, [users, userSearch]);
 
   const onCreateExhibition = async (values: z.infer<typeof exhibitionSchema>) => {
     if (!firestore || isSubmitting) return;

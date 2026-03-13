@@ -22,6 +22,7 @@ export default function PricingPage() {
   
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
+  // 🪝 HOOKS
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const packagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -38,36 +39,9 @@ export default function PricingPage() {
   const activePackages = useMemo(() => {
     if (!dbPackages || dbPackages.length === 0) {
       return [
-        {
-          id: 'starter',
-          name: 'Starter Paket',
-          price: 99,
-          pix_amount: 20,
-          description: 'Hızlı başlangıç için temel paket.',
-          payment_link: 'https://iyzi.link/AKg9LA',
-          active: true,
-          order: 1
-        },
-        {
-          id: 'creator',
-          name: 'Creator Paket',
-          price: 199,
-          pix_amount: 60,
-          description: 'Gelişmiş analizler ve tam erişim.',
-          payment_link: 'https://iyzi.link/AKg9OQ',
-          active: true,
-          order: 2
-        },
-        {
-          id: 'pro',
-          name: 'Pro Paket',
-          price: 349,
-          pix_amount: 150,
-          description: 'Profesyonel araçlar ve mentorluk.',
-          payment_link: 'https://iyzi.link/AKg9Og',
-          active: true,
-          order: 3
-        }
+        { id: 'starter', name: 'Starter Paket', price: 99, pix_amount: 20, description: 'Hızlı başlangıç için temel paket.', payment_link: 'https://iyzi.link/AKg9LA', active: true, order: 1 },
+        { id: 'creator', name: 'Creator Paket', price: 199, pix_amount: 60, description: 'Gelişmiş analizler ve tam erişim.', payment_link: 'https://iyzi.link/AKg9OQ', active: true, order: 2 },
+        { id: 'pro', name: 'Pro Paket', price: 349, pix_amount: 150, description: 'Profesyonel araçlar ve mentorluk.', payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
       ];
     }
     return dbPackages;
@@ -102,13 +76,11 @@ export default function PricingPage() {
         approved_by: null
       });
 
-      // Pass the doc ID as a reference to iyzico if possible, 
-      // otherwise we use it to track on our side.
       window.open(`${pkg.payment_link}?merchantOrderId=${purchaseRef.id}`, '_blank');
       
       toast({ 
         title: "Yönlendiriliyorsunuz", 
-        description: "Ödeme sayfasını yeni sekmede açtık. Ödeme sonrası bakiyeniz onaylandığında yüklenecektir." 
+        description: "Ödeme sayfasını yeni sekmede açtık. Ödeme sonrası bakiyeniz otomatik yüklenecektir." 
       });
     } catch (e) {
       console.error("Purchase error:", e);
