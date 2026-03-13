@@ -48,6 +48,7 @@ export default function GroupDetailPage() {
   const storage = getStorage();
   const { toast } = useToast();
 
+  // 🪝 Hooks at the top
   const [activeTab, setActiveTab] = useState('assignments');
   const [isUploading, setIsUploading] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);

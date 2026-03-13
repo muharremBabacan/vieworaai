@@ -34,7 +34,7 @@ const CATEGORY_FILTERS = [
   { id: 'landscape', label: 'Manzara' },
   { id: 'street', label: 'Sokak' },
   { id: 'architecture', label: 'Mimari' },
-  { id: 'food', label: 'Yemek' },
+  { id: 'pets', label: 'Evcil Hayvanlar' },
   { id: 'macro', label: 'Makro' },
 ];
 
@@ -62,6 +62,7 @@ export default function GalleryPage() {
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
 
+  // 🪝 Hooks at the top
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -92,7 +93,6 @@ export default function GalleryPage() {
     if (!photos) return [];
     let result = [...photos];
     
-    // Status Filter
     if (statusFilter !== 'all') {
       switch (statusFilter) {
         case 'analyzed': result = result.filter(p => !!p.aiFeedback); break;
@@ -101,7 +101,6 @@ export default function GalleryPage() {
       }
     }
 
-    // Category Filter
     if (categoryFilter !== 'all') {
       result = result.filter(p => p.aiFeedback?.genre?.toLowerCase().includes(categoryFilter.toLowerCase()));
     }
