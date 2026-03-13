@@ -52,10 +52,26 @@ export type PixPackage = {
   name: string;
   description: string;
   price: number;
+  pix_amount: number;
   payment_link: string;
   active: boolean;
   order: number;
-  pix_amount?: number;
+};
+
+export type PixPurchase = {
+  id: string;
+  user_id: string;
+  user_name: string;
+  package_id: string;
+  package_name: string;
+  pix_amount: number;
+  price: number;
+  payment_provider: "iyzico_link";
+  payment_link: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  approved_at: string | null;
+  approved_by: string | null;
 };
 
 export type OnboardingResults = {
@@ -105,6 +121,7 @@ export type User = {
   phone?: string;
   instagram?: string;
   auro_balance: number;
+  pix_balance: number;
   total_auro_spent?: number;
   total_analyses_count: number;
   total_mentor_analyses_count: number;

@@ -1,23 +1,30 @@
 
 'use client';
 
-import { useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { PixPackage } from '@/types';
+import { useState, useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/lib/firebase';
+import { collection, query, where, orderBy, addDoc, doc } from 'firebase/firestore';
+import type { PixPackage, User } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Check, Info, ExternalLink } from 'lucide-react';
+import { Sparkles, Info, ExternalLink, Loader2, CreditCard } from 'lucide-react';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/shared/hooks/use-toast';
 
 export default function PricingPage() {
-  const { currencyName } = useAppConfig();
+  const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const { currencyName } = useAppConfig();
+  const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
-  // 1. All hooks at the top
+  // 🪝 Hooks at top
+  const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const { data: userProfile } = useDoc<User>(userRef);
+
   const packagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -29,42 +36,86 @@ export default function PricingPage() {
 
   const { data: dbPackages, isLoading } = useCollection<PixPackage>(packagesQuery);
 
-  // 2. Logic processing after hooks
   const activePackages = useMemo(() => {
-    // Fallback if DB is empty
     if (!dbPackages || dbPackages.length === 0) {
       return [{
         id: 'starter',
         name: 'Starter Paket',
         price: 99,
+        pix_amount: 20,
         description: 'Hızlı başlangıç için temel paket.',
         payment_link: 'https://iyzi.link/AKg9LA',
         active: true,
         order: 1
       }];
     }
-    return dbPackages;
+    // Filter out 'Elite' manually just in case, though the instructions imply DB control
+    return dbPackages.filter(p => !p.name.toLowerCase().includes('elite'));
   }, [dbPackages]);
+
+  const handlePurchaseClick = async (pkg: PixPackage) => {
+    if (!user || !firestore || !userProfile) {
+      toast({ variant: 'destructive', title: "Giriş Gerekli", description: "Satın alma işlemi için lütfen giriş yapın." });
+      return;
+    }
+
+    if (pkg.payment_link === '#' || !pkg.payment_link) {
+      toast({ variant: 'destructive', title: "Bağlantı Hazırlanıyor", description: "Bu paket için ödeme linki henüz tanımlanmamış." });
+      return;
+    }
+
+    setIsProcessingId(pkg.id);
+    
+    try {
+      // 📝 1. Create a pending purchase record
+      await addDoc(collection(firestore, 'pix_purchases'), {
+        user_id: user.uid,
+        user_name: userProfile.name || "İsimsiz Vizyoner",
+        package_id: pkg.id,
+        package_name: pkg.name,
+        pix_amount: pkg.pix_amount || 0,
+        price: pkg.price,
+        payment_provider: "iyzico_link",
+        payment_link: pkg.payment_link,
+        status: "pending",
+        created_at: new Date().toISOString(),
+        approved_at: null,
+        approved_by: null
+      });
+
+      // 🔗 2. Open iyzico in new tab
+      window.open(pkg.payment_link, '_blank');
+      
+      toast({ 
+        title: "Yönlendiriliyorsunuz", 
+        description: "Ödeme sayfasını yeni sekmede açtık. Ödeme sonrası bakiyeniz admin onayıyla yüklenecektir." 
+      });
+    } catch (e) {
+      console.error("Purchase error:", e);
+      toast({ variant: 'destructive', title: "İşlem Başlatılamadı" });
+    } finally {
+      setIsProcessingId(null);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-12 animate-in fade-in duration-700">
-      {/* Ücretsiz Kullanım Mesajı (Beta Revizyonu) */}
       <div className="max-w-4xl mx-auto mb-16">
         <div className="bg-primary/10 border border-primary/20 rounded-[32px] p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left shadow-2xl shadow-primary/5">
           <div className="h-16 w-16 rounded-3xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shrink-0">
             <Sparkles size={32} />
           </div>
           <div className="flex-1 space-y-1">
-            <h2 className="text-2xl font-black tracking-tight uppercase text-primary">Viewora Beta</h2>
+            <h2 className="text-2xl font-black tracking-tight uppercase text-primary">Viewora Mağaza</h2>
             <p className="text-foreground/90 font-bold text-lg leading-tight">
-              Viewora şu anda erişim (beta) aşamasındadır.
+              Yapay zeka analizleri için PIX paketlerini kullanın.
             </p>
             <p className="text-muted-foreground font-medium text-base">
-              Tüm analiz özelliklerini şu anda <b>ücretsiz</b> kullanabilirsiniz.
+              Paket satın aldıktan sonra ödemeniz sistem tarafından onaylanarak bakiyenize eklenir.
             </p>
           </div>
-          <Badge className="bg-primary text-primary-foreground font-black px-6 h-10 rounded-full text-xs tracking-widest uppercase border-none animate-pulse">
-            BETA AKTİF
+          <Badge className="bg-primary text-primary-foreground font-black px-6 h-10 rounded-full text-xs tracking-widest uppercase border-none">
+            GÜVENLİ ÖDEME
           </Badge>
         </div>
       </div>
@@ -102,9 +153,14 @@ export default function PricingPage() {
               </CardHeader>
 
               <CardContent className="p-8 pt-0 flex-grow space-y-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-black tracking-tighter">{pkg.price}</span>
-                  <span className="text-lg font-bold text-primary uppercase">TL</span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-5xl font-black tracking-tighter">{pkg.price}</span>
+                    <span className="text-lg font-bold text-primary uppercase">TL</span>
+                  </div>
+                  <p className="text-xs font-black text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                    <Gem size={14} /> {pkg.pix_amount || 0} {currencyName} YÜKLEMESİ
+                  </p>
                 </div>
 
                 <div className="pt-4 border-t border-border/20">
@@ -116,12 +172,17 @@ export default function PricingPage() {
 
               <CardFooter className="p-8 pt-0 flex flex-col gap-4">
                 <Button 
+                  onClick={() => handlePurchaseClick(pkg)}
+                  disabled={isProcessingId === pkg.id}
                   className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/10 transition-transform active:scale-95"
-                  asChild
                 >
-                  <a href={pkg.payment_link} target="_blank" rel="noopener noreferrer">
-                    Satın Al <ExternalLink className="ml-2 h-4 w-4" />
-                  </a>
+                  {isProcessingId === pkg.id ? (
+                    <Loader2 className="animate-spin h-5 w-5" />
+                  ) : (
+                    <>
+                      Hemen Satın Al <ExternalLink className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -131,7 +192,7 @@ export default function PricingPage() {
 
       <div className="mt-20 text-center flex flex-col items-center gap-4">
         <div className="flex items-center gap-2 text-muted-foreground bg-secondary/30 px-6 py-3 rounded-full border border-border/40">
-          <Info size={16} className="text-primary" />
+          <CreditCard size={16} className="text-primary" />
           <p className="text-[10px] font-black uppercase tracking-widest">Tüm ödemeleriniz iyzico SSL güvencesiyle korunur.</p>
         </div>
       </div>

@@ -34,6 +34,7 @@ export const AuthService = {
         phone: '',
         instagram: '',
         auro_balance: 20,
+        pix_balance: 0, // 🆕 Added for PIX system
         current_xp: 0,
         level_name: 'Neuner',
         tier: 'start',
