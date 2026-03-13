@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -27,6 +26,16 @@ const STATUS_FILTERS = [
   { id: 'analyzed', label: 'Analiz Edilenler', icon: Sparkles },
   { id: 'exhibition', label: 'Sergidekiler', icon: Globe },
   { id: 'best', label: 'En İyilerim', icon: Trophy },
+];
+
+const CATEGORY_FILTERS = [
+  { id: 'all', label: 'Tüm Türler' },
+  { id: 'portrait', label: 'Portre' },
+  { id: 'landscape', label: 'Manzara' },
+  { id: 'street', label: 'Sokak' },
+  { id: 'architecture', label: 'Mimari' },
+  { id: 'food', label: 'Yemek' },
+  { id: 'macro', label: 'Makro' },
 ];
 
 const normalizeScore = (score: number | undefined | null): number => {
@@ -82,6 +91,8 @@ export default function GalleryPage() {
   const filteredPhotos = useMemo(() => {
     if (!photos) return [];
     let result = [...photos];
+    
+    // Status Filter
     if (statusFilter !== 'all') {
       switch (statusFilter) {
         case 'analyzed': result = result.filter(p => !!p.aiFeedback); break;
@@ -89,8 +100,14 @@ export default function GalleryPage() {
         case 'best': result = result.filter(p => getOverallScore(p) >= 8); break;
       }
     }
+
+    // Category Filter
+    if (categoryFilter !== 'all') {
+      result = result.filter(p => p.aiFeedback?.genre?.toLowerCase().includes(categoryFilter.toLowerCase()));
+    }
+
     return result;
-  }, [photos, statusFilter]);
+  }, [photos, statusFilter, categoryFilter]);
 
   const handleDeletePhoto = async (photo: Photo) => {
     if (!user || !firestore || isProcessing) return;
@@ -191,7 +208,8 @@ export default function GalleryPage() {
         <h1 className={cn(typography.h1, "leading-none uppercase")}>Galerim</h1>
       </header>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
+      <div className="space-y-6 mb-10">
+        {/* Status Filters */}
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map(f => (
             <Button 
@@ -204,6 +222,26 @@ export default function GalleryPage() {
               <f.icon className="mr-2 h-3.5 w-3.5" /> {f.label}
             </Button>
           ))}
+        </div>
+
+        {/* Category Filters */}
+        <div className="relative filter-scroll">
+          <div className="w-full overflow-x-auto no-scrollbar pb-2 flex gap-2 snap-x">
+            {CATEGORY_FILTERS.map(f => (
+              <Button
+                key={f.id}
+                variant={categoryFilter === f.id ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setCategoryFilter(f.id)}
+                className={cn(
+                  "shrink-0 rounded-full h-8 px-4 text-[9px] font-black uppercase tracking-wider transition-all",
+                  categoryFilter === f.id ? "bg-primary/10 text-primary border-primary/20" : "text-muted-foreground"
+                )}
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -239,7 +277,7 @@ export default function GalleryPage() {
         <div className="text-center py-40 rounded-[48px] border-2 border-dashed bg-muted/5 animate-in zoom-in duration-500">
           <Camera className="mx-auto h-16 w-16 text-muted-foreground/20 mb-6" />
           <h3 className="text-2xl font-black uppercase tracking-tight">Galeri Boş</h3>
-          <p className="text-muted-foreground mt-2 max-w-xs mx-auto font-medium text-sm">Henüz bu kategoride fotoğraf bulunmuyor.</p>
+          <p className="text-muted-foreground mt-2 max-w-xs mx-auto font-medium text-sm">Henüz bu filtreye uygun fotoğraf bulunmuyor.</p>
           <Button onClick={() => router.push('/dashboard')} className="mt-8 rounded-2xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">Fotoğraf Yükle</Button>
         </div>
       )}

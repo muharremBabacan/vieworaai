@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -17,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Crown, Users, Send, ImageIcon, Info, Heart, Star, GraduationCap, Trophy, Map, MapPin, Calendar, Check, Instagram, Phone, Sparkles, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Loader2, Crown, Users, Send, ImageIcon, Info, Heart, Star, GraduationCap, Trophy, Map, MapPin, Calendar, Check, Instagram, Phone, Sparkles, ArrowLeft, ShieldCheck, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
