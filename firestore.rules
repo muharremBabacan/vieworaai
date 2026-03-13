@@ -151,5 +151,16 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    match /pix_packages/{packageId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /pix_purchases/{purchaseId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow update: if isAdmin();
+    }
   }
 }

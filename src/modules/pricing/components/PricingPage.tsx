@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Info, ExternalLink, Loader2, CreditCard } from 'lucide-react';
+import { Sparkles, ExternalLink, Loader2, CreditCard, Gem } from 'lucide-react';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -21,7 +21,6 @@ export default function PricingPage() {
   const { currencyName } = useAppConfig();
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
-  // 🪝 Hooks at top
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userRef);
 
@@ -49,7 +48,6 @@ export default function PricingPage() {
         order: 1
       }];
     }
-    // Filter out 'Elite' manually just in case, though the instructions imply DB control
     return dbPackages.filter(p => !p.name.toLowerCase().includes('elite'));
   }, [dbPackages]);
 
@@ -67,7 +65,6 @@ export default function PricingPage() {
     setIsProcessingId(pkg.id);
     
     try {
-      // 📝 1. Create a pending purchase record
       await addDoc(collection(firestore, 'pix_purchases'), {
         user_id: user.uid,
         user_name: userProfile.name || "İsimsiz Vizyoner",
@@ -83,7 +80,6 @@ export default function PricingPage() {
         approved_by: null
       });
 
-      // 🔗 2. Open iyzico in new tab
       window.open(pkg.payment_link, '_blank');
       
       toast({ 
@@ -172,7 +168,7 @@ export default function PricingPage() {
 
               <CardFooter className="p-8 pt-0 flex flex-col gap-4">
                 <Button 
-                  onClick={() => handlePurchaseClick(pkg)}
+                  onClick={() => handlePurchaseClick(pkg as PixPackage)}
                   disabled={isProcessingId === pkg.id}
                   className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/10 transition-transform active:scale-95"
                 >
