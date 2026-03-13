@@ -38,16 +38,16 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       
       match /photos/{photoId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow get, list, write: if isOwner(userId) || isAdmin();
       }
       match /lessonProgress/{lessonId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow get, list, write: if isOwner(userId) || isAdmin();
       }
       match /strategic_feedbacks/{feedbackId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow get, list, write: if isOwner(userId) || isAdmin();
       }
       match /notifications/{notifId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow get, list, write: if isOwner(userId) || isAdmin();
       }
     }
     

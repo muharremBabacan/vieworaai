@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Activity, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon
+  Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -473,8 +473,8 @@ export default function AdminPanel() {
                       if(!firestore) return;
                       const defaults = [
                         { id: 'starter', name: 'Starter Paket', description: 'Hızlı başlangıç.', price: 99, pix_amount: 20, payment_link: 'https://iyzi.link/AKg9LA', active: true, order: 1 },
-                        { id: 'creator', name: 'Creator Paket', description: 'Gelişmiş analizler.', price: 199, pix_amount: 60, payment_link: 'https://iyzi.link/AKg9OQ', active: true, order: 2 },
-                        { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar.', price: 349, pix_amount: 150, payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
+                        { id: 'creator', name: 'Creator Paket', description: 'Gelişmiş analizler.', price: 199, pix_amount: 50, payment_link: 'https://iyzi.link/AKg9OQ', active: true, order: 2 },
+                        { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar.', price: 349, pix_amount: 100, payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
                       ];
                       for(const d of defaults) await setDoc(doc(firestore, 'pix_packages', d.id), d);
                       toast({ title: "Varsayılanlar Yüklendi" });

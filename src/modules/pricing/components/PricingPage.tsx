@@ -21,7 +21,7 @@ export default function PricingPage() {
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userRef);
 
   const handlePurchaseClick = async (pkg: any) => {
     if (!user || !firestore || !userProfile) {
@@ -54,13 +54,18 @@ export default function PricingPage() {
 
       const sep = paymentLink.includes('?') ? '&' : '?';
       window.open(`${paymentLink}${sep}merchantOrderId=${purchaseRef.id}`, '_blank');
-      toast({ title: "Yönlendiriliyorsunuz" });
+      toast({ title: "Ödeme Sayfasına Yönlendiriliyorsunuz" });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Hata" });
+      console.error(e);
+      toast({ variant: 'destructive', title: "İşlem Başlatılamadı" });
     } finally {
       setIsProcessingId(null);
     }
   };
+
+  if (isProfileLoading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 animate-in fade-in duration-700">
