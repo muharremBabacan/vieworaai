@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { ClientProviders } from '@/components/ClientProviders';
 import { Metadata } from 'next';
 import Script from 'next/script';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getLocale } from 'next-intl/server';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -9,13 +11,16 @@ export const metadata: Metadata = {
   description: 'Global Fotoğrafçılık Eğitimi ve Koçluğu Platformu',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="tr" className="dark">
+    <html lang={locale} className="dark">
       <head>
         {/* Google Ads Tag (gtag.js) */}
         <Script
@@ -32,9 +37,11 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="antialiased bg-background text-foreground">
-        <ClientProviders>
-          {children}
-        </ClientProviders>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <ClientProviders>
+            {children}
+          </ClientProviders>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

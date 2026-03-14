@@ -28,7 +28,9 @@ service cloud.firestore {
 
     // 2. Pix Satın Alımları - Kişisel ve Admin
     match /pix_purchases/{purchaseId} {
-      allow get, list: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      // List rules check query parameters or the document data itself
+      allow list: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
@@ -101,7 +103,7 @@ service cloud.firestore {
 
     // 7. Analiz Logları
     match /analysis_logs/{logId} {
-      allow list: if isAdmin() || (isSignedIn() && query.limit <= 50 && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
     }
@@ -123,7 +125,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // 10. Bildirimler (Eksik Olan)
+    // 10. Bildirimler
     match /global_notifications/{notifId} {
       allow get, list: if true;
       allow write: if isAdmin();

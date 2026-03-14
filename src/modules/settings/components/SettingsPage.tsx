@@ -1,7 +1,6 @@
-
 'use client';
-import { useState } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { useState, useEffect } from 'react';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { User, UserTier } from '@/types';
 import { levels } from '@/lib/gamification';
@@ -10,15 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, Settings as SettingsIcon, User as UserIcon, Camera, Check, ShieldAlert, Sparkles, Diamond, Zap, Flame, Award, HelpCircle, GraduationCap, Phone, Instagram } from 'lucide-react';
+import { LogOut, Settings as SettingsIcon, User as UserIcon, Camera, Check, ShieldAlert, Sparkles, Diamond, Zap, Flame, Award, HelpCircle, Phone, Instagram, Languages, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { signOut, updateProfile } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { useTranslations } from 'next-intl';
 
 const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
@@ -30,12 +29,33 @@ const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   };
 });
 
-const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
-  const [nickname, setNickname] = useState(userProfile.name || '');
-  const [phone, setPhone] = useState(userProfile.phone || '');
-  const [instagram, setInstagram] = useState(userProfile.instagram || '');
+export default function SettingsPage() {
+  const t = useTranslations('ProfilePage');
+  const common = useTranslations('AppLayout');
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const auth = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { currencyName } = useAppConfig();
+
+  const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
+
+  const [nickname, setNickname] = useState('');
+  const [phone, setPhone] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [language, setLanguage] = useState('tr');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (userProfile) {
+      setNickname(userProfile.name || '');
+      setPhone(userProfile.phone || '');
+      setInstagram(userProfile.instagram || '');
+      setLanguage(userProfile.language || 'tr');
+    }
+  }, [userProfile]);
 
   const handleUpdateProfile = async () => {
     if (!user || !firestore || isUpdating) return;
@@ -57,9 +77,27 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
     }
   };
 
+  const handleLanguageChange = async (newLocale: string) => {
+    if (!user || !firestore) return;
+    setLanguage(newLocale);
+    try {
+      // 1. Çerezi güncelle
+      document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+      
+      // 2. Firestore'u güncelle
+      await updateDoc(doc(firestore, 'users', user.uid), { language: newLocale });
+      
+      toast({ title: newLocale === 'tr' ? "Dil Değiştirildi" : "Language Updated" });
+      
+      // 3. Sayfayı yenile ki yeni dil aktif olsun
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleSelectPreset = async (url: string) => {
-    if (!user || !firestore || isUploading) return;
-    setIsUploading(true);
+    if (!user || !firestore) return;
     try {
       const userRef = doc(firestore, 'users', user.uid);
       const publicRef = doc(firestore, 'public_profiles', user.uid);
@@ -71,97 +109,133 @@ const ProfileSettings = ({ userProfile, user, firestore, toast }: { userProfile:
       toast({ title: "Avatar Güncellendi" });
     } catch (error) {
       toast({ variant: 'destructive', title: "Hata" });
-    } finally {
-      setIsUploading(false);
     }
   };
 
-  return (
-    <Card className="rounded-[32px] overflow-hidden">
-      <CardHeader className="p-8 border-b bg-secondary/10">
-        <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><UserIcon className="h-6 w-6" /> Profil Ayarları</CardTitle>
-      </CardHeader>
-      <CardContent className="p-8 space-y-10">
-        <div className="flex flex-col items-center sm:flex-row gap-8">
-          <Avatar className="h-32 w-32 border-4 border-primary/10 shadow-xl">
-            <AvatarImage src={userProfile.photoURL || ''} className="object-cover" />
-            <AvatarFallback className="text-4xl font-bold bg-secondary">{userProfile.name?.charAt(0) || 'U'}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 w-full space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nickname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Takma Ad</Label>
-                <Input id="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-bold" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Phone size={10} /> Telefon</Label>
-                  <Input id="phone" placeholder="05xx..." value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="instagram" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Instagram size={10} /> Instagram</Label>
-                  <Input id="instagram" placeholder="@kullaniciadi" value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
-                </div>
-              </div>
-            </div>
-            <Button onClick={handleUpdateProfile} disabled={isUpdating} className="rounded-xl h-11 px-8 font-bold">Kaydet</Button>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Camera className="h-3 w-3" /> Simge Seçin</Label>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-            {PRESET_AVATARS.map((avatar) => (
-              <button key={avatar.id} onClick={() => handleSelectPreset(avatar.url)} className={cn("relative aspect-square rounded-2xl border-2 overflow-hidden transition-all active:scale-90", userProfile.photoURL === avatar.url ? "border-primary ring-4 ring-primary/10 shadow-lg" : "border-border/40 hover:border-primary/40")}>
-                <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover" />
-                {userProfile.photoURL === avatar.url && <div className="absolute inset-0 bg-primary/10 flex items-center justify-center"><div className="bg-primary text-white p-1 rounded-full"><Check className="h-3 w-3" /></div></div>}
-              </button>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
 
-const BadgeGlossary = () => {
-  const { currencyName } = useAppConfig();
+  if (isProfileLoading) return <div className="container mx-auto max-w-2xl p-4 py-10"><Skeleton className="h-64 w-full rounded-[32px]" /></div>;
+  if (!userProfile || !user) return null;
+
+  const isDevUser = userProfile.email === 'babacan.muharrem@gmail.com' || userProfile.email === 'admin@viewora.ai' || userProfile.id === '01DT86bQwWUVmrewnEb8c6bd8H43';
+
   return (
-    <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/30">
-      <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
-        <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight uppercase">
-          <HelpCircle className="h-6 w-6 text-primary" /> Rozet ve Seviye Rehberi
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-8 space-y-8">
-        <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0 border border-orange-500/20">
-            <Flame size={24} className="fill-current" />
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-black text-sm uppercase">Günlük Seri (Streak)</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">Viewora'da kaç gün üst üste aktif olduğunuzu gösterir.</p>
-          </div>
-        </div>
-        <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-500/20">
-            <Award size={24} />
-          </div>
-          <div className="space-y-2 flex-1">
-            <h4 className="font-black text-sm uppercase">Rütbeler ve XP</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {levels.map(l => (
-                <div key={l.name} className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
-                  <p className="text-[10px] font-black uppercase text-primary">{l.name}</p>
-                  <p className="text-[8px] font-bold text-muted-foreground">{l.minXp} XP</p>
+    <div className="container mx-auto max-w-3xl space-y-10 px-4 pt-10 pb-24 animate-in fade-in duration-700">
+      <h1 className="text-5xl font-black tracking-tighter uppercase">{t('title_settings') || 'Ayarlar'}</h1>
+      
+      <Card className="rounded-[32px] overflow-hidden">
+        <CardHeader className="p-8 border-b bg-secondary/10">
+          <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><UserIcon className="h-6 w-6" /> Profil Ayarları</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8 space-y-10">
+          <div className="flex flex-col items-center sm:flex-row gap-8">
+            <Avatar className="h-32 w-32 border-4 border-primary/10 shadow-xl">
+              <AvatarImage src={userProfile.photoURL || ''} className="object-cover" />
+              <AvatarFallback className="text-4xl font-bold bg-secondary">{userProfile.name?.charAt(0) || 'U'}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 w-full space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nickname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Takma Ad</Label>
+                  <Input id="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-bold" />
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Phone size={10} /> Telefon</Label>
+                    <Input id="phone" placeholder="05xx..." value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Instagram size={10} /> Instagram</Label>
+                    <Input id="instagram" placeholder="@kullaniciadi" value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
+                  </div>
+                </div>
+              </div>
+              <Button onClick={handleUpdateProfile} disabled={isUpdating} className="rounded-xl h-11 px-8 font-bold">Kaydet</Button>
+            </div>
+          </div>
+          
+          <div className="space-y-4 border-t pt-8">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Languages size={12} /> Dil / Language</Label>
+              <Select value={language} onValueChange={handleLanguageChange}>
+                <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-border/60">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tr">Türkçe</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t pt-8">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Camera className="h-3 w-3" /> Simge Seçin</Label>
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+              {PRESET_AVATARS.map((avatar) => (
+                <button key={avatar.id} onClick={() => handleSelectPreset(avatar.url)} className={cn("relative aspect-square rounded-2xl border-2 overflow-hidden transition-all active:scale-90", userProfile.photoURL === avatar.url ? "border-primary ring-4 ring-primary/10 shadow-lg" : "border-border/40 hover:border-primary/40")}>
+                  <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover" />
+                  {userProfile.photoURL === avatar.url && <div className="absolute inset-0 bg-primary/10 flex items-center justify-center"><div className="bg-primary text-white p-1 rounded-full"><Check className="h-3 w-3" /></div></div>}
+                </button>
               ))}
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/30">
+        <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
+          <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight uppercase">
+            <HelpCircle className="h-6 w-6 text-primary" /> Rozet ve Seviye Rehberi
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-8 space-y-8">
+          <div className="flex gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0 border border-orange-500/20">
+              <Flame size={24} className="fill-current" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-black text-sm uppercase">Günlük Seri (Streak)</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">Viewora'da kaç gün üst üste aktif olduğunuzu gösterir.</p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0 border border-amber-500/20">
+              <Award size={24} />
+            </div>
+            <div className="space-y-2 flex-1">
+              <h4 className="font-black text-sm uppercase">Rütbeler ve XP</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {levels.map(l => (
+                  <div key={l.name} className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                    <p className="text-[10px] font-black uppercase text-primary">{l.name}</p>
+                    <p className="text-[8px] font-bold text-muted-foreground">{l.minXp} XP</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isDevUser && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
+
+      <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50">
+        <CardHeader className="p-8 border-b bg-secondary/10">
+          <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><SettingsIcon className="h-6 w-6" /> Uygulama & Hesap</CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+            <Button onClick={handleSignOut} variant="ghost" className="w-full h-14 rounded-2xl border border-border/60 font-black uppercase tracking-widest text-destructive hover:bg-destructive/10 hover:text-destructive">
+              <LogOut className="mr-2 h-5 w-5" /> {t('button_sign_out') || 'Çıkış Yap'}
+            </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
-};
+}
 
 const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
   const handleLevelChange = async (newLevelName: string) => {
@@ -212,43 +286,3 @@ const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: 
     </Card>
   );
 };
-
-export default function SettingsPage() {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-  const auth = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
-
-  const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-
-  const isDevUser = userProfile?.email === 'babacan.muharrem@gmail.com' || userProfile?.email === 'admin@viewora.ai' || userProfile?.id === '01DT86bQwWUVrewnEb8c6bd8H43';
-
-  const handleSignOut = async () => {
-    await signOut(auth);
-    router.push('/');
-  };
-
-  if (isUserLoading || isProfileLoading) return <div className="container mx-auto max-w-2xl p-4 py-10"><Skeleton className="h-64 w-full rounded-[32px]" /></div>;
-  if (!userProfile || !user) return null;
-
-  return (
-    <div className="container mx-auto max-w-3xl space-y-10 px-4 pt-10 pb-24 animate-in fade-in duration-700">
-      <h1 className="text-5xl font-black tracking-tighter uppercase">Ayarlar</h1>
-      <ProfileSettings userProfile={userProfile} user={user} firestore={firestore} toast={toast} />
-      <BadgeGlossary />
-      {isDevUser && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
-      <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50">
-        <CardHeader className="p-8 border-b bg-secondary/10">
-          <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><SettingsIcon className="h-6 w-6" /> Uygulama & Hesap</CardTitle>
-        </CardHeader>
-        <CardContent className="p-8">
-            <Button onClick={handleSignOut} variant="ghost" className="w-full h-14 rounded-2xl border border-border/60 font-black uppercase tracking-widest text-destructive hover:bg-destructive/10 hover:text-destructive">
-              <LogOut className="mr-2 h-5 w-5" /> Çıkış Yap
-            </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}

@@ -4,17 +4,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { GraduationCap, Compass, Plus, LayoutGrid, Sparkles } from 'lucide-react';
-
-const navItems = [
-    { href: '/academy', label: 'Akademi', icon: GraduationCap },
-    { href: '/explore', label: 'Keşfet', icon: Compass },
-    { href: '/dashboard', label: 'Yükle', icon: Plus, isAction: true },
-    { href: '/gallery', label: 'Galeri', icon: LayoutGrid },
-    { href: '/luma', label: 'Luma', icon: Sparkles },
-];
+import { useTranslations } from 'next-intl';
 
 export function BottomNav() {
+  const t = useTranslations('AppLayout');
   const pathname = usePathname();
+
+  const navItems = [
+    { href: '/academy', label: t('nav_academy') || 'Akademi', icon: GraduationCap },
+    { href: '/explore', label: t('nav_explore') || 'Keşfet', icon: Compass },
+    { href: '/dashboard', label: t('title_dashboard') || 'Yükle', icon: Plus, isAction: true },
+    { href: '/gallery', label: t('nav_gallery') || 'Galeri', icon: LayoutGrid },
+    { href: '/luma', label: t('nav_coach') || 'Luma', icon: Sparkles },
+  ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 h-20 border-t bg-background/95 backdrop-blur-md pb-safe">

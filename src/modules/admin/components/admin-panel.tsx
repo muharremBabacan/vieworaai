@@ -29,7 +29,6 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import AcademyAdminPanel from './AcademyAdminPanel';
-import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const exhibitionSchema = z.object({
@@ -56,16 +55,6 @@ const configSchema = z.object({
   currencyName: z.string().min(2, 'En az 2 karakter').max(10, 'En fazla 10 karakter'),
 });
 
-const packageSchema = z.object({
-  name: z.string().min(2, 'Gerekli'),
-  description: z.string().min(5, 'Gerekli'),
-  price: z.coerce.number().min(1),
-  pix_amount: z.coerce.number().min(1),
-  payment_link: z.string().url('Geçerli bir URL girin'),
-  active: z.boolean(),
-  order: z.number()
-});
-
 const userEditSchema = z.object({
   level_name: z.string(),
   auro_balance: z.coerce.number().min(0),
@@ -75,172 +64,8 @@ const userEditSchema = z.object({
   total_competitions_count: z.coerce.number().min(0),
 });
 
-function PackageEditor({ pkg, onSave }: { pkg: PixPackage, onSave: (values: any) => Promise<void> }) {
-  const [isSaving, setIsSaving] = useState(false);
-  const form = useForm({
-    resolver: zodResolver(packageSchema),
-    defaultValues: {
-      name: pkg.name,
-      description: pkg.description,
-      price: pkg.price,
-      pix_amount: pkg.pix_amount || 0,
-      payment_link: pkg.payment_link,
-      active: pkg.active,
-      order: pkg.order
-    }
-  });
-
-  const handleSubmit = async (values: any) => {
-    setIsSaving(true);
-    await onSave({ ...values, id: pkg.id });
-    setIsSaving(false);
-  };
-
-  return (
-    <Card className="rounded-2xl border-border/40 bg-muted/20">
-      <CardHeader className="pb-4">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-sm font-black uppercase tracking-widest">{pkg.name}</CardTitle>
-          <Badge variant={form.watch('active') ? 'default' : 'secondary'} className="h-5 text-[9px]">
-            {form.watch('active') ? 'AKTİF' : 'PASİF'}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem><FormLabel className="text-[9px] font-black uppercase">İsim</FormLabel><FormControl><Input {...field} className="h-9 text-xs" /></FormControl></FormItem>
-              )} />
-              <FormField control={form.control} name="price" render={({ field }) => (
-                <FormItem><FormLabel className="text-[9px] font-black uppercase">Fiyat (TL)</FormLabel><FormControl><Input type="number" {...field} className="h-9 text-xs" /></FormControl></FormItem>
-              )} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <FormField control={form.control} name="pix_amount" render={({ field }) => (
-                <FormItem><FormLabel className="text-[9px] font-black uppercase">Miktar</FormLabel><FormControl><Input type="number" {...field} className="h-9 text-xs" /></FormControl></FormItem>
-              )} />
-              <FormField control={form.control} name="order" render={({ field }) => (
-                <FormItem><FormLabel className="text-[9px] font-black uppercase">Sıra</FormLabel><FormControl><Input type="number" {...field} className="h-9 text-xs" /></FormControl></FormItem>
-              )} />
-            </div>
-            <FormField control={form.control} name="description" render={({ field }) => (
-              <FormItem><FormLabel className="text-[9px] font-black uppercase">Açıklama</FormLabel><FormControl><Textarea {...field} className="text-xs min-h-[60px]" /></FormControl></FormItem>
-            )} />
-            <FormField control={form.control} name="payment_link" render={({ field }) => (
-              <FormItem><FormLabel className="text-[9px] font-black uppercase">Ödeme Linki</FormLabel><FormControl><Input {...field} className="h-9 text-xs" /></FormControl></FormItem>
-            )} />
-            <div className="flex items-center justify-between pt-2">
-              <FormField control={form.control} name="active" render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  <FormLabel className="text-[10px] font-bold">Aktif</FormLabel>
-                </FormItem>
-              )} />
-              <Button type="submit" disabled={isSaving} size="sm" className="h-8 rounded-lg font-black uppercase text-[10px]">
-                {isSaving ? <Loader2 className="animate-spin h-3 w-3" /> : <><Save className="mr-1.5 h-3 w-3" /> Kaydet</>}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  );
-}
-
-function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit: User | null, isOpen: boolean, onClose: () => void, onUpdate: (userId: string, values: any) => Promise<void> }) {
-  const [isUpdating, setIsUpdating] = useState(false);
-  const form = useForm({
-    resolver: zodResolver(userEditSchema),
-    defaultValues: {
-      level_name: userToEdit?.level_name || 'Neuner',
-      auro_balance: userToEdit?.auro_balance || 0,
-      total_analyses_count: userToEdit?.total_analyses_count || 0,
-      total_mentor_analyses_count: userToEdit?.total_mentor_analyses_count || 0,
-      total_exhibitions_count: userToEdit?.total_exhibitions_count || 0,
-      total_competitions_count: userToEdit?.total_competitions_count || 0,
-    }
-  });
-
-  useEffect(() => {
-    if (userToEdit) {
-      form.reset({
-        level_name: userToEdit.level_name,
-        auro_balance: userToEdit.auro_balance,
-        total_analyses_count: userToEdit.total_analyses_count || 0,
-        total_mentor_analyses_count: userToEdit.total_mentor_analyses_count || 0,
-        total_exhibitions_count: userToEdit.total_exhibitions_count || 0,
-        total_competitions_count: userToEdit.total_competitions_count || 0,
-      });
-    }
-  }, [userToEdit, form]);
-
-  const onSubmit = async (values: any) => {
-    if (!userToEdit) return;
-    setIsUpdating(true);
-    await onUpdate(userToEdit.id, values);
-    setIsUpdating(false);
-    onClose();
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md rounded-[32px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-black uppercase tracking-tight">Vizyoner Düzenle</DialogTitle>
-          <p className="text-xs font-bold text-muted-foreground">@{userToEdit?.name}</p>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-            <FormField control={form.control} name="level_name" render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] font-black uppercase">Seviye (Rütbe)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="Neuner">Neuner</SelectItem>
-                    <SelectItem value="Viewner">Viewner</SelectItem>
-                    <SelectItem value="Sytner">Sytner</SelectItem>
-                    <SelectItem value="Omner">Omner</SelectItem>
-                    <SelectItem value="Vexer">Vexer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )} />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="auro_balance" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">PIX Bakiyesi</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
-              <FormField control={form.control} name="total_analyses_count" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">Foto Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="total_mentor_analyses_count" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">Luma Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
-              <FormField control={form.control} name="total_exhibitions_count" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">Sergi Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
-            </div>
-            <FormField control={form.control} name="total_competitions_count" render={({ field }) => (
-              <FormItem><FormLabel className="text-[10px] font-black uppercase">Yarışma Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-            )} />
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isUpdating} className="w-full h-12 rounded-2xl font-black uppercase">
-                {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : "Değişiklikleri Kaydet"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function AdminPanel() {
-  // 🪝 ALL HOOKS AT THE VERY TOP
+  // ALL HOOKS MUST BE AT THE TOP
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -330,7 +155,6 @@ export default function AdminPanel() {
     return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
 
-  // Handlers
   const handleUpdateUser = async (userId: string, values: any) => {
     if (!firestore) return;
     try {
@@ -339,25 +163,6 @@ export default function AdminPanel() {
     } catch (e) {
       toast({ variant: 'destructive', title: "Hata", description: "Veri güncellenemedi." });
     }
-  };
-
-  const onUpdateConfig = async (values: z.infer<typeof configSchema>) => {
-    if (!firestore || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await setDoc(doc(firestore, 'app_settings', 'config'), values, { merge: true });
-      toast({ title: "Ayarlar Kaydedildi" });
-    } catch (e) {
-      toast({ variant: 'destructive', title: "Hata" });
-    } finally { setIsSubmitting(false); }
-  };
-
-  const handleUpdatePackage = async (values: any) => {
-    if (!firestore) return;
-    try {
-      await setDoc(doc(firestore, 'pix_packages', values.id), values, { merge: true });
-      toast({ title: "Paket Güncellendi" });
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
   };
 
   const handleApprovePurchase = async (purchase: PixPurchase) => {
@@ -397,36 +202,7 @@ export default function AdminPanel() {
     } finally { setIsSubmitting(false); }
   };
 
-  const onCreateExhibition = async (values: z.infer<typeof exhibitionSchema>) => {
-    if (!firestore || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      const docRef = await addDoc(collection(firestore, 'exhibitions'), {
-        ...values, imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s+/g, '')}/1200/800`,
-        isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-      });
-      await updateDoc(docRef, { id: docRef.id });
-      toast({ title: "Sergi Salonu Açıldı" });
-      exhibitionForm.reset();
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsSubmitting(false); }
-  };
-
-  const onCreateCompetition = async (values: z.infer<typeof competitionSchema>) => {
-    if (!firestore || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      const docRef = await addDoc(collection(firestore, 'competitions'), {
-        ...values, imageUrl: `https://picsum.photos/seed/${values.imageHint.replace(/\s+/g, '')}/1200/800`,
-        participantCount: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-        scoringModel: 'hybrid', juryWeight: 40, aiWeight: 40, communityWeight: 20
-      });
-      await updateDoc(docRef, { id: docRef.id });
-      toast({ title: "Yarışma Oluşturuldu" });
-      competitionForm.reset();
-    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsSubmitting(false); }
-  };
-
-  // Render check AFTER all hooks
+  // EARLY RETURN AFTER ALL HOOKS
   if (!isAdmin) {
     return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
   }
@@ -444,9 +220,8 @@ export default function AdminPanel() {
             <TabsList className="inline-flex w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 gap-1 px-1">
               <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Muhasebe</TabsTrigger>
               <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Ödemeler</TabsTrigger>
-              <TabsTrigger value="content" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">İçerik</TabsTrigger>
-              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Akademi</TabsTrigger>
               <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
+              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Akademi</TabsTrigger>
               <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Genel</TabsTrigger>
             </TabsList>
           </div>
@@ -454,7 +229,12 @@ export default function AdminPanel() {
 
         <TabsContent value="accounting" className="space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <Card className="bg-primary/5 border-primary/20 rounded-[32px] shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/70">Harcanan</CardDescription></CardHeader><CardContent><p className="text-4xl font-black text-primary">{metrics?.totalAuro || 0}</p></CardContent></Card>
+            <Card className="bg-primary/5 border-primary/20 rounded-[32px] shadow-sm">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/70">Harcanan</CardDescription>
+              </CardHeader>
+              <CardContent><p className="text-4xl font-black text-primary">{metrics?.totalAuro || 0}</p></CardContent>
+            </Card>
             <Card className="bg-blue-500/5 border-blue-500/20 rounded-[32px] shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-400/70">Analiz</CardDescription></CardHeader><CardContent><p className="text-3xl font-black">{metrics?.techAuro || 0}</p></CardContent></Card>
             <Card className="bg-purple-500/5 border-purple-500/20 rounded-[32px] shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-400/70">Mentor</CardDescription></CardHeader><CardContent><p className="text-3xl font-black">{metrics?.mentorAuro || 0}</p></CardContent></Card>
             <Card className="bg-cyan-500/5 border-cyan-500/20 rounded-[32px] shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-cyan-400/70">Sergi</CardDescription></CardHeader><CardContent><p className="text-3xl font-black">{metrics?.exhibitionAuro || 0}</p></CardContent></Card>
@@ -540,38 +320,13 @@ export default function AdminPanel() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="content" className="space-y-12">
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
-              <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Globe className="h-6 w-6 text-primary" /> Yeni Sergi</CardTitle></CardHeader>
-              <CardContent className="p-8">
-                <Form {...exhibitionForm}><form onSubmit={exhibitionForm.handleSubmit(onCreateExhibition)} className="space-y-6">
-                  <FormField control={exhibitionForm.control} name="title" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Salon Adı</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
-                  <FormField control={exhibitionForm.control} name="description" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Açıklama</FormLabel><FormControl><Textarea {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
-                  <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase">Aktif Et</Button>
-                </form></Form>
-              </CardContent>
-            </Card>
-            <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
-              <CardHeader className="bg-amber-500/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Trophy className="h-6 w-6 text-amber-400" /> Yeni Yarışma</CardTitle></CardHeader>
-              <CardContent className="p-8">
-                <Form {...competitionForm}><form onSubmit={competitionForm.handleSubmit(onCreateCompetition)} className="space-y-6">
-                  <FormField control={competitionForm.control} name="title" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Yarışma Adı</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
-                  <FormField control={competitionForm.control} name="prize" render={({ field }) => (<FormItem><FormLabel className="text-[10px] font-black uppercase">Ödül</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>)} />
-                  <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase bg-amber-500 text-black hover:bg-amber-600">Başlat</Button>
-                </form></Form>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
         <TabsContent value="academy"><AcademyAdminPanel /></TabsContent>
 
         <TabsContent value="settings" className="space-y-12">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
             <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Settings2 className="h-6 w-6 text-primary" /> Markalama</CardTitle></CardHeader>
             <CardContent className="p-8">
-              <Form {...configForm}><form onSubmit={configForm.handleSubmit(onUpdateConfig)} className="space-y-8 max-w-md">
+              <Form {...configForm}><form onSubmit={configForm.handleSubmit(async (v) => { if (firestore) { await setDoc(doc(firestore, 'app_settings', 'config'), v, { merge: true }); toast({ title: "Kaydedildi" }); } })} className="space-y-8 max-w-md">
                 <FormField control={configForm.control} name="currencyName" render={({ field }) => (
                   <FormItem><FormLabel className="text-[10px] font-black uppercase">Para Birimi İsmi</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>
                 )} />
@@ -579,21 +334,101 @@ export default function AdminPanel() {
               </form></Form>
             </CardContent>
           </Card>
-
-          <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl">
-            <CardHeader className="bg-secondary/10 border-b p-8">
-              <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Package className="h-6 w-6 text-primary" /> PIX Paketleri</CardTitle>
-            </CardHeader>
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {dbPackages?.map(pkg => (<PackageEditor key={pkg.id} pkg={pkg} onSave={handleUpdatePackage} />))}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 
       <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={handleUpdateUser} />
     </div>
+  );
+}
+
+function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit: User | null, isOpen: boolean, onClose: () => void, onUpdate: (userId: string, values: any) => Promise<void> }) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  const form = useForm({
+    resolver: zodResolver(userEditSchema),
+    defaultValues: {
+      level_name: userToEdit?.level_name || 'Neuner',
+      auro_balance: userToEdit?.auro_balance || 0,
+      total_analyses_count: userToEdit?.total_analyses_count || 0,
+      total_mentor_analyses_count: userToEdit?.total_mentor_analyses_count || 0,
+      total_exhibitions_count: userToEdit?.total_exhibitions_count || 0,
+      total_competitions_count: userToEdit?.total_competitions_count || 0,
+    }
+  });
+
+  useEffect(() => {
+    if (userToEdit) {
+      form.reset({
+        level_name: userToEdit.level_name,
+        auro_balance: userToEdit.auro_balance,
+        total_analyses_count: userToEdit.total_analyses_count || 0,
+        total_mentor_analyses_count: userToEdit.total_mentor_analyses_count || 0,
+        total_exhibitions_count: userToEdit.total_exhibitions_count || 0,
+        total_competitions_count: userToEdit.total_competitions_count || 0,
+      });
+    }
+  }, [userToEdit, form]);
+
+  const onSubmit = async (values: any) => {
+    if (!userToEdit) return;
+    setIsUpdating(true);
+    await onUpdate(userToEdit.id, values);
+    setIsUpdating(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md rounded-[32px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-black uppercase tracking-tight">Vizyoner Düzenle</DialogTitle>
+          <p className="text-xs font-bold text-muted-foreground">@{userToEdit?.name}</p>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+            <FormField control={form.control} name="level_name" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[10px] font-black uppercase">Seviye (Rütbe)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="Neuner">Neuner</SelectItem>
+                    <SelectItem value="Viewner">Viewner</SelectItem>
+                    <SelectItem value="Sytner">Sytner</SelectItem>
+                    <SelectItem value="Omner">Omner</SelectItem>
+                    <SelectItem value="Vexer">Vexer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )} />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="auro_balance" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">PIX Bakiyesi</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="total_analyses_count" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">Foto Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="total_mentor_analyses_count" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">Luma Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="total_exhibitions_count" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">Sergi Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+            </div>
+            <FormField control={form.control} name="total_competitions_count" render={({ field }) => (
+              <FormItem><FormLabel className="text-[10px] font-black uppercase">Yarışma Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+            )} />
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isUpdating} className="w-full h-12 rounded-2xl font-black uppercase">
+                {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : "Değişiklikleri Kaydet"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }
