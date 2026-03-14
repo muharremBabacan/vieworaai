@@ -14,6 +14,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import type { User } from '@/types';
 
 export default function PricingPage() {
+  // 🪝 HOOKS MUST BE AT TOP
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();

@@ -149,6 +149,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
 
+  // 🪝 HOOKS MUST BE AT TOP
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
