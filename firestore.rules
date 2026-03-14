@@ -20,17 +20,20 @@ service cloud.firestore {
       );
     }
 
+    // 1. Pix Paketleri - Herkese Açık
     match /pix_packages/{packageId} {
       allow get, list: if true; 
       allow write: if isAdmin();
     }
 
+    // 2. Pix Satın Alımları - Kişisel ve Admin
     match /pix_purchases/{purchaseId} {
       allow get, list: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
 
+    // 3. Kullanıcı Verileri
     match /users/{userId} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
@@ -50,6 +53,7 @@ service cloud.firestore {
       }
     }
     
+    // 4. Sergiler ve Genel Fotoğraflar
     match /exhibitions/{exhibitionId} {
       allow get, list: if true;
       allow write: if isAdmin();
@@ -61,6 +65,7 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
     
+    // 5. Gruplar ve Sosyal Etkileşim
     match /groups/{groupId} {
       allow get, list: if isSignedIn();
       allow create, update: if isSignedIn();
@@ -88,21 +93,26 @@ service cloud.firestore {
       }
     }
 
+    // 6. Sistem Ayarları
     match /app_settings/{docId} {
       allow get, list: if true;
       allow write: if isAdmin();
     }
 
+    // 7. Analiz Logları
     match /analysis_logs/{logId} {
-      allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && query.limit <= 50 && resource.data.userId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
     }
 
+    // 8. Kamu Profilleri
     match /public_profiles/{userId} {
       allow get, list: if true;
       allow write: if isOwner(userId) || isAdmin();
     }
 
+    // 9. Akademi İçeriği
     match /academy_curriculum/{docId} {
       allow get, list: if isSignedIn();
       allow write: if isAdmin();
@@ -110,6 +120,12 @@ service cloud.firestore {
 
     match /academy_lessons/{lessonId} {
       allow get, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    
+    // 10. Bildirimler (Eksik Olan)
+    match /global_notifications/{notifId} {
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
