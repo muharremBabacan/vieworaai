@@ -26,8 +26,7 @@ service cloud.firestore {
     }
 
     match /pix_purchases/{purchaseId} {
-      allow get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.user_id == request.auth.uid));
-      allow list: if isAdmin() || (isSignedIn() && (resource == null || resource.data.user_id == request.auth.uid));
+      allow get, list: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
@@ -95,7 +94,7 @@ service cloud.firestore {
     }
 
     match /analysis_logs/{logId} {
-      allow get, list: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
+      allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
     }
 

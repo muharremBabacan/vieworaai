@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon, Edit3, X
+  Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon, Edit3
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -240,12 +240,12 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
 }
 
 export default function AdminPanel() {
+  // 🪝 ALL HOOKS AT THE VERY TOP
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const { currencyName: currentCurrency } = useAppConfig();
   
-  // 🪝 ALL HOOKS AT TOP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
@@ -330,13 +330,14 @@ export default function AdminPanel() {
     return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
 
+  // Handlers
   const handleUpdateUser = async (userId: string, values: any) => {
     if (!firestore) return;
     try {
       await updateDoc(doc(firestore, 'users', userId), values);
       toast({ title: "Kullanıcı Güncellendi" });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Hata" });
+      toast({ variant: 'destructive', title: "Hata", description: "Veri güncellenemedi." });
     }
   };
 
@@ -425,7 +426,10 @@ export default function AdminPanel() {
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); } finally { setIsSubmitting(false); }
   };
 
-  if (!isAdmin) return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
+  // Render check AFTER all hooks
+  if (!isAdmin) {
+    return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 pb-24 pt-10 animate-in fade-in duration-700">
@@ -439,10 +443,10 @@ export default function AdminPanel() {
           <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
             <TabsList className="inline-flex w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 gap-1 px-1">
               <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Muhasebe</TabsTrigger>
-              <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start relative">Ödemeler</TabsTrigger>
+              <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Ödemeler</TabsTrigger>
               <TabsTrigger value="content" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">İçerik</TabsTrigger>
               <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Akademi</TabsTrigger>
-              <TabsTrigger value="users" className="shrink-0 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
+              <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
               <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Genel</TabsTrigger>
             </TabsList>
           </div>
@@ -493,16 +497,45 @@ export default function AdminPanel() {
                   <TableBody>
                     {pendingPurchases.map(p => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-bold">{p.user_name}</TableCell>
+                        <TableCell className="font-bold px-8">{p.user_name}</TableCell>
                         <TableCell>{p.package_name}</TableCell>
                         <TableCell>{p.price} TL</TableCell>
                         <TableCell className="font-black text-primary">{p.pix_amount}</TableCell>
-                        <TableCell className="text-right px-8"><Button onClick={() => handleApprovePurchase(p)} size="sm" className="bg-green-600 hover:bg-green-700">Onayla</Button></TableCell>
+                        <TableCell className="text-right px-8"><Button onClick={() => handleApprovePurchase(p)} size="sm" className="bg-green-600 hover:bg-green-700 h-8">Onayla</Button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               ) : <div className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">Bekleyen ödeme bulunmuyor.</div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="users">
+          <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
+            <CardHeader className="bg-secondary/20 border-b p-8">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Users className="h-6 w-6 text-primary" /> Üye Yönetimi</CardTitle>
+                <div className="flex items-center bg-background/50 rounded-xl px-3 border border-border/60">
+                  <Input placeholder="İsim veya e-posta ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="border-none bg-transparent h-10 w-64 focus-visible:ring-0" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>Seviye</TableHead><TableHead>PIX</TableHead><TableHead>Analiz (F/L)</TableHead><TableHead className="text-right px-8">İşlem</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {filteredUsers.map(u => (
+                    <TableRow key={u.id} className="group hover:bg-muted/30 transition-colors">
+                      <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-base">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase font-bold">{u.email}</span></div></TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 text-primary">{u.level_name}</Badge></TableCell>
+                      <TableCell className="font-black text-foreground">{u.auro_balance}</TableCell>
+                      <TableCell><div className="flex gap-2 text-[10px] font-bold uppercase"><span className="text-blue-400">F: {u.total_analyses_count || 0}</span><span className="text-purple-400">L: {u.total_mentor_analyses_count || 0}</span></div></TableCell>
+                      <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> Yönet</Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -534,35 +567,6 @@ export default function AdminPanel() {
 
         <TabsContent value="academy"><AcademyAdminPanel /></TabsContent>
 
-        <TabsContent value="users">
-          <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
-            <CardHeader className="bg-secondary/20 border-b p-8">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Users className="h-6 w-6 text-primary" /> Kullanıcı Yönetimi</CardTitle>
-                <div className="flex items-center bg-background/50 rounded-xl px-3 border border-border/60">
-                  <Input placeholder="İsim veya e-posta ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="border-none bg-transparent h-10 w-64 focus-visible:ring-0" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>Seviye</TableHead><TableHead>PIX</TableHead><TableHead>Analiz (F/L)</TableHead><TableHead className="text-right px-8">İşlem</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {filteredUsers.map(u => (
-                    <TableRow key={u.id} className="group hover:bg-muted/30 transition-colors">
-                      <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-base">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase font-bold">{u.email}</span></div></TableCell>
-                      <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 text-primary">{u.level_name}</Badge></TableCell>
-                      <TableCell className="font-black text-foreground">{u.auro_balance}</TableCell>
-                      <TableCell><div className="flex gap-2 text-[10px] font-bold uppercase"><span className="text-blue-400">F: {u.total_analyses_count || 0}</span><span className="text-purple-400">L: {u.total_mentor_analyses_count || 0}</span></div></TableCell>
-                      <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> Yönet</Button></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="settings" className="space-y-12">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
             <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Settings2 className="h-6 w-6 text-primary" /> Markalama</CardTitle></CardHeader>
@@ -582,20 +586,7 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {dbPackages?.map(pkg => (<PackageEditor key={pkg.id} pkg={pkg} onSave={handleUpdatePackage} />)) || (
-                  <div className="col-span-full py-12 text-center space-y-4 border-2 border-dashed rounded-[32px]">
-                    <Button variant="outline" className="rounded-xl font-black uppercase text-[10px]" onClick={async () => {
-                      if(!firestore) return;
-                      const defaults = [
-                        { id: 'starter', name: 'Starter Paket', description: 'Hızlı başlangıç.', price: 99, pix_amount: 20, payment_link: 'https://iyzi.link/AKg9LA', active: true, order: 1 },
-                        { id: 'creator', name: 'Creator Paket', description: 'Gelişmiş analizler.', price: 199, pix_amount: 50, payment_link: 'https://iyzi.link/AKg9OQ', active: true, order: 2 },
-                        { id: 'pro', name: 'Pro Paket', description: 'Profesyonel araçlar.', price: 349, pix_amount: 100, payment_link: 'https://iyzi.link/AKg9Og', active: true, order: 3 }
-                      ];
-                      for(const d of defaults) await setDoc(doc(firestore, 'pix_packages', d.id), d);
-                      toast({ title: "Varsayılanlar Yüklendi" });
-                    }}>Varsayılanları Yükle</Button>
-                  </div>
-                )}
+                {dbPackages?.map(pkg => (<PackageEditor key={pkg.id} pkg={pkg} onSave={handleUpdatePackage} />))}
               </div>
             </CardContent>
           </Card>
