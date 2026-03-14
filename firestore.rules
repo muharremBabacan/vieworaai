@@ -27,7 +27,7 @@ service cloud.firestore {
 
     match /pix_purchases/{purchaseId} {
       allow get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.user_id == request.auth.uid));
-      allow list: if isAdmin(); 
+      allow list: if isAdmin() || (isSignedIn() && (resource == null || resource.data.user_id == request.auth.uid));
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
