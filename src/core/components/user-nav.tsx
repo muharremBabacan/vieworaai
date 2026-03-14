@@ -61,6 +61,7 @@ export function UserNav() {
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
+  // FIXED ADMIN UID TYPO: WUVrewn -> WUVmrewn
   const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
   const streak = userProfile.daily_streak || 1;
@@ -74,10 +75,8 @@ export function UserNav() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* İstatistik Rozetleri Grubu */}
       <TooltipProvider>
         <div className="hidden md:flex items-center gap-1.5 p-1 bg-secondary/30 rounded-full border border-border/40">
-          {/* Günlük Seri */}
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/10 text-orange-500 cursor-default">
@@ -88,7 +87,6 @@ export function UserNav() {
             <TooltipContent className="rounded-xl font-bold text-[10px] uppercase tracking-widest">GÜNLÜK SERİ (STREAK)</TooltipContent>
           </Tooltip>
           
-          {/* Sergi Katılımı */}
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 cursor-default">
@@ -99,7 +97,6 @@ export function UserNav() {
             <TooltipContent className="rounded-xl font-bold text-[10px] uppercase tracking-widest">AKTİF SERGİ KATILIMI</TooltipContent>
           </Tooltip>
 
-          {/* Yarışma Katılımı */}
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 cursor-default">

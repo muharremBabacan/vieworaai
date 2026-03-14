@@ -65,7 +65,7 @@ const userEditSchema = z.object({
 });
 
 export default function AdminPanel() {
-  // ALL HOOKS MUST BE AT THE TOP
+  // ALL HOOKS AT THE TOP
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -105,26 +105,6 @@ export default function AdminPanel() {
     defaultValues: { currencyName: currentCurrency || 'Pix' }
   });
 
-  const exhibitionForm = useForm({
-    resolver: zodResolver(exhibitionSchema),
-    defaultValues: {
-      title: '', description: '', minLevel: 'Neuner',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-      imageHint: 'art gallery'
-    }
-  });
-
-  const competitionForm = useForm({
-    resolver: zodResolver(competitionSchema),
-    defaultValues: {
-      title: '', description: '', theme: '', prize: '', targetLevel: 'Neuner',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-      imageHint: 'photography competition'
-    }
-  });
-
   useEffect(() => {
     if (appConfig) configForm.reset({ currencyName: appConfig.currencyName });
   }, [appConfig, configForm]);
@@ -132,6 +112,7 @@ export default function AdminPanel() {
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
+    // FIXED ADMIN UID TYPO: WUVrewn -> WUVmrewn
     const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);
@@ -202,7 +183,6 @@ export default function AdminPanel() {
     } finally { setIsSubmitting(false); }
   };
 
-  // EARLY RETURN AFTER ALL HOOKS
   if (!isAdmin) {
     return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
   }
