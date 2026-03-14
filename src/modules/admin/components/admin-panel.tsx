@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon
+  Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon, Edit3, X
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +30,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAppConfig } from '@/components/AppConfigProvider';
 import AcademyAdminPanel from './AcademyAdminPanel';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const exhibitionSchema = z.object({
   title: z.string().min(3, 'En az 3 karakter'),
@@ -63,6 +64,15 @@ const packageSchema = z.object({
   payment_link: z.string().url('Geçerli bir URL girin'),
   active: z.boolean(),
   order: z.number()
+});
+
+const userEditSchema = z.object({
+  level_name: z.string(),
+  auro_balance: z.coerce.number().min(0),
+  total_analyses_count: z.coerce.number().min(0),
+  total_mentor_analyses_count: z.coerce.number().min(0),
+  total_exhibitions_count: z.coerce.number().min(0),
+  total_competitions_count: z.coerce.number().min(0),
 });
 
 function PackageEditor({ pkg, onSave }: { pkg: PixPackage, onSave: (values: any) => Promise<void> }) {
@@ -139,17 +149,108 @@ function PackageEditor({ pkg, onSave }: { pkg: PixPackage, onSave: (values: any)
   );
 }
 
+function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit: User | null, isOpen: boolean, onClose: () => void, onUpdate: (userId: string, values: any) => Promise<void> }) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(userEditSchema),
+    defaultValues: {
+      level_name: userToEdit?.level_name || 'Neuner',
+      auro_balance: userToEdit?.auro_balance || 0,
+      total_analyses_count: userToEdit?.total_analyses_count || 0,
+      total_mentor_analyses_count: userToEdit?.total_mentor_analyses_count || 0,
+      total_exhibitions_count: userToEdit?.total_exhibitions_count || 0,
+      total_competitions_count: userToEdit?.total_competitions_count || 0,
+    }
+  });
+
+  useEffect(() => {
+    if (userToEdit) {
+      form.reset({
+        level_name: userToEdit.level_name,
+        auro_balance: userToEdit.auro_balance,
+        total_analyses_count: userToEdit.total_analyses_count || 0,
+        total_mentor_analyses_count: userToEdit.total_mentor_analyses_count || 0,
+        total_exhibitions_count: userToEdit.total_exhibitions_count || 0,
+        total_competitions_count: userToEdit.total_competitions_count || 0,
+      });
+    }
+  }, [userToEdit, form]);
+
+  const onSubmit = async (values: any) => {
+    if (!userToEdit) return;
+    setIsUpdating(true);
+    await onUpdate(userToEdit.id, values);
+    setIsUpdating(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md rounded-[32px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-black uppercase tracking-tight">Vizyoner Düzenle</DialogTitle>
+          <p className="text-xs font-bold text-muted-foreground">@{userToEdit?.name}</p>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+            <FormField control={form.control} name="level_name" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[10px] font-black uppercase">Seviye (Rütbe)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="Neuner">Neuner</SelectItem>
+                    <SelectItem value="Viewner">Viewner</SelectItem>
+                    <SelectItem value="Sytner">Sytner</SelectItem>
+                    <SelectItem value="Omner">Omner</SelectItem>
+                    <SelectItem value="Vexer">Vexer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )} />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="auro_balance" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">PIX Bakiyesi</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="total_analyses_count" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">Foto Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="total_mentor_analyses_count" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">Luma Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="total_exhibitions_count" render={({ field }) => (
+                <FormItem><FormLabel className="text-[10px] font-black uppercase">Sergi Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+              )} />
+            </div>
+            <FormField control={form.control} name="total_competitions_count" render={({ field }) => (
+              <FormItem><FormLabel className="text-[10px] font-black uppercase">Yarışma Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
+            )} />
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isUpdating} className="w-full h-12 rounded-2xl font-black uppercase">
+                {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : "Değişiklikleri Kaydet"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminPanel() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const { currencyName: currentCurrency } = useAppConfig();
   
+  // 🪝 ALL HOOKS AT TOP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // 🪝 HOOKS MUST BE AT TOP
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
@@ -228,6 +329,16 @@ export default function AdminPanel() {
     const term = userSearch.toLowerCase();
     return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
+
+  const handleUpdateUser = async (userId: string, values: any) => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'users', userId), values);
+      toast({ title: "Kullanıcı Güncellendi" });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Hata" });
+    }
+  };
 
   const onUpdateConfig = async (values: z.infer<typeof configSchema>) => {
     if (!firestore || isSubmitting) return;
@@ -427,20 +538,23 @@ export default function AdminPanel() {
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
             <CardHeader className="bg-secondary/20 border-b p-8">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Users className="h-6 w-6 text-primary" /> Kullanıcılar</CardTitle>
-                <Input placeholder="İsim veya e-posta ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="max-w-xs rounded-xl h-10 bg-background/50" />
+                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Users className="h-6 w-6 text-primary" /> Kullanıcı Yönetimi</CardTitle>
+                <div className="flex items-center bg-background/50 rounded-xl px-3 border border-border/60">
+                  <Input placeholder="İsim veya e-posta ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="border-none bg-transparent h-10 w-64 focus-visible:ring-0" />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>Seviye</TableHead><TableHead>PIX</TableHead><TableHead className="text-right px-8">İşlem</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>Seviye</TableHead><TableHead>PIX</TableHead><TableHead>Analiz (F/L)</TableHead><TableHead className="text-right px-8">İşlem</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {filteredUsers.map(u => (
-                    <TableRow key={u.id}>
-                      <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase">{u.email}</span></div></TableCell>
-                      <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase">{u.level_name}</Badge></TableCell>
-                      <TableCell className="font-black text-primary">{u.auro_balance}</TableCell>
-                      <TableCell className="text-right px-8"><Button variant="ghost" size="sm">Yönet</Button></TableCell>
+                    <TableRow key={u.id} className="group hover:bg-muted/30 transition-colors">
+                      <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-base">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase font-bold">{u.email}</span></div></TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 text-primary">{u.level_name}</Badge></TableCell>
+                      <TableCell className="font-black text-foreground">{u.auro_balance}</TableCell>
+                      <TableCell><div className="flex gap-2 text-[10px] font-bold uppercase"><span className="text-blue-400">F: {u.total_analyses_count || 0}</span><span className="text-purple-400">L: {u.total_mentor_analyses_count || 0}</span></div></TableCell>
+                      <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> Yönet</Button></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -487,6 +601,8 @@ export default function AdminPanel() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={handleUpdateUser} />
     </div>
   );
 }
