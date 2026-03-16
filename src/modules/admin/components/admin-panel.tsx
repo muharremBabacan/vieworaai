@@ -45,7 +45,6 @@ const userEditSchema = z.object({
 });
 
 export default function AdminPanel() {
-  // HOOKS MUST BE AT THE TOP
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -162,7 +161,6 @@ export default function AdminPanel() {
     } finally { setIsSubmitting(false); }
   };
 
-  // CONDITIONAL RENDER MUST BE AFTER ALL HOOKS
   if (!isAdmin) {
     return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
   }
