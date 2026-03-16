@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
-  Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon, Edit3
+  Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon, Edit3, Shield
 } from 'lucide-react';
 import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';

@@ -70,7 +70,7 @@ export default function PricingPage() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-black tracking-tighter text-muted-foreground">{pkg.price}</span>
-                  <span className="text-lg font-bold text-muted-foreground/60 uppercase">{pkg.currency}</span>
+                  <span className="text-lg font-bold text-muted-foreground/60 uppercase">TL</span>
                 </div>
                 <p className="text-xs font-black text-cyan-400/60 uppercase tracking-[0.2em] flex items-center gap-1.5">
                   <Gem size={14} /> {pkg.auro} {currencyName} YÜKLEMESİ
