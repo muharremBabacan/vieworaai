@@ -31,26 +31,6 @@ import { useAppConfig } from '@/components/AppConfigProvider';
 import AcademyAdminPanel from './AcademyAdminPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-const exhibitionSchema = z.object({
-  title: z.string().min(3, 'En az 3 karakter'),
-  description: z.string().min(10, 'En az 10 karakter'),
-  minLevel: z.string(),
-  startDate: z.string(),
-  endDate: z.string(),
-  imageHint: z.string().min(2, 'Görsel ipucu gerekli')
-});
-
-const competitionSchema = z.object({
-  title: z.string().min(3, 'En az 3 karakter'),
-  description: z.string().min(10, 'En az 10 karakter'),
-  theme: z.string().min(3, 'En az 3 karakter'),
-  prize: z.string().min(3, 'Ödül belirtilmeli'),
-  targetLevel: z.string(),
-  startDate: z.string(),
-  endDate: z.string(),
-  imageHint: z.string().min(2, 'Görsel ipucu gerekli')
-});
-
 const configSchema = z.object({
   currencyName: z.string().min(2, 'En az 2 karakter').max(10, 'En fazla 10 karakter'),
 });
@@ -65,7 +45,6 @@ const userEditSchema = z.object({
 });
 
 export default function AdminPanel() {
-  // ALL HOOKS AT THE TOP
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -112,7 +91,6 @@ export default function AdminPanel() {
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
-    // FIXED ADMIN UID TYPO: WUVrewn -> WUVmrewn
     const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
     return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
   }, [user]);

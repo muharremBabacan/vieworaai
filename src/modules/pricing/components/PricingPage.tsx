@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
 import { packages } from '@/lib/data';
@@ -14,7 +13,6 @@ import { cn } from '@/lib/utils';
 import type { User } from '@/types';
 
 export default function PricingPage() {
-  // 🪝 ALL HOOKS AT TOP - Rules of Hooks
   const { user } = useUser();
   const firestore = useFirestore();
   const { currencyName } = useAppConfig();
@@ -33,7 +31,6 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto px-4 py-12 animate-in fade-in duration-700">
       <header className="max-w-4xl mx-auto text-center mb-16 space-y-8">
-        {/* VIEWORA BETA BANNER */}
         <Alert className="rounded-[32px] border-primary/30 bg-primary/5 p-8 border-2 shadow-2xl shadow-primary/5 animate-in slide-in-from-top-10 duration-1000">
           <div className="flex flex-col items-center gap-4">
             <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
