@@ -1,3 +1,4 @@
+
 export const dynamic = 'force-dynamic';
 import { ClientProviders } from '@/components/ClientProviders';
 import { Metadata } from 'next';

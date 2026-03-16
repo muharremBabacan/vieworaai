@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -115,6 +114,10 @@ export default function AdminPanel() {
     return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
 
+  if (!isAdmin) {
+    return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
+  }
+
   const handleUpdateUser = async (userId: string, values: any) => {
     if (!firestore) return;
     try {
@@ -161,10 +164,6 @@ export default function AdminPanel() {
       toast({ variant: 'destructive', title: "Hata" });
     } finally { setIsSubmitting(false); }
   };
-
-  if (!isAdmin) {
-    return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
-  }
 
   return (
     <div className="container mx-auto px-4 pb-24 pt-10 animate-in fade-in duration-700">
