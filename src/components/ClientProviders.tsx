@@ -2,9 +2,10 @@
 
 import { FirebaseClientProvider } from '@/lib/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { ClientLayout } from '@/app/client-layout';
+import { ClientLayout } from '@/app/[locale]/client-layout';
 import { AppConfigProvider } from '@/components/AppConfigProvider';
 import React from 'react';
+
 
 /**
  * A Client Component wrapper for all providers.
