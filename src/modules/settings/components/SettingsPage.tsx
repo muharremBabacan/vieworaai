@@ -81,15 +81,9 @@ export default function SettingsPage() {
     if (!user || !firestore) return;
     setLanguage(newLocale);
     try {
-      // 1. Çerezi güncelle
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-      
-      // 2. Firestore'u güncelle
       await updateDoc(doc(firestore, 'users', user.uid), { language: newLocale });
-      
       toast({ title: newLocale === 'tr' ? "Dil Değiştirildi" : "Language Updated" });
-      
-      // 3. Sayfayı yenile ki yeni dil aktif olsun
       router.refresh();
     } catch (e) {
       console.error(e);

@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import type { User } from '@/types';
 
 export default function PricingPage() {
+  // HOOKS MUST BE AT THE TOP
   const { user } = useUser();
   const firestore = useFirestore();
   const { currencyName } = useAppConfig();
@@ -20,6 +21,7 @@ export default function PricingPage() {
   const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userRef);
 
+  // CONDITIONAL RENDER MUST BE AFTER ALL HOOKS
   if (isProfileLoading) {
     return (
       <div className="container mx-auto px-4 py-20 flex justify-center items-center">
