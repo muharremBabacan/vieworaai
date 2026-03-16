@@ -1,16 +1,13 @@
 import createMiddleware from 'next-intl/middleware';
-import { locales, defaultLocale, localePrefix } from './navigation';
 
 export default createMiddleware({
-  locales: locales as unknown as string[],
-  defaultLocale,
-  localePrefix
+  // Buradaki diller, [locale] klasörünün kabul edeceği dillerdir
+  locales: ['tr', 'en'],
+  defaultLocale: 'tr',
+  localePrefix: 'always'
 });
 
 export const config = {
-  // Dil yönlendirmesinden muaf tutulacak yollar (statik dosyalar ve api)
-  matcher: [
-    // Skip all internal paths (_next, api, etc.) and static files
-    '/((?!api|_next|.*\\..*|__/.*).*)'
-  ]
+  // Statik dosyaları ve api'leri middleware dışında tutar
+  matcher: ['/', '/(tr|en)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)']
 };

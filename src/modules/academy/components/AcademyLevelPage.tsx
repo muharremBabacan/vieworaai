@@ -24,11 +24,9 @@ import { cn } from '@/lib/utils';
 
 /**
  * Picks one of the four local placeholder images deterministically based on lesson ID.
- * This avoids hydration errors and provides consistent visuals.
  */
 const getDeterminsticPlaceholder = (id: string) => {
     const images = ["/temel12a.jpg", "/temel13a.jpg", "/temel14a.jpg", "/temel15a.jpg"];
-    // Simple hash-like index
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
         hash = id.charCodeAt(i) + ((hash << 5) - hash);
@@ -76,8 +74,8 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
             const storage = getStorage();
             const filePath = `users/${user.uid}/practice-submissions/${lesson.id}/${Date.now()}-${file.name}`;
             const storageRef = ref(storage, filePath);
-            const uploadResult = await uploadBytes(storageRef, file);
-            const imageUrl = await getDownloadURL(uploadResult.ref);
+            await uploadBytes(storageRef, file);
+            const imageUrl = await getDownloadURL(storageRef);
 
             setIsUploading(false);
             setIsAnalyzing(true);
@@ -85,7 +83,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
             const result = await evaluatePracticeSubmission({
                 photoUrl: imageUrl,
                 practiceTask: lesson.practiceTask,
-                analysisCriteria: lesson.analysisCriteria,
+                analysisCriteria: lesson.analysisCriteria || [],
                 language: "tr",
             });
 
@@ -181,7 +179,7 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
                 <Accordion type="multiple" defaultValue={['objective', 'theory']} className="w-full">
                     <AccordionItem value="objective"><AccordionTrigger className={typography.cardTitle}>Öğrenim Hedefi</AccordionTrigger><AccordionContent className={typography.body}>{lesson.learningObjective}</AccordionContent></AccordionItem>
                     <AccordionItem value="theory"><AccordionTrigger className={typography.cardTitle}>Teori</AccordionTrigger><AccordionContent className={cn(typography.body, "prose prose-sm dark:prose-invert")}>{lesson.theory}</AccordionContent></AccordionItem>
-                    <AccordionItem value="criteria"><AccordionTrigger className={typography.cardTitle}>Başarı Kriterleri</AccordionTrigger><AccordionContent><ul className={cn(typography.body, "list-disc pl-5 space-y-1")}>{lesson.analysisCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul></AccordionContent></AccordionItem>
+                    <AccordionItem value="criteria"><AccordionTrigger className={typography.cardTitle}>Başarı Kriterleri</AccordionTrigger><AccordionContent><ul className={cn(typography.body, "list-disc pl-5 space-y-1")}>{(lesson.analysisCriteria || []).map((c, i) => <li key={i}>{c}</li>)}</ul></AccordionContent></AccordionItem>
                     <AccordionItem value="task"><AccordionTrigger className={typography.cardTitle}>Pratik Görevi</AccordionTrigger><AccordionContent className={typography.body}>{lesson.practiceTask}</AccordionContent></AccordionItem>
                     <AccordionItem value="auro-note"><AccordionTrigger className={cn(typography.cardTitle, "text-cyan-400")}>{currencyName} Notu</AccordionTrigger><AccordionContent className={cn(typography.body, "italic")}>{lesson.auroNote}</AccordionContent></AccordionItem>
                 </Accordion>

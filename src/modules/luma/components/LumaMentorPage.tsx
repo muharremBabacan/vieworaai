@@ -28,6 +28,9 @@ const MENTOR_COSTS: Record<UserTier, number> = {
 };
 
 function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
+  const steps = analysis?.actionTask?.steps || [];
+  const evalQuestions = analysis?.actionTask?.evaluationQuestions || [];
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <Card className="rounded-[32px] border-primary/20 bg-primary/5 shadow-xl overflow-hidden">
@@ -49,12 +52,12 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
             <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black tracking-widest uppercase">BU HAFTANIN GÖREVİ</Badge>
             <span className={cn(typography.meta, "font-bold uppercase")}>{new Date(analysis.createdAt).toLocaleDateString('tr-TR')}</span>
           </div>
-          <CardTitle className={cn(typography.h1, "text-3xl uppercase")}>{analysis.actionTask.title}</CardTitle>
-          <CardDescription className={cn(typography.subtitle, "text-base font-bold mt-2 italic")}>“{analysis.actionTask.purpose}”</CardDescription>
+          <CardTitle className={cn(typography.h1, "text-3xl uppercase")}>{analysis.actionTask?.title || "Özel Görev"}</CardTitle>
+          <CardDescription className={cn(typography.subtitle, "text-base font-bold mt-2 italic")}>“{analysis.actionTask?.purpose || ""}”</CardDescription>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
           <div className="grid gap-4">
-            {analysis.actionTask.steps.map((step, i) => (
+            {steps.map((step, i) => (
               <div key={i} className="flex gap-4 p-5 rounded-2xl bg-muted/30 border border-border/40 hover:border-primary/30 transition-colors group">
                 <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-black text-sm group-hover:scale-110 transition-transform">{i + 1}</div>
                 <p className={cn(typography.body, "text-sm font-bold leading-relaxed")}>{step}</p>
@@ -67,7 +70,7 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
               <CheckCircle2 className="h-4 w-4" /> Değerlendirme Soruları
             </h4>
             <div className="grid sm:grid-cols-2 gap-4">
-              {analysis.actionTask.evaluationQuestions.map((q, i) => (
+              {evalQuestions.map((q, i) => (
                 <div key={i} className={cn(typography.meta, "p-4 rounded-xl border border-dashed border-border/60 bg-muted/10 font-medium italic leading-relaxed")}>
                   "{q}"
                 </div>
@@ -316,7 +319,7 @@ export default function LumaMentorPage() {
                             <div className="h-1 w-1 rounded-full bg-border" />
                             <span className={cn(typography.meta, "font-bold uppercase")}>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}</span>
                           </div>
-                          <h4 className={cn(typography.cardTitle, "tracking-tight group-hover:text-primary transition-colors")}>{item.actionTask.title}</h4>
+                          <h4 className={cn(typography.cardTitle, "tracking-tight group-hover:text-primary transition-colors")}>{item.actionTask?.title || "Strateji"}</h4>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
                       </CardContent>
