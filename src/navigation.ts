@@ -1,9 +1,8 @@
-import { createSharedPathnamesNavigation } from 'next-intl/navigation';
-import { locales, defaultLocale } from './i18n/config';
+import { createNavigation } from 'next-intl/navigation';
+import { routing } from './i18n/routing';
 
-export const localePrefix = 'never'; 
-
-export const { Link, redirect, usePathname, useRouter } = createSharedPathnamesNavigation({ 
-  locales: locales as unknown as string[], 
-  localePrefix 
-});
+/**
+ * Bu dosya, i18n/routing içindeki merkezi yapılandırmayı kullanarak 
+ * uygulama genelinde Link, redirect vb. araçları dışarı aktarır.
+ */
+export const { Link, redirect, usePathname, useRouter } = createNavigation(routing);

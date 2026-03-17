@@ -10,7 +10,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    // messages klasörü artık src içinde olduğu için yol:
+    // DÜZELTME: src/i18n'den src/messages'a gidiş yolu
     messages: (await import(`../messages/${locale}.json`)).default
   };
 });

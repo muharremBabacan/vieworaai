@@ -25,5 +25,4 @@ const nextConfig = {
   }
 };
 
-// Tip hatasını tamamen susturmak için 'any' kullanıyoruz
 export default withNextIntl(nextConfig as any);

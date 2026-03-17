@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+// DÜZELTME: next/link yerine bizim routing'i kullanıyoruz
+import { Link } from '@/i18n/routing'; 
 import { Button } from '@/components/ui/button';
 import { Camera, Home } from 'lucide-react';
 
@@ -17,16 +18,17 @@ export default function NotFound() {
         
         <div className="space-y-2">
           <h1 className="text-4xl font-black tracking-tighter uppercase">Odak Kayboldu</h1>
-          <p className="text-muted-foreground font-medium max-w-xs mx-auto">
-            Aradığınız kareyi bulamadık. Sayfa taşınmış veya silinmiş olabilir.
+          <p className="text-muted-foreground font-medium max-w-xs mx-auto leading-relaxed">
+            Aradığınız kareyi bulamadık. Sayfa taşınmış veya dil kodu değişmiş olabilir.
           </p>
         </div>
 
-        <Button asChild className="rounded-2xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-          <Link href="/">
+        {/* DÜZELTME: Link'i doğrudan Button içine veya asChild ile temiz kullanıyoruz */}
+        <Link href="/">
+          <Button className="rounded-2xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
             <Home className="mr-2 h-4 w-4" /> Ana Sayfaya Dön
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
     </div>
   );
