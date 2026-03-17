@@ -1,13 +1,14 @@
 import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
 
-export default createMiddleware({
-  // Buradaki diller, [locale] klasörünün kabul edeceği dillerdir
-  locales: ['tr', 'en'],
-  defaultLocale: 'tr',
-  localePrefix: 'always'
-});
+export default createMiddleware(routing);
 
 export const config = {
-  // Statik dosyaları ve api'leri middleware dışında tutar
-  matcher: ['/', '/(tr|en)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)']
+  // Bu matcher, sistem dosyalarını (.js, .css) ve resimleri (favicon, png) 
+  // dil yönlendirmesinden muaf tutar. Kilitlenmeyi bu önler.
+  matcher: [
+    '/((?!api|_next|_vercel|.*\\..*).*)',
+    '/',
+    '/(tr|en)/:path*'
+  ]
 };

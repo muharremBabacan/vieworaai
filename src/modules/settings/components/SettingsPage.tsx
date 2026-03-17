@@ -29,6 +29,17 @@ const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   };
 });
 
+const LANGUAGE_OPTIONS = [
+  { value: 'tr', label: 'Türkçe' },
+  { value: 'en', label: 'English' },
+  { value: 'ar', label: 'العربية' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'es', label: 'Español' },
+  { value: 'fr', label: 'Français' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'zh', label: '中文' },
+];
+
 export default function SettingsPage() {
   const t = useTranslations('ProfilePage');
   const common = useTranslations('AppLayout');
@@ -83,7 +94,7 @@ export default function SettingsPage() {
     try {
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
       await updateDoc(doc(firestore, 'users', user.uid), { language: newLocale });
-      toast({ title: newLocale === 'tr' ? "Dil Değiştirildi" : "Language Updated" });
+      toast({ title: "Dil Değiştirildi" });
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -159,8 +170,11 @@ export default function SettingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tr">Türkçe</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  {LANGUAGE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
