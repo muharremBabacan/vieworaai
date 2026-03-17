@@ -1,13 +1,12 @@
-import {defineRouting} from 'next-intl/routing';
-import {createNavigation} from 'next-intl/navigation';
+import { defineRouting } from 'next-intl/routing';
+import { createNavigation } from 'next-intl/navigation';
 
 export const routing = defineRouting({
-  // Desteklenen diller
   locales: ['tr', 'en'],
-  
-  // Dil kodu yoksa varsayılan olarak kullanılacak dil
-  defaultLocale: 'tr'
+  defaultLocale: 'tr',
+  // Prefix her zaman olsun ki yönlendirmeler şaşmasın
+  localePrefix: 'always' 
 });
 
-// Proje içinde kullanacağın Link, redirect gibi fonksiyonları buradan export ediyoruz
-export const {Link, redirect, usePathname, useRouter} = createNavigation(routing);
+// Fonksiyonları dışarı aktarıyoruz
+export const { Link, redirect, usePathname, useRouter } = createNavigation(routing);

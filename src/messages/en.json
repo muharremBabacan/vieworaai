@@ -18,7 +18,6 @@
     "title_settings": "Settings",
     "title_pricing": "Auro Packages",
     "title_default": "Viewora",
-    "title_admin_panel": "Admin Panel",
     "nav_academy": "Academy",
     "nav_explore": "Explore",
     "nav_groups": "Groups",
@@ -26,7 +25,6 @@
     "nav_gallery": "Gallery",
     "nav_profile": "Profile",
     "nav_settings": "Settings",
-    "nav_admin_panel": "Admin Panel",
     "loading": "Loading..."
   },
   "LoginPage": {
@@ -432,6 +430,7 @@
     "button_buy_now": "Buy Now"
   },
   "ProfilePage": {
+    "title_settings": "Settings",
     "level_title": "Level & Progress",
     "next_level": "Next: {level}",
     "max_level": "Maximum Level",

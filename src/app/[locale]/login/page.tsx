@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+// DÜZELTME: useRouter ve Link artık bizim oluşturduğumuz routing dosyasından gelmeli
+import { useRouter, Link } from '@/i18n/routing'; 
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -18,7 +19,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Loader2, Mail, Lock } from 'lucide-react';
 import Logo from '@/core/components/logo';
-import Link from 'next/link';
 import { AuthService } from '@/lib/auth/auth-service';
 import type { User as UserProfile } from '@/types';
 
@@ -104,6 +104,7 @@ function LoginForm() {
       await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
       await processAuroRefillAndStats(result.user.uid, profile);
       
+      // router artık otomatik olarak /tr veya /en ekler
       router.push('/dashboard');
     } catch (error: any) {
       console.warn("Google Sign-In Error:", error.code);
