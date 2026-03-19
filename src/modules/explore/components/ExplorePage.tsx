@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -15,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { typography } from "@/lib/design/typography";
+import { useTranslations } from 'next-intl';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -34,6 +36,8 @@ const getOverallScore = (photo: Photo): number => {
 };
 
 export default function ExplorePage() {
+  const t = useTranslations('ExplorePage');
+  const tr = useTranslations('Ratings');
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -42,7 +46,6 @@ export default function ExplorePage() {
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
-  // ALL HOOKS MUST BE AT TOP UNCONDITIONALLY
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
@@ -76,22 +79,21 @@ export default function ExplorePage() {
 
   const isLevelEligibleForAI = (userProfile?.current_xp || 0) >= 101;
 
-  // Conditional rendering happens in return, not before hooks
   if (view === 'hub') {
     return (
       <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
         <header className="mb-10 space-y-1">
-          <p className={cn(typography.eyebrow, "ml-1")}>KEŞFET</p>
-          <h1 className={cn(typography.h1, "leading-none uppercase")}>İlhamı Keşfet</h1>
+          <p className={cn(typography.eyebrow, "ml-1")}>{t('hub_eyebrow')}</p>
+          <h1 className={cn(typography.h1, "leading-none uppercase")}>{t('hub_title')}</h1>
         </header>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-primary/20 cursor-pointer" onClick={() => setView('exhibitions')}>
             <div className="relative h-32 w-full"><Image src="https://picsum.photos/seed/ex/600/400" alt="S" fill className="object-cover" unoptimized data-ai-hint="photography gallery" /><div className="absolute inset-0 bg-black/40" /></div>
-            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Sergiler</h3><Button className="w-full rounded-xl">Salonları Gör</Button></CardContent>
+            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>{t('category_exhibitions')}</h3><Button className="w-full rounded-xl">{t('category_exhibitions_button')}</Button></CardContent>
           </Card>
           <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-yellow-400/20 cursor-pointer" onClick={() => setView('featured')}>
             <div className="relative h-32 w-full"><Image src="https://picsum.photos/seed/feat/600/400" alt="F" fill className="object-cover" unoptimized data-ai-hint="featured photos" /><div className="absolute inset-0 bg-black/40" /></div>
-            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Öne Çıkanlar</h3><Button className="w-full rounded-xl">Hemen Gör</Button></CardContent>
+            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>{t('category_featured')}</h3><Button className="w-full rounded-xl">{t('category_featured_button')}</Button></CardContent>
           </Card>
         </div>
       </div>
@@ -100,8 +102,8 @@ export default function ExplorePage() {
 
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in slide-in-from-right-10 duration-700">
-      <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 rounded-2xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Geri Dön</Button>
-      <h1 className={cn(typography.h1, "uppercase mb-10")}>{view === 'featured' ? 'Öne Çıkan Kareler' : selectedExhibition?.title || 'Sergiler'}</h1>
+      <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 rounded-2xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> {t('clear_filter')}</Button>
+      <h1 className={cn(typography.h1, "uppercase mb-10")}>{view === 'featured' ? t('featured_title') : selectedExhibition?.title || t('category_exhibitions')}</h1>
 
       {view === 'exhibitions' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -150,23 +152,23 @@ export default function ExplorePage() {
             <div className="relative w-full md:w-3/5 h-[35vh] md:h-auto bg-black/40 shrink-0"><Image src={selectedPhoto.imageUrl} alt="Eser" fill className="object-contain" unoptimized /></div>
             <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>Eser Detayları<Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge></DialogTitle>
-                <DialogDescription className="font-bold uppercase">Sanatçı: @{selectedPhoto.userName || 'Sanatçı'}</DialogDescription>
+                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>{t('dialog_title')}<Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge></DialogTitle>
+                <DialogDescription className="font-bold uppercase">{t('dialog_artist_label')}: @{selectedPhoto.userName || 'Sanatçı'}</DialogDescription>
               </DialogHeader>
               <div className="space-y-6">
                 {isLevelEligibleForAI && selectedPhoto.aiFeedback ? (
                   <>
                     <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
-                      <h4 className={cn(typography.eyebrow, "text-primary")}>Luma Analizi</h4>
+                      <h4 className={cn(typography.eyebrow, "text-primary")}>{t('luma_analysis_title')}</h4>
                       <div className="space-y-3">
-                        <div className="space-y-1"><div className="flex justify-between text-[10px] font-bold"><span>Işık</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div><Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1" /></div>
-                        <div className="space-y-1"><div className="flex justify-between text-[10px] font-bold"><span>Kompozisyon</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div><Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1" /></div>
+                        <div className="space-y-1"><div className="flex justify-between text-[10px] font-bold"><span>{tr('light')}</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div><Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1" /></div>
+                        <div className="space-y-1"><div className="flex justify-between text-[10px] font-bold"><span>{tr('composition')}</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div><Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1" /></div>
                       </div>
                     </Card>
                     <p className="text-sm italic font-medium leading-relaxed bg-muted/30 p-4 rounded-xl">"{selectedPhoto.aiFeedback.short_neutral_analysis}"</p>
                   </>
-                ) : <Card className="p-8 border-dashed text-center space-y-4 rounded-[32px]"><Lock size={32} className="mx-auto text-muted-foreground/40" /><p className="font-black uppercase">Analiz Kilitli</p></Card>}
-                <div className="flex items-center gap-2 text-red-500 bg-red-500/5 px-4 py-2 rounded-full border border-red-500/10 w-fit"><Heart className="h-4 w-4 fill-current" /><span className="font-black">{selectedPhoto.likes?.length || 0} Beğeni</span></div>
+                ) : <Card className="p-8 border-dashed text-center space-y-4 rounded-[32px]"><Lock size={32} className="mx-auto text-muted-foreground/40" /><p className="font-black uppercase">{t('analysis_locked_title')}</p></Card>}
+                <div className="flex items-center gap-2 text-red-500 bg-red-500/5 px-4 py-2 rounded-full border border-red-500/10 w-fit"><Heart className="h-4 w-4 fill-current" /><span className="font-black">{selectedPhoto.likes?.length || 0} {tr('likes')}</span></div>
               </div>
             </div>
           </DialogContent>

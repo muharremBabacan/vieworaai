@@ -12,59 +12,61 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/types';
 import { canAccess } from '@/lib/auth/canAccess';
-
-const academyLevels = [
-  {
-    name: 'Temel',
-    id: 'temel',
-    gate: 'joinGroup', // Neuner access
-    icon: Award,
-    title: 'Temel Seviye',
-    subtitle: 'Kameranızın temellerini öğrenin.',
-    description: 'Pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.',
-    href: '/academy/temel',
-    imageUrl: '/temel12a.jpg',
-    features: ['Kamera temelleri', 'Pozlama üçgeni', 'Temel kompozisyon']
-  },
-  {
-    name: 'Orta',
-    id: 'orta',
-    gate: 'academy', // Viewner access
-    icon: BarChart3,
-    title: 'Orta Seviye',
-    subtitle: 'Tekniğinizi profesyonelleştirin.',
-    description: 'Farklı türlerde çekim yapın ve ışığı bilinçli yönetin.',
-    href: '/academy/orta',
-    imageUrl: '/temel13a.jpg',
-    features: ['Tür bazlı çekim', 'Işık yönetimi', 'Görsel hikaye anlatımı']
-  },
-  {
-    name: 'İleri',
-    id: 'ileri',
-    gate: 'challenge', // Sytner access
-    icon: Diamond,
-    title: 'İleri Seviye',
-    subtitle: 'Kendi sanatsal tarzınızı yaratın.',
-    description: 'Profesyonel ışık kurulumlarını öğrenin ve uzmanlaşın.',
-    href: '/academy/ileri',
-    imageUrl: '/temel15a.jpg',
-    features: ['Profesyonel ışık', 'Sanatsal stil', 'Marka konumlandırma']
-  },
-];
+import { useTranslations } from 'next-intl';
 
 export default function AcademyHubPage() {
+  const t = useTranslations('AcademyPage');
   const { user } = useUser();
   const firestore = useFirestore();
   
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
+  const academyLevels = [
+    {
+      name: 'Temel',
+      id: 'temel',
+      gate: 'joinGroup', 
+      icon: Award,
+      title: t('level_basic_title'),
+      subtitle: 'Kameranızın temellerini öğrenin.',
+      description: t('level_basic_description'),
+      href: '/academy/temel',
+      imageUrl: '/temel12a.jpg',
+      features: ['Kamera temelleri', 'Pozlama üçgeni', 'Temel kompozisyon']
+    },
+    {
+      name: 'Orta',
+      id: 'orta',
+      gate: 'academy', 
+      icon: BarChart3,
+      title: t('level_intermediate_title'),
+      subtitle: 'Tekniğinizi profesyonelleştirin.',
+      description: t('level_intermediate_description'),
+      href: '/academy/orta',
+      imageUrl: '/temel13a.jpg',
+      features: ['Tür bazlı çekim', 'Işık yönetimi', 'Görsel hikaye anlatımı']
+    },
+    {
+      name: 'İleri',
+      id: 'ileri',
+      gate: 'challenge', 
+      icon: Diamond,
+      title: t('level_advanced_title'),
+      subtitle: 'Kendi sanatsal tarzınızı yaratın.',
+      description: t('level_advanced_description'),
+      href: '/academy/ileri',
+      imageUrl: '/temel15a.jpg',
+      features: ['Profesyonel ışık', 'Sanatsal stil', 'Marka konumlandırma']
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-10 space-y-1">
         <p className={cn(typography.eyebrow, "ml-1")}>AKADEMİ</p>
-        <h1 className={cn(typography.h1, "leading-none uppercase")}>Viewora Akademi</h1>
-        <p className={cn(typography.subtitle, "opacity-80")}>Fotoğrafçılık bilginizi temelden ustalığa taşıyın.</p>
+        <h1 className={cn(typography.h1, "leading-none uppercase")}>{t('main_title')}</h1>
+        <p className={cn(typography.subtitle, "opacity-80")}>{t('main_description')}</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -134,7 +136,7 @@ export default function AcademyHubPage() {
                   disabled={!unlocked}
                 >
                   {unlocked ? (
-                    <Link href={level.href}>Dersleri Gör</Link>
+                    <Link href={level.href}>{t('button_view_lessons')}</Link>
                   ) : (
                     <span className="flex items-center gap-2">
                       <Lock className="h-3 w-3" /> Seviye Yetersiz
@@ -154,8 +156,8 @@ export default function AcademyHubPage() {
           }
 
           const tooltipText = level.id === 'orta' 
-            ? 'Orta Seviye — Viewner (101+ XP) olduğunda açılır.' 
-            : 'İleri Seviye — Sytner (501+ XP) olduğunda açılır.';
+            ? t('tooltip_intermediate') 
+            : t('tooltip_advanced');
 
           return (
             <TooltipProvider key={level.id}>
@@ -176,14 +178,14 @@ export default function AcademyHubPage() {
 
       <div className="mt-16 p-8 rounded-[40px] border-2 border-dashed border-border/40 bg-muted/5 flex flex-col md:flex-row items-center justify-between gap-8 animate-in slide-in-from-bottom-4 duration-1000 delay-200">
         <div className="space-y-2 text-center md:text-left">
-          <h4 className={cn(typography.cardTitle, "text-2xl font-black uppercase")}>Akademi Yolculuğu</h4>
-          <p className={cn(typography.body, "max-w-md")}>Her seviye, fotoğrafçılıkta uzmanlaşmanız için özel olarak tasarlandı. Dersleri tamamlayarak XP kazanın ve rütbenizi yükseltin.</p>
+          <h4 className={cn(typography.cardTitle, "text-2xl font-black uppercase")}>{t('journey_title')}</h4>
+          <p className={cn(typography.body, "max-w-md")}>{t('journey_desc')}</p>
         </div>
         <div className="flex items-center gap-4 bg-background/50 p-6 rounded-3xl border border-border/40 shadow-inner">
           <GraduationCap className="h-10 w-10 text-primary" />
           <div>
-            <p className={typography.eyebrow}>Eğitim Durumu</p>
-            <p className={cn(typography.cardTitle, "text-lg font-black uppercase")}>Gelişim Bekleniyor</p>
+            <p className={typography.eyebrow}>{t('status_label')}</p>
+            <p className={cn(typography.cardTitle, "text-lg font-black uppercase")}>{t('status_value')}</p>
           </div>
         </div>
       </div>

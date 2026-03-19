@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
 import { typography } from "@/lib/design/typography";
+import { useTranslations } from 'next-intl';
 
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -63,7 +64,7 @@ const RatingBar = ({ label, score, isLocked }: { label: string; score: number; i
     </div>
 );
 
-const ScanningOverlay = () => (
+const ScanningOverlay = ({ label }: { label: string }) => (
   <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
     <div className="relative w-full max-w-[280px] space-y-6 text-center">
       <div className="relative h-20 w-20 mx-auto">
@@ -75,7 +76,7 @@ const ScanningOverlay = () => (
       </div>
       <div className="space-y-2">
         <h3 className="text-xl font-black uppercase tracking-tighter text-white">Luma Taraması</h3>
-        <p className="text-xs font-bold text-primary/80 uppercase tracking-[0.2em] animate-pulse">Görsel Analiz Ediliyor...</p>
+        <p className="text-xs font-bold text-primary/80 uppercase tracking-[0.2em] animate-pulse">{label}</p>
       </div>
       <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
         <div className="h-full bg-primary animate-progress-fast shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
@@ -85,6 +86,8 @@ const ScanningOverlay = () => (
 );
 
 export default function PhotoAnalyzer() {
+  const t = useTranslations('DashboardPage');
+  const tr = useTranslations('Ratings');
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -106,14 +109,14 @@ export default function PhotoAnalyzer() {
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     if (selectedFile.size > 10 * 1024 * 1024) {
-      toast({ variant: 'destructive', title: 'Dosya Çok Büyük', description: 'Lütfen 10MB\'dan küçük bir dosya seçin.' });
+      toast({ variant: 'destructive', title: t('toast_file_size_title'), description: t('toast_file_size_description') });
       return;
     }
     setIsDuplicate(false);
     setAnalysisResult(null);
     setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
-  }, [toast]);
+  }, [toast, t]);
 
   const { getRootProps, getInputProps, open } = useDropzone({
     onDrop: (acceptedFiles) => acceptedFiles.length > 0 && handleFileSelect(acceptedFiles[0]),
@@ -162,7 +165,7 @@ export default function PhotoAnalyzer() {
   const handleUploadAndOptionalAnalysis = async (analyze = false) => {
     if (!file || !user || !firestore || !userProfile) return;
     if (analyze && userProfile.auro_balance < analysisCost) {
-      toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
+      toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_description', { cost: analysisCost }) });
       return;
     }
     setIsLoading(true);
@@ -174,10 +177,10 @@ export default function PhotoAnalyzer() {
         const existingPhoto = dupSnap.docs[0].data() as Photo;
         if (existingPhoto.aiFeedback) {
             setAnalysisResult(existingPhoto);
-            toast({ title: 'Zaten Analiz Edilmiş' });
+            toast({ title: t('toast_upload_only_title') });
         } else {
             setIsDuplicate(true);
-            toast({ variant: 'destructive', title: 'Bu kare zaten galerinizde.' });
+            toast({ variant: 'destructive', title: t('toast_invalid_file_title') });
         }
         setIsLoading(false);
         return;
@@ -204,7 +207,7 @@ export default function PhotoAnalyzer() {
       };
 
       if (analyze) {
-        const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: 'tr', tier: currentTier });
+        const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: userProfile.language || 'tr', tier: currentTier });
         photoData.aiFeedback = analysis;
         photoData.tags = analysis.tags || [];
         const score = getOverallScore(photoData);
@@ -216,17 +219,17 @@ export default function PhotoAnalyzer() {
         await batch.commit();
         await updateUserProfileIndex(user.uid, score);
         setAnalysisResult(photoData);
-        toast({ title: 'Analiz Tamamlandı' });
+        toast({ title: t('toast_success_title') });
       } else {
         batch.set(photoDocRef, photoData);
         batch.update(userRef, { current_xp: increment(5) });
         await batch.commit();
-        toast({ title: 'Fotoğraf Yüklendi' });
+        toast({ title: t('toast_upload_only_title') });
         router.push('/gallery');
       }
     } catch (error: any) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'İşlem Başarısız' });
+      toast({ variant: 'destructive', title: t('toast_analysis_fail_title') });
     } finally {
       setIsLoading(false);
     }
@@ -248,10 +251,10 @@ export default function PhotoAnalyzer() {
         <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-10 duration-700">
           <header className="flex justify-between items-center">
             <div className="space-y-1">
-              <Badge variant="outline" className="px-3 h-6 border-primary/30 text-primary font-black uppercase tracking-widest text-[9px] rounded-full">LUMA ANALİZ RAPORU</Badge>
-              <h1 className="text-4xl font-black tracking-tighter uppercase">Gelişim Özetin</h1>
+              <Badge variant="outline" className="px-3 h-6 border-primary/30 text-primary font-black uppercase tracking-widest text-[9px] rounded-full">{t('analysis_report_badge')}</Badge>
+              <h1 className="text-4xl font-black tracking-tighter uppercase">{t('analysis_report_title')}</h1>
             </div>
-            <Button onClick={resetAnalyzer} variant="ghost" className="rounded-xl font-bold text-muted-foreground"><RefreshCw size={16} className="mr-2" /> Yeni Analiz</Button>
+            <Button onClick={resetAnalyzer} variant="ghost" className="rounded-xl font-bold text-muted-foreground"><RefreshCw size={16} className="mr-2" /> {t('button_new_analysis')}</Button>
           </header>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-6">
@@ -261,30 +264,30 @@ export default function PhotoAnalyzer() {
                 </div>
               </Card>
               <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-6">
-                <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div><h3 className="text-lg font-black uppercase tracking-tight">Algılanan Detaylar</h3></div>
+                <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div><h3 className="text-lg font-black uppercase tracking-tight">{t('detected_details_title')}</h3></div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Tür</p><p className="text-sm font-bold capitalize">{analysisResult.aiFeedback!.genre}</p></div>
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Sahne</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.scene}</p></div>
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Ana Özne</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.dominant_subject}</p></div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{t('detail_genre')}</p><p className="text-sm font-bold capitalize">{analysisResult.aiFeedback!.genre}</p></div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{t('detail_scene')}</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.scene}</p></div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{t('detail_subject')}</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.dominant_subject}</p></div>
                 </div>
               </Card>
             </div>
             <div className="lg:col-span-5 space-y-6">
               <Card className="p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
                 <div className="relative z-10 flex flex-col items-center text-center space-y-2 mb-10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">GENEL SKOR</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">{t('overall_score')}</p>
                   <div className="text-7xl font-black tracking-tighter text-primary">{getOverallScore(analysisResult).toFixed(1)}</div>
                 </div>
                 <div className="space-y-6">
-                  <RatingBar label="Işık Kullanımı" score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
-                  <RatingBar label="Kompozisyon" score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
-                  <RatingBar label="Teknik Netlik" score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
-                  <RatingBar label="Hikaye Anlatımı" score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} isLocked={analysisResult.analysisTier === 'start'} />
+                  <RatingBar label={tr('light')} score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
+                  <RatingBar label={tr('composition')} score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
+                  <RatingBar label={tr('technical')} score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
+                  <RatingBar label={tr('storytelling')} score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} isLocked={analysisResult.analysisTier === 'start'} />
                   <RatingBar label="Cesur Kadraj" score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
                 </div>
               </Card>
               <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-4">
-                <div className="flex items-center gap-2"><Lightbulb size={18} className="text-amber-400" /><h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Luma'nın Notu</h4></div>
+                <div className="flex items-center gap-2"><Lightbulb size={18} className="text-amber-400" /><h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('luma_note_title')}</h4></div>
                 <p className="text-base italic text-foreground/90 leading-relaxed font-medium">"{analysisResult.aiFeedback!.short_neutral_analysis}"</p>
               </Card>
             </div>
@@ -296,28 +299,28 @@ export default function PhotoAnalyzer() {
             <input {...getInputProps()} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="text-center md:text-left space-y-4 max-w-md">
-                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">Fotoğrafını yükle</h2>
-                <p className="text-xl md:text-2xl font-bold text-muted-foreground">Yapay zeka analiz etsin</p>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">{t('upload_section_title')}</h2>
+                <p className="text-xl md:text-2xl font-bold text-muted-foreground">{t('upload_section_subtitle')}</p>
               </div>
               <div className="flex flex-col items-center gap-4">
                 <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform"><Camera className="text-primary" size={40} /></div>
-                <Button onClick={open} className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95">Fotoğraf Seç</Button>
+                <Button onClick={open} className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95">{t('button_select_photo')}</Button>
               </div>
             </div>
           </div>
         </div>
       ) : (
         <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm relative overflow-hidden">
-          {isLoading && <ScanningOverlay />}
+          {isLoading && <ScanningOverlay label={t('state_analyzing')} />}
           <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12">
             <Image src={preview!} alt="Preview" fill className="object-cover" unoptimized />
           </div>
           <div className="flex flex-col sm:flex-row justify-center gap-5">
             <Button onClick={() => handleUploadAndOptionalAnalysis(true)} disabled={isDuplicate || isLoading} className="h-16 px-12 rounded-[20px] font-black uppercase shadow-2xl shadow-primary/30">
-              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> Analiz Et ({analysisCost} {currencyName})</>}
+              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> {t('button_analyze', { cost: analysisCost })}</>}
             </Button>
             <Button onClick={() => handleUploadAndOptionalAnalysis(false)} variant="secondary" disabled={isDuplicate || isLoading} className="h-16 px-12 rounded-[20px] font-black uppercase">
-              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : "Sadece Yükle"}
+              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : t('button_upload_only')}
             </Button>
           </div>
         </Card>

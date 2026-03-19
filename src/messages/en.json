@@ -1,3 +1,4 @@
+
 {
   "UserNav": {
     "settings": "Settings",
@@ -102,7 +103,11 @@
     "level_advanced_description": "Create your own artistic style, learn professional lighting setups, and specialize in photography.",
     "button_view_lessons": "View Lessons",
     "tooltip_intermediate": "Intermediate Level — Keep progressing, the lock opens.",
-    "tooltip_advanced": "Expert content for Advanced Level. Keep progressing to unlock it."
+    "tooltip_advanced": "Expert content for Advanced Level. Keep progressing to unlock it.",
+    "journey_title": "Academy Journey",
+    "journey_desc": "Each level is specifically designed for you to specialize in photography. Earn XP by completing lessons and rank up.",
+    "status_label": "Education Status",
+    "status_value": "Improvement Pending"
   },
   "AcademyLevelPage": {
     "practice_submission_title": "Show Your Practice",
@@ -147,7 +152,8 @@
     "toast_upload_image_success_title": "Success!",
     "toast_upload_image_success_description": "Lesson image has been updated.",
     "toast_upload_image_error_title": "Error",
-    "toast_upload_image_error_description": "Image could not be uploaded."
+    "toast_upload_image_error_description": "Image could not be uploaded.",
+    "page_title_suffix": "Level Lessons"
   },
   "CompetitionsPage": {
     "title": "Competitions",
@@ -163,7 +169,9 @@
     "status_ended": "Ended",
     "no_competitions_title": "No Active Competitions Found",
     "no_competitions_description": "New competitions will be here soon. Stay tuned!",
-    "button_view_entries": "View Entries"
+    "button_view_entries": "View Entries",
+    "card_button_join": "Join Now",
+    "card_button_details": "View Details"
   },
   "DashboardPage": {
     "main_title": "I am Luma. I am accompanying you on your photography journey.",
@@ -216,7 +224,16 @@
     "no_strengths": "No specific strong point was found in this photo, but it is generally a balanced shot.",
     "upload_prompt_main_new": "Drag or upload your photo",
     "upload_prompt_sub_new": "JPG, PNG, HEIC supported",
-    "button_select_photo": "Select Photo"
+    "button_select_photo": "Select Photo",
+    "analysis_report_badge": "LUMA ANALYSIS REPORT",
+    "analysis_report_title": "Your Growth Summary",
+    "detected_details_title": "Detected Details",
+    "detail_genre": "Genre",
+    "detail_scene": "Scene",
+    "detail_subject": "Main Subject",
+    "luma_note_title": "Luma's Note",
+    "upload_section_title": "Upload your photo",
+    "upload_section_subtitle": "Let AI analyze it"
   },
   "ExplorePage": {
     "title": "Exhibition Hall",
@@ -230,7 +247,17 @@
     "no_photos_title": "No one has shared their work yet.",
     "no_photos_description": "Revitalize this space by submitting a photo from your own gallery to the Exhibition!",
     "showing_photos_by": "{name}'s photos are being shown",
-    "clear_filter": "Clear Filter"
+    "clear_filter": "Clear Filter",
+    "hub_eyebrow": "EXPLORE",
+    "hub_title": "Explore Inspiration",
+    "category_exhibitions": "Exhibitions",
+    "category_exhibitions_button": "View Halls",
+    "category_featured": "Featured",
+    "category_featured_button": "See Now",
+    "featured_title": "Featured Shots",
+    "dialog_artist_label": "Artist",
+    "luma_analysis_title": "Luma Analysis",
+    "analysis_locked_title": "Analysis Locked"
   },
   "GalleryPage": {
     "title": "My Gallery",
@@ -280,7 +307,26 @@
     "toast_submit_exhibition_complete": "Your photo has been submitted to the Exhibition.",
     "toast_withdraw_exhibition_complete": "Your photo has been withdrawn from the Exhibition.",
     "toast_error_exhibition": "An error occurred during the exhibition operation.",
-    "alert_dialog_withdraw_description": "This photo will be removed from the public Exhibition. It will continue to be visible in your gallery."
+    "alert_dialog_withdraw_description": "This photo will be removed from the public Exhibition. It will continue to be visible in your gallery.",
+    "eyebrow": "LIBRARY",
+    "filter_status_analyzed": "Analyzed",
+    "filter_status_exhibition": "In Exhibition",
+    "filter_status_best": "My Best",
+    "filter_category_all": "All Genres",
+    "badge_in_exhibition": "IN EXHIBITION",
+    "dialog_details_title": "Art Details",
+    "dialog_upload_date": "Uploaded on {date}",
+    "dialog_luma_report_title": "Luma Scorecard",
+    "dialog_luma_note_title": "Luma's Note",
+    "dialog_select_exhibition": "Select Exhibition Hall",
+    "dialog_select_exhibition_placeholder": "Select hall...",
+    "dialog_button_withdraw": "Withdraw from Exhibition",
+    "dialog_button_submit": "Submit to Exhibition ({cost} {currency})",
+    "dialog_not_analyzed_title": "Not Analyzed",
+    "dialog_not_analyzed_desc": "This photo was only uploaded, not scanned by AI.",
+    "empty_gallery_title": "Gallery is Empty",
+    "empty_gallery_desc": "No photos found matching this filter yet.",
+    "empty_gallery_button": "Upload Photo"
   },
   "GroupsPage": {
     "button_create_group": "Create New Group",
@@ -319,7 +365,16 @@
     "card_member_count": "{count} members",
     "button_view_group": "View Group",
     "no_groups_title": "Not a Member of Any Group Yet",
-    "no_groups_description": "Start your own community by creating a new group or get an invitation from a friend."
+    "no_groups_description": "Start your own community by creating a new group or get an invitation from a friend.",
+    "form_label_purpose": "Group Purpose",
+    "form_purpose_placeholder": "Select a purpose",
+    "form_purpose_study": "Study Group",
+    "form_purpose_challenge": "Challenge Group",
+    "form_purpose_walk": "Photo Walk",
+    "form_purpose_mentor": "Mentor Group",
+    "create_tooltip_no_access": "Reach Viewner level to create a group.",
+    "toast_copied_title": "Copied!",
+    "toast_copied_desc": "Group number copied to clipboard."
   },
   "GroupDetailPage": {
     "tooltip_user_not_found": "User not found",
@@ -370,6 +425,8 @@
     "tab_events": "Events",
     "tab_trainings": "Trainings",
     "tab_settings": "Settings",
+    "tab_trips": "Trips",
+    "tab_admin": "Management",
     "settings_title": "Group Settings",
     "delete_group_title": "Delete Group",
     "delete_group_description": "This action is irreversible. The group and all its content will be permanently deleted.",
@@ -402,7 +459,55 @@
     "comp_card_status_active": "Active",
     "comp_card_status_upcoming": "Upcoming",
     "comp_card_status_ended": "Ended",
-    "button_view_competition": "View Competition"
+    "button_view_competition": "View Competition",
+    "trips_empty_title": "No Planned Trips",
+    "assignment_badge_active": "ACTIVE ASSIGNMENT",
+    "assignment_button_detail": "Detail",
+    "assignment_success_title": "Assignment Submitted!",
+    "dialog_eval_title": "Evaluation",
+    "dialog_score_label": "SCORE",
+    "admin_card_title": "Plan Trip",
+    "admin_form_route_placeholder": "Select Route Template...",
+    "admin_form_title_placeholder": "Trip Title",
+    "admin_form_desc_placeholder": "Description...",
+    "admin_form_count_placeholder": "Participants",
+    "admin_button_publish": "Publish Trip",
+    "toast_trip_publish_success": "Trip Plan Published!",
+    "trip_card_badge": "TRIP PLAN",
+    "trip_card_route_label": "Route",
+    "trip_card_mentor_label": "MENTOR",
+    "trip_card_button_yes": "I'm Coming",
+    "trip_card_button_no": "Can't Make It",
+    "toast_rsvp_updated": "RSVP Updated"
+  },
+  "LumaMentorPage": {
+    "title": "Luma Mentor",
+    "subtitle": "I will prepare a strategic roadmap to take your vision to mastery.",
+    "eyebrow": "MENTORSHIP",
+    "tier_badge_prefix": "LUMA",
+    "tier_badge_suffix": "PACKAGE",
+    "start_card_title": "Start Your Analysis",
+    "start_card_subtitle": "Create your personal growth route",
+    "start_card_desc": "Luma is ready to scan your photos and prepare a custom strategy for you.",
+    "button_start": "Strategic Analysis ({cost} {currency})",
+    "button_analyzing": "Analyzing...",
+    "toast_no_access": "Access Denied",
+    "toast_no_access_desc": "Vexer level and Master package are required for strategic analysis.",
+    "toast_insufficient_auro": "Insufficient {currency}",
+    "toast_insufficient_auro_desc": "{cost} {currency} is required for strategic analysis.",
+    "toast_data_insufficient": "Insufficient Data",
+    "toast_data_insufficient_desc": "Luma needs at least 3 analyzed photos to study your progress.",
+    "toast_success": "Strategic Plan Ready!",
+    "toast_error": "Analysis Failed",
+    "toast_error_desc": "Luma is unable to respond at the moment.",
+    "plan_ready_badge": "NEW PLAN CREATED",
+    "button_close": "Close",
+    "analysis_card_title": "Luma Analysis – Personal Strategy",
+    "task_card_badge": "THIS WEEK'S TASK",
+    "task_card_default_title": "Custom Task",
+    "eval_questions_title": "Evaluation Questions",
+    "prev_routes_title": "Previous Routes",
+    "history_dialog_title": "Saved Roadmap"
   },
   "JoinGroupPage": {
     "page_title": "Join Group",
@@ -429,7 +534,11 @@
     "toast_purchase_success_title": "Purchase Successful!",
     "toast_purchase_success_description": "{auro} Auro has been added to your account.",
     "button_processing": "Processing...",
-    "button_buy_now": "Buy Now"
+    "button_buy_now": "Buy Now",
+    "beta_alert_title": "Viewora Beta",
+    "beta_alert_desc": "Viewora is currently in access (beta) stage. All analysis features are free to use right now.",
+    "beta_button_label": "Free in Beta",
+    "beta_info_desc": "During the beta period, you can use the Pix automatically defined in your account. The actual payment infrastructure will be activated with the launch."
   },
   "ProfilePage": {
     "title_settings": "Settings",
@@ -489,7 +598,13 @@
     "developer_tools_title": "Developer Tools",
     "developer_tools_description": "Change your user level for testing purposes.",
     "developer_level_change_success_title": "Level Changed",
-    "developer_level_change_success_description": "Your new level is now: {level}"
+    "developer_level_change_success_description": "Your new level is now: {level}",
+    "page_title": "My Profile",
+    "card_status_member": "Viewora Member",
+    "card_streak_label": "DAYS",
+    "progress_current_rank": "Current Rank",
+    "progress_target_label": "Target",
+    "progress_max_level": "Maximum Level"
   },
   "UserNavFallback": {
     "login": "Sign In",
@@ -536,6 +651,10 @@
     "no_notifications": "No notifications yet.",
     "mark_all_as_read": "Mark All as Read",
     "notification_group_invite_title": "Group Invitation",
-    "notification_group_invite_body": "{inviterName} has invited you to the \"{groupName}\" group."
+    "notification_group_invite_body": "{inviterName} has invited you to the \"{groupName}\" group.",
+    "badge_new": "NEW",
+    "footer_limited": "Showing most recent updates",
+    "invite_button_accept": "Accept",
+    "invite_button_decline": "Decline"
   }
 }

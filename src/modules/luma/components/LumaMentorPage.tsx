@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -19,6 +20,7 @@ import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from 'next/navigation';
 import { typography } from "@/lib/design/typography";
 import { canAccess } from '@/lib/auth/canAccess';
+import { useTranslations } from 'next-intl';
 
 const MENTOR_COSTS: Record<UserTier, number> = {
   start: 2,
@@ -27,6 +29,7 @@ const MENTOR_COSTS: Record<UserTier, number> = {
 };
 
 function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
+  const t = useTranslations('LumaMentorPage');
   const steps = analysis?.actionTask?.steps || [];
   const evalQuestions = analysis?.actionTask?.evaluationQuestions || [];
 
@@ -35,7 +38,7 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
       <Card className="rounded-[32px] border-primary/20 bg-primary/5 shadow-xl overflow-hidden">
         <CardHeader className="p-8 border-b border-primary/10">
           <CardTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center gap-3")}>
-            <Compass className="h-6 w-6 text-primary" /> Luma Analizi – Kişisel Strateji
+            <Compass className="h-6 w-6 text-primary" /> {t('analysis_card_title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
@@ -48,10 +51,10 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
       <Card className="rounded-[32px] border-border/40 bg-card/50 shadow-2xl overflow-hidden">
         <CardHeader className="p-8 border-b border-border/40 bg-secondary/20">
           <div className="flex items-center justify-between mb-2">
-            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black tracking-widest uppercase">BU HAFTANIN GÖREVİ</Badge>
-            <span className={cn(typography.meta, "font-bold uppercase")}>{new Date(analysis.createdAt).toLocaleDateString('tr-TR')}</span>
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black tracking-widest uppercase">{t('task_card_badge')}</Badge>
+            <span className={cn(typography.meta, "font-bold uppercase")}>{new Date(analysis.createdAt).toLocaleDateString()}</span>
           </div>
-          <CardTitle className={cn(typography.h1, "text-3xl uppercase")}>{analysis.actionTask?.title || "Özel Görev"}</CardTitle>
+          <CardTitle className={cn(typography.h1, "text-3xl uppercase")}>{analysis.actionTask?.title || t('task_card_default_title')}</CardTitle>
           <CardDescription className={cn(typography.subtitle, "text-base font-bold mt-2 italic")}>“{analysis.actionTask?.purpose || ""}”</CardDescription>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
@@ -66,7 +69,7 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
 
           <div className="pt-8 border-t border-border/40">
             <h4 className={cn(typography.eyebrow, "text-primary mb-6 flex items-center gap-2")}>
-              <CheckCircle2 className="h-4 w-4" /> Değerlendirme Soruları
+              <CheckCircle2 className="h-4 w-4" /> {t('eval_questions_title')}
             </h4>
             <div className="grid sm:grid-cols-2 gap-4">
               {evalQuestions.map((q, i) => (
@@ -83,6 +86,7 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
 }
 
 export default function LumaMentorPage() {
+  const t = useTranslations('LumaMentorPage');
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -91,7 +95,6 @@ export default function LumaMentorPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<StoredStrategicFeedback | null>(null);
 
-  // ALL HOOKS AT TOP
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
@@ -124,8 +127,8 @@ export default function LumaMentorPage() {
       if (!hasAccessToAnalysis) {
         toast({
           variant: 'destructive',
-          title: "Erişim Engellendi",
-          description: "Stratejik analiz için Vexer seviyesi ve Master paket gereklidir.",
+          title: t('toast_no_access'),
+          description: t('toast_no_access_desc'),
         });
       }
       return;
@@ -134,8 +137,8 @@ export default function LumaMentorPage() {
     if (userProfile.auro_balance < strategicCost) {
       toast({
         variant: 'destructive',
-        title: `Yetersiz ${currencyName}`,
-        description: `Stratejik analiz için ${strategicCost} ${currencyName} gereklidir.`,
+        title: t('toast_insufficient_auro', { currency: currencyName }),
+        description: t('toast_insufficient_auro_desc', { cost: strategicCost, currency: currencyName }),
         action: (
           <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>
             {currencyName} Yükle
@@ -149,8 +152,8 @@ export default function LumaMentorPage() {
     if (analyzedPhotos.length < 3) {
       toast({
         variant: 'destructive',
-        title: "Veri Yetersiz",
-        description: "Luma'nın gelişimini analiz edebilmesi için en az 3 adet analizli fotoğrafınız olmalı.",
+        title: t('toast_data_insufficient'),
+        description: t('toast_data_insufficient_desc'),
       });
       return;
     }
@@ -171,7 +174,7 @@ export default function LumaMentorPage() {
           communication_profile: { tone: "supportive", explanation_depth: "medium", challenge_level: 3 },
           profile_index_score: 50
         },
-        language: "tr"
+        language: userProfile.language || 'tr'
       });
 
       const feedbackData: Omit<StoredStrategicFeedback, 'id'> = {
@@ -204,10 +207,10 @@ export default function LumaMentorPage() {
       await batch.commit();
       
       setCurrentAnalysis({ ...feedbackData, id: feedbackRef.id });
-      toast({ title: "Stratejik Plan Hazır!" });
+      toast({ title: t('toast_success') });
 
     } catch (error: any) {
-      toast({ variant: 'destructive', title: "Analiz Yapılamadı", description: "Luma şu an yanıt veremiyor." });
+      toast({ variant: 'destructive', title: t('toast_error'), description: t('toast_error_desc') });
     } finally {
       setIsAnalyzing(false);
     }
@@ -229,15 +232,15 @@ export default function LumaMentorPage() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       <header className="mb-12 space-y-1">
-        <p className={cn(typography.eyebrow, "ml-1")}>MENTORLUK</p>
+        <p className={cn(typography.eyebrow, "ml-1")}>{t('eyebrow')}</p>
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className={cn(typography.h1, "leading-none uppercase")}>Luma Mentor</h1>
+          <h1 className={cn(typography.h1, "leading-none uppercase")}>{t('title')}</h1>
           <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase tracking-widest text-[9px] h-7 px-4 rounded-full flex items-center gap-2">
             {getTierIcon(currentTier)}
-            LUMA {currentTier.toUpperCase()} PAKETİ
+            {t('tier_badge_prefix')} {currentTier.toUpperCase()} {t('tier_badge_suffix')}
           </Badge>
         </div>
-        <p className={cn(typography.subtitle, "opacity-80 pt-2")}>Vizyonunu ustalığa taşıyacak stratejik bir yol haritası hazırlarım.</p>
+        <p className={cn(typography.subtitle, "opacity-80 pt-2")}>{t('subtitle')}</p>
       </header>
 
       <div className="max-w-6xl mx-auto space-y-12">
@@ -247,9 +250,9 @@ export default function LumaMentorPage() {
             
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="text-center md:text-left space-y-4 max-w-md">
-                <h2 className={cn(typography.h1, "uppercase leading-tight")}>Analizini Başlat</h2>
-                <p className={cn(typography.h2, "text-xl md:text-2xl font-bold text-muted-foreground")}>Kişisel gelişim rotanı oluştur</p>
-                <p className={cn(typography.body, "text-muted-foreground/70")}>Luma, fotoğraflarını tarayarak senin için özel bir strateji hazırlamaya hazır.</p>
+                <h2 className={cn(typography.h1, "uppercase leading-tight")}>{t('start_card_title')}</h2>
+                <p className={cn(typography.h2, "text-xl md:text-2xl font-bold text-muted-foreground")}>{t('start_card_subtitle')}</p>
+                <p className={cn(typography.body, "text-muted-foreground/70")}>{t('start_card_desc')}</p>
               </div>
 
               <div className="flex flex-col items-center gap-6">
@@ -266,7 +269,7 @@ export default function LumaMentorPage() {
                     {isAnalyzing ? <Loader2 className="animate-spin h-5 w-5" /> : (
                       <>
                         {!hasAccessToAnalysis && <Lock className="mr-2 h-4 w-4" />}
-                        Stratejik Analiz ({strategicCost} {currencyName})
+                        {t('button_start', { cost: strategicCost, currency: currencyName })}
                       </>
                     )}
                   </Button>
@@ -291,8 +294,8 @@ export default function LumaMentorPage() {
         {currentAnalysis && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="flex justify-between items-center">
-              <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3">YENİ PLAN OLUŞTURULDU</Badge>
-              <Button variant="ghost" size="sm" onClick={() => setCurrentAnalysis(null)} className={cn(typography.button, "rounded-xl font-bold text-muted-foreground")}>Kapat</Button>
+              <Badge className="bg-primary/10 text-primary border-primary/20 font-black h-6 uppercase tracking-widest px-3">{t('plan_ready_badge')}</Badge>
+              <Button variant="ghost" size="sm" onClick={() => setCurrentAnalysis(null)} className={cn(typography.button, "rounded-xl font-bold text-muted-foreground")}>{t('button_close')}</Button>
             </div>
             <FeedbackDisplay analysis={currentAnalysis} />
           </div>
@@ -302,7 +305,7 @@ export default function LumaMentorPage() {
           <div className="space-y-6 pt-12 max-w-4xl mx-auto">
             <div className="flex items-center gap-3 ml-2">
               <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center"><History size={16} className="text-muted-foreground" /></div>
-              <h3 className={typography.eyebrow}>Önceki Rotalar</h3>
+              <h3 className={typography.eyebrow}>{t('prev_routes_title')}</h3>
             </div>
             
             <div className="grid gap-4">
@@ -313,11 +316,11 @@ export default function LumaMentorPage() {
                       <CardContent className="p-6 flex items-center justify-between gap-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={cn(typography.meta, "font-black text-primary uppercase tracking-widest")}>{new Date(item.createdAt).toLocaleDateString('tr-TR')}</span>
+                            <span className={cn(typography.meta, "font-black text-primary uppercase tracking-widest")}>{new Date(item.createdAt).toLocaleDateString()}</span>
                             <div className="h-1 w-1 rounded-full bg-border" />
-                            <span className={cn(typography.meta, "font-bold uppercase")}>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}</span>
+                            <span className={cn(typography.meta, "font-bold uppercase")}>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</span>
                           </div>
-                          <h4 className={cn(typography.cardTitle, "tracking-tight group-hover:text-primary transition-colors")}>{item.actionTask?.title || "Strateji"}</h4>
+                          <h4 className={cn(typography.cardTitle, "tracking-tight group-hover:text-primary transition-colors")}>{item.actionTask?.title || t('task_card_default_title')}</h4>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-1" />
                       </CardContent>
@@ -327,7 +330,7 @@ export default function LumaMentorPage() {
                     <div className="p-8">
                       <DialogHeader className="mb-8">
                         <DialogTitle className={cn(typography.h1, "text-3xl flex items-center gap-3 uppercase")}>
-                          <Target className="h-7 w-7 text-primary" /> Kayıtlı Yol Haritası
+                          <Target className="h-7 w-7 text-primary" /> {t('history_dialog_title')}
                         </DialogTitle>
                       </DialogHeader>
                       <FeedbackDisplay analysis={item} />

@@ -1,3 +1,4 @@
+
 'use client';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
@@ -17,8 +18,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 
 const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) => {
+  const t = useTranslations('ProfilePage');
   const displayName = userProfile.name || 'Kullanıcı';
   const displayEmail = userProfile.email || 'email@example.com';
   const fallbackChar = displayName?.charAt(0).toUpperCase() || 'U';
@@ -59,19 +63,19 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
                       {userProfile.level_name}
                     </Badge>
                     <Badge className="bg-orange-500 text-white border-none px-3 h-7 rounded-full font-black uppercase tracking-widest text-[10px] flex items-center gap-1">
-                      <Flame size={10} className="fill-current"/> {streak} GÜN
+                      <Flame size={10} className="fill-current"/> {streak} {t('card_streak_label')}
                     </Badge>
                   </div>
                 </div>
                 <div className="bg-card/50 p-4 border-t border-border/40 text-center">
-                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">Viewora Üyesi</p>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">{t('card_status_member')}</p>
                 </div>
               </PopoverContent>
             </Popover>
           </div>
           <p className="text-muted-foreground font-medium">{displayEmail}</p>
           <div className="pt-2 flex justify-center sm:justify-start gap-2">
-            <Badge variant="outline" className="border-border/60 text-[10px] font-black uppercase tracking-widest h-6 px-3">{userProfile.tier} PAKETİ</Badge>
+            <Badge variant="outline" className="border-border/60 text-[10px] font-black uppercase tracking-widest h-6 px-3">{userProfile.tier?.toUpperCase()} {t('LumaMentorPage.tier_badge_suffix')}</Badge>
             <Badge variant="outline" className="border-orange-500/30 text-orange-500 text-[10px] font-black uppercase tracking-widest h-6 px-3">GÜNLÜK AKTİF</Badge>
           </div>
         </div>
@@ -81,6 +85,7 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
 };
 
 const LevelProgress = ({ userProfile }: { userProfile: User }) => {
+    const t = useTranslations('ProfilePage');
     const currentLevel = getLevelFromXp(userProfile.current_xp);
     const nextLevelIndex = levels.findIndex(l => l.name === currentLevel.name) + 1;
     const nextLevel = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
@@ -94,23 +99,23 @@ const LevelProgress = ({ userProfile }: { userProfile: User }) => {
         <CardHeader className="p-8 pb-4">
           <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight">
               <Award className="h-6 w-6 text-amber-400" />
-              Seviye & İlerleme
+              {t('level_title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8 pt-0">
           <div className="flex justify-between items-end mb-4">
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mevcut Rütbe</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('progress_current_rank')}</p>
               <p className="text-2xl font-black tracking-tight text-primary uppercase">{currentLevel.name}</p>
             </div>
             <div className="text-right space-y-1">
               {nextLevel ? (
                 <>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hedef</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('progress_target_label')}</p>
                   <p className="text-sm font-bold uppercase">{nextLevel.name}</p>
                 </>
               ) : (
-                <Badge className="bg-amber-500 text-black font-black uppercase h-6">Maksimum Seviye</Badge>
+                <Badge className="bg-amber-500 text-black font-black uppercase h-6">{t('progress_max_level')}</Badge>
               )}
             </div>
           </div>
@@ -125,23 +130,24 @@ const LevelProgress = ({ userProfile }: { userProfile: User }) => {
 }
 
 const AuroBalance = ({ userProfile, router }: { userProfile: User, router: any }) => {
+    const t = useTranslations('ProfilePage');
     const { currencyName } = useAppConfig();
     return (
       <Card className="rounded-[32px] overflow-hidden">
         <CardHeader className="p-8 pb-4">
           <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight">
               <Gem className="h-6 w-6 text-cyan-400" />
-              {currencyName} Bakiyesi
+              {t('auro_balance_title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8 pt-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-5xl font-black tracking-tighter text-foreground">{userProfile.auro_balance}</p>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400">{currencyName} Mevcut</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400">{currencyName} {t('current_balance')}</p>
             </div>
             <Button onClick={() => router.push('/pricing')} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-              {currencyName} Yükle
+              {t('button_buy_auro')}
             </Button>
           </div>
         </CardContent>
@@ -150,6 +156,7 @@ const AuroBalance = ({ userProfile, router }: { userProfile: User, router: any }
 }
 
 export default function ProfilePage() {
+  const t = useTranslations('ProfilePage');
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -174,7 +181,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-2xl space-y-10 px-4 pt-10 pb-24 animate-in fade-in duration-700">
-      <h1 className="text-5xl font-black tracking-tighter uppercase">Profilim</h1>
+      <h1 className="text-5xl font-black tracking-tighter uppercase">{t('page_title')}</h1>
       
       <UserInfoCard user={user} userProfile={userProfile} />
       <LevelProgress userProfile={userProfile} />
