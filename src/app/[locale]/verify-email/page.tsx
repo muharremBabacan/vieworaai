@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Logo from '@/core/components/logo';
 import { MailCheck, ArrowRight, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 export default function VerifyEmailPage() {
   return (

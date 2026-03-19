@@ -1,8 +1,7 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from '@/i18n/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { User, OnboardingResults, UserProfileIndex } from '@/types';
@@ -42,7 +41,7 @@ export default function OnboardingPage() {
   const [isSaving, setIsCreating] = useState(false);
 
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { isLoading: isProfileLoading } = useDoc<User>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   const questions: Question[] = [
     {
@@ -107,7 +106,6 @@ export default function OnboardingPage() {
 
     const results = answers as OnboardingResults;
     
-    // Vizyoner DNA - İki Katmanlı Başlangıç İndeksi
     const initialProfileIndex: UserProfileIndex = {
       dominant_style: results.interest,
       strengths: results.approach === 'casual' ? [] : [results.approach],
@@ -116,8 +114,6 @@ export default function OnboardingPage() {
       trend: { direction: 'stagnant', percentage: 0 },
       consistency_gap: 0,
       profile_index_score: results.technical_level === 'advanced' ? 70 : results.technical_level === 'intermediate' ? 50 : 30,
-      
-      // 1. Teknik Katman (AI Fotoğraf Analizi Kaynaklı)
       technical: {
         composition: results.approach === 'composition' ? 6 : 4,
         light: results.approach === 'lighting' ? 6 : 4,
@@ -125,15 +121,12 @@ export default function OnboardingPage() {
         boldness: 4,
         storytelling: 4
       },
-
-      // 2. Davranış Katmanı / Aktivite Sinyalleri (Kullanıcı Aktiviteleri Kaynaklı)
       activity_signals: {
         learning_score: 0,
         competition_score: 0,
         exhibition_score: 0,
         group_activity_score: 0
       },
-
       communication_profile: {
         tone: results.motivation === 'professional' ? 'direct' : 'supportive',
         explanation_depth: results.technical_level === 'beginner' ? 'medium' : 'high',

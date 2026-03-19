@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from '@/i18n/navigation'; 
+import { useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { useFirebase } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Loader2, Mail, Lock, User as UserIcon, ArrowLeft } from 'lucide-react';
 import Logo from '@/core/components/logo';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { AuthService } from '@/lib/auth/auth-service';
 import { ToastAction } from '@/components/ui/toast';
 
