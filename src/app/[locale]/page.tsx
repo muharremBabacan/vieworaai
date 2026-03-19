@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -7,5 +7,7 @@ type Props = {
 export default async function Page({ params }: Props) {
   const { locale } = await params;
 
-  redirect(`/${locale}/login`);
+  // Root of a locale should always lead to login or dashboard based on auth
+  // Auth redirection is handled by ClientLayout, so we just point to /login
+  redirect('/login');
 }

@@ -2,9 +2,7 @@ import { createNavigation } from 'next-intl/navigation';
 import { routing } from './routing';
 
 /**
- * Bu dosya Link, redirect, usePathname ve useRouter gibi yerelleştirilmiş 
- * navigasyon araçlarını dışa aktarır. Uygulama içinde bu araçlar 
- * @/i18n/navigation üzerinden çağrılmalıdır.
+ * Localized navigation utilities for the Viewora app.
+ * Always import Link, redirect, usePathname, and useRouter from here.
  */
-export const { Link, redirect, usePathname, useRouter } =
-  createNavigation(routing);
+export const { Link, redirect, usePathname, useRouter } = createNavigation(routing);

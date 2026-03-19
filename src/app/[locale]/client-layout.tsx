@@ -18,7 +18,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  // Bağımsız sayfalar (Navigasyon barındırmazlar)
+  // Determine if it's a standalone page
   const isStandalonePage = [
     '/', 
     '/login',
@@ -28,15 +28,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     '/privacy'
   ].includes(pathname);
   
-  // Yönlendirme Mantığı (Merkezi Kontrol)
+  // Navigation Logic
   useEffect(() => {
-    // Veriler veya oturum yüklenirken işlem yapma
     if (isUserLoading || (user && isProfileLoading)) return;
 
     if (user) {
-      // KULLANICI GİRİŞ YAPMIŞ
-      
-      // E-posta doğrulama kontrolü (Email ile giriş yapanlar için)
       if (!user.emailVerified) {
         if (pathname !== '/verify-email' && pathname !== '/login' && pathname !== '/signup') {
           router.replace('/verify-email');
@@ -47,26 +43,22 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       const onboarded = userProfile?.onboarded ?? false;
       
       if (!onboarded) {
-        // Anketi doldurmamış -> Sadece onboarding, terms, privacy sayfalarına izin ver
         if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/verify-email') {
           router.replace('/onboarding');
         }
       } else {
-        // Anketi doldurmuş -> Eğer giriş veya onboarding sayfasındaysa dashboard'a gönder
         if (pathname === '/' || pathname === '/login' || pathname === '/onboarding' || pathname === '/signup' || pathname === '/verify-email') {
           router.replace('/dashboard');
         }
       }
     } else {
-      // KULLANICI GİRİŞ YAPMAMIŞ
-      // Sadece giriş, kayıt, doğrulama, şartlar ve gizlilik sayfalarına izin ver
       if (!isStandalonePage) {
         router.replace('/login');
       }
     }
   }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage]);
 
-  // Kritik veriler yüklenirken global bir loader göster
+  // Global Loader for critical states
   if (isUserLoading || (user && isProfileLoading && !userProfile)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">

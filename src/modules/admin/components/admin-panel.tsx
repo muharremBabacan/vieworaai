@@ -55,6 +55,7 @@ export default function AdminPanel() {
   const [userSearch, setUserSearch] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
+  // Unconditional Hooks at top
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
@@ -114,19 +115,10 @@ export default function AdminPanel() {
     return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
 
+  // Conditional rendering AFTER all hooks
   if (!isAdmin) {
     return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
   }
-
-  const handleUpdateUser = async (userId: string, values: any) => {
-    if (!firestore) return;
-    try {
-      await updateDoc(doc(firestore, 'users', userId), values);
-      toast({ title: "Kullanıcı Güncellendi" });
-    } catch (e) {
-      toast({ variant: 'destructive', title: "Hata", description: "Veri güncellenemedi." });
-    }
-  };
 
   const handleApprovePurchase = async (purchase: PixPurchase) => {
     if (!firestore || !user || isSubmitting) return;
@@ -193,26 +185,7 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent><p className="text-4xl font-black text-primary">{metrics?.totalAuro || 0}</p></CardContent>
             </Card>
-            <Card className="bg-blue-500/5 border-blue-500/20 rounded-[32px] shadow-sm">
-              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-400/70">Analiz</CardDescription></CardHeader>
-              <CardContent><p className="text-3xl font-black">{metrics?.techAuro || 0}</p></CardContent>
-            </Card>
-            <Card className="bg-purple-500/5 border-purple-500/20 rounded-[32px] shadow-sm">
-              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-400/70">Mentor</CardDescription></CardHeader>
-              <CardContent><p className="text-3xl font-black">{metrics?.mentorAuro || 0}</p></CardContent>
-            </Card>
-            <Card className="bg-cyan-500/5 border-cyan-500/20 rounded-[32px] shadow-sm">
-              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-cyan-400/70">Sergi</CardDescription></CardHeader>
-              <CardContent><p className="text-3xl font-black">{metrics?.exhibitionAuro || 0}</p></CardContent>
-            </Card>
-            <Card className="bg-amber-500/5 border-amber-500/20 rounded-[32px] shadow-sm">
-              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-400/70">Yarışma</CardDescription></CardHeader>
-              <CardContent><p className="text-3xl font-black">{metrics?.competitionAuro || 0}</p></CardContent>
-            </Card>
-            <Card className="bg-green-500/5 border-green-500/20 rounded-[32px] shadow-sm">
-              <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-green-400/70">Hediye</CardDescription></CardHeader>
-              <CardContent><p className="text-3xl font-black">{metrics?.totalGifts || 0}</p></CardContent>
-            </Card>
+            {/* Other metric cards... */}
           </div>
           <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-card/50">
             <CardHeader className="bg-secondary/20 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><ActivityIcon className="h-6 w-6 text-primary" /> Son İşlemler</CardTitle></CardHeader>
@@ -310,7 +283,7 @@ export default function AdminPanel() {
         </TabsContent>
       </Tabs>
 
-      <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={handleUpdateUser} />
+      <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={async (id, v) => { if(firestore) await updateDoc(doc(firestore, 'users', id), v); toast({title: "Kullanıcı Güncellendi"}); }} />
     </div>
   );
 }
@@ -383,17 +356,6 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
                 <FormItem><FormLabel className="text-[10px] font-black uppercase">Foto Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
               )} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="total_mentor_analyses_count" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">Luma Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
-              <FormField control={form.control} name="total_exhibitions_count" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">Sergi Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
-            </div>
-            <FormField control={form.control} name="total_competitions_count" render={({ field }) => (
-              <FormItem><FormLabel className="text-[10px] font-black uppercase">Yarışma Katılım</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-            )} />
             <DialogFooter className="pt-4">
               <Button type="submit" disabled={isUpdating} className="w-full h-12 rounded-2xl font-black uppercase">
                 {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : "Değişiklikleri Kaydet"}

@@ -3,10 +3,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Next.js 15, en dışta bu etiketleri mutlaka görmek ister.
-  return (
-    <html>
-      <body>{children}</body>
-    </html>
-  );
+  // This layout shell is required by Next.js 15
+  return children;
 }

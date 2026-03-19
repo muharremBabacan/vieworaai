@@ -25,25 +25,27 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <>
-      <Script
-        src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
-        strategy="afterInteractive"
-      />
-      <Script id="google-ads-tag" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'AW-18013553802');
-        `}
-      </Script>
+    <html lang={locale}>
+      <body>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
+          strategy="afterInteractive"
+        />
+        <Script id="google-ads-tag" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-18013553802');
+          `}
+        </Script>
 
-      <NextIntlClientProvider messages={messages} locale={locale}>
-        <ClientProviders>
-          {children}
-        </ClientProviders>
-      </NextIntlClientProvider>
-    </>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <ClientProviders>
+            {children}
+          </ClientProviders>
+        </NextIntlClientProvider>
+      </body>
+    </html>
   );
 }

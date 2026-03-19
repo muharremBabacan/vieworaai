@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -18,8 +19,7 @@ import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 import { Skeleton } from '@/shared/ui/skeleton';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { NotificationCenter } from '@/core/components/notification-popover';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,6 +31,7 @@ export function UserNav() {
   const router = useRouter();
   const { currencyName } = useAppConfig();
 
+  // All hooks must be at top
   const userDocRef = useMemoFirebase(() => {
       if (!authUser || !firestore) return null;
       return doc(firestore, 'users', authUser.uid);
@@ -41,7 +42,7 @@ export function UserNav() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      router.push('/');
+      router.push('/login');
     } catch (error) {
       console.error('Sign out failed', error);
     }
@@ -53,7 +54,7 @@ export function UserNav() {
   
   if (!authUser || !userProfile) {
     return (
-      <Button variant="outline" onClick={() => router.push('/')}>
+      <Button variant="outline" onClick={() => router.push('/login')}>
         Giriş Yap
       </Button>
     )
@@ -61,7 +62,6 @@ export function UserNav() {
 
   const auroBalance = Number.isFinite(userProfile.auro_balance) ? userProfile.auro_balance : 0;
   const isMentor = userProfile.is_mentor ?? false;
-  // FIXED ADMIN UID TYPO: WUVrewn -> WUVmrewn
   const isAdmin = userProfile.email === 'admin@viewora.ai' || authUser.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
   const levelName = userProfile.level_name ?? 'Neuner';
   const streak = userProfile.daily_streak || 1;
@@ -168,26 +168,6 @@ export function UserNav() {
                 </Link>
               </DropdownMenuItem>
             )}
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <div className="px-2 py-1.5 text-sm flex items-center justify-between">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Gem className="h-4 w-4 text-cyan-400" />
-                <span>{currencyName}</span>
-              </div>
-              <span className="font-semibold">{auroBalance}</span>
-            </div>
-            <div className="px-2 py-1.5 text-sm flex items-center justify-between">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Award className="h-4 w-4" />
-                <span>Seviye</span>
-              </div>
-              <Badge variant={isMentor ? 'default' : 'secondary'} className="capitalize">
-                {isMentor && <ShieldCheck className="mr-1 h-3 w-3"/>}
-                {levelName}
-              </Badge>
-            </div>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">

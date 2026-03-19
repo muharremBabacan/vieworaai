@@ -90,19 +90,11 @@ export default function SettingsPage() {
 
   const handleLanguageChange = async (newLocale: string) => {
     if (!user || !firestore) return;
-  
     setLanguage(newLocale);
-  
     try {
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-  
-      await updateDoc(doc(firestore, 'users', user.uid), {
-        language: newLocale
-      });
-  
-      // router.push otomatik olarak aktif dili korur, sadece yolu vermemiz yeterlidir
-      router.push(pathname);
-  
+      await updateDoc(doc(firestore, 'users', user.uid), { language: newLocale });
+      router.replace(pathname, { locale: newLocale });
     } catch (e) {
       console.error(e);
     }
@@ -130,9 +122,9 @@ export default function SettingsPage() {
   };
 
   if (isProfileLoading) return <div className="container mx-auto max-w-2xl p-4 py-10"><Skeleton className="h-64 w-full rounded-[32px]" /></div>;
-  if (!userProfile || !user) return null;
+  if (!userProfile || !user) return <div className="p-20 text-center">Lütfen giriş yapın.</div>;
 
-  const isDevUser = userProfile.email === 'babacan.muharrem@gmail.com' || userProfile.email === 'admin@viewora.ai' || userProfile.id === '01DT86bQwWUVmrewnEb8c6bd8H43';
+  const isDevUser = userProfile.email === 'babacan.muharrem@gmail.com' || userProfile.email === 'admin@viewora.ai' || userProfile.id === '01DT86bQwWUVrewnEb8c6bd8H43';
 
   return (
     <div className="container mx-auto max-w-3xl space-y-10 px-4 pt-10 pb-24 animate-in fade-in duration-700">
