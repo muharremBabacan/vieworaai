@@ -1,7 +1,7 @@
 'use server';
 /**
  * Viewora Academy AI Content Engine
- * Model: Google Imagen 4.0 (vertexai/imagen-4.0-generate-001)
+ * Model: Google Gemini 2.5 Flash Image (googleai/gemini-2.5-flash-image)
  */
 
 import { ai } from "@/ai/genkit";
@@ -79,31 +79,30 @@ Language: {{{language}}}
 `,
 });
 
-/* ================= IMAGE GENERATION ENGINE (IMAGEN 3.0) ================= */
+/* ================= IMAGE GENERATION ENGINE (GEMINI 2.5 FLASH IMAGE) ================= */
 
 export async function generateLessonImage(
   userPrompt: string
 ): Promise<string> {
-  console.log(`[IMAGEN 4.0] İstek gönderiliyor: ${userPrompt}`);
+  console.log(`[GEMINI 2.5 IMAGE] İstek gönderiliyor: ${userPrompt}`);
   
-  // Promptu profesyonel seviyeye çeken zenginleştirici ekler
   const finalPrompt = `Professional cinematic photography of ${userPrompt}, ultra-realistic, natural lighting, shot on 35mm lens, f/1.8, high detail, 8k resolution, artistic composition, clean background`;
 
   try {
-    const result = await ai.generate({
-      model: "vertexai/imagen-4.0-generate-001",
+    const { media } = await ai.generate({
+      model: "googleai/gemini-2.5-flash-image",
       prompt: finalPrompt,
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
     });
 
-    const mediaUrl = result.media?.url;
+    const mediaUrl = media?.url;
 
     if (!mediaUrl) {
-      console.error("[IMAGEN 4.0] Görsel verisi boş döndü.");
+      console.error("[GEMINI 2.5 IMAGE] Görsel verisi boş döndü.");
       throw new Error("Görsel üretilemedi, model boş yanıt döndü.");
     }
-
-    const dataSizeKb = Math.round(mediaUrl.length / 1024);
-    console.log(`[IMAGEN 3.0] Görsel başarıyla üretildi. Veri Boyutu: ${dataSizeKb} KB`);
 
     if (mediaUrl.includes('base64,')) {
       return mediaUrl.split('base64,')[1];
@@ -111,7 +110,7 @@ export async function generateLessonImage(
 
     return mediaUrl;
   } catch (error: any) {
-    console.error("[IMAGEN 3.0] Üretim sırasında hata oluştu:", error.message);
-    throw new Error(`Imagen 3.0 Hatası: ${error.message}`);
+    console.error("[GEMINI 2.5 IMAGE] Üretim sırasında hata oluştu:", error.message);
+    throw new Error(`Gemini 2.5 Image Hatası: ${error.message}`);
   }
 }

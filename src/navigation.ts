@@ -1,8 +1,7 @@
-import { createNavigation } from 'next-intl/navigation';
-import { routing } from './i18n/routing';
+import { createNavigation } from "next-intl/navigation";
 
-/**
- * Bu dosya, i18n/routing içindeki merkezi yapılandırmayı kullanarak 
- * uygulama genelinde Link, redirect vb. araçları dışarı aktarır.
- */
-export const { Link, redirect, usePathname, useRouter } = createNavigation(routing);
+export const { Link, redirect, usePathname, useRouter } =
+  createNavigation({
+    locales: ["en", "tr"],
+    defaultLocale: "en"
+  });

@@ -18,7 +18,7 @@ import { signOut, updateProfile } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useTranslations } from 'next-intl';
-
+import { usePathname } from 'next/navigation';
 const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
   const filename = `nick${num < 10 ? '0' + num : num}.jpg`;
@@ -58,6 +58,7 @@ export default function SettingsPage() {
   const [instagram, setInstagram] = useState('');
   const [language, setLanguage] = useState('tr');
   const [isUpdating, setIsUpdating] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (userProfile) {
@@ -90,12 +91,23 @@ export default function SettingsPage() {
 
   const handleLanguageChange = async (newLocale: string) => {
     if (!user || !firestore) return;
+  
     setLanguage(newLocale);
+  
     try {
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-      await updateDoc(doc(firestore, 'users', user.uid), { language: newLocale });
-      toast({ title: "Dil Değiştirildi" });
-      router.refresh();
+  
+      await updateDoc(doc(firestore, 'users', user.uid), {
+        language: newLocale
+      });
+  
+      const newPath = pathname.replace(
+        /^\/(tr|en|ar|de|es|fr|ru|zh)/,
+        `/${newLocale}`
+      );
+  
+      router.push(newPath);
+  
     } catch (e) {
       console.error(e);
     }
