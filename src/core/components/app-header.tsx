@@ -1,7 +1,7 @@
 'use client';
 
 import { UserNav } from '@/core/components/user-nav';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 
 function HeaderLogo() {

@@ -1,6 +1,6 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import { Link } from '@/navigation';
+import { Link } from '@/i18n/navigation';
 import Logo from '@/core/components/logo';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';

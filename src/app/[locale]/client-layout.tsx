@@ -3,7 +3,7 @@
 import { AppHeader } from '@/core/components/app-header';
 import { BottomNav } from '@/core/components/bottom-nav';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useEffect } from 'react';
 import { doc } from 'firebase/firestore';
 import type { User } from '@/types';

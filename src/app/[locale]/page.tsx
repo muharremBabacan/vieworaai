@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 
-export default function Page({
-  params
-}: {
-  params: { locale: string };
-}) {
-  redirect(`/${params.locale}/login`);
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export default async function Page({ params }: Props) {
+  const { locale } = await params;
+
+  redirect(`/${locale}/login`);
 }

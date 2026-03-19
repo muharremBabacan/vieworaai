@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-// DÜZELTME: useRouter ve Link artık bizim oluşturduğumuz routing dosyasından gelmeli
-import { useRouter, Link } from '@/i18n/routing'; 
+import { useRouter, Link } from '@/i18n/navigation'; 
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -104,7 +103,6 @@ function LoginForm() {
       await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
       await processAuroRefillAndStats(result.user.uid, profile);
       
-      // router artık otomatik olarak /tr veya /en ekler
       router.push('/dashboard');
     } catch (error: any) {
       console.warn("Google Sign-In Error:", error.code);

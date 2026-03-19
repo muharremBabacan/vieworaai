@@ -11,14 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, Settings as SettingsIcon, User as UserIcon, Camera, Check, ShieldAlert, Sparkles, Diamond, Zap, Flame, Award, HelpCircle, Phone, Instagram, Languages, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from '@/i18n/navigation';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { signOut, updateProfile } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
+
 const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
   const filename = `nick${num < 10 ? '0' + num : num}.jpg`;
@@ -42,11 +42,11 @@ const LANGUAGE_OPTIONS = [
 
 export default function SettingsPage() {
   const t = useTranslations('ProfilePage');
-  const common = useTranslations('AppLayout');
   const { user } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
 
@@ -58,7 +58,6 @@ export default function SettingsPage() {
   const [instagram, setInstagram] = useState('');
   const [language, setLanguage] = useState('tr');
   const [isUpdating, setIsUpdating] = useState(false);
-  const pathname = usePathname();
 
   useEffect(() => {
     if (userProfile) {
@@ -101,12 +100,8 @@ export default function SettingsPage() {
         language: newLocale
       });
   
-      const newPath = pathname.replace(
-        /^\/(tr|en|ar|de|es|fr|ru|zh)/,
-        `/${newLocale}`
-      );
-  
-      router.push(newPath);
+      // router.push otomatik olarak aktif dili korur, sadece yolu vermemiz yeterlidir
+      router.push(pathname);
   
     } catch (e) {
       console.error(e);

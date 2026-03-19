@@ -1,7 +1,6 @@
 'use client';
 
-// DÜZELTME: next/link yerine bizim routing'i kullanıyoruz
-import { Link } from '@/i18n/routing'; 
+import { Link } from '@/i18n/navigation'; 
 import { Button } from '@/components/ui/button';
 import { Camera, Home } from 'lucide-react';
 
@@ -23,7 +22,6 @@ export default function NotFound() {
           </p>
         </div>
 
-        {/* DÜZELTME: Link'i doğrudan Button içine veya asChild ile temiz kullanıyoruz */}
         <Link href="/">
           <Button className="rounded-2xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
             <Home className="mr-2 h-4 w-4" /> Ana Sayfaya Dön

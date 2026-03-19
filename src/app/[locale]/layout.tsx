@@ -12,14 +12,16 @@ export const metadata: Metadata = {
   description: 'Global Fotoğrafçılık Eğitimi ve Koçluğu Platformu',
 };
 
+type LayoutProps = {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+};
+
 export default async function RootLayout({
   children,
   params
-}: {
-  children: React.ReactNode;
-  params: { locale: string }; // ✅ DÜZELTİLDİ
-}) {
-  const locale = params.locale; // ✅ await kaldırıldı
+}: LayoutProps) {
+  const { locale } = await params;
   const messages = await getMessages();
 
   return (
