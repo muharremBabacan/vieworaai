@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -43,6 +42,7 @@ export default function ExplorePage() {
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
+  // ALL HOOKS MUST BE AT TOP UNCONDITIONALLY
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
@@ -76,6 +76,7 @@ export default function ExplorePage() {
 
   const isLevelEligibleForAI = (userProfile?.current_xp || 0) >= 101;
 
+  // Conditional rendering happens in return, not before hooks
   if (view === 'hub') {
     return (
       <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
@@ -85,11 +86,11 @@ export default function ExplorePage() {
         </header>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-primary/20 cursor-pointer" onClick={() => setView('exhibitions')}>
-            <div className="relative h-32 w-full"><Image src="/temel14a.jpg" alt="S" fill className="object-cover" unoptimized /><div className="absolute inset-0 bg-black/40" /></div>
+            <div className="relative h-32 w-full"><Image src="https://picsum.photos/seed/ex/600/400" alt="S" fill className="object-cover" unoptimized data-ai-hint="photography gallery" /><div className="absolute inset-0 bg-black/40" /></div>
             <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Sergiler</h3><Button className="w-full rounded-xl">Salonları Gör</Button></CardContent>
           </Card>
           <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-yellow-400/20 cursor-pointer" onClick={() => setView('featured')}>
-            <div className="relative h-32 w-full"><Image src="/temel13a.jpg" alt="F" fill className="object-cover" unoptimized /><div className="absolute inset-0 bg-black/40" /></div>
+            <div className="relative h-32 w-full"><Image src="https://picsum.photos/seed/feat/600/400" alt="F" fill className="object-cover" unoptimized data-ai-hint="featured photos" /><div className="absolute inset-0 bg-black/40" /></div>
             <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>Öne Çıkanlar</h3><Button className="w-full rounded-xl">Hemen Gör</Button></CardContent>
           </Card>
         </div>
@@ -107,7 +108,7 @@ export default function ExplorePage() {
           {isExLoading ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[32px]" />) : 
            exhibitions?.map(ex => (
              <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
-               <div className="relative h-48 w-full"><Image src={ex.imageUrl} alt={ex.title} fill className="object-cover" unoptimized /></div>
+               <div className="relative h-48 w-full"><Image src={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`} alt={ex.title} fill className="object-cover" unoptimized /></div>
                <CardContent className="p-6">
                  <h3 className="text-xl font-black uppercase">{ex.title}</h3>
                  <p className="text-sm text-muted-foreground mt-2">{ex.description}</p>

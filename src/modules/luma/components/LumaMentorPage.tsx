@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -92,12 +91,9 @@ export default function LumaMentorPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<StoredStrategicFeedback | null>(null);
 
+  // ALL HOOKS AT TOP
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-
-  const hasAccessToAnalysis = canAccess(userProfile, "mentorAnalysis");
-  const currentTier = userProfile?.tier || 'start';
-  const strategicCost = MENTOR_COSTS[currentTier];
 
   const historyQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -107,7 +103,6 @@ export default function LumaMentorPage() {
       limit(10)
     );
   }, [user, firestore]);
-
   const { data: history, isLoading: isHistoryLoading } = useCollection<StoredStrategicFeedback>(historyQuery);
 
   const photosQuery = useMemoFirebase(() => {
@@ -118,8 +113,11 @@ export default function LumaMentorPage() {
       limit(20)
     );
   }, [user, firestore]);
-
   const { data: photos } = useCollection<Photo>(photosQuery);
+
+  const hasAccessToAnalysis = canAccess(userProfile, "mentorAnalysis");
+  const currentTier = userProfile?.tier || 'start';
+  const strategicCost = MENTOR_COSTS[currentTier];
 
   const handleStartAnalysis = async () => {
     if (!user || !userProfile || !firestore || !photos || !hasAccessToAnalysis) {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -22,11 +21,8 @@ import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
 import { cn } from '@/lib/utils';
 
-/**
- * Picks one of the four local placeholder images deterministically based on lesson ID.
- */
 const getDeterminsticPlaceholder = (id: string) => {
-    const images = ["/temel12a.jpg", "/temel13a.jpg", "/temel14a.jpg", "/temel15a.jpg"];
+    const images = ["https://picsum.photos/seed/1/600/400", "https://picsum.photos/seed/2/600/400", "https://picsum.photos/seed/3/600/400", "https://picsum.photos/seed/4/600/400"];
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
         hash = id.charCodeAt(i) + ((hash << 5) - hash);
@@ -199,24 +195,24 @@ export default function AcademyLevelPage() {
     const { toast } = useToast();
     const { currencyName } = useAppConfig();
 
-    const level = params.level as string;
-    const levelFormatted = level.charAt(0).toUpperCase() + level.slice(1);
+    const level = params?.level as string;
+    const levelFormatted = useMemo(() => level ? level.charAt(0).toUpperCase() + level.slice(1) : '', [level]);
     
+    // ALL HOOKS CALLED AT TOP
     const lessonsQuery = useMemoFirebase(() => 
-        firestore ? query(collection(firestore, 'academy_lessons'), where('level', '==', levelFormatted), orderBy('createdAt', 'desc')) : null,
+        (firestore && levelFormatted) ? query(collection(firestore, 'academy_lessons'), where('level', '==', levelFormatted), orderBy('createdAt', 'desc')) : null,
         [firestore, levelFormatted]
     );
-
     const { data: lessons, isLoading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
 
     const userProgressQuery = useMemoFirebase(() =>
-      user ? collection(firestore, 'users', user.uid, 'lessonProgress') : null,
+      (user && firestore) ? collection(firestore, 'users', user.uid, 'lessonProgress') : null,
       [user, firestore]
     );
     const { data: progressData } = useCollection<{ lessonId: string; isCompleted: boolean }>(userProgressQuery);
 
-    const userProfileQuery = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-    const { data: userProfile } = useDoc<User>(userProfileQuery);
+    const userProfileQuery = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userProfileQuery);
 
     const completedLessonIds = useMemo(() => {
         if (!progressData) return new Set();
@@ -233,7 +229,7 @@ export default function AcademyLevelPage() {
         }, {} as Record<string, Lesson[]>);
     }, [lessons]);
 
-    const handleCompleteLesson = async (lessonId: string) => {
+    const handleCompleteLesson = useCallback(async (lessonId: string) => {
         if (!user || !firestore || !userProfile) return;
 
         const batch = writeBatch(firestore);
@@ -260,7 +256,11 @@ export default function AcademyLevelPage() {
             await updateDoc(userRef, { level_name: newLevel.name });
             toast({ title: "🎉 Seviye Atladın!", description: `Tebrikler! Yeni seviyen: ${newLevel.name}` });
         }
-    };
+    }, [user, firestore, userProfile, currencyName, toast]);
+
+    if (isProfileLoading) {
+        return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
+    }
     
     return (
         <div className="container mx-auto px-4 pt-6 pb-24">
