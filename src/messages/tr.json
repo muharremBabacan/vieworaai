@@ -234,7 +234,19 @@
     "detail_subject": "Ana Özne",
     "luma_note_title": "Luma'nın Notu",
     "upload_section_title": "Fotoğrafını yükle",
-    "upload_section_subtitle": "Yapay zeka analiz etsin"
+    "upload_section_subtitle": "Yapay zeka analiz etsin",
+    "platform_title": "VIEWORA İLE NELER YAPABİLİRSİN",
+    "platform_card_1_title": "AI FOTOĞRAF ANALİZİ",
+    "platform_card_1_desc": "Fotoğrafını yükle. Yapay zeka ışık, kompozisyon ve hikaye gücünü analiz etsin.",
+    "platform_card_2_title": "FOTOĞRAF AKADEMİSİ",
+    "platform_card_2_desc": "Seviyene göre hazırlanmış derslerle fotoğraf bilgisini geliştir.",
+    "platform_card_3_title": "SERGİLER VE YARIŞMALAR",
+    "platform_card_3_desc": "Global yarışmalara katıl, eserlerini tematik sergilerde dünyaya göster.",
+    "platform_card_4_title": "TOPLULUK VE GRUPLAR",
+    "platform_card_4_desc": "Diğer sanatçılarla tanış, özel gruplara katıl ve birlikte öğren.",
+    "platform_card_5_title": "LUMA – ÖZEL KOÇLUK",
+    "platform_card_5_desc": "Fotoğraf gelişim koçun. Kişisel geri bildirimler ve gelişim önerileri al.",
+    "platform_footer": "TÜRKİYE'DE GELİŞTİRİLEN KÜRESEL BİR MOBİL FOTOĞRAF VE YAPAY ZEKA PLATFORMU."
   },
   "ExplorePage": {
     "title": "Sergi Salonu",

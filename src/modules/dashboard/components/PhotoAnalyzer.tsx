@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb, GraduationCap, Trophy, Users, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from '@/navigation';
@@ -306,6 +306,76 @@ export default function PhotoAnalyzer() {
                 <div className="h-20 w-20 rounded-3xl bg-secondary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform"><Camera className="text-primary" size={40} /></div>
                 <Button onClick={open} className="px-12 h-14 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all active:scale-95">{t('button_select_photo')}</Button>
               </div>
+            </div>
+          </div>
+
+          {/* Platform Features Section */}
+          <div className="space-y-12 pb-12 mt-16 border-t border-border/20 pt-16">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase">{t('platform_title')}</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              {/* Card 1: AI */}
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/30 hover:bg-card/40 transition-all flex flex-col items-center text-center space-y-4 group">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <Sparkles size={28} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-black uppercase tracking-tight text-sm">{t('platform_card_1_title')}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t('platform_card_1_desc')}</p>
+                </div>
+              </Card>
+
+              {/* Card 2: Academy */}
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/30 hover:bg-card/40 transition-all flex flex-col items-center text-center space-y-4 group">
+                <div className="h-14 w-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                  <GraduationCap size={28} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-black uppercase tracking-tight text-sm">{t('platform_card_2_title')}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t('platform_card_2_desc')}</p>
+                </div>
+              </Card>
+
+              {/* Card 3: Exhibitions */}
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/30 hover:bg-card/40 transition-all flex flex-col items-center text-center space-y-4 group">
+                <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                  <Trophy size={28} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-black uppercase tracking-tight text-sm">{t('platform_card_3_title')}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t('platform_card_3_desc')}</p>
+                </div>
+              </Card>
+
+              {/* Card 4: Community */}
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/30 hover:bg-card/40 transition-all flex flex-col items-center text-center space-y-4 group">
+                <div className="h-14 w-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
+                  <Users size={28} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-black uppercase tracking-tight text-sm">{t('platform_card_4_title')}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t('platform_card_4_desc')}</p>
+                </div>
+              </Card>
+
+              {/* Card 5: Coaching */}
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/30 hover:bg-card/40 transition-all flex flex-col items-center text-center space-y-4 group">
+                <div className="h-14 w-14 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform">
+                  <Brain size={28} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-black uppercase tracking-tight text-sm">{t('platform_card_5_title')}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t('platform_card_5_desc')}</p>
+                </div>
+              </Card>
+            </div>
+
+            <div className="text-center pt-8 border-t border-border/20">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                {t('platform_footer')}
+              </p>
             </div>
           </div>
         </div>
