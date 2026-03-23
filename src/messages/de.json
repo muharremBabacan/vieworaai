@@ -26,7 +26,8 @@
     "nav_profile": "Mein Profil",
     "nav_settings": "Einstellungen",
     "nav_admin_panel": "Administratorpanel",
-    "loading": "Lädt..."
+    "loading": "Lädt...",
+    "fallback_artist": "Anonymer Künstler"
   },
   "LoginPage": {
     "title": "Konto erstellen oder anmelden",
@@ -280,7 +281,13 @@
     "toast_submit_exhibition_complete": "Ihr Foto wurde zur Ausstellung eingereicht.",
     "toast_withdraw_exhibition_complete": "Ihr Foto wurde von der Ausstellung zurückgezogen.",
     "toast_error_exhibition": "Ein Fehler ist während des Ausstellungsprozesses aufgetreten.",
-    "alert_dialog_withdraw_description": "Dieses Foto wird von der allgemeinen Ausstellung entfernt. Es wird weiterhin in Ihrer Galerie angezeigt."
+    "alert_dialog_withdraw_description": "Dieses Foto wird von der allgemeinen Ausstellung entfernt. Es wird weiterhin in Ihrer Galerie angezeigt.",
+    "filter_category_portrait": "Porträt",
+    "filter_category_landscape": "Landschaft",
+    "filter_category_street": "Straße",
+    "filter_category_architecture": "Architektur",
+    "filter_category_pets": "Haustiere",
+    "filter_category_macro": "Makro"
   },
   "GroupsPage": {
     "button_create_group": "Neue Gruppe erstellen",
@@ -319,7 +326,11 @@
     "card_member_count": "{count} Mitglieder",
     "button_view_group": "Gruppe ansehen",
     "no_groups_title": "Noch kein Mitglied in einer Gruppe",
-    "no_groups_description": "Starten Sie Ihre eigene Gemeinschaft, indem Sie eine neue Gruppe erstellen oder eine Einladung von einem Freund annehmen."
+    "no_groups_description": "Starten Sie Ihre eigene Gemeinschaft, indem Sie eine neue Gruppe erstellen oder eine Einladung von einem Freund annehmen.",
+    "purpose_study": "Lernen",
+    "purpose_challenge": "Herausforderung",
+    "purpose_walk": "Fotospaziergang",
+    "purpose_mentor": "Mentor"
   },
   "GroupDetailPage": {
     "tooltip_user_not_found": "Benutzer nicht gefunden",
@@ -489,7 +500,10 @@
     "developer_tools_title": "Entwicklertools",
     "developer_tools_description": "Ändern Sie Ihr Benutzerlevel zu Testzwecken.",
     "developer_level_change_success_title": "Level geändert",
-    "developer_level_change_success_description": "Ihr neues Level ist jetzt: {level}"
+    "developer_level_change_success_description": "Ihr neues Level ist jetzt: {level}",
+    "fallback_user": "Benutzer",
+    "daily_active_badge": "TÄGLICH AKTIV",
+    "user_not_found": "Benutzer nicht gefunden."
   },
   "UserNavFallback": {
     "login": "Einloggen",
@@ -537,5 +551,54 @@
     "mark_all_as_read": "Alle als gelesen markieren",
     "notification_group_invite_title": "Gruppeneinladung",
     "notification_group_invite_body": "{inviterName} hat Sie zur Gruppe \"{groupName}\" eingeladen."
+  },
+  "SettingsPage": {
+    "profile_settings": "Profileinstellungen",
+    "nickname_label": "Spitzname",
+    "phone_label": "Telefon",
+    "instagram_label": "Instagram",
+    "save_button": "Speichern",
+    "toast_profile_updated": "Profil aktualisiert",
+    "toast_error": "Fehler",
+    "language_label": "Sprache",
+    "select_avatar": "Avatar auswählen",
+    "toast_avatar_updated": "Avatar aktualisiert",
+    "badge_guide_title": "Abzeichen und Level Guide",
+    "streak_title": "Tägliche Strähne",
+    "streak_desc": "Zeigt die aufeinanderfolgende Aktivität.",
+    "ranks_xp_title": "Ränge und XP",
+    "app_and_account": "App & Konto",
+    "dev_tools_title": "Entwicklertools",
+    "dev_level_simulator": "Level-Simulator",
+    "dev_tier_simulator": "Paket-Simulator",
+    "toast_level_updated": "Level aktualisiert",
+    "toast_tier_updated": "Paket geändert",
+    "please_login": "Bitte einloggen."
+  },
+  "AdminPanel": {
+    "title": "Inhaltsbot",
+    "description": "Erstellt Lektionen mit Gemini 2.0.",
+    "badge_active": "AKTIV",
+    "label_level": "Level",
+    "label_category": "Kategorie",
+    "placeholder_category": "Auswählen...",
+    "btn_generate_single": "Lektion generieren",
+    "btn_generate_ten": "10 Lektionen generieren",
+    "toast_select_category": "Kategorie zuerst auswählen.",
+    "toast_lesson_ready_title": "Lektion bereit",
+    "toast_lesson_ready_desc": "Visueller Hinweis im Labor.",
+    "toast_drafts_ready": "Entwürfe bereit",
+    "toast_success": "Erfolg!",
+    "toast_lessons_published": "veröffentlicht.",
+    "preview_title": "Vorschau",
+    "preview_clear": "Leeren",
+    "preview_publish_all": "Alle veröffentlichen",
+    "image_lab_title": "Bildlabor",
+    "image_lab_desc": "Bild hier generieren.",
+    "btn_generate_image": "Bild generieren",
+    "btn_save_folder": "Nur Speichern",
+    "toast_image_generated": "Bild generiert",
+    "toast_image_saved": "Bild gespeichert",
+    "toast_image_missing": "Bild fehlt."
   }
 }

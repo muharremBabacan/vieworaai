@@ -144,6 +144,7 @@ export type User = {
   lastLoginAt?: string;
   lastNotificationsViewedAt?: string;
   communication_style?: 'soft' | 'balanced' | 'technical';
+  language?: string;
   score_history?: { score: number; date: string }[];
   profile_index?: UserProfileIndex;
   provider: 'google' | 'email';
@@ -188,6 +189,7 @@ export type Photo = {
   analysisTier?: UserTier;
 };
 
+export type ScoringModel = 'community' | 'jury_ai' | 'hybrid' | 'ai_only' | 'custom';
 export type Competition = {
   id: string;
   title: string;
@@ -201,7 +203,7 @@ export type Competition = {
   updatedAt: string;
   imageUrl: string;
   imageHint: string;
-  scoringModel: 'community' | 'jury_ai' | 'hybrid' | 'ai_only' | 'custom';
+  scoringModel: ScoringModel;
   juryWeight: number;
   aiWeight: number;
   communityWeight: number;

@@ -1,13 +1,16 @@
-import { redirect } from "@/i18n/navigation";
+"use client";
 
-type Props = {
-  params: Promise<{ locale: string }>;
-};
+import { useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 
-export default async function Page({ params }: Props) {
-  const { locale } = await params;
+export default function Page() {
+  const router = useRouter();
+  const params = useParams();
 
-  // Root of a locale should always lead to login or dashboard based on auth
-  // Auth redirection is handled by ClientLayout, so we just point to /login
-  redirect('/login');
+  useEffect(() => {
+    const locale = params?.locale || "en";
+    router.replace(`/${locale}/login`);
+  }, [router, params]);
+
+  return null;
 }

@@ -1,85 +1,100 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import OpenAI from "openai";
 
-const PhotoAnalysisInputSchema = z.object({
-  photoUrl: z.string().url(),
-  language: z.string(),
-  tier: z.enum(['start','pro','master'])
-});
-export type PhotoAnalysisInput = z.infer<typeof PhotoAnalysisInputSchema>;
-
-const VisualMarkerSchema = z.object({
-  type: z.enum(["subject","distraction","light_direction"]),
-  box_2d: z.array(z.number()).length(4),
-  label: z.string()
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const PhotoAnalysisOutputSchema = z.object({
-  genre: z.string(),
-  scene: z.string(),
-  dominant_subject: z.string(),
+type Tier = "start" | "pro" | "master";
 
-  light_score: z.number().min(0).max(10),
-  composition_score: z.number().min(0).max(10),
-  technical_clarity_score: z.number().min(0).max(10),
+export type PhotoAnalysisInput = {
+  photoUrl: string;
+  language: string;
+  tier: Tier;
+};
 
-  storytelling_score: z.number().min(0).max(10).optional(),
-  boldness_score: z.number().min(0).max(10).optional(),
-
-  visual_markers: z.array(VisualMarkerSchema).optional(),
-  style_analysis: z.string().optional(),
-
-  tags: z.array(z.string()).max(4),
-  short_neutral_analysis: z.string()
-});
-
-export type PhotoAnalysisOutput = z.infer<typeof PhotoAnalysisOutputSchema>;
+export type PhotoAnalysisOutput = {
+  genre: string;
+  scene: string;
+  dominant_subject: string;
+  light_score: number;
+  composition_score: number;
+  technical_clarity_score: number;
+  tags: string[];
+  short_neutral_analysis: string;
+};
 
 export async function generatePhotoAnalysis(
   input: PhotoAnalysisInput
 ): Promise<PhotoAnalysisOutput> {
-  return analysisFlow(input);
-}
 
-const analysisPrompt = ai.definePrompt({
-  name:'photoAnalysisPromptV2',
-  input:{schema:PhotoAnalysisInputSchema},
-  output:{schema:PhotoAnalysisOutputSchema},
-  config:{temperature:0.2},
-  prompt:`
+  const prompt = `
 You are Luma, Viewora's professional photography analysis AI.
 
 TASK:
-Analyze the photo and produce structured evaluation.
+Analyze the image professionally. Be precise, constructive and encouraging.
 
-TAGS RULE:
-Generate max 4 tags describing the scene or subject
-(e.g., portrait, landscape, street, macro, architecture, food).
+RULES:
+- Score between 0 and 10
+- Max 4 tags
+- Keep explanation concise but insightful
 
-SCENE:
-Describe the environment briefly.
+Respond in ${input.language}
 
-DOMINANT_SUBJECT:
-Identify the main subject.
-
-Respond in language: {{{language}}}
-
-Analyze photo:
-{{media url=photoUrl}}
-`
-});
-
-const analysisFlow = ai.defineFlow(
+Return ONLY valid JSON:
 {
-name:'photoAnalysisFlow',
-inputSchema:PhotoAnalysisInputSchema,
-outputSchema:PhotoAnalysisOutputSchema
-},
-async(input)=>{
-const {output}=await analysisPrompt(input);
-if(!output) throw new Error("AI analysis failed");
-return output;
+  "genre": "...",
+  "scene": "...",
+  "dominant_subject": "...",
+  "light_score": 0,
+  "composition_score": 0,
+  "technical_clarity_score": 0,
+  "tags": ["...", "..."],
+  "short_neutral_analysis": "..."
 }
-);
+`;
+
+  try {
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.4,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: input.photoUrl,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const raw = res.choices[0]?.message?.content || "";
+
+    // 🔥 JSON güvenli parse
+    const clean = raw.replace(/```json|```/g, "").trim();
+
+    const parsed = JSON.parse(clean);
+
+    // 🔥 güvenlik fallback
+    return {
+      genre: parsed.genre || "",
+      scene: parsed.scene || "",
+      dominant_subject: parsed.dominant_subject || "",
+      light_score: Number(parsed.light_score) || 0,
+      composition_score: Number(parsed.composition_score) || 0,
+      technical_clarity_score: Number(parsed.technical_clarity_score) || 0,
+      tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 4) : [],
+      short_neutral_analysis: parsed.short_neutral_analysis || "",
+    };
+
+  } catch (e: any) {
+    throw new Error("AI analysis failed: " + e.message);
+  }
+}

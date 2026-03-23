@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
 import { collection, doc, setDoc, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
@@ -18,6 +19,8 @@ import type { CurriculumTopic } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function AcademyAdminPanel() {
+  const t = useTranslations('AdminPanel');
+  const tCur = useTranslations('Curriculum');
   const { toast } = useToast();
   const firestore = useFirestore();
   const storage = getStorage();
@@ -214,33 +217,33 @@ export default function AcademyAdminPanel() {
                 <GraduationCap size={24} />
               </div>
               <div>
-                <CardTitle className="text-2xl font-black tracking-tight">Akademi İçerik Robotu</CardTitle>
-                <CardDescription>Müfredata dayalı dersleri Gemini 2.0 Flash ile üretin.</CardDescription>
+                <CardTitle className="text-2xl font-black tracking-tight">{t('title')}</CardTitle>
+                <CardDescription>{t('description')}</CardDescription>
               </div>
             </div>
-            <Badge variant="outline" className="border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] px-3 h-6">IMAGEN 3.0 & FLASH 2.0 AKTİF</Badge>
+            <Badge variant="outline" className="border-primary/20 text-primary font-black uppercase tracking-widest text-[10px] px-3 h-6">{t('badge_active')}</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Eğitim Seviyesi</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('label_level')}</Label>
               <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                 <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Temel">Temel</SelectItem>
-                  <SelectItem value="Orta">Orta</SelectItem>
-                  <SelectItem value="İleri">İleri</SelectItem>
+                  <SelectItem value="Temel">{tCur('Temel')}</SelectItem>
+                  <SelectItem value="Orta">{tCur('Orta')}</SelectItem>
+                  <SelectItem value="İleri">{tCur('İleri')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Kategori (Müfredat)</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('label_category')}</Label>
               <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
                 <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
-                  <SelectValue placeholder="Kategori seçin..." />
+                  <SelectValue placeholder={t('placeholder_category')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableCategories.map(cat => (
@@ -258,14 +261,14 @@ export default function AcademyAdminPanel() {
               variant="outline"
               className="h-14 rounded-2xl font-black uppercase tracking-widest border-2 border-primary/20 text-primary hover:bg-primary/5"
             >
-              {isGenerating ? <Loader2 className="animate-spin" /> : <><FileText className="mr-2 h-5 w-5" /> Tek Ders Üret</>}
+              {isGenerating ? <Loader2 className="animate-spin" /> : <><FileText className="mr-2 h-5 w-5" /> {t('btn_generate_single')}</>}
             </Button>
             <Button 
               onClick={() => handleGenerateLessons(10)} 
               disabled={isGenerating || !selectedCategoryId} 
               className="h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20"
             >
-              {isGenerating ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2 h-5 w-5 text-yellow-400" /> 10 Ders Üret</>}
+              {isGenerating ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2 h-5 w-5 text-yellow-400" /> {t('btn_generate_ten')}</>}
             </Button>
           </div>
         </CardContent>
@@ -276,18 +279,18 @@ export default function AcademyAdminPanel() {
         <Card className="rounded-[32px] border-primary/30 bg-primary/5 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10">
           <CardHeader className="p-8 border-b border-primary/10 flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-black uppercase tracking-widest">Taslak Önizleme ({previewLessons.length} Ders)</CardTitle>
-              <p className="text-xs font-bold text-primary mt-1">Ders detaylarını inceleyin. Tekli derslerde görseli aşağıdan üretebilirsiniz.</p>
+              <CardTitle className="text-xl font-black uppercase tracking-widest">{t('preview_title')} ({previewLessons.length} {tCur('cat_other')})</CardTitle>
+              <p className="text-xs font-bold text-primary mt-1">{t('preview_subtitle')}</p>
             </div>
             <div className="flex gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setPreviewLessons([])} className="rounded-xl font-black text-[10px] uppercase">Temizle</Button>
+              <Button variant="ghost" size="sm" onClick={() => setPreviewLessons([])} className="rounded-xl font-black text-[10px] uppercase">{t('preview_clear')}</Button>
               {previewLessons.length > 1 && (
                 <Button 
                   onClick={handlePublishAll} 
                   disabled={isPublishing} 
                   className="h-11 px-8 rounded-xl font-black uppercase text-xs tracking-widest bg-green-600 hover:bg-green-700 shadow-lg"
                 >
-                  {isPublishing ? <Loader2 className="animate-spin" /> : "Tümünü Otomatik Yayınla"}
+                  {isPublishing ? <Loader2 className="animate-spin" /> : t('preview_publish_all')}
                 </Button>
               )}
             </div>
@@ -303,14 +306,14 @@ export default function AcademyAdminPanel() {
                         <h4 className="text-lg font-black tracking-tight">{lesson.title}</h4>
                         {previewLessons.length === 1 && (
                           <div className="flex items-center gap-2 text-[10px] font-bold text-amber-500 uppercase bg-amber-500/10 px-3 py-1 rounded-full">
-                            <ArrowLeftRight size={12} className="rotate-90" /> Görsel Aşağıda Onay Bekliyor
+                            <ArrowLeftRight size={12} className="rotate-90" /> {t('lab_hint_waiting')}
                           </div>
                         )}
                       </div>
                       <div className="space-y-2">
                         <p className="text-sm text-muted-foreground font-medium leading-relaxed italic">"{lesson.learningObjective}"</p>
                         <div className="p-4 rounded-xl bg-muted/20 border border-border/40 space-y-2">
-                           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Önerilen Görsel İstem (Prompt):</p>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('lab_prompt_label')}:</p>
                            <p className="text-xs font-mono text-primary bg-primary/5 p-2 rounded-lg">{lesson.imageHint}</p>
                         </div>
                       </div>
@@ -323,7 +326,7 @@ export default function AcademyAdminPanel() {
                             className="rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20"
                            >
                              {isPublishing ? <Loader2 className="animate-spin mr-2" /> : <Check className="mr-2 h-4 w-4" />}
-                             Üretilen Görselle Yayınla
+                             {t('btn_publish_with_image')}
                            </Button>
                         </div>
                       )}
@@ -339,15 +342,15 @@ export default function AcademyAdminPanel() {
       {/* Manual Image Lab */}
       <Card id="image-lab" className="rounded-[32px] border-border/40 bg-card/50 overflow-hidden shadow-lg border-dashed">
         <CardHeader className="p-8 border-b border-border/40">
-          <CardTitle className="text-xl font-black flex items-center gap-3"><ImageIcon className="text-primary" /> Görsel Üretim Laboratuvarı (Imagen 3)</CardTitle>
-          <CardDescription>Üretilen dersin görsel ipucunu burada onaylayıp görseli oluşturun.</CardDescription>
+          <CardTitle className="text-xl font-black flex items-center gap-3"><ImageIcon className="text-primary" /> {t('image_lab_title')}</CardTitle>
+          <CardDescription>{t('image_lab_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="p-8 space-y-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Görsel İstem (Prompt)</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('lab_prompt_label')}</Label>
               <Input 
-                placeholder="Dersin görsel ipucu buraya otomatik gelecek..." 
+                placeholder={t('lab_prompt_placeholder')} 
                 value={manualPrompt}
                 onChange={e => setManualPrompt(e.target.value)}
                 className="h-12 rounded-xl bg-muted/30 border-border/60 font-medium"
@@ -358,7 +361,7 @@ export default function AcademyAdminPanel() {
               disabled={isGeneratingManual || !manualPrompt}
               className="sm:mt-6 h-12 rounded-xl px-10 font-black uppercase tracking-widest shadow-lg shadow-primary/10"
             >
-              {isGeneratingManual ? <Loader2 className="animate-spin" /> : "Görsel Üret"}
+              {isGeneratingManual ? <Loader2 className="animate-spin" /> : t('btn_generate_image')}
             </Button>
           </div>
 
@@ -376,12 +379,12 @@ export default function AcademyAdminPanel() {
                     className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest border border-border/60"
                   >
                     {isSavingManual ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-5 w-5" />}
-                    Sadece Klasöre Kaydet
+                    {t("btn_save_folder")}
                   </Button>
                 </div>
                 {savedImageUrl && (
                   <div className="flex items-center gap-2 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-[10px] font-black text-green-500 uppercase">
-                    <CheckCircle2 size={16} /> Klasöre Eklendi
+                    <CheckCircle2 size={16} /> {t('toast_image_saved')}
                   </div>
                 )}
               </div>

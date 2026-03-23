@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import type { Lesson, User } from '@/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, doc, updateDoc, writeBatch, increment, orderBy } from 'firebase/firestore';

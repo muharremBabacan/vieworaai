@@ -26,7 +26,8 @@
     "nav_profile": "Mi Perfil",
     "nav_settings": "Ajustes",
     "nav_admin_panel": "Panel de Administrador",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "fallback_artist": "Artista Anónimo"
   },
   "LoginPage": {
     "title": "Crea una cuenta o inicia sesión",
@@ -216,7 +217,16 @@
     "no_strengths": "No se encontró ninguna fortaleza notable en esta foto, pero en general es una toma equilibrada.",
     "upload_prompt_main_new": "Arrastra o carga tu foto",
     "upload_prompt_sub_new": "Se aceptan JPG, PNG, HEIC",
-    "button_select_photo": "Seleccionar Foto"
+    "button_select_photo": "Seleccionar Foto",
+    "analysis_report_badge": "REPORTE DE ANÁLISIS LUMA",
+    "analysis_report_title": "Tu Resumen de Crecimiento",
+    "detected_details_title": "Detalles Detectados",
+    "detail_genre": "Género",
+    "detail_scene": "Escena",
+    "detail_subject": "Sujeto Principal",
+    "luma_note_title": "Nota de Luma",
+    "upload_section_title": "Sube tu foto",
+    "upload_section_subtitle": "Deja que la IA lo analice"
   },
   "ExplorePage": {
     "title": "Sala de Exposiciones",
@@ -280,7 +290,13 @@
     "toast_submit_exhibition_complete": "Tu foto ha sido enviada a la Exposición.",
     "toast_withdraw_exhibition_complete": "Tu foto ha sido retirada de la Exposición.",
     "toast_error_exhibition": "Se produjo un error al procesar la exposición.",
-    "alert_dialog_withdraw_description": "Esta foto se retirará de la exposición pública. Seguirá viéndose en tu galería."
+    "alert_dialog_withdraw_description": "Esta foto se retirará de la exposición pública. Seguirá viéndose en tu galería.",
+    "filter_category_portrait": "Retrato",
+    "filter_category_landscape": "Paisaje",
+    "filter_category_street": "Calle",
+    "filter_category_architecture": "Arquitectura",
+    "filter_category_pets": "Mascotas",
+    "filter_category_macro": "Macro"
   },
   "GroupsPage": {
     "button_create_group": "Crear Nueva Grupo",
@@ -319,7 +335,11 @@
     "card_member_count": "{count} miembros",
     "button_view_group": "Ver Grupo",
     "no_groups_title": "Aún No Eres Miembro de Ningún Grupo",
-    "no_groups_description": "Inicia tu propia comunidad creando un nuevo grupo o recibe una invitación de un amigo."
+    "no_groups_description": "Inicia tu propia comunidad creando un nuevo grupo o recibe una invitación de un amigo.",
+    "purpose_study": "Estudio",
+    "purpose_challenge": "Desafío",
+    "purpose_walk": "Paseo Fotográfico",
+    "purpose_mentor": "Mentor"
   },
   "GroupDetailPage": {
     "tooltip_user_not_found": "Usuario no encontrado",
@@ -489,7 +509,10 @@
     "developer_tools_title": "Herramientas de Desarrollador",
     "developer_tools_description": "Cambia tu nivel de usuario para fines de prueba.",
     "developer_level_change_success_title": "Nivel Cambiado",
-    "developer_level_change_success_description": "Tu nuevo nivel es ahora: {level}"
+    "developer_level_change_success_description": "Tu nuevo nivel es ahora: {level}",
+    "fallback_user": "Usuario",
+    "daily_active_badge": "ACTIVO DIARIO",
+    "user_not_found": "Usuario no encontrado."
   },
   "UserNavFallback": {
     "login": "Iniciar Sesión",
@@ -537,5 +560,54 @@
     "mark_all_as_read": "Marcar todo como leído",
     "notification_group_invite_title": "Invitación a Grupo",
     "notification_group_invite_body": "{inviterName} te invitó al grupo \"{groupName}\"."
+  },
+  "SettingsPage": {
+    "profile_settings": "Configuración de Perfil",
+    "nickname_label": "Apodo",
+    "phone_label": "Teléfono",
+    "instagram_label": "Instagram",
+    "save_button": "Guardar",
+    "toast_profile_updated": "Perfil Actualizado",
+    "toast_error": "Error",
+    "language_label": "Idioma",
+    "select_avatar": "Seleccionar Avatar",
+    "toast_avatar_updated": "Avatar Actualizado",
+    "badge_guide_title": "Guía de Insignias y Niveles",
+    "streak_title": "Racha Diaria",
+    "streak_desc": "Muestra tu actividad consecutiva.",
+    "ranks_xp_title": "Rangos y XP",
+    "app_and_account": "Aplicación y Cuenta",
+    "dev_tools_title": "Herramientas de Desarrollador",
+    "dev_level_simulator": "Simulador de Nivel",
+    "dev_tier_simulator": "Simulador de Paquetes",
+    "toast_level_updated": "Nivel Actualizado",
+    "toast_tier_updated": "Paquete Cambiado",
+    "please_login": "Por favor, inicie sesión."
+  },
+  "AdminPanel": {
+    "title": "Bot de Contenido",
+    "description": "Genera lecciones con Gemini 2.0.",
+    "badge_active": "ACTIVO",
+    "label_level": "Nivel",
+    "label_category": "Categoría",
+    "placeholder_category": "Selecciona...",
+    "btn_generate_single": "Generar Lección",
+    "btn_generate_ten": "Generar 10 Lecciones",
+    "toast_select_category": "Selecciona categoría primero.",
+    "toast_lesson_ready_title": "Lección Lista",
+    "toast_lesson_ready_desc": "Pista visual en el laboratorio.",
+    "toast_drafts_ready": "Borradores Listos",
+    "toast_success": "¡Éxito!",
+    "toast_lessons_published": "publicado.",
+    "preview_title": "Vista Previa",
+    "preview_clear": "Limpiar",
+    "preview_publish_all": "Publicar Todo",
+    "image_lab_title": "Laboratorio de Imágenes",
+    "image_lab_desc": "Genera la imagen aquí.",
+    "btn_generate_image": "Generar Imagen",
+    "btn_save_folder": "Solo Guardar",
+    "toast_image_generated": "Imagen Generada",
+    "toast_image_saved": "Imagen Guardada",
+    "toast_image_missing": "Falta imagen."
   }
 }

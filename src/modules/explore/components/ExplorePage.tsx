@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Camera, Star, Heart, Lock, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { ArrowLeft, Camera, Star, Heart, Lock, Loader2, Award } from 'lucide-react';
+import { useRouter } from '@/navigation';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { typography } from "@/lib/design/typography";
@@ -79,26 +79,106 @@ export default function ExplorePage() {
 
   const isLevelEligibleForAI = (userProfile?.current_xp || 0) >= 101;
 
-  if (view === 'hub') {
+    const hubCategories = [
+      {
+        id: 'exhibitions',
+        title: t('category_exhibitions'),
+        desc: t('category_exhibitions_desc'),
+        features: t('category_exhibitions_features').split(','),
+        button: t('category_exhibitions_button'),
+        image: "https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=2070&auto=format&fit=crop",
+        borderColor: "hover:border-primary/30",
+        btnColor: "bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30",
+        onClick: () => setView('exhibitions')
+      },
+      {
+        id: 'competitions',
+        title: t('category_competitions'),
+        desc: t('category_competitions_desc'),
+        features: t('category_competitions_features').split(','),
+        button: t('category_competitions_button'),
+        image: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1964&auto=format&fit=crop",
+        borderColor: "hover:border-blue-400/30",
+        btnColor: "bg-blue-600 shadow-lg shadow-blue-600/20 hover:bg-blue-700",
+        onClick: () => router.push('/competitions')
+      },
+      {
+        id: 'groups',
+        title: t('category_groups'),
+        desc: t('category_groups_desc'),
+        features: t('category_groups_features').split(','),
+        button: t('category_groups_button'),
+        image: "https://images.unsplash.com/photo-1543269664-56d93c1b41a6?q=80&w=2070&auto=format&fit=crop",
+        borderColor: "hover:border-green-400/30",
+        btnColor: "bg-green-600 shadow-lg shadow-green-600/20 hover:bg-green-700",
+        onClick: () => router.push('/groups')
+      },
+      {
+        id: 'featured',
+        title: t('category_featured'),
+        desc: t('category_featured_desc'),
+        features: t('category_featured_features').split(','),
+        button: t('category_featured_button'),
+        image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?q=80&w=1974&auto=format&fit=crop",
+        borderColor: "hover:border-yellow-400/30",
+        btnColor: "bg-yellow-600 shadow-lg shadow-yellow-600/20 hover:bg-yellow-700",
+        onClick: () => setView('featured')
+      }
+    ];
+
     return (
       <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
-        <header className="mb-10 space-y-1">
+        <header className="mb-10 space-y-2">
           <p className={cn(typography.eyebrow, "ml-1")}>{t('hub_eyebrow')}</p>
-          <h1 className={cn(typography.h1, "leading-none uppercase")}>{t('hub_title')}</h1>
+          <h1 className={cn(typography.h1, "text-5xl md:text-6xl font-black leading-none uppercase tracking-tighter")}>{t('hub_title')}</h1>
+          <p className={cn(typography.subtitle, "opacity-70")}>{t('description')}</p>
         </header>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-primary/20 cursor-pointer" onClick={() => setView('exhibitions')}>
-            <div className="relative h-32 w-full"><Image src="https://picsum.photos/seed/ex/600/400" alt="S" fill className="object-cover" unoptimized data-ai-hint="photography gallery" /><div className="absolute inset-0 bg-black/40" /></div>
-            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>{t('category_exhibitions')}</h3><Button className="w-full rounded-xl">{t('category_exhibitions_button')}</Button></CardContent>
-          </Card>
-          <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all hover:border-yellow-400/20 cursor-pointer" onClick={() => setView('featured')}>
-            <div className="relative h-32 w-full"><Image src="https://picsum.photos/seed/feat/600/400" alt="F" fill className="object-cover" unoptimized data-ai-hint="featured photos" /><div className="absolute inset-0 bg-black/40" /></div>
-            <CardContent className="p-5 space-y-4"><h3 className={cn(typography.cardTitle, "uppercase")}>{t('category_featured')}</h3><Button className="w-full rounded-xl">{t('category_featured_button')}</Button></CardContent>
-          </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {hubCategories.map((cat) => (
+            <Card 
+              key={cat.id} 
+              className={cn(
+                "rounded-[40px] overflow-hidden border-border/40 bg-card/40 shadow-2xl group transition-all cursor-pointer flex flex-col h-full",
+                cat.borderColor
+              )} 
+              onClick={cat.onClick}
+            >
+              <div className="relative h-48 w-full overflow-hidden">
+                <Image src={cat.image} alt={cat.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                <div className="absolute bottom-4 left-6 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+                   {cat.id === 'exhibitions' && <Camera className="h-5 w-5" />}
+                   {cat.id === 'competitions' && <Star className="h-5 w-5" />}
+                   {cat.id === 'groups' && <Heart className="h-5 w-5" />}
+                   {cat.id === 'featured' && <Award className="h-5 w-5" />}
+                </div>
+              </div>
+              
+              <CardContent className="p-8 pt-6 space-y-6 flex flex-col flex-1">
+                <div className="space-y-2">
+                  <h3 className={cn(typography.cardTitle, "text-xl font-black uppercase tracking-tight")}>{cat.title}</h3>
+                  <p className={cn(typography.body, "text-xs opacity-60 font-medium")}>{cat.desc}</p>
+                </div>
+
+                <ul className="space-y-2.5 flex-1">
+                  {cat.features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <Button className={cn("w-full rounded-[20px] h-12 font-black uppercase tracking-wider text-xs transition-all", cat.btnColor)}>
+                  {cat.button}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
-  }
 
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in slide-in-from-right-10 duration-700">
@@ -122,25 +202,25 @@ export default function ExplorePage() {
         <>
           {isPhotosLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}</div>
-          ) : photos && photos.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {photos.map((photo) => {
-                const isLiked = photo.likes?.includes(user?.uid || '');
-                return (
-                  <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
-                    <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover" unoptimized />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
-                      <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[10px] h-8 px-4 rounded-full font-bold">@{photo.userName || 'Sanatçı'}</Badge>
-                      <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isLiked ? "text-red-500" : "text-white")} onClick={(e) => handleToggleLike(photo, e)}>
-                        <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          ) : (
+            ) : (photos && photos.length > 0) ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                {photos.map((photo) => {
+                  const isLiked = photo.likes?.includes(user?.uid || '');
+                  return (
+                    <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
+                      <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover" unoptimized />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
+                        <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[10px] h-8 px-4 rounded-full font-bold">@{photo.userName || 'Sanatçı'}</Badge>
+                        <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isLiked ? "text-red-500" : "text-white")} onClick={(e) => handleToggleLike(photo, e)}>
+                          <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
             <div className="text-center py-40 rounded-[64px] border-2 border-dashed bg-muted/5"><Camera size={64} className="mx-auto mb-8 text-muted-foreground/20" /></div>
           )}
         </>
@@ -156,7 +236,7 @@ export default function ExplorePage() {
                 <DialogDescription className="font-bold uppercase">{t('dialog_artist_label')}: @{selectedPhoto.userName || 'Sanatçı'}</DialogDescription>
               </DialogHeader>
               <div className="space-y-6">
-                {isLevelEligibleForAI && selectedPhoto.aiFeedback ? (
+                {isLevelEligibleForAI && selectedPhoto?.aiFeedback ? (
                   <>
                     <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
                       <h4 className={cn(typography.eyebrow, "text-primary")}>{t('luma_analysis_title')}</h4>

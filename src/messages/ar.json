@@ -26,7 +26,8 @@
     "nav_profile": "ملفي الشخصي",
     "nav_settings": "الإعدادات",
     "nav_admin_panel": "لوحة الإدارة",
-    "loading": "جارٍ التحميل..."
+    "loading": "جارٍ التحميل...",
+    "fallback_artist": "فنان مجهول"
   },
   "LoginPage": {
     "title": "قم بإنشاء حساب أو تسجيل الدخول",
@@ -280,7 +281,13 @@
     "toast_submit_exhibition_complete": "تم إرسال صورتك إلى المعرض.",
     "toast_withdraw_exhibition_complete": "تم سحب صورتك من المعرض.",
     "toast_error_exhibition": "حدث خطأ أثناء عملية المعرض.",
-    "alert_dialog_withdraw_description": "ستتم إزالة هذه الصورة من المعرض العام. وستستمر في الظهور في معرضك."
+    "alert_dialog_withdraw_description": "ستتم إزالة هذه الصورة من المعرض العام. وستستمر في الظهور في معرضك.",
+    "filter_category_portrait": "صورة",
+    "filter_category_landscape": "منظر طبيعي",
+    "filter_category_street": "شارع",
+    "filter_category_architecture": "هندسة معمارية",
+    "filter_category_pets": "حيوانات أليفة",
+    "filter_category_macro": "ماكرو"
   },
   "GroupsPage": {
     "button_create_group": "إنشاء مجموعة جديدة",
@@ -319,7 +326,11 @@
     "card_member_count": "{count} أعضاء",
     "button_view_group": "عرض المجموعة",
     "no_groups_title": "غير عضو في أي مجموعة بعد",
-    "no_groups_description": "ابدأ مجتمعك الخاص عن طريق إنشاء مجموعة جديدة أو احصل على دعوة من صديق."
+    "no_groups_description": "ابدأ مجتمعك الخاص عن طريق إنشاء مجموعة جديدة أو احصل على دعوة من صديق.",
+    "purpose_study": "دراسة",
+    "purpose_challenge": "تحدي",
+    "purpose_walk": "جولة تصوير",
+    "purpose_mentor": "مرشد"
   },
   "GroupDetailPage": {
     "tooltip_user_not_found": "لم يتم العثور على المستخدم",
@@ -489,7 +500,10 @@
     "developer_tools_title": "أدوات المطور",
     "developer_tools_description": "قم بتغيير مستوى المستخدم الخاص بك لأغراض الاختبار.",
     "developer_level_change_success_title": "تم تغيير المستوى",
-    "developer_level_change_success_description": "مستواك الجديد الآن: {level}"
+    "developer_level_change_success_description": "مستواك الجديد الآن: {level}",
+    "fallback_user": "مستخدم",
+    "daily_active_badge": "نشط يوميا",
+    "user_not_found": "المستخدم غير موجود."
   },
   "UserNavFallback": {
     "login": "تسجيل الدخول",
@@ -535,5 +549,54 @@
     "title": "الإشعارات",
     "no_notifications": "لا توجد إشعارات حتى الآن.",
     "mark_all_as_read": "علامة الكل كمقروء"
+  },
+  "SettingsPage": {
+    "profile_settings": "إعدادات الملف الشخصي",
+    "nickname_label": "لقب",
+    "phone_label": "هاتف",
+    "instagram_label": "إنستغرام",
+    "save_button": "حفظ",
+    "toast_profile_updated": "تم تحديث الملف الشخصي",
+    "toast_error": "خطأ",
+    "language_label": "اللغة",
+    "select_avatar": "اختر صورة رمزية",
+    "toast_avatar_updated": "تم تحديث الصورة الرمزية",
+    "badge_guide_title": "دليل الشارات والمستويات",
+    "streak_title": "السلسلة اليومية",
+    "streak_desc": "يعرض النشاط المتتالي.",
+    "ranks_xp_title": "الرتب ونقاط الخبرة",
+    "app_and_account": "التطبيق والحساب",
+    "dev_tools_title": "أدوات المطور",
+    "dev_level_simulator": "محاكي المستوى",
+    "dev_tier_simulator": "محاكي الحزم",
+    "toast_level_updated": "تم تحديث المستوى",
+    "toast_tier_updated": "تم تغيير الحزمة",
+    "please_login": "الرجاء تسجيل الدخول."
+  },
+  "AdminPanel": {
+    "title": "روبوت المحتوى",
+    "description": "يولد دروس مع Gemini 2.0.",
+    "badge_active": "نشط",
+    "label_level": "مستوى",
+    "label_category": "فئة",
+    "placeholder_category": "اختر...",
+    "btn_generate_single": "إنشاء درس",
+    "btn_generate_ten": "إنشاء 10 دروس",
+    "toast_select_category": "اختر فئة أولا.",
+    "toast_lesson_ready_title": "الدرس جاهز",
+    "toast_lesson_ready_desc": "التلميح المرئي في المختبر.",
+    "toast_drafts_ready": "المسودات جاهزة",
+    "toast_success": "نجاح!",
+    "toast_lessons_published": "تم النشر.",
+    "preview_title": "معاينة",
+    "preview_clear": "مسح",
+    "preview_publish_all": "نشر الكل",
+    "image_lab_title": "مختبر الصور",
+    "image_lab_desc": "قم بإنشاء الصورة هنا.",
+    "btn_generate_image": "إنشاء صورة",
+    "btn_save_folder": "حفظ فقط",
+    "toast_image_generated": "تم إنشاء الصورة",
+    "toast_image_saved": "تم حفظ الصورة",
+    "toast_image_missing": "الصورة مفقودة."
   }
 }

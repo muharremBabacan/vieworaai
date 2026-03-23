@@ -2,7 +2,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter } from '@/navigation';
+import { useTranslations } from 'next-intl';
 import { useUser, useFirestore } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
 import type { Group, User } from '@/types';
@@ -12,6 +14,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function JoinGroupPage() {
     const { groupId } = useParams();
+    const t = useTranslations('JoinGroupPage');
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
@@ -25,7 +28,7 @@ export default function JoinGroupPage() {
             try {
                 const groupSnap = await getDoc(groupRef);
                 if (!groupSnap.exists()) {
-                    toast({ variant: 'destructive', title: "Hata", description: "Geçersiz grup linki." });
+                    toast({ variant: 'destructive', title: t('toast_error_title'), description: t('status_error_invalid_link') });
                     router.push('/groups');
                     return;
                 }
@@ -35,7 +38,7 @@ export default function JoinGroupPage() {
                 // 1. Üyelik kontrolü ve ekleme
                 if (!groupData.memberIds.includes(user.uid)) {
                     if (groupData.memberIds.length >= groupData.maxMembers) {
-                         toast({ variant: 'destructive', title: "Hata", description: "Grup kapasitesi dolu." });
+                         toast({ variant: 'destructive', title: t('toast_error_title'), description: t('status_error_failed_join') });
                          router.push('/groups');
                          return;
                     }
@@ -62,12 +65,12 @@ export default function JoinGroupPage() {
                     }
                 }
                 
-                toast({ title: "Hoş Geldin!", description: "Gruba başarıyla katıldın." });
+                toast({ title: t('toast_welcome_title'), description: t('toast_welcome_description') });
                 router.push(`/groups/${groupId}`);
 
             } catch (error) {
                 console.error("Join error:", error);
-                toast({ variant: 'destructive', title: "Hata", description: "Bir sorun oluştu." });
+                toast({ variant: 'destructive', title: t('toast_error_title'), description: t('status_error_failed_join') });
                 router.push('/groups');
             }
         };
@@ -79,8 +82,8 @@ export default function JoinGroupPage() {
     return (
         <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary mb-8" />
-            <h1 className="text-2xl font-bold tracking-tight">Katılım İşleniyor...</h1>
-            <p className="text-muted-foreground mt-2">Gruba katılma isteğiniz işleniyor...</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('status_processing_title')}</h1>
+            <p className="text-muted-foreground mt-2">{t('status_processing_description')}</p>
         </div>
     );
 }

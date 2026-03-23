@@ -1,0 +1,256 @@
+Viewora AI Brain – Sistem Açıklaması
+
+Bu doküman Viewora platformundaki AI (Yapay Zekâ) beyin mimarisini
+açıklar. AI klasörü, platformun fotoğraf analizi, eğitim üretimi, koçluk
+ve yarışma sistemlerini çalıştıran çekirdek modülleri içerir.
+
+------------------------------------------------------------------------
+
+Ana Klasör
+
+ai/
+
+Bu klasör platformdaki tüm yapay zekâ süreçlerini yönetir.
+
+Temel görevleri:
+
+-   Fotoğraf analizi
+-   Fotoğraf yorumlama
+-   Kullanıcı gelişim analizi
+-   Kişisel eğitim üretimi
+-   Ödev değerlendirme
+-   Grup ve yarışma değerlendirme
+-   Haftalık yarışma üretimi
+
+Bu klasör Viewora platformunun AI Brain (Yapay Zekâ Beyni) olarak
+düşünülebilir.
+
+------------------------------------------------------------------------
+
+Klasör Yapısı
+
+ai │ ├── flows │ ├── analysis │ │ └──
+analyze-photo-and-suggest-improvements.ts │ │ │ ├── image │ │ │ └──
+lesson │ ├── generate-academy-lessons.ts │ └── generateDailyLesson.ts │
+├── analyze-and-comment-photo.ts ├── evaluate-group-submission.ts ├──
+evaluate-practice-submission.ts ├── generate-adaptive-feedback.ts ├──
+generate-strategic-feedback.ts ├── generate-weekly-competition.ts │ ├──
+test-ai.js ├── test-imagen.js │ ├── dev.ts └── genkit.ts
+
+------------------------------------------------------------------------
+
+flows Klasörü
+
+Bu klasör AI iş akışlarını (AI workflows) içerir.
+
+AI işlemleri tek adımda değil, belirli bir akış içinde çalışır.
+
+Örnek akış:
+
+Fotoğraf → analiz → yorum → öneri → eğitim tavsiyesi
+
+------------------------------------------------------------------------
+
+analysis Klasörü
+
+analyze-photo-and-suggest-improvements.ts
+
+Platformun ana fotoğraf analiz modülüdür.
+
+Bu modül fotoğrafı analiz eder ve aşağıdaki çıktıları üretir:
+
+-   Işık analizi
+-   Kompozisyon analizi
+-   Netlik analizi
+-   Hikaye gücü
+-   Yaratıcılık / cesaret değerlendirmesi
+
+Sonuç olarak kullanıcıya:
+
+-   Güçlü yönler
+-   Zayıf yönler
+-   Geliştirme önerileri
+
+sunulur.
+
+------------------------------------------------------------------------
+
+image Klasörü
+
+Bu klasör görsel işleme ile ilgili AI araçlarını içerir.
+
+Olası görevler:
+
+-   Görsel ön işleme
+-   AI vision model çağrıları
+-   prompt hazırlama
+-   metadata çıkarımı
+
+------------------------------------------------------------------------
+
+lesson Klasörü
+
+Bu klasör AI eğitim üretim sistemi içerir.
+
+generate-academy-lessons.ts
+
+Kullanıcının analiz verilerine göre kişiye özel fotoğraf dersleri
+üretir.
+
+Ders içeriği:
+
+-   ders başlığı
+-   konu anlatımı
+-   örnek fotoğraflar
+-   pratik ödev
+
+Amaç:
+
+AI destekli fotoğraf eğitimi.
+
+------------------------------------------------------------------------
+
+generateDailyLesson.ts
+
+Kullanıcıya günlük fotoğraf görevi üretir.
+
+Örnek:
+
+-   Bugünün çekim görevi
+-   Günün mini dersi
+-   Günlük pratik önerisi
+
+Amaç:
+
+kullanıcının platforma her gün geri gelmesini sağlamak.
+
+------------------------------------------------------------------------
+
+Fotoğraf Yorumlama Modülleri
+
+analyze-and-comment-photo.ts
+
+AI fotoğraf hakkında doğal dilde yorum üretir.
+
+Örnek yorum:
+
+“Kompozisyon güçlü ancak kadraj biraz sıkışmış.”
+
+------------------------------------------------------------------------
+
+Değerlendirme Modülleri
+
+evaluate-practice-submission.ts
+
+Kullanıcıların gönderdiği ödev fotoğraflarını değerlendirir.
+
+AI şunları üretir:
+
+-   puan
+-   geri bildirim
+-   geliştirme önerisi
+
+------------------------------------------------------------------------
+
+evaluate-group-submission.ts
+
+Grup etkinlikleri ve yarışmalar için fotoğraf değerlendirme modülüdür.
+
+------------------------------------------------------------------------
+
+AI Koçluk Sistemi
+
+generate-adaptive-feedback.ts
+
+Kullanıcının geçmiş fotoğraflarını analiz eder.
+
+Aşağıdaki verilere bakar:
+
+-   score_history
+-   metrikler
+-   güçlü yönler
+-   zayıf yönler
+
+Amaç:
+
+kişiye özel gelişim tavsiyesi üretmek.
+
+------------------------------------------------------------------------
+
+generate-strategic-feedback.ts
+
+Daha uzun vadeli fotoğraf gelişim stratejisi üretir.
+
+Örnek:
+
+-   hangi tarz çalışmalı
+-   hangi teknik geliştirilmeli
+-   hangi tür fotoğraf önerilir
+
+Bu modül Viewora’nın AI fotoğraf koçu görevini üstlenir.
+
+------------------------------------------------------------------------
+
+Yarışma Sistemi
+
+generate-weekly-competition.ts
+
+Her hafta platform için yarışma üretir.
+
+Çıktılar:
+
+-   yarışma teması
+-   açıklama
+-   örnek çekim fikirleri
+
+------------------------------------------------------------------------
+
+Test Dosyaları
+
+test-ai.js
+
+AI sisteminin çalışıp çalışmadığını test etmek için kullanılır.
+
+------------------------------------------------------------------------
+
+test-imagen.js
+
+AI görsel üretim modeli (Imagen vb.) test etmek için kullanılır.
+
+------------------------------------------------------------------------
+
+Sistem Dosyaları
+
+dev.ts
+
+Yerel geliştirme ayarları.
+
+------------------------------------------------------------------------
+
+genkit.ts
+
+AI framework başlatma dosyasıdır.
+
+Genellikle burada:
+
+-   AI model bağlantıları
+-   API ayarları
+-   workflow başlangıçları
+
+tanımlanır.
+
+------------------------------------------------------------------------
+
+Genel Özet
+
+Bu klasör Viewora platformunun:
+
+-   Fotoğraf analiz sistemi
+-   AI eğitim sistemi
+-   AI koçluk sistemi
+-   Yarışma üretim sistemi
+
+gibi tüm yapay zekâ süreçlerini yönetir.
+
+Bu nedenle ai klasörü platformun AI Brain (Yapay Zekâ Beyni) olarak
+tanımlanabilir.

@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { useAppConfig } from '@/components/AppConfigProvider';
 
 const COMPETITION_JOIN_COST = 2;
@@ -157,7 +157,7 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
                             <div className="flex items-center gap-4 py-4 border-t border-border/40">
                                 <div className="flex items-center gap-2 text-red-500 bg-red-500/5 px-4 py-2 rounded-full border border-red-500/10 shadow-inner">
                                     <Heart className="h-4 w-4 fill-current" />
-                                    <span className="text-sm font-black">{selectedEntry.votes?.length || 0} Beğeni</span>
+                                    <span className="text-sm font-black">{selectedEntry?.votes?.length || 0} Beğeni</span>
                                 </div>
                             </div>
                         </div>
@@ -314,17 +314,28 @@ export default function CompetitionsPage() {
                     {competitions.map(comp => {
                         const status = getCompetitionStatus(comp.startDate, comp.endDate);
                         return (
-                            <Card key={comp.id} className="overflow-hidden flex flex-col group border-border/50 rounded-3xl bg-card/50">
-                                <div className="relative h-52 w-full overflow-hidden">
-                                    <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover" unoptimized />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                    <h2 className="absolute bottom-4 left-5 right-5 text-xl font-bold text-white truncate">{comp.title}</h2>
-                                </div>
-                                <CardContent className="p-6 flex flex-col flex-grow">
-                                    <div className="mt-auto space-y-3">
-                                        <Button className="w-full rounded-xl h-11 font-bold" variant={status === 'active' ? 'default' : 'secondary'} onClick={() => { setSelectedCompetition(comp); setIsDetailOpen(true); }}>{status === 'active' ? 'Hemen Katıl' : 'Detayları Gör'}</Button>
-                                        <Button variant="ghost" className="w-full text-xs h-9" onClick={() => { setCompetitionForEntries(comp); setIsEntriesOpen(true); }}><LayoutGrid className="mr-2 h-3.5 w-3.5" /> Katılımları Görüntüle</Button>
+                            <Card key={comp.id} className="overflow-hidden flex flex-col group border-border/40 rounded-[32px] bg-card/40 shadow-2xl transition-all hover:border-primary/20">
+                                <div className="relative h-64 w-full overflow-hidden">
+                                    <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" unoptimized />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                                    <div className="absolute bottom-6 left-6 right-6">
+                                        <h2 className="text-2xl font-black text-white uppercase tracking-tighter drop-shadow-2xl">{comp.title}</h2>
                                     </div>
+                                </div>
+                                <CardContent className="p-6 space-y-4">
+                                    <Button 
+                                        className="w-full rounded-2xl h-14 font-black uppercase tracking-widest text-sm bg-[#1e1e20] hover:bg-[#2a2a2d] border border-white/5 shadow-xl transition-all active:scale-[0.98]" 
+                                        onClick={() => { setSelectedCompetition(comp); setIsDetailOpen(true); }}
+                                    >
+                                        Detayları Gör
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="w-full text-[10px] font-black uppercase tracking-[0.2em] h-10 text-muted-foreground hover:text-foreground transition-colors" 
+                                        onClick={() => { setCompetitionForEntries(comp); setIsEntriesOpen(true); }}
+                                    >
+                                        <LayoutGrid className="mr-2 h-4 w-4" /> Katılımları Görüntüle
+                                    </Button>
                                 </CardContent>
                             </Card>
                         );

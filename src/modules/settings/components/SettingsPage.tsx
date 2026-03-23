@@ -41,7 +41,9 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export default function SettingsPage() {
-  const t = useTranslations('ProfilePage');
+  const t = useTranslations('SettingsPage');
+  const tApp = useTranslations('AppLayout');
+  const tNav = useTranslations('UserNav');
   const { user } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -80,9 +82,9 @@ export default function SettingsPage() {
         updateDoc(publicRef, { name: nickname, phone, instagram }),
         updateProfile(user, { displayName: nickname })
       ]);
-      toast({ title: "Profil Güncellendi" });
+      toast({ title: t("toast_profile_updated") });
     } catch (error) {
-      toast({ variant: 'destructive', title: "Hata" });
+      toast({ variant: 'destructive', title: t("toast_error") });
     } finally {
       setIsUpdating(false);
     }
@@ -110,9 +112,9 @@ export default function SettingsPage() {
         updateDoc(publicRef, { photoURL: url }),
         updateProfile(user, { photoURL: url })
       ]);
-      toast({ title: "Avatar Güncellendi" });
+      toast({ title: t("toast_avatar_updated") });
     } catch (error) {
-      toast({ variant: 'destructive', title: "Hata" });
+      toast({ variant: 'destructive', title: t("toast_error") });
     }
   };
 
@@ -122,17 +124,17 @@ export default function SettingsPage() {
   };
 
   if (isProfileLoading) return <div className="container mx-auto max-w-2xl p-4 py-10"><Skeleton className="h-64 w-full rounded-[32px]" /></div>;
-  if (!userProfile || !user) return <div className="p-20 text-center">Lütfen giriş yapın.</div>;
+  if (!userProfile || !user) return <div className="p-20 text-center">{t('please_login')}</div>;
 
   const isDevUser = userProfile.email === 'babacan.muharrem@gmail.com' || userProfile.email === 'admin@viewora.ai' || userProfile.id === '01DT86bQwWUVrewnEb8c6bd8H43';
 
   return (
     <div className="container mx-auto max-w-3xl space-y-10 px-4 pt-10 pb-24 animate-in fade-in duration-700">
-      <h1 className="text-5xl font-black tracking-tighter uppercase">{t('title_settings') || 'Ayarlar'}</h1>
+      <h1 className="text-5xl font-black tracking-tighter uppercase">{tApp('title_settings')}</h1>
       
       <Card className="rounded-[32px] overflow-hidden">
         <CardHeader className="p-8 border-b bg-secondary/10">
-          <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><UserIcon className="h-6 w-6" /> Profil Ayarları</CardTitle>
+          <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><UserIcon className="h-6 w-6" /> {t('profile_settings')}</CardTitle>
         </CardHeader>
         <CardContent className="p-8 space-y-10">
           <div className="flex flex-col items-center sm:flex-row gap-8">
@@ -143,27 +145,27 @@ export default function SettingsPage() {
             <div className="flex-1 w-full space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nickname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Takma Ad</Label>
+                  <Label htmlFor="nickname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('nickname_label')}</Label>
                   <Input id="nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-bold" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Phone size={10} /> Telefon</Label>
+                    <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Phone size={10} /> {t('phone_label')}</Label>
                     <Input id="phone" placeholder="05xx..." value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="instagram" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Instagram size={10} /> Instagram</Label>
+                    <Label htmlFor="instagram" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1.5"><Instagram size={10} /> {t('instagram_label')}</Label>
                     <Input id="instagram" placeholder="@kullaniciadi" value={instagram} onChange={(e) => setInstagram(e.target.value)} className="h-12 rounded-xl bg-muted/50 border-border/60 font-medium" />
                   </div>
                 </div>
               </div>
-              <Button onClick={handleUpdateProfile} disabled={isUpdating} className="rounded-xl h-11 px-8 font-bold">Kaydet</Button>
+              <Button onClick={handleUpdateProfile} disabled={isUpdating} className="rounded-xl h-11 px-8 font-bold">{t('save_button')}</Button>
             </div>
           </div>
           
           <div className="space-y-4 border-t pt-8">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Languages size={12} /> Dil / Language</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Languages size={12} /> {t('language_label')}</Label>
               <Select value={language} onValueChange={handleLanguageChange}>
                 <SelectTrigger className="h-12 rounded-xl bg-muted/50 border-border/60">
                   <SelectValue />
@@ -180,7 +182,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-4 border-t pt-8">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Camera className="h-3 w-3" /> Simge Seçin</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Camera className="h-3 w-3" /> {t('select_avatar')}</Label>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
               {PRESET_AVATARS.map((avatar) => (
                 <button key={avatar.id} onClick={() => handleSelectPreset(avatar.url)} className={cn("relative aspect-square rounded-2xl border-2 overflow-hidden transition-all active:scale-90", userProfile.photoURL === avatar.url ? "border-primary ring-4 ring-primary/10 shadow-lg" : "border-border/40 hover:border-primary/40")}>
@@ -196,7 +198,7 @@ export default function SettingsPage() {
       <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/30">
         <CardHeader className="bg-secondary/20 p-8 border-b border-border/40">
           <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight uppercase">
-            <HelpCircle className="h-6 w-6 text-primary" /> Rozet ve Seviye Rehberi
+            <HelpCircle className="h-6 w-6 text-primary" /> {t('badge_guide_title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
@@ -205,8 +207,8 @@ export default function SettingsPage() {
               <Flame size={24} className="fill-current" />
             </div>
             <div className="space-y-1">
-              <h4 className="font-black text-sm uppercase">Günlük Seri (Streak)</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">Viewora'da kaç gün üst üste aktif olduğunuzu gösterir.</p>
+              <h4 className="font-black text-sm uppercase">{t('streak_title')}</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t('streak_desc')}</p>
             </div>
           </div>
           <div className="flex gap-4">
@@ -214,7 +216,7 @@ export default function SettingsPage() {
               <Award size={24} />
             </div>
             <div className="space-y-2 flex-1">
-              <h4 className="font-black text-sm uppercase">Rütbeler ve XP</h4>
+              <h4 className="font-black text-sm uppercase">{t('ranks_xp_title')}</h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {levels.map(l => (
                   <div key={l.name} className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
@@ -232,11 +234,11 @@ export default function SettingsPage() {
 
       <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50">
         <CardHeader className="p-8 border-b bg-secondary/10">
-          <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><SettingsIcon className="h-6 w-6" /> Uygulama & Hesap</CardTitle>
+          <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><SettingsIcon className="h-6 w-6" /> {t('app_and_account')}</CardTitle>
         </CardHeader>
         <CardContent className="p-8">
             <Button onClick={handleSignOut} variant="ghost" className="w-full h-14 rounded-2xl border border-border/60 font-black uppercase tracking-widest text-destructive hover:bg-destructive/10 hover:text-destructive">
-              <LogOut className="mr-2 h-5 w-5" /> {t('button_sign_out') || 'Çıkış Yap'}
+              <LogOut className="mr-2 h-5 w-5" /> {tNav('sign_out')}
             </Button>
         </CardContent>
       </Card>
@@ -245,13 +247,14 @@ export default function SettingsPage() {
 }
 
 const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
+  const t = useTranslations('SettingsPage');
   const handleLevelChange = async (newLevelName: string) => {
     if (!user || !firestore) return;
     const newLevel = levels.find(l => l.name === newLevelName);
     if (!newLevel) return;
     try {
       await updateDoc(doc(firestore, 'users', user.uid), { level_name: newLevel.name, current_xp: newLevel.minXp });
-      toast({ title: "Seviye Güncellendi" });
+      toast({ title: t('toast_level_updated') });
     } catch (e) { console.error(e); }
   };
 
@@ -259,25 +262,25 @@ const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: 
     if (!user || !firestore) return;
     try {
       await updateDoc(doc(firestore, 'users', user.uid), { tier: newTier });
-      toast({ title: `Paket Değişti: ${newTier.toUpperCase()}` });
+      toast({ title: `${t('toast_tier_updated')}: ${newTier.toUpperCase()}` });
     } catch (e) { console.error(e); }
   };
 
   return (
     <Card className="rounded-[32px] border-dashed border-orange-500/50 bg-orange-500/5 overflow-hidden">
       <CardHeader className="p-8 border-b border-orange-500/20">
-        <CardTitle className="flex items-center gap-3 text-orange-500 text-xl font-black uppercase tracking-tight"><ShieldAlert className="h-6 w-6" /> Geliştirici Araçları</CardTitle>
+        <CardTitle className="flex items-center gap-3 text-orange-500 text-xl font-black uppercase tracking-tight"><ShieldAlert className="h-6 w-6" /> {t('dev_tools_title')}</CardTitle>
       </CardHeader>
       <CardContent className="p-8 space-y-8">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Seviye Simülatörü</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('dev_level_simulator')}</Label>
           <Select onValueChange={handleLevelChange} defaultValue={userProfile.level_name}>
-            <SelectTrigger className="h-12 rounded-xl bg-background/50"><SelectValue placeholder="Seviye seç..." /></SelectTrigger>
+            <SelectTrigger className="h-12 rounded-xl bg-background/50"><SelectValue placeholder={t('dev_level_simulator')} /></SelectTrigger>
             <SelectContent>{levels.map(l => (<SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>))}</SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Paket Simülatörü</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('dev_tier_simulator')}</Label>
           <div className="grid grid-cols-3 gap-3">
             {(['start', 'pro', 'master'] as UserTier[]).map(t => (
               <Button key={t} variant={userProfile.tier === t ? 'default' : 'outline'} onClick={() => handleTierChange(t)} className="h-12 rounded-xl text-[10px] font-black uppercase tracking-widest">

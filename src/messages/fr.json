@@ -26,7 +26,8 @@
     "nav_profile": "Mon Profil",
     "nav_settings": "Paramètres",
     "nav_admin_panel": "Panneau Administrateur",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "fallback_artist": "Artiste Anonyme"
   },
   "LoginPage": {
     "title": "Créez un compte ou connectez-vous",
@@ -280,7 +281,13 @@
     "toast_submit_exhibition_complete": "Votre photo a été soumise à l'Exposition.",
     "toast_withdraw_exhibition_complete": "Votre photo a été retirée de l'Exposition.",
     "toast_error_exhibition": "Une erreur s'est produite lors de l'opération d'exposition.",
-    "alert_dialog_withdraw_description": "Cette photo sera retirée de l'Exposition générale. Elle continuera à apparaître dans votre galerie."
+    "alert_dialog_withdraw_description": "Cette photo sera retirée de l'Exposition générale. Elle continuera à apparaître dans votre galerie.",
+    "filter_category_portrait": "Portrait",
+    "filter_category_landscape": "Paysage",
+    "filter_category_street": "Rue",
+    "filter_category_architecture": "Architecture",
+    "filter_category_pets": "Animaux",
+    "filter_category_macro": "Macro"
   },
   "GroupsPage": {
     "button_create_group": "Créer un Nouveau Groupe",
@@ -319,7 +326,11 @@
     "card_member_count": "{count} membres",
     "button_view_group": "Voir le Groupe",
     "no_groups_title": "Pas Encore Membre de Quelque Groupe",
-    "no_groups_description": "Commencez votre propre communauté en créant un nouveau groupe ou recevez une invitation d'un ami."
+    "no_groups_description": "Commencez votre propre communauté en créant un nouveau groupe ou recevez une invitation d'un ami.",
+    "purpose_study": "Étude",
+    "purpose_challenge": "Défi",
+    "purpose_walk": "Promenade Photo",
+    "purpose_mentor": "Mentor"
   },
   "GroupDetailPage": {
     "tooltip_user_not_found": "Utilisateur non trouvé",
@@ -489,7 +500,10 @@
     "developer_tools_title": "Outils de Développeur",
     "developer_tools_description": "Changez votre niveau d'utilisateur à des fins de test.",
     "developer_level_change_success_title": "Niveau Changé",
-    "developer_level_change_success_description": "Votre nouveau niveau est maintenant : {level}"
+    "developer_level_change_success_description": "Votre nouveau niveau est maintenant : {level}",
+    "fallback_user": "Utilisateur",
+    "daily_active_badge": "ACTIF QUOTIDIEN",
+    "user_not_found": "Utilisateur introuvable."
   },
   "UserNavFallback": {
     "login": "Se Connecter",
@@ -537,5 +551,54 @@
     "mark_all_as_read": "Marquer Tout comme Lu",
     "notification_group_invite_title": "Invitation au Groupe",
     "notification_group_invite_body": "{inviterName} vous a invité au groupe \"{groupName}\"."
+  },
+  "SettingsPage": {
+    "profile_settings": "Paramètres du Profil",
+    "nickname_label": "Surnom",
+    "phone_label": "Téléphone",
+    "instagram_label": "Instagram",
+    "save_button": "Enregistrer",
+    "toast_profile_updated": "Profil Mis à Jour",
+    "toast_error": "Erreur",
+    "language_label": "Langue",
+    "select_avatar": "Sélectionner un Avatar",
+    "toast_avatar_updated": "Avatar Mis à Jour",
+    "badge_guide_title": "Guide des Badges et Niveaux",
+    "streak_title": "Série Quotidienne",
+    "streak_desc": "Montre l'activité consécutive.",
+    "ranks_xp_title": "Rangs et XP",
+    "app_and_account": "Application & Compte",
+    "dev_tools_title": "Outils de Développement",
+    "dev_level_simulator": "Simulateur de Niveau",
+    "dev_tier_simulator": "Simulateur de Forfait",
+    "toast_level_updated": "Niveau Mis à Jour",
+    "toast_tier_updated": "Forfait Modifié",
+    "please_login": "Veuillez vous connecter."
+  },
+  "AdminPanel": {
+    "title": "Bot de Contenu",
+    "description": "Génère des leçons avec Gemini 2.0.",
+    "badge_active": "ACTIF",
+    "label_level": "Niveau",
+    "label_category": "Catégorie",
+    "placeholder_category": "Sélectionner...",
+    "btn_generate_single": "Générer Leçon",
+    "btn_generate_ten": "Générer 10 Leçons",
+    "toast_select_category": "Sélectionnez une catégorie.",
+    "toast_lesson_ready_title": "Leçon Prête",
+    "toast_lesson_ready_desc": "Indice dans le labo.",
+    "toast_drafts_ready": "Brouillons Prêts",
+    "toast_success": "Succès!",
+    "toast_lessons_published": "publié.",
+    "preview_title": "Aperçu",
+    "preview_clear": "Effacer",
+    "preview_publish_all": "Tout Publier",
+    "image_lab_title": "Laboratoire d'Images",
+    "image_lab_desc": "Générez l'image ici.",
+    "btn_generate_image": "Générer Image",
+    "btn_save_folder": "Enregistrer Seulement",
+    "toast_image_generated": "Image Générée",
+    "toast_image_saved": "Image Sauvegardée",
+    "toast_image_missing": "Image manquante."
   }
 }

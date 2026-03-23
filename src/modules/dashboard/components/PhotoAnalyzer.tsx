@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { typography } from "@/lib/design/typography";
 import { useTranslations } from 'next-intl';
 

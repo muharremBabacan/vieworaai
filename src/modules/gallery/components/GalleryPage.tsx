@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Trash2, Star, Globe, X, Camera, Trophy, Layers, Lightbulb, Loader2, Search, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,6 +42,7 @@ const getOverallScore = (photo: Photo): number => {
 
 export default function GalleryPage() {
   const t = useTranslations('GalleryPage');
+  const tApp = useTranslations('AppLayout');
   const tr = useTranslations('Ratings');
   const { user } = useUser();
   const firestore = useFirestore();
@@ -81,12 +82,12 @@ export default function GalleryPage() {
 
   const CATEGORY_FILTERS = [
     { id: 'all', label: t('filter_category_all') },
-    { id: 'portrait', label: 'Portre' },
-    { id: 'landscape', label: 'Manzara' },
-    { id: 'street', label: 'Sokak' },
-    { id: 'architecture', label: 'Mimari' },
-    { id: 'pets', label: 'Evcil Hayvanlar' },
-    { id: 'macro', label: 'Makro' },
+    { id: 'portrait', label: t('filter_category_portrait') },
+    { id: 'landscape', label: t('filter_category_landscape') },
+    { id: 'street', label: t('filter_category_street') },
+    { id: 'architecture', label: t('filter_category_architecture') },
+    { id: 'pets', label: t('filter_category_pets') },
+    { id: 'macro', label: t('filter_category_macro') },
   ];
 
   const filteredPhotos = useMemo(() => {
@@ -162,7 +163,7 @@ export default function GalleryPage() {
           ...photo,
           exhibitionId: targetExhibitionId,
           isSubmittedToExhibition: true,
-          userName: userProfile.name || 'Sanatçı',
+          userName: userProfile.name || (tApp && tApp('fallback_artist')) || 'Sanatçı',
           userPhotoURL: userProfile.photoURL || null,
           likes: [],
           createdAt: new Date().toISOString()

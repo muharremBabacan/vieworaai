@@ -23,7 +23,8 @@ import { cn } from '@/lib/utils';
 
 const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) => {
   const t = useTranslations('ProfilePage');
-  const displayName = userProfile.name || 'Kullanıcı';
+  const tLuma = useTranslations('LumaMentorPage');
+  const displayName = userProfile.name || t('fallback_user');
   const displayEmail = userProfile.email || 'email@example.com';
   const fallbackChar = displayName?.charAt(0).toUpperCase() || 'U';
   const displayPhotoURL = userProfile.photoURL || user.photoURL || '';
@@ -75,8 +76,8 @@ const UserInfoCard = ({ user, userProfile }: { user: any; userProfile: User }) =
           </div>
           <p className="text-muted-foreground font-medium">{displayEmail}</p>
           <div className="pt-2 flex justify-center sm:justify-start gap-2">
-            <Badge variant="outline" className="border-border/60 text-[10px] font-black uppercase tracking-widest h-6 px-3">{userProfile.tier?.toUpperCase()} {t('LumaMentorPage.tier_badge_suffix')}</Badge>
-            <Badge variant="outline" className="border-orange-500/30 text-orange-500 text-[10px] font-black uppercase tracking-widest h-6 px-3">GÜNLÜK AKTİF</Badge>
+            <Badge variant="outline" className="border-border/60 text-[10px] font-black uppercase tracking-widest h-6 px-3">{userProfile.tier?.toUpperCase()} {tLuma('tier_badge_suffix')}</Badge>
+            <Badge variant="outline" className="border-orange-500/30 text-orange-500 text-[10px] font-black uppercase tracking-widest h-6 px-3">{t('daily_active_badge')}</Badge>
           </div>
         </div>
       </CardContent>
@@ -176,7 +177,7 @@ export default function ProfilePage() {
   }
 
   if (!userProfile || !user) {
-    return <div className="container text-center px-4 py-20 font-bold uppercase tracking-widest">Kullanıcı bulunamadı.</div>;
+    return <div className="container text-center px-4 py-20 font-bold uppercase tracking-widest">{t('user_not_found')}</div>;
   }
 
   return (

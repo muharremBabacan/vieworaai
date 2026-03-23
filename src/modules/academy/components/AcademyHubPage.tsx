@@ -4,7 +4,7 @@ import { Award, BarChart3, Diamond, Lock, GraduationCap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { typography } from "@/lib/design/typography";
@@ -18,7 +18,7 @@ export default function AcademyHubPage() {
   const t = useTranslations('AcademyPage');
   const { user } = useUser();
   const firestore = useFirestore();
-  
+
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
@@ -26,7 +26,7 @@ export default function AcademyHubPage() {
     {
       name: 'Temel',
       id: 'temel',
-      gate: 'joinGroup', 
+      gate: 'joinGroup',
       icon: Award,
       title: t('level_basic_title'),
       subtitle: 'Kameranızın temellerini öğrenin.',
@@ -38,7 +38,7 @@ export default function AcademyHubPage() {
     {
       name: 'Orta',
       id: 'orta',
-      gate: 'academy', 
+      gate: 'academy',
       icon: BarChart3,
       title: t('level_intermediate_title'),
       subtitle: 'Tekniğinizi profesyonelleştirin.',
@@ -50,7 +50,7 @@ export default function AcademyHubPage() {
     {
       name: 'İleri',
       id: 'ileri',
-      gate: 'challenge', 
+      gate: 'challenge',
       icon: Diamond,
       title: t('level_advanced_title'),
       subtitle: 'Kendi sanatsal tarzınızı yaratın.',
@@ -72,24 +72,24 @@ export default function AcademyHubPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {academyLevels.map((level) => {
           const unlocked = canAccess(userProfile, level.gate);
-          
+
           const content = (
             <Card className={cn(
               "flex flex-col h-full rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-xl group transition-all",
-              unlocked 
-                ? "hover:border-primary/20" 
+              unlocked
+                ? "hover:border-primary/20"
                 : "opacity-60 grayscale-[0.5] cursor-default"
             )}>
               <div className="relative h-40 w-full overflow-hidden">
-                <Image 
-                  src={level.imageUrl} 
-                  alt={level.title} 
-                  fill 
+                <Image
+                  src={level.imageUrl}
+                  alt={level.title}
+                  fill
                   className={cn(
                     "object-cover transition-transform duration-700",
                     unlocked && "group-hover:scale-110"
-                  )} 
-                  unoptimized 
+                  )}
+                  unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className={cn(
@@ -118,19 +118,19 @@ export default function AcademyHubPage() {
                 <ul className="space-y-2 flex-grow">
                   {level.features.map((feature, idx) => (
                     <li key={idx} className={cn(typography.meta, "flex items-center gap-2 font-black uppercase tracking-tighter")}>
-                      <div className={cn("h-1 w-1 rounded-full", unlocked ? "bg-primary" : "bg-muted-foreground")} /> 
+                      <div className={cn("h-1 w-1 rounded-full", unlocked ? "bg-primary" : "bg-muted-foreground")} />
                       {feature}
                     </li>
                   ))}
                 </ul>
 
-                <Button 
-                  asChild={unlocked} 
+                <Button
+                  asChild={unlocked}
                   className={cn(
                     typography.button,
                     "w-full rounded-xl h-11 transition-all",
-                    unlocked 
-                      ? "bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30" 
+                    unlocked
+                      ? "bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30"
                       : "bg-secondary text-muted-foreground hover:bg-secondary"
                   )}
                   disabled={!unlocked}
@@ -155,8 +155,8 @@ export default function AcademyHubPage() {
             );
           }
 
-          const tooltipText = level.id === 'orta' 
-            ? t('tooltip_intermediate') 
+          const tooltipText = level.id === 'orta'
+            ? t('tooltip_intermediate')
             : t('tooltip_advanced');
 
           return (

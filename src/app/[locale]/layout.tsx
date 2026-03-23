@@ -1,23 +1,17 @@
 export const dynamic = 'force-dynamic';
 
 import { ClientProviders } from '@/components/ClientProviders';
-import { Metadata } from 'next';
 import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import '@/app/globals.css';
-
-export const metadata: Metadata = {
-  title: 'Viewora',
-  description: 'Global Fotoğrafçılık Eğitimi ve Koçluğu Platformu',
-};
 
 type LayoutProps = {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 };
 
-export default async function RootLayout({
+export default async function LocaleLayout({
   children,
   params
 }: LayoutProps) {
@@ -25,27 +19,25 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
-      <body>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
-          strategy="afterInteractive"
-        />
-        <Script id="google-ads-tag" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'AW-18013553802');
-          `}
-        </Script>
+    <>
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
+        strategy="afterInteractive"
+      />
+      <Script id="google-ads-tag" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'AW-18013553802');
+        `}
+      </Script>
 
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          <ClientProviders>
-            {children}
-          </ClientProviders>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+      <NextIntlClientProvider messages={messages} locale={locale}>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
+      </NextIntlClientProvider>
+    </>
   );
 }

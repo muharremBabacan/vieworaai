@@ -26,7 +26,8 @@
     "nav_profile": "Мой Профиль",
     "nav_settings": "Настройки",
     "nav_admin_panel": "Административная Панель",
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "fallback_artist": "Анонимный Художник"
   },
   "LoginPage": {
     "title": "Создайте аккаунт или войдите",
@@ -280,7 +281,13 @@
     "toast_submit_exhibition_complete": "Ваша фотография отправлена на Выставку.",
     "toast_withdraw_exhibition_complete": "Ваша фотография отозвана из Выставки.",
     "toast_error_exhibition": "Произошла ошибка при обработке выставки.",
-    "alert_dialog_withdraw_description": "Эта фотография будет удалена из общей Выставки. Она продолжит отображаться в вашей галерее."
+    "alert_dialog_withdraw_description": "Эта фотография будет удалена из общей Выставки. Она продолжит отображаться в вашей галерее.",
+    "filter_category_portrait": "Портрет",
+    "filter_category_landscape": "Пейзаж",
+    "filter_category_street": "Улица",
+    "filter_category_architecture": "Архитектура",
+    "filter_category_pets": "Питомцы",
+    "filter_category_macro": "Макро"
   },
   "GroupsPage": {
     "button_create_group": "Создать Новую Группу",
@@ -319,7 +326,11 @@
     "card_member_count": "{count} участников",
     "button_view_group": "Посмотреть Группу",
     "no_groups_title": "Пока Не Являетесь Участником Ни Одной Группы",
-    "no_groups_description": "Создайте новое сообщество, создав новую группу или получив приглашение от друга."
+    "no_groups_description": "Создайте новое сообщество, создав новую группу или получив приглашение от друга.",
+    "purpose_study": "Учеба",
+    "purpose_challenge": "Челлендж",
+    "purpose_walk": "Фотопрогулка",
+    "purpose_mentor": "Наставник"
   },
   "GroupDetailPage": {
     "tooltip_user_not_found": "Пользователь не найден",
@@ -489,7 +500,10 @@
     "developer_tools_title": "Инструменты Разработчика",
     "developer_tools_description": "Измените уровень пользователя для тестирования.",
     "developer_level_change_success_title": "Уровень Изменен",
-    "developer_level_change_success_description": "Ваш новый уровень теперь: {level}"
+    "developer_level_change_success_description": "Ваш новый уровень теперь: {level}",
+    "fallback_user": "Пользователь",
+    "daily_active_badge": "АКТИВЕН ЕЖЕДНЕВНО",
+    "user_not_found": "Пользователь не найден."
   },
   "UserNavFallback": {
     "login": "Вход",
@@ -537,5 +551,54 @@
     "mark_all_as_read": "Отметить все как прочитанные",
     "notification_group_invite_title": "Приглашение в Группу",
     "notification_group_invite_body": "{inviterName} пригласил вас в группу \"{groupName}\"."
+  },
+  "SettingsPage": {
+    "profile_settings": "Настройки Профиля",
+    "nickname_label": "Никнейм",
+    "phone_label": "Телефон",
+    "instagram_label": "Instagram",
+    "save_button": "Сохранить",
+    "toast_profile_updated": "Профиль Обновлен",
+    "toast_error": "Ошибка",
+    "language_label": "Язык",
+    "select_avatar": "Выбрать Аватар",
+    "toast_avatar_updated": "Аватар Обновлен",
+    "badge_guide_title": "Руководство по Значкам и Уровням",
+    "streak_title": "Ежедневная Серия",
+    "streak_desc": "Показывает последовательную активность.",
+    "ranks_xp_title": "Ранги и XP",
+    "app_and_account": "Приложение и Аккаунт",
+    "dev_tools_title": "Инструменты Разработчика",
+    "dev_level_simulator": "Симулятор Уровня",
+    "dev_tier_simulator": "Симулятор Пакета",
+    "toast_level_updated": "Уровень Обновлен",
+    "toast_tier_updated": "Пакет Изменен",
+    "please_login": "Пожалуйста, войдите."
+  },
+  "AdminPanel": {
+    "title": "Бот Контента",
+    "description": "Создает уроки с Gemini 2.0.",
+    "badge_active": "АКТИВЕН",
+    "label_level": "Уровень",
+    "label_category": "Категория",
+    "placeholder_category": "Выбрать...",
+    "btn_generate_single": "Создать урок",
+    "btn_generate_ten": "Создать 10 уроков",
+    "toast_select_category": "Сначала выберите категорию.",
+    "toast_lesson_ready_title": "Урок готов",
+    "toast_lesson_ready_desc": "Визуальная подсказка в лаборатории.",
+    "toast_drafts_ready": "Черновики готовы",
+    "toast_success": "Успех!",
+    "toast_lessons_published": "опубликовано.",
+    "preview_title": "Предпросмотр",
+    "preview_clear": "Очистить",
+    "preview_publish_all": "Опубликовать все",
+    "image_lab_title": "Лаборатория Изображений",
+    "image_lab_desc": "Сгенерируйте изображение здесь.",
+    "btn_generate_image": "Сгенерировать Изображение",
+    "btn_save_folder": "Только Сохранить",
+    "toast_image_generated": "Изображение Сгенерировано",
+    "toast_image_saved": "Изображение Сохранено",
+    "toast_image_missing": "Отсутствует изображение."
   }
 }

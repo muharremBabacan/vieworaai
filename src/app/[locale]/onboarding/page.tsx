@@ -95,6 +95,8 @@ export default function OnboardingPage() {
     }
   ];
 
+  const isLoading = isProfileLoading;
+
   const handleSelect = (questionId: keyof OnboardingResults, optionId: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
     if (step < questions.length - 1) setTimeout(() => setStep(s => s + 1), 300);
@@ -149,10 +151,16 @@ export default function OnboardingPage() {
     }
   };
 
-  if (isProfileLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
-
   const currentQuestion = questions[step];
   const progress = ((step + 1) / questions.length) * 100;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin h-10 w-10 text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-6 pt-12 md:pt-20 animate-in fade-in duration-700">

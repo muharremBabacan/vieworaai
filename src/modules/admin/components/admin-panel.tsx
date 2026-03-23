@@ -1,6 +1,7 @@
 
 'use client';
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +46,7 @@ const userEditSchema = z.object({
 });
 
 export default function AdminPanel() {
+  const t = useTranslations('MasterAdmin');
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -117,7 +119,7 @@ export default function AdminPanel() {
 
   // Conditional rendering AFTER all hooks
   if (!isAdmin) {
-    return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">YETKİSİZ ERİŞİM</div>;
+    return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">{t('unauthorized')}</div>;
   }
 
   const handleApprovePurchase = async (purchase: PixPurchase) => {
@@ -151,28 +153,28 @@ export default function AdminPanel() {
       } as AnalysisLog);
 
       await batch.commit();
-      toast({ title: "Ödeme Onaylandı" });
+      toast({ title: t("toast_payment_approved") });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Hata" });
+      toast({ variant: 'destructive', title: t("toast_error") });
     } finally { setIsSubmitting(false); }
   };
 
   return (
     <div className="container mx-auto px-4 pb-24 pt-10 animate-in fade-in duration-700">
       <header className="mb-16 text-center space-y-2">
-        <h1 className="text-7xl font-black tracking-tighter uppercase leading-none">{isUsersLoading ? '...' : users?.length || 0} VİZYONER</h1>
-        <p className="text-sm font-black text-primary uppercase tracking-[0.4em] opacity-70">Yönetici Paneli</p>
+        <h1 className="text-7xl font-black tracking-tighter uppercase leading-none">{isUsersLoading ? '...' : users?.length || 0} {t("visionary")}</h1>
+        <p className="text-sm font-black text-primary uppercase tracking-[0.4em] opacity-70">{t('admin_panel')}</p>
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <div className="relative filter-scroll mb-10">
           <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x snap-mandatory">
             <TabsList className="inline-flex w-max bg-secondary/30 p-1 rounded-2xl h-14 border border-border/40 gap-1 px-1">
-              <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Muhasebe</TabsTrigger>
-              <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Ödemeler</TabsTrigger>
-              <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Üyeler</TabsTrigger>
-              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Akademi</TabsTrigger>
-              <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">Genel</TabsTrigger>
+              <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_accounting')}</TabsTrigger>
+              <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_payments')}</TabsTrigger>
+              <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_users')}</TabsTrigger>
+              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_academy')}</TabsTrigger>
+              <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_general')}</TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -181,14 +183,15 @@ export default function AdminPanel() {
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <Card className="bg-primary/5 border-primary/20 rounded-[32px] shadow-sm">
               <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/70">Harcanan</CardDescription>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">{t('package')}</div>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t('spent')}</CardDescription>
               </CardHeader>
               <CardContent><p className="text-4xl font-black text-primary">{metrics?.totalAuro || 0}</p></CardContent>
             </Card>
             {/* Other metric cards... */}
           </div>
           <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-card/50">
-            <CardHeader className="bg-secondary/20 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><ActivityIcon className="h-6 w-6 text-primary" /> Son İşlemler</CardTitle></CardHeader>
+            <CardHeader className="bg-secondary/20 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><ActivityIcon className="h-6 w-6 text-primary" /> {t('recent_transactions')}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
                 <div className="divide-y divide-border/40">
@@ -214,12 +217,12 @@ export default function AdminPanel() {
         <TabsContent value="payments" className="space-y-8">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
             <CardHeader className="bg-secondary/20 border-b p-8">
-              <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><CreditCard className="h-6 w-6 text-primary" /> Bekleyen Ödemeler</CardTitle>
+              <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><CreditCard className="h-6 w-6 text-primary" /> {t('pending_payments')}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {pendingPurchases && pendingPurchases.length > 0 ? (
                 <Table>
-                  <TableHeader><TableRow><TableHead>Vizyoner</TableHead><TableHead>Paket</TableHead><TableHead>Fiyat</TableHead><TableHead>PIX</TableHead><TableHead className="text-right">İşlem</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>{t('visionary')}</TableHead><TableHead>{t('package')}</TableHead><TableHead>{t('price')}</TableHead><TableHead>PIX</TableHead><TableHead className="text-right">{t('action')}</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {pendingPurchases.map(p => (
                       <TableRow key={p.id}>
@@ -227,12 +230,12 @@ export default function AdminPanel() {
                         <TableCell>{p.package_name}</TableCell>
                         <TableCell>{p.price} TL</TableCell>
                         <TableCell className="font-black text-primary">{p.pix_amount}</TableCell>
-                        <TableCell className="text-right px-8"><Button onClick={() => handleApprovePurchase(p)} size="sm" className="bg-green-600 hover:bg-green-700 h-8">Onayla</Button></TableCell>
+                        <TableCell className="text-right px-8"><Button onClick={() => handleApprovePurchase(p)} size="sm" className="bg-green-600 hover:bg-green-700 h-8">{t('approve')}</Button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              ) : <div className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">Bekleyen ödeme bulunmuyor.</div>}
+              ) : <div className="py-20 text-center text-muted-foreground font-bold uppercase text-xs">{t('no_pending_payments')}</div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -241,15 +244,15 @@ export default function AdminPanel() {
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
             <CardHeader className="bg-secondary/20 border-b p-8">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Users className="h-6 w-6 text-primary" /> Üye Yönetimi</CardTitle>
+                <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Users className="h-6 w-6 text-primary" /> {t('user_management')}</CardTitle>
                 <div className="flex items-center bg-background/50 rounded-xl px-3 border border-border/60">
-                  <Input placeholder="İsim veya e-posta ara..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="border-none bg-transparent h-10 w-64 focus-visible:ring-0" />
+                  <Input placeholder={t("search_user")} value={userSearch} onChange={e => setUserSearch(e.target.value)} className="border-none bg-transparent h-10 w-64 focus-visible:ring-0" />
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>Seviye</TableHead><TableHead>PIX</TableHead><TableHead>Analiz (F/L)</TableHead><TableHead className="text-right px-8">İşlem</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>{t('level_rank')}</TableHead><TableHead>PIX</TableHead><TableHead>{t('photo_analysis')} (F/L)</TableHead><TableHead className="text-right px-8">{t('action')}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {filteredUsers.map(u => (
                     <TableRow key={u.id} className="group hover:bg-muted/30 transition-colors">
@@ -257,7 +260,7 @@ export default function AdminPanel() {
                       <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 text-primary">{u.level_name}</Badge></TableCell>
                       <TableCell className="font-black text-foreground">{u.auro_balance}</TableCell>
                       <TableCell><div className="flex gap-2 text-[10px] font-bold uppercase"><span className="text-blue-400">F: {u.total_analyses_count || 0}</span><span className="text-purple-400">L: {u.total_mentor_analyses_count || 0}</span></div></TableCell>
-                      <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> Yönet</Button></TableCell>
+                      <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> {t('manage')}</Button></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -270,25 +273,26 @@ export default function AdminPanel() {
 
         <TabsContent value="settings" className="space-y-12">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
-            <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Settings2 className="h-6 w-6 text-primary" /> Markalama</CardTitle></CardHeader>
+            <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Settings2 className="h-6 w-6 text-primary" /> {t('branding')}</CardTitle></CardHeader>
             <CardContent className="p-8">
-              <Form {...configForm}><form onSubmit={configForm.handleSubmit(async (v) => { if (firestore) { await setDoc(doc(firestore, 'app_settings', 'config'), v, { merge: true }); toast({ title: "Kaydedildi" }); } })} className="space-y-8 max-w-md">
+              <Form {...configForm}><form onSubmit={configForm.handleSubmit(async (v) => { if (firestore) { await setDoc(doc(firestore, 'app_settings', 'config'), v, { merge: true }); toast({ title: t("toast_saved") }); } })} className="space-y-8 max-w-md">
                 <FormField control={configForm.control} name="currencyName" render={({ field }) => (
-                  <FormItem><FormLabel className="text-[10px] font-black uppercase">Para Birimi İsmi</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>
+                  <FormItem><FormLabel className="text-[10px] font-black uppercase">{t('currency_name')}</FormLabel><FormControl><Input {...field} className="rounded-2xl" /></FormControl></FormItem>
                 )} />
-                <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase shadow-xl shadow-primary/10">Kaydet</Button>
+                <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-2xl font-black uppercase shadow-xl shadow-primary/10">{t('save')}</Button>
               </form></Form>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={async (id, v) => { if(firestore) await updateDoc(doc(firestore, 'users', id), v); toast({title: "Kullanıcı Güncellendi"}); }} />
+      <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={async (id, v) => { if(firestore) await updateDoc(doc(firestore, 'users', id), v); toast({title: t("toast_user_updated")}); }} />
     </div>
   );
 }
 
 function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit: User | null, isOpen: boolean, onClose: () => void, onUpdate: (userId: string, values: any) => Promise<void> }) {
+  const t = useTranslations('MasterAdmin');
   const [isUpdating, setIsUpdating] = useState(false);
   
   const form = useForm({
@@ -328,37 +332,101 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md rounded-[32px]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-black uppercase tracking-tight">Vizyoner Düzenle</DialogTitle>
+          <DialogTitle className="text-xl font-black uppercase tracking-tight">{t('edit_visionary')}</DialogTitle>
           <p className="text-xs font-bold text-muted-foreground">@{userToEdit?.name}</p>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-            <FormField control={form.control} name="level_name" render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] font-black uppercase">Seviye (Rütbe)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="Neuner">Neuner</SelectItem>
-                    <SelectItem value="Viewner">Viewner</SelectItem>
-                    <SelectItem value="Sytner">Sytner</SelectItem>
-                    <SelectItem value="Omner">Omner</SelectItem>
-                    <SelectItem value="Vexer">Vexer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )} />
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="auro_balance" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">PIX Bakiyesi</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
-              <FormField control={form.control} name="total_analyses_count" render={({ field }) => (
-                <FormItem><FormLabel className="text-[10px] font-black uppercase">Foto Analiz</FormLabel><FormControl><Input type="number" {...field} className="rounded-xl h-11" /></FormControl></FormItem>
-              )} />
+              <FormField
+                control={form.control}
+                name="level_name"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('level_rank')}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="rounded-xl h-11">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Neuner">Neuner</SelectItem>
+                        <SelectItem value="Viewner">Viewner</SelectItem>
+                        <SelectItem value="Vexer">Vexer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="auro_balance"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('pix_balance')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} className="rounded-xl h-11 bg-muted/30 border-border/60" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="total_analyses_count"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('photo_analysis')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} className="rounded-xl h-11 bg-muted/30 border-border/60" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="total_mentor_analyses_count"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('mentor_analysis')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} className="rounded-xl h-11 bg-muted/30 border-border/60" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="total_exhibitions_count"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('exhibitions')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} className="rounded-xl h-11 bg-muted/30 border-border/60" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="total_competitions_count"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('competitions')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} className="rounded-xl h-11 bg-muted/30 border-border/60" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
             <DialogFooter className="pt-4">
               <Button type="submit" disabled={isUpdating} className="w-full h-12 rounded-2xl font-black uppercase">
-                {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : "Değişiklikleri Kaydet"}
+                {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : t('save_changes')}
               </Button>
             </DialogFooter>
           </form>

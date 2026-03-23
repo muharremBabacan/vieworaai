@@ -1,10 +1,12 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import fs from 'fs';
+import path from 'path';
 
-import serviceAccount from "../serviceAccount.json" assert { type: "json" };
+const serviceAccount = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'serviceAccount.json'), 'utf-8'));
 
 initializeApp({
-  credential: cert(serviceAccount as any),
+  credential: cert(serviceAccount),
 });
 
 const db = getFirestore();
@@ -53,6 +55,26 @@ async function seedCurriculum() {
       ]
     },
     {
+      level: "Orta",
+      category: "Işık Kontrolü ve Yönlendirme",
+      topics: [
+        "Natural light manipulation",
+        "Reflector usage",
+        "Silhouettes",
+        "Golden hour photography"
+      ]
+    },
+    {
+      level: "Orta",
+      category: "İleri Kompozisyon Kuralları",
+      topics: [
+        "Golden ratio",
+        "Fibonacci spiral",
+        "Symmetry and patterns",
+        "Color theory in photography"
+      ]
+    },
+    {
       level: "İleri",
       category: "Profesyonel Işık Kurulumu",
       topics: [
@@ -61,8 +83,36 @@ async function seedCurriculum() {
         "Softbox usage",
         "Lighting ratios"
       ]
+    },
+    {
+      level: "İleri",
+      category: "Storytelling ve Konsept",
+      topics: [
+        "Visual narrative",
+        "Conceptual photography",
+        "Documentary story",
+        "Creating a photography series"
+      ]
+    },
+    {
+      level: "İleri",
+      category: "Stil İmzası ve Düzenleme",
+      topics: [
+        "Developing a personal style",
+        "Advanced color grading",
+        "Retouching techniques",
+        "Print preparation"
+      ]
     }
   ];
+
+  const existingDocs = await db.collection("academy_curriculum").get();
+  const batch = db.batch();
+  existingDocs.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+  console.log("🧹 Cleared existing curriculum documents");
 
   for (const item of curriculum) {
 
