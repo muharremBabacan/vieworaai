@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { ClientProviders } from '@/components/ClientProviders';
 import Script from 'next/script';
+import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import '@/app/globals.css';
@@ -36,6 +37,7 @@ export default async function LocaleLayout({
       <NextIntlClientProvider messages={messages} locale={locale}>
         <ClientProviders>
           {children}
+          <InstallPrompt />
         </ClientProviders>
       </NextIntlClientProvider>
     </>
