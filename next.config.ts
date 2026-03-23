@@ -1,6 +1,13 @@
 import createNextIntlPlugin from 'next-intl/plugin';
+import withPWAInit from 'next-pwa';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+
+const withPWA = withPWAInit({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -9,13 +16,13 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   images: {
     remotePatterns: [
-      { protocol: "https" as const, hostname: "firebasestorage.googleapis.com", pathname: '/**' },
-      { protocol: "https" as const, hostname: "**.firebasestorage.app", pathname: '/**' },
-      { protocol: "https" as const, hostname: "**.appspot.com", pathname: '/**' },
-      { protocol: "https" as const, hostname: "images.unsplash.com", pathname: '/**' },
-      { protocol: "https" as const, hostname: "placehold.co", pathname: '/**' },
-      { protocol: "https" as const, hostname: "picsum.photos", pathname: '/**' },
-      { protocol: "https" as const, hostname: "api.qrserver.com", pathname: '/**' }
+      { protocol: "https", hostname: "firebasestorage.googleapis.com", pathname: '/**' },
+      { protocol: "https", hostname: "**.firebasestorage.app", pathname: '/**' },
+      { protocol: "https", hostname: "**.appspot.com", pathname: '/**' },
+      { protocol: "https", hostname: "images.unsplash.com", pathname: '/**' },
+      { protocol: "https", hostname: "placehold.co", pathname: '/**' },
+      { protocol: "https", hostname: "picsum.photos", pathname: '/**' },
+      { protocol: "https", hostname: "api.qrserver.com", pathname: '/**' }
     ],
   },
   experimental: {
@@ -25,4 +32,4 @@ const nextConfig = {
   }
 };
 
-export default withNextIntl(nextConfig as any);
+export default withNextIntl(withPWA(nextConfig as any));

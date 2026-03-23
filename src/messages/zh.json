@@ -290,6 +290,7 @@
     "filter_category_macro": "微距"
   },
   "GroupsPage": {
+    "title": "我的群组",
     "button_create_group": "创建新小组",
     "create_limit_tooltip": "您已达到小组创建限制 ({ownedCount}/{limit})。",
     "create_dialog_title": "创建新小组",

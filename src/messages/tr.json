@@ -348,6 +348,7 @@
     "filter_category_macro": "Makro"
   },
   "GroupsPage": {
+    "title": "Gruplarım",
     "button_create_group": "Yeni Grup Oluştur",
     "create_limit_tooltip": "Grup oluşturma limitine ulaştınız ({ownedCount}/{limit}).",
     "create_dialog_title": "Yeni Grup Oluştur",

@@ -200,7 +200,7 @@ export default function GroupsPage() {
   return (
     <div className="container mx-auto px-4 pt-6">
       <div className="flex flex-col gap-6 mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight">{t('title')}</h1>
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight truncate">{t('title')}</h1>
         
         {mounted && (
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
@@ -324,8 +324,8 @@ export default function GroupsPage() {
                             </div>
                         )}
                         <CardHeader className="p-8 pb-4">
-                            <CardTitle className="text-2xl font-black uppercase tracking-tight">
-                                <span className="truncate">{group.name}</span>
+                            <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight truncate">
+                                <span>{group.name}</span>
                             </CardTitle>
                             <div className="flex items-center gap-2 mt-2">
                                 <Badge variant="secondary" className={cn("px-2.5 py-0.5 h-6 text-[10px] font-black uppercase tracking-wider border", purpose.color)}>
@@ -346,7 +346,7 @@ export default function GroupsPage() {
                                     <Users className="h-4 w-4 text-primary" />
                                     <span>{t('card_member_count', { count: group.memberIds.length })}</span>
                                 </div>
-                                <Button asChild className="rounded-2xl px-6 h-11 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                                <Button asChild className="rounded-2xl px-4 md:px-6 h-10 md:h-11 font-black uppercase tracking-[0.15em] text-[10px] md:text-xs bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                                     <Link href={`/groups/${group.id}`}>{t('button_view_group')}</Link>
                                 </Button>
                             </div>

@@ -290,6 +290,7 @@
     "filter_category_macro": "ماكرو"
   },
   "GroupsPage": {
+    "title": "مجموعاتي",
     "button_create_group": "إنشاء مجموعة جديدة",
     "create_limit_tooltip": "لقد وصلت إلى حد إنشاء المجموعات ({ownedCount}/{limit}).",
     "create_dialog_title": "إنشاء مجموعة جديدة",

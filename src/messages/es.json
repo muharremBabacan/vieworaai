@@ -299,6 +299,7 @@
     "filter_category_macro": "Macro"
   },
   "GroupsPage": {
+    "title": "Mis Grupos",
     "button_create_group": "Crear Nueva Grupo",
     "create_limit_tooltip": "Has alcanzado el límite de creación de grupos ({ownedCount}/{limit}).",
     "create_dialog_title": "Crear Nuevo Grupo",

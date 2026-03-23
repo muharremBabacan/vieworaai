@@ -282,17 +282,21 @@ export default function GalleryPage() {
 
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
         {selectedPhoto && (
-          <DialogContent className="max-w-4xl max-h-[95vh] md:max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row rounded-[32px] md:rounded-[48px]">
-            <div className="relative w-full md:w-3/5 h-[35vh] md:h-auto bg-black/40 shrink-0">
-              <Image src={selectedPhoto.imageUrl} alt="photo" fill className="object-contain" unoptimized />
+          <DialogContent className="max-w-4xl w-[95vw] lg:w-full max-h-[90vh] lg:max-h-[85vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col lg:flex-row rounded-[32px] md:rounded-[48px]">
+            <div className="relative w-full lg:w-3/5 h-[40vh] md:h-[50vh] lg:h-auto bg-black/40 shrink-0 border-b lg:border-b-0 lg:border-r border-border/10">
+              <Image src={selectedPhoto.imageUrl} alt="photo" fill className="object-contain p-4 lg:p-0" unoptimized />
             </div>
-            <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center justify-between">
-                  {t('dialog_details_title')}
-                  {selectedPhoto.aiFeedback && <Badge className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge>}
+            <div className="flex-1 min-h-0 flex flex-col p-6 md:p-10 pb-20 space-y-8 overflow-y-auto overflow-x-hidden no-scrollbar">
+              <DialogHeader className="space-y-2">
+                <DialogTitle className="text-2xl md:text-3xl font-black uppercase tracking-tight flex flex-wrap items-center justify-between gap-4">
+                  <span className="truncate max-w-[70%]">{t('dialog_details_title')}</span>
+                  {selectedPhoto.aiFeedback && (
+                    <Badge className="bg-primary/10 text-primary border-none px-4 h-8 rounded-full text-[11px] font-black shrink-0">
+                      <Star className="h-3.5 w-3.5 mr-1.5 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}
+                    </Badge>
+                  )}
                 </DialogTitle>
-                <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <DialogDescription className="text-[10px] md:text-xs font-black uppercase tracking-widest text-muted-foreground/60">
                   {t('dialog_upload_date', { date: new Date(selectedPhoto.createdAt).toLocaleDateString() })}
                 </DialogDescription>
               </DialogHeader>
@@ -336,7 +340,7 @@ export default function GalleryPage() {
                       className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} 
                       variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}
                     >
-                      {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> {t('dialog_button_withdraw')}</> : <><Globe className="mr-2 h-4 w-4" /> {t('dialog_button_submit', { cost: 1, currency: currencyName })}</>}
+                      {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> {t('dialog_button_withdraw')}</> : <div className="flex items-center justify-center gap-2 flex-wrap text-center leading-tight"><Globe className="h-4 w-4 shrink-0" /> <span>{t('dialog_button_submit', { cost: 1, currency: currencyName })}</span></div>}
                     </Button>
                   </div>
                 </div>

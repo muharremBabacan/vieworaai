@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Clock, CheckCircle2, LayoutGrid, Star, Users, Scale, Cpu, Medal, Shield, Loader2, X, Gem, Heart, Lock } from 'lucide-react';
 import { differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -292,6 +293,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
 }
 
 export default function CompetitionsPage() {
+    const t = useTranslations('CompetitionsPage');
     const firestore = useFirestore();
     const { user } = useUser();
     const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
@@ -307,7 +309,7 @@ export default function CompetitionsPage() {
 
     return (
         <div className="container mx-auto px-4 pb-12">
-            <h1 className="text-4xl font-extrabold tracking-tight mb-10">Yarışmalar</h1>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-10 truncate">{t('title')}</h1>
             {isLoading ? <Skeleton className="h-64 w-full rounded-3xl" /> : 
              competitions && competitions.length > 0 ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -319,22 +321,22 @@ export default function CompetitionsPage() {
                                     <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" unoptimized />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                                     <div className="absolute bottom-6 left-6 right-6">
-                                        <h2 className="text-2xl font-black text-white uppercase tracking-tighter drop-shadow-2xl">{comp.title}</h2>
+                                    <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter drop-shadow-2xl truncate">{comp.title}</h2>
                                     </div>
                                 </div>
                                 <CardContent className="p-6 space-y-4">
                                     <Button 
-                                        className="w-full rounded-2xl h-14 font-black uppercase tracking-widest text-sm bg-[#1e1e20] hover:bg-[#2a2a2d] border border-white/5 shadow-xl transition-all active:scale-[0.98]" 
+                                        className="w-full rounded-2xl h-12 md:h-14 font-black uppercase tracking-widest text-xs md:text-sm bg-[#1e1e20] hover:bg-[#2a2a2d] border border-white/5 shadow-xl transition-all active:scale-[0.98]" 
                                         onClick={() => { setSelectedCompetition(comp); setIsDetailOpen(true); }}
                                     >
-                                        Detayları Gör
+                                        {t('card_button_details')}
                                     </Button>
                                     <Button 
                                         variant="ghost" 
-                                        className="w-full text-[10px] font-black uppercase tracking-[0.2em] h-10 text-muted-foreground hover:text-foreground transition-colors" 
+                                        className="w-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] h-10 text-muted-foreground hover:text-foreground transition-colors" 
                                         onClick={() => { setCompetitionForEntries(comp); setIsEntriesOpen(true); }}
                                     >
-                                        <LayoutGrid className="mr-2 h-4 w-4" /> Katılımları Görüntüle
+                                        <LayoutGrid className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" /> {t('button_view_entries')}
                                     </Button>
                                 </CardContent>
                             </Card>

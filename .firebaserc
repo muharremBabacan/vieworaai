@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "studio-8632782825-fce99"
-  }
+  },
+  "targets": {
+    "studio-8632782825-fce99": {
+      "hosting": {
+        "viewora": [
+          "studio-8632782825-fce99"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

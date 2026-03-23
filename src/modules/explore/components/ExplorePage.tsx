@@ -126,64 +126,66 @@ export default function ExplorePage() {
       }
     ];
 
-    return (
-      <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
-        <header className="mb-10 space-y-2">
-          <p className={cn(typography.eyebrow, "ml-1")}>{t('hub_eyebrow')}</p>
-          <h1 className={cn(typography.h1, "text-5xl md:text-6xl font-black leading-none uppercase tracking-tighter")}>{t('hub_title')}</h1>
-          <p className={cn(typography.subtitle, "opacity-70")}>{t('description')}</p>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {hubCategories.map((cat) => (
-            <Card 
-              key={cat.id} 
-              className={cn(
-                "rounded-[40px] overflow-hidden border-border/40 bg-card/40 shadow-2xl group transition-all cursor-pointer flex flex-col h-full",
-                cat.borderColor
-              )} 
-              onClick={cat.onClick}
-            >
-              <div className="relative h-48 w-full overflow-hidden">
-                <Image src={cat.image} alt={cat.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-                <div className="absolute bottom-4 left-6 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
-                   {cat.id === 'exhibitions' && <Camera className="h-5 w-5" />}
-                   {cat.id === 'competitions' && <Star className="h-5 w-5" />}
-                   {cat.id === 'groups' && <Heart className="h-5 w-5" />}
-                   {cat.id === 'featured' && <Award className="h-5 w-5" />}
+    if (view === 'hub') {
+      return (
+        <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
+          <header className="mb-10 space-y-2">
+            <p className={cn(typography.eyebrow, "ml-1")}>{t('hub_eyebrow')}</p>
+            <h1 className={cn(typography.h1, "text-4xl md:text-6xl font-black leading-none uppercase tracking-tighter")}>{t('hub_title')}</h1>
+            <p className={cn(typography.subtitle, "opacity-70 text-sm md:text-base")}>{t('description')}</p>
+          </header>
+  
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {hubCategories.map((cat) => (
+              <Card 
+                key={cat.id} 
+                className={cn(
+                  "rounded-[40px] overflow-hidden border-border/40 bg-card/40 shadow-2xl group transition-all cursor-pointer flex flex-col h-full",
+                  cat.borderColor
+                )} 
+                onClick={cat.onClick}
+              >
+                <div className="relative h-48 w-full shrink-0 overflow-hidden">
+                  <Image src={cat.image} alt={cat.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                  <div className="absolute bottom-4 left-6 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+                     {cat.id === 'exhibitions' && <Camera className="h-5 w-5" />}
+                     {cat.id === 'competitions' && <Star className="h-5 w-5" />}
+                     {cat.id === 'groups' && <Heart className="h-5 w-5" />}
+                     {cat.id === 'featured' && <Award className="h-5 w-5" />}
+                  </div>
                 </div>
-              </div>
-              
-              <CardContent className="p-8 pt-6 space-y-6 flex flex-col flex-1">
-                <div className="space-y-2">
-                  <h3 className={cn(typography.cardTitle, "text-xl font-black uppercase tracking-tight")}>{cat.title}</h3>
-                  <p className={cn(typography.body, "text-xs opacity-60 font-medium")}>{cat.desc}</p>
-                </div>
-
-                <ul className="space-y-2.5 flex-1">
-                  {cat.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <Button className={cn("w-full rounded-[20px] h-12 font-black uppercase tracking-wider text-xs transition-all", cat.btnColor)}>
-                  {cat.button}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                
+                <CardContent className="p-8 pt-6 space-y-6 flex flex-col flex-1">
+                  <div className="space-y-2">
+                    <h3 className={cn(typography.cardTitle, "text-lg md:text-xl font-black uppercase tracking-tight truncate")}>{cat.title}</h3>
+                    <p className={cn(typography.body, "text-[10px] md:text-xs opacity-60 font-medium line-clamp-2")}>{cat.desc}</p>
+                  </div>
+  
+                  <ul className="space-y-2.5 flex-1">
+                    {cat.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="truncate">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+  
+                  <Button className={cn("w-full rounded-[20px] h-12 font-black uppercase tracking-wider text-[10px] md:text-xs transition-all", cat.btnColor)}>
+                    {cat.button}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
 
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in slide-in-from-right-10 duration-700">
       <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 rounded-2xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> {t('clear_filter')}</Button>
-      <h1 className={cn(typography.h1, "uppercase mb-10")}>{view === 'featured' ? t('featured_title') : selectedExhibition?.title || t('category_exhibitions')}</h1>
+      <h1 className={cn(typography.h1, "uppercase mb-10 text-3xl md:text-5xl lg:text-6xl truncate")}>{view === 'featured' ? t('featured_title') : selectedExhibition?.title || t('category_exhibitions')}</h1>
 
       {view === 'exhibitions' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -192,8 +194,8 @@ export default function ExplorePage() {
              <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
                <div className="relative h-48 w-full"><Image src={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`} alt={ex.title} fill className="object-cover" unoptimized /></div>
                <CardContent className="p-6">
-                 <h3 className="text-xl font-black uppercase">{ex.title}</h3>
-                 <p className="text-sm text-muted-foreground mt-2">{ex.description}</p>
+                 <h3 className="text-lg md:text-xl font-black uppercase truncate">{ex.title}</h3>
+                 <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">{ex.description}</p>
                </CardContent>
              </Card>
            ))}
@@ -211,7 +213,7 @@ export default function ExplorePage() {
                       <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover" unoptimized />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
-                        <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[10px] h-8 px-4 rounded-full font-bold">@{photo.userName || 'Sanatçı'}</Badge>
+                         <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[9px] md:text-[10px] h-7 md:h-8 px-3 md:px-4 rounded-full font-bold truncate max-w-[120px] md:max-w-none">@{photo.userName || 'Sanatçı'}</Badge>
                         <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isLiked ? "text-red-500" : "text-white")} onClick={(e) => handleToggleLike(photo, e)}>
                           <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
                         </Button>

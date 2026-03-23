@@ -35,33 +35,33 @@ const TIER_COSTS: Record<UserTier, number> = {
 };
 
 const normalizeScore = (score: number | undefined | null): number => {
-    if (score === undefined || score === null || !isFinite(score)) return 0;
-    return score > 1 ? score : score * 10;
+  if (score === undefined || score === null || !isFinite(score)) return 0;
+  return score > 1 ? score : score * 10;
 };
 
 const getOverallScore = (photo: Photo): number => {
-    if (!photo.aiFeedback) return 0;
-    const scores = [
-        normalizeScore(photo.aiFeedback.light_score),
-        normalizeScore(photo.aiFeedback.composition_score),
-        normalizeScore(photo.aiFeedback.technical_clarity_score),
-        normalizeScore(photo.aiFeedback.storytelling_score),
-        normalizeScore(photo.aiFeedback.boldness_score)
-    ].filter(s => s > 0);
-    return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+  if (!photo.aiFeedback) return 0;
+  const scores = [
+    normalizeScore(photo.aiFeedback.light_score),
+    normalizeScore(photo.aiFeedback.composition_score),
+    normalizeScore(photo.aiFeedback.technical_clarity_score),
+    normalizeScore(photo.aiFeedback.storytelling_score),
+    normalizeScore(photo.aiFeedback.boldness_score)
+  ].filter(s => s > 0);
+  return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
 };
 
 const RatingBar = ({ label, score, isLocked }: { label: string; score: number; isLocked?: boolean }) => (
-    <div className={cn("relative", isLocked && "opacity-40 grayscale")}>
-        <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            <span className="flex items-center gap-1">{label} {isLocked && <Lock className="h-2.5 w-2.5" />}</span>
-            <span className="text-foreground">{isLocked ? '?' : score.toFixed(1)}</span>
-        </div>
-        <div className="relative">
-          <Progress value={isLocked ? 0 : score * 10} className="h-1.5" />
-          {isLocked && <div className="absolute inset-0 bg-muted/20 backdrop-blur-[1px] rounded-full" />}
-        </div>
+  <div className={cn("relative", isLocked && "opacity-40 grayscale")}>
+    <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+      <span className="flex items-center gap-1">{label} {isLocked && <Lock className="h-2.5 w-2.5" />}</span>
+      <span className="text-foreground">{isLocked ? '?' : score.toFixed(1)}</span>
     </div>
+    <div className="relative">
+      <Progress value={isLocked ? 0 : score * 10} className="h-1.5" />
+      {isLocked && <div className="absolute inset-0 bg-muted/20 backdrop-blur-[1px] rounded-full" />}
+    </div>
+  </div>
 );
 
 const ScanningOverlay = ({ label }: { label: string }) => (
@@ -93,7 +93,7 @@ export default function PhotoAnalyzer() {
   const firestore = useFirestore();
   const router = useRouter();
   const { currencyName } = useAppConfig();
-  
+
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -176,11 +176,11 @@ export default function PhotoAnalyzer() {
       if (!dupSnap.empty) {
         const existingPhoto = dupSnap.docs[0].data() as Photo;
         if (existingPhoto.aiFeedback) {
-            setAnalysisResult(existingPhoto);
-            toast({ title: t('toast_upload_only_title') });
+          setAnalysisResult(existingPhoto);
+          toast({ title: t('toast_upload_only_title') });
         } else {
-            setIsDuplicate(true);
-            toast({ variant: 'destructive', title: t('toast_invalid_file_title') });
+          setIsDuplicate(true);
+          toast({ variant: 'destructive', title: t('toast_invalid_file_title') });
         }
         setIsLoading(false);
         return;
@@ -193,17 +193,17 @@ export default function PhotoAnalyzer() {
       const batch = writeBatch(firestore);
       const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), crypto.randomUUID());
       const userRef = doc(firestore, 'users', user.uid);
-      
-      let photoData: Photo = { 
-        id: photoDocRef.id, 
-        userId: user.uid, 
-        imageUrl, 
-        filePath, 
-        imageHash: hash, 
-        createdAt: new Date().toISOString(), 
-        aiFeedback: null, 
-        tags: [], 
-        analysisTier: analyze ? currentTier : undefined 
+
+      let photoData: Photo = {
+        id: photoDocRef.id,
+        userId: user.uid,
+        imageUrl,
+        filePath,
+        imageHash: hash,
+        createdAt: new Date().toISOString(),
+        aiFeedback: null,
+        tags: [],
+        analysisTier: analyze ? currentTier : undefined
       };
 
       if (analyze) {
