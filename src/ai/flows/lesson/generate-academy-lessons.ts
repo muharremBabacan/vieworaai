@@ -1,9 +1,16 @@
 'use server';
 
-import { GoogleGenAI, Type } from "@google/genai";
+import OpenAI from "openai";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { firebaseConfig } from "@/lib/firebase/config";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
+// Initialize Firebase for Server Side
+const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(firebaseApp);
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 export type GeneratedAcademyLesson = {
@@ -16,95 +23,163 @@ export type GeneratedAcademyLesson = {
   imageHint: string;
 };
 
+/**
+ * Generates photography lessons focusing on real teaching content.
+ * Fetches curriculum rules from Firestore to guide the AI.
+ */
 export async function generateAcademyLessons(input: {
   level: string;
   category: string;
   topics: string[];
   language?: string;
   count?: number;
+  seedLesson?: {
+    title: string;
+    type: string;
+    description?: string;
+    skills?: string[];
+  };
 }): Promise<GeneratedAcademyLesson[]> {
-  const language = input.language || "tr";
+  const langMap: Record<string, string> = {
+    tr: "Turkish", en: "English", es: "Spanish", fr: "French",
+    de: "German", ru: "Russian", ar: "Arabic", zh: "Chinese", ja: "Japanese"
+  };
+
+  const language = langMap[input.language || "tr"] || input.language || "Turkish";
   const count = input.count || 1;
 
   console.log(`[AI] ${input.level} - ${input.category} için ${count} ders üretiliyor...`);
 
+  // 1. FETCH CURRICULUM RULES FROM FIRESTORE
+  let curriculum: any = {};
+  try {
+    const curriculumSnap = await getDoc(doc(db, "academy_curriculum", input.category));
+    if (curriculumSnap.exists()) {
+      curriculum = curriculumSnap.data();
+      console.log("[AI] Curriculum rules loaded:", curriculum.rules);
+    }
+  } catch (err) {
+    console.warn("[AI] Curriculum fetch failed, using defaults:", err);
+  }
+
+  // 2. MAP LEVEL TO PEDAGOGICAL STYLE
+  const levelMap: Record<string, string> = {
+    "Temel": "Beginner/Foundational - simple, visual, easy explanation",
+    "Orta": "Intermediate/Practical - technique-focused, practical scenarios",
+    "İleri": "Advanced/Technical - professional settings, artistic nuance",
+    "Profesyonel": "Expert/Industry - commercial workflows, deep technicality"
+  };
+
+  // 3. CONSTRUCT TEACHING PROMPT
+  const isAnchored = !!input.seedLesson;
+  const targetTitle = input.seedLesson?.title || input.topics[0];
+  const targetType = input.seedLesson?.type || "technical";
+
   const prompt = `
-You are Luma, the head instructor of Viewora Academy.
+You are Luma, the head instructor of Viewora Academy. 
+This is a REAL LESSON for professional photographers. Your goal is to TEACH, not describe a course.
 
-Generate EXACTLY ${count} structured photography mini-lessons for the following curriculum. 
-IMPORTANT: If count is 1, return an array with exactly one object.
+ANCHOR:
+${isAnchored ? `Target Lesson: "${targetTitle}" (Type: ${targetType})` : `General Topic: ${targetTitle}`}
+${input.seedLesson?.description ? `Context/Focus: ${input.seedLesson.description}` : ""}
+${input.seedLesson?.skills ? `Target Skills: ${input.seedLesson.skills.join(", ")}` : ""}
 
-Level: ${input.level}
+CONTEXT:
+Level: ${levelMap[input.level] || input.level}
 Category: ${input.category}
-
 Topics to cover:
 ${input.topics.map(t => `- ${t}`).join('\n')}
 
-Each lesson must include:
-- title: Engaging and professional.
-- learningObjective: One sentence (what will they learn?).
-- theory: Clear explanation in 2–3 paragraphs.
-- analysisCriteria: Exactly 3 technical points.
-- practiceTask: A physical photography assignment.
-- auroNote: Artistic or professional insight.
-- imageHint: Highly specific 3-4 English keywords that represent the UNIQUE TOPIC of this lesson as a photograph. 
-  DO NOT use generic "camera lens" or "photography" keywords unless specifically about lenses. 
-  INSTEAD, create a scene (e.g., "Golden hour mountain silhouette", "Macro dew drop on green leaf", "Neon city lights blurred motion").
+STYLE & RULES:
+- Teaching Style: ${curriculum.style || "teaching-focused"}
+- Min Theory Length: ${curriculum.rules?.minTheoryLength || 5} paragraphs/blocks
+- Use Real Examples: ${curriculum.rules?.realExamples ?? true}
+- Avoid Generic Text: ${curriculum.rules?.noGenericText ?? true}
 
-Language: ${language}
+STRICT INSTRUCTIONS:
+- Directly teach the concepts. Instead of saying "you will learn X", explain "X is used when...".
+- Use professional photography terminology (F-stops, bokeh, dynamic range, composition rules).
+- Be detailed. Each theory section must be a deep dive into the subject.
+- Language: ${language}
 
-Return STRICT JSON as an array of objects matching the schema exactly.
+JSON STRUCTURE (Return an array of ${count} objects):
+- title: ${isAnchored ? `MUST BE EQUAL TO "${targetTitle}"` : "Engaging, specific title"}
+- learningObjective: What will they MASTER after this lesson?
+- theory: Comprehensive teaching content (detailed, non-generic)
+- analysisCriteria: 3 specific points for AI image evaluation
+- practiceTask: A specific photo assignment for the student
+- auroNote: Professional tip or encouragement
+- imageHint (3-4 English keywords for prompt, SEPARATED BY SPACES)
+
+Return ONLY a valid JSON array.
 `;
 
   try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      }
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: "Professional Photography Instructor. Return ONLY valid JSON array. No markdown." },
+        { role: "user", content: prompt }
+      ],
     });
 
-    const text = res.text;
-    if (!text) throw new Error("Empty response from AI");
+    const raw = res.choices[0]?.message?.content || "";
+    const clean = raw.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
 
-    const output: GeneratedAcademyLesson[] = JSON.parse(text);
-    console.log(`[AI] ${output.length} ders başarıyla üretildi.`);
-    return output;
-  } catch (error: any) {
-    console.error("[AI] Lesson generation failed:", error);
-    throw new Error("Lesson generation failed: " + error.message);
+    return (Array.isArray(parsed) ? parsed : (parsed.lessons || [])) as GeneratedAcademyLesson[];
+  } catch (error) {
+    console.error("[AI] Lesson generation error:", error);
+    return [];
   }
 }
 
+
+// 🔥 IMAGE (DEĞİŞMEDİ - SAĞLAM)
 export async function generateLessonImage(
   userPrompt: string
-): Promise<string> {
-  console.log(`[IMAGEN 3] İstek gönderiliyor: ${userPrompt}`);
-  
-  const finalPrompt = `Professional cinematic photography of ${userPrompt}, ultra-realistic, natural lighting, shot on 35mm lens, f/1.8, high detail, 8k resolution, artistic composition, clean background`;
+): Promise<{ success: boolean; imageUrl: string }> {
+
+  console.log("PROMPT:", userPrompt);
+
+  const finalPrompt = `professional photography, ${userPrompt}, natural light, realistic, minimalist background`;
 
   try {
-    const res = await ai.models.generateImages({
-      model: 'imagen-3.0-generate-001',
+    const res = await (openai.images as any).generate({
+      model: "gpt-image-1.5",
       prompt: finalPrompt,
-      config: {
-        numberOfImages: 1,
-        outputMimeType: "image/jpeg",
-        aspectRatio: "16:9"
-      }
+      size: "1024x1024"
     });
 
-    const base64Image = res.generatedImages?.[0]?.image?.imageBytes;
+    const img = res.data?.[0];
 
-    if (!base64Image) {
-      console.error("[IMAGEN 3] Görsel verisi boş döndü.");
-      throw new Error("Görsel üretilemedi, model boş yanıt döndü.");
+    if (!img) {
+      console.error("[IMAGE] boş response");
+      return { success: false, imageUrl: "/fallback.jpg" };
     }
 
-    return base64Image;
+    if (img.b64_json) {
+      return {
+        success: true,
+        imageUrl: img.b64_json.startsWith('data:')
+          ? img.b64_json
+          : `data:image/png;base64,${img.b64_json}`
+      };
+    }
+
+    if (img.url) {
+      return {
+        success: true,
+        imageUrl: img.url
+      };
+    }
+
+    console.error("[IMAGE] format tanınmadı");
+    return { success: false, imageUrl: "/fallback.jpg" };
+
   } catch (error: any) {
-    console.error("[IMAGEN 3] Üretim sırasında hata oluştu:", error.message);
-    throw new Error(`Imagen 3 Hatası: ${error.message}`);
+    console.error("[IMAGE ERROR]:", error.message);
+    return { success: false, imageUrl: "/fallback.jpg" };
   }
 }

@@ -1,6 +1,5 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import { collection, query, orderBy, doc, where, writeBatch, increment, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Competition, User, Photo, CompetitionEntry, ScoringModel, AnalysisLog } from '@/types';
@@ -20,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from '@/navigation';
 import { useAppConfig } from '@/components/AppConfigProvider';
+import { VieworaImage } from '@/core/components/viewora-image';
 
 const COMPETITION_JOIN_COST = 2;
 
@@ -113,7 +113,13 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
                                     const isLiked = e.votes?.includes(userProfile?.id || '');
                                     return (
                                         <div key={e.id} className="group relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-muted/20 cursor-pointer" onClick={() => setSelectedEntry(e)}>
-                                            <Image src={e.photoUrl} alt="Eser" fill className="object-cover transition-transform group-hover:scale-105" unoptimized />
+                                            <VieworaImage 
+                                              variants={e.imageUrls}
+                                              fallbackUrl={e.photoUrl}
+                                              type="smallSquare"
+                                              alt="Yarışma Eseri"
+                                              containerClassName="w-full h-full transition-transform group-hover:scale-105"
+                                            />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
                                                 <p className="text-[10px] font-bold text-white truncate drop-shadow-md">@{e.userName}</p>
@@ -141,7 +147,13 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
                 {selectedEntry && (
                     <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row">
                         <div className="relative md:w-3/5 w-full aspect-square md:aspect-auto bg-black/40">
-                            <Image src={selectedEntry.photoUrl} alt="Eser" fill className="object-contain" unoptimized />
+                             <VieworaImage 
+                                variants={selectedEntry.imageUrls}
+                                fallbackUrl={selectedEntry.photoUrl}
+                                type="detailView"
+                                alt="Eser Detay"
+                                containerClassName="w-full h-full"
+                              />
                         </div>
                         <div className="md:w-2/5 w-full flex flex-col p-8 space-y-6 overflow-y-auto">
                             <DialogHeader>
@@ -206,6 +218,8 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 userId: userProfile.id,
                 userName: userProfile.name || 'İsimsiz Sanatçı',
                 photoUrl: photo.imageUrl,
+                imageUrls: photo.imageUrls, // <--- New system
+                imageProcessing: photo.imageProcessing,
                 filePath: photo.filePath || '',
                 submittedAt: new Date().toISOString(),
                 votes: [],
@@ -253,7 +267,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 <ScrollArea className="max-h-[95vh] w-full">
                     <div className="flex flex-col">
                         <div className="relative h-48 w-full shrink-0">
-                            <Image src={competition.imageUrl} alt={competition.title} fill className="object-cover" unoptimized />
+                            <img src={competition.imageUrl} alt={competition.title} className="object-cover w-full h-full" />
                             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                             <div className="absolute bottom-4 left-6 right-6">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -274,7 +288,13 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                         <div className="grid grid-cols-2 gap-2">
                                             {analyzedPhotos.map(photo => (
                                                 <button key={photo.id} onClick={() => setSelectedPhotoId(photo.id)} className={cn("relative aspect-square rounded-lg overflow-hidden border-2", selectedPhotoId === photo.id ? "border-primary" : "border-transparent")}>
-                                                    <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover" unoptimized />
+                                                    <VieworaImage 
+                                                      variants={photo.imageUrls}
+                                                      fallbackUrl={photo.imageUrl}
+                                                      type="smallSquare"
+                                                      alt="Galeri Seçim"
+                                                      containerClassName="w-full h-full"
+                                                    />
                                                 </button>
                                             ))}
                                         </div>
@@ -318,7 +338,13 @@ export default function CompetitionsPage() {
                         return (
                             <Card key={comp.id} className="overflow-hidden flex flex-col group border-border/40 rounded-[32px] bg-card/40 shadow-2xl transition-all hover:border-primary/20">
                                 <div className="relative h-64 w-full overflow-hidden">
-                                    <Image src={comp.imageUrl} alt={comp.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" unoptimized />
+                                    <VieworaImage 
+                                      variants={null} // Yarışma kapağı için şu an türev yok, orijinali kullanıyoruz ama bileşeni hazır tutuyoruz
+                                      fallbackUrl={comp.imageUrl}
+                                      type="featureCover"
+                                      alt={comp.title}
+                                      containerClassName="w-full h-full transition-transform duration-700 group-hover:scale-105"
+                                    />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                                     <div className="absolute bottom-6 left-6 right-6">
                                     <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter drop-shadow-2xl truncate">{comp.title}</h2>

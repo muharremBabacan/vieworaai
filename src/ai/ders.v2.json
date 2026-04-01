@@ -1,0 +1,275 @@
+{
+    "academy": "Viewora Photography",
+    "levels": [
+        {
+            "level": "Temel",
+            "description": "Işık, kamera mantığı ve temel kontrol",
+            "modules": [
+                {
+                    "moduleIndex": 1,
+                    "title": "Fotoğrafın Temelleri",
+                    "lessons": [
+                        {
+                            "lessonIndex": 1,
+                            "title": "Fotoğraf Nedir?",
+                            "type": "concept",
+                            "requiresSettings": false,
+                            "skills": [
+                                "ışık farkındalığı"
+                            ],
+                            "next": 2
+                        },
+                        {
+                            "lessonIndex": 2,
+                            "title": "Kamera Nasıl Çalışır?",
+                            "type": "concept",
+                            "requiresSettings": false,
+                            "skills": [
+                                "kamera mantığı"
+                            ],
+                            "previous": 1,
+                            "next": 3
+                        }
+                    ]
+                },
+                {
+                    "moduleIndex": 2,
+                    "title": "Pozlama Kontrolü",
+                    "lessons": [
+                        {
+                            "lessonIndex": 3,
+                            "title": "Diyafram (Aperture)",
+                            "type": "technical",
+                            "requiresSettings": true,
+                            "skills": [
+                                "alan derinliği"
+                            ],
+                            "previous": 2,
+                            "next": 4
+                        },
+                        {
+                            "lessonIndex": 4,
+                            "title": "Enstantane (Shutter)",
+                            "type": "technical",
+                            "requiresSettings": true,
+                            "skills": [
+                                "hareket kontrolü"
+                            ],
+                            "previous": 3,
+                            "next": 5
+                        },
+                        {
+                            "lessonIndex": 5,
+                            "title": "ISO (Işık Hassasiyeti)",
+                            "type": "technical",
+                            "requiresSettings": true,
+                            "skills": [
+                                "noise kontrolü"
+                            ],
+                            "previous": 4,
+                            "next": 6
+                        },
+                        {
+                            "lessonIndex": 6,
+                            "title": "Pozlama Üçgeni",
+                            "type": "integration",
+                            "requiresSettings": true,
+                            "skills": [
+                                "denge kurma"
+                            ],
+                            "previous": 5,
+                            "next": 7
+                        }
+                    ]
+                },
+                {
+                    "moduleIndex": 3,
+                    "title": "Işık ve Netlik",
+                    "lessons": [
+                        {
+                            "lessonIndex": 7,
+                            "title": "Işık Türleri",
+                            "type": "concept",
+                            "requiresSettings": false,
+                            "skills": [
+                                "ışık okuma"
+                            ],
+                            "previous": 6,
+                            "next": 8
+                        },
+                        {
+                            "lessonIndex": 8,
+                            "title": "Netleme ve Alan Derinliği",
+                            "type": "technical",
+                            "requiresSettings": true,
+                            "skills": [
+                                "odaklama"
+                            ],
+                            "previous": 7,
+                            "next": 9
+                        }
+                    ]
+                },
+                {
+                    "moduleIndex": 4,
+                    "title": "Kompozisyon",
+                    "lessons": [
+                        {
+                            "lessonIndex": 9,
+                            "title": "Kompozisyon Nedir?",
+                            "type": "concept",
+                            "requiresSettings": false,
+                            "skills": [
+                                "görsel düzen"
+                            ],
+                            "previous": 8,
+                            "next": 10
+                        },
+                        {
+                            "lessonIndex": 10,
+                            "title": "Üçler Kuralı ve Kadraj",
+                            "type": "practice",
+                            "requiresSettings": false,
+                            "skills": [
+                                "kadrajlama"
+                            ],
+                            "previous": 9
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "level": "Orta",
+            "description": "Türler, teknik kontrol ve yaratıcı çekim",
+            "modules": [
+                {
+                    "moduleIndex": 5,
+                    "title": "Fotoğraf Türleri",
+                    "lessons": [
+                        {
+                            "lessonIndex": 1,
+                            "title": "Portre Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true,
+                            "skills": [
+                                "model ışığı"
+                            ]
+                        },
+                        {
+                            "lessonIndex": 2,
+                            "title": "Sokak Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true,
+                            "skills": [
+                                "an yakalama"
+                            ]
+                        },
+                        {
+                            "lessonIndex": 3,
+                            "title": "Manzara Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true,
+                            "skills": [
+                                "derinlik"
+                            ]
+                        },
+                        {
+                            "lessonIndex": 4,
+                            "title": "Ürün Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true,
+                            "skills": [
+                                "detay vurgusu"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "moduleIndex": 6,
+                    "title": "Teknik Derinlik",
+                    "lessons": [
+                        {
+                            "lessonIndex": 5,
+                            "title": "Lens Türleri ve Perspektif",
+                            "type": "technical",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 6,
+                            "title": "Histogram ve Pozlama Analizi",
+                            "type": "technical",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 7,
+                            "title": "Dinamik Aralık",
+                            "type": "technical",
+                            "requiresSettings": true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "level": "İleri",
+            "description": "Profesyonel bakış, stil ve üretim",
+            "modules": [
+                {
+                    "moduleIndex": 7,
+                    "title": "Işık Ustalığı",
+                    "lessons": [
+                        {
+                            "lessonIndex": 1,
+                            "title": "Doğal Işık Kontrolü",
+                            "type": "advanced",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 2,
+                            "title": "Yapay Işık ve Stüdyo",
+                            "type": "advanced",
+                            "requiresSettings": true
+                        }
+                    ]
+                },
+                {
+                    "moduleIndex": 8,
+                    "title": "Fotoğraf Dili",
+                    "lessons": [
+                        {
+                            "lessonIndex": 3,
+                            "title": "Hikaye Anlatımı",
+                            "type": "creative",
+                            "requiresSettings": false
+                        },
+                        {
+                            "lessonIndex": 4,
+                            "title": "Renk ve Stil",
+                            "type": "creative",
+                            "requiresSettings": false
+                        }
+                    ]
+                },
+                {
+                    "moduleIndex": 9,
+                    "title": "Profesyonel Üretim",
+                    "lessons": [
+                        {
+                            "lessonIndex": 5,
+                            "title": "Proje Geliştirme",
+                            "type": "project",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 6,
+                            "title": "Portfolyo Hazırlama",
+                            "type": "project",
+                            "requiresSettings": false
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

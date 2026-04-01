@@ -23,6 +23,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, LogIn, Users, Crown, Loader2, GraduationCap, Trophy, Map, ShieldCheck, Lock, Hash, Copy } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const PURPOSE_CONFIG: Record<GroupPurpose, { labelKey: string; icon: any; color: string }> = {
@@ -70,6 +73,12 @@ export default function GroupsPage() {
     purpose: z.enum(['study', 'challenge', 'walk', 'mentor'] as const, {
       required_error: t('form_error_purpose_required'),
     }),
+    organizerType: z.enum(['official', 'business', 'education', 'personal'] as const).default('personal'),
+    visibility: z.enum(['public', 'platform', 'private'] as const).default('platform'),
+    showJury: z.boolean().default(true),
+    competitionSubject: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
   });
 
   const joinFormSchema = z.object({
@@ -78,7 +87,17 @@ export default function GroupsPage() {
 
   const createForm = useForm<z.infer<typeof createFormSchema>>({
     resolver: zodResolver(createFormSchema),
-    defaultValues: { name: '', description: '', purpose: 'study' },
+    defaultValues: { 
+      name: '', 
+      description: '', 
+      purpose: 'study', 
+      organizerType: 'personal',
+      visibility: 'platform',
+      showJury: true,
+      competitionSubject: '',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
   });
 
   const joinForm = useForm<z.infer<typeof joinFormSchema>>({
@@ -98,11 +117,19 @@ export default function GroupsPage() {
         name: values.name,
         description: values.description || '',
         purpose: values.purpose,
+        organizerType: values.organizerType,
         ownerId: user.uid,
         memberIds: [user.uid],
         createdAt: new Date().toISOString(),
         joinCode: String(Math.floor(100000 + Math.random() * 900000)),
         maxMembers: getGroupLimits(userProfile?.level_name).maxMembers,
+        isGlobal: values.visibility !== 'private',
+        isGalleryPublic: values.visibility === 'public',
+        showJury: values.showJury,
+        competitionSubject: values.competitionSubject,
+        startDate: values.startDate,
+        endDate: values.endDate,
+        juryIds: [],
       };
       const docRef = await addDoc(collection(firestore, 'groups'), newGroup);
       await updateDoc(docRef, { id: docRef.id });
@@ -227,52 +254,155 @@ export default function GroupsPage() {
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('create_dialog_title')}</DialogTitle>
-                        <DialogDescription>{t('create_dialog_description')}</DialogDescription>
-                    </DialogHeader>
-                    <Form {...createForm}>
-                        <form onSubmit={createForm.handleSubmit(onCreateGroup)} className="space-y-4">
-                            <FormField control={createForm.control} name="purpose" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('form_label_purpose')}</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger className="h-11 rounded-xl">
-                                                <SelectValue placeholder={t('form_purpose_placeholder')} />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="study">{t('form_purpose_study')}</SelectItem>
-                                            <SelectItem value="challenge">{t('form_purpose_challenge')}</SelectItem>
-                                            <SelectItem value="walk">{t('form_purpose_walk')}</SelectItem>
-                                            <SelectItem value="mentor">{t('form_purpose_mentor')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={createForm.control} name="name" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('form_label_group_name')}</FormLabel>
-                                    <FormControl><Input placeholder={t('form_placeholder_name')} {...field} className="h-11 rounded-xl" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={createForm.control} name="description" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('form_label_group_description')}</FormLabel>
-                                    <FormControl><Textarea placeholder={t('form_placeholder_description')} {...field} className="rounded-xl" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <Button type="submit" disabled={isCreating} className="w-full h-11 rounded-xl font-bold">
-                                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {t('button_create')}
-                            </Button>
-                        </form>
-                    </Form>
+                <DialogContent className="max-w-xl rounded-[40px] border-white/5 bg-[#0a0a0b] p-0 overflow-hidden">
+                    <div className="p-8 pb-0">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black uppercase tracking-tighter">{t('create_dialog_title')}</DialogTitle>
+                            <DialogDescription className="text-xs font-medium italic opacity-70">{t('create_dialog_description')}</DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    
+                    <ScrollArea className="max-h-[60vh] px-8 py-4">
+                        <Form {...createForm}>
+                            <form onSubmit={createForm.handleSubmit(onCreateGroup)} className="space-y-6 pb-4">
+                                <FormField control={createForm.control} name="purpose" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('form_label_purpose')}</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/5">
+                                                    <SelectValue placeholder={t('form_purpose_placeholder')} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent className="rounded-xl border-white/5 bg-[#121214]">
+                                                <SelectItem value="study">{t('form_purpose_study')}</SelectItem>
+                                                <SelectItem value="challenge">{t('form_purpose_challenge')}</SelectItem>
+                                                <SelectItem value="walk">{t('form_purpose_walk')}</SelectItem>
+                                                <SelectItem value="mentor">{t('form_purpose_mentor')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                
+                                <FormField control={createForm.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('form_label_group_name')}</FormLabel>
+                                        <FormControl><Input placeholder={t('form_placeholder_name')} {...field} className="h-11 rounded-xl bg-white/5 border-white/5" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+
+                                <FormField control={createForm.control} name="organizerType" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('form_label_organizer_type')}</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/5">
+                                                    <SelectValue placeholder={t('form_organizer_personal')} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent className="rounded-xl border-white/5 bg-[#121214]">
+                                                <SelectItem value="official">{t('form_organizer_official')}</SelectItem>
+                                                <SelectItem value="business">{t('form_organizer_business')}</SelectItem>
+                                                <SelectItem value="education">{t('form_organizer_education')}</SelectItem>
+                                                <SelectItem value="personal">{t('form_organizer_personal')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+
+                                {createForm.watch('purpose') === 'challenge' && (
+                                    <div className="space-y-4 p-6 rounded-[32px] bg-primary/5 border border-primary/10 animate-in fade-in zoom-in duration-300">
+                                        <FormField control={createForm.control} name="competitionSubject" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t('form_label_comp_subject')}</FormLabel>
+                                                <FormControl><Input placeholder={t('form_placeholder_comp_subject')} {...field} className="h-10 rounded-xl bg-white/5 border-white/5" /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField control={createForm.control} name="startDate" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t('form_label_comp_start')}</FormLabel>
+                                                    <FormControl><Input type="date" {...field} className="h-10 rounded-xl bg-white/5 border-white/5" /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={createForm.control} name="endDate" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t('form_label_comp_end')}</FormLabel>
+                                                    <FormControl><Input type="date" {...field} className="h-10 rounded-xl bg-white/5 border-white/5" /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        </div>
+
+                                        <div className="space-y-3 pt-2">
+                                            <FormField control={createForm.control} name="visibility" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t('form_label_visibility')}</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/5">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent className="rounded-xl border-white/5 bg-[#121214]">
+                                                            <SelectItem value="public">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="font-bold text-xs">{t('form_visibility_public')}</span>
+                                                                    <span className="text-[9px] text-muted-foreground">{t('form_visibility_public_desc')}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                            <SelectItem value="platform">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="font-bold text-xs">{t('form_visibility_platform')}</span>
+                                                                    <span className="text-[9px] text-muted-foreground">{t('form_visibility_platform_desc')}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                            <SelectItem value="private">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="font-bold text-xs">{t('form_visibility_private')}</span>
+                                                                    <span className="text-[9px] text-muted-foreground">{t('form_visibility_private_desc')}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={createForm.control} name="showJury" render={({ field }) => (
+                                                <FormItem className="flex items-center justify-between space-y-0 rounded-xl border border-white/5 p-3">
+                                                    <Label className="text-[10px] font-black uppercase tracking-wider">{t('form_label_show_jury')}</Label>
+                                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <FormField control={createForm.control} name="description" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-xs uppercase">{t('form_label_description')}</FormLabel>
+                                        <FormControl><Textarea placeholder={t('form_placeholder_description')} {...field} className="rounded-xl min-h-[100px] bg-white/5 border-white/5" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </form>
+                        </Form>
+                    </ScrollArea>
+                    <div className="p-8 border-t border-white/5">
+                        <Button 
+                            onClick={createForm.handleSubmit(onCreateGroup)} 
+                            disabled={isCreating} 
+                            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all bg-primary"
+                        >
+                            {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('button_create')}
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
             <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>

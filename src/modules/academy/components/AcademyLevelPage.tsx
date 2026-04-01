@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useRouter } from '@/navigation';
+import { useTranslations } from 'next-intl';
 import type { Lesson, User } from '@/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, doc, updateDoc, writeBatch, increment, orderBy } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { uploadAndProcessImage } from '@/lib/image/actions';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useDropzone } from 'react-dropzone';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -21,6 +21,7 @@ import { evaluatePracticeSubmission, type EvaluatePracticeSubmissionOutput } fro
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
 import { cn } from '@/lib/utils';
+import { VieworaImage } from '@/core/components/viewora-image';
 
 const getDeterminsticPlaceholder = (id: string) => {
     const images = ["https://picsum.photos/seed/1/600/400", "https://picsum.photos/seed/2/600/400", "https://picsum.photos/seed/3/600/400", "https://picsum.photos/seed/4/600/400"];
@@ -33,6 +34,7 @@ const getDeterminsticPlaceholder = (id: string) => {
 };
 
 function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFeedbackReady: (result: any) => void }) {
+    const t = useTranslations('AcademyLevelPage');
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -48,8 +50,8 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
             if (acceptedFile.size > 10 * 1024 * 1024) {
                 toast({
                     variant: 'destructive',
-                    title: "Dosya Boyutu Çok Büyük",
-                    description: "Lütfen 10MB'dan küçük bir resim dosyası yükleyin.",
+                    title: t('toast_file_size_title'),
+                    description: t('toast_file_size_description'),
                 });
                 return;
             }
@@ -57,7 +59,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
             setPreview(URL.createObjectURL(acceptedFile));
             setAnalysisResult(null);
         }
-    }, [toast]);
+    }, [toast, t]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] } });
 
@@ -65,20 +67,21 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
         if (!file || !user || !firestore) return;
 
         setIsUploading(true);
-        toast({ title: "Analiz Başlatılıyor...", description: "Ödevinize özel geri bildirim hazırlanıyor." });
+        toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
         
         try {
-            const storage = getStorage();
-            const filePath = `users/${user.uid}/practice-submissions/${lesson.id}/${Date.now()}-${file.name}`;
-            const storageRef = ref(storage, filePath);
-            await uploadBytes(storageRef, file);
-            const imageUrl = await getDownloadURL(storageRef);
-
+            const photoId = crypto.randomUUID();
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // 🔄 Server Action ile Türevleri Üret ve Yükle
+            const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'academy-practice');
+            
             setIsUploading(false);
             setIsAnalyzing(true);
 
             const result = await evaluatePracticeSubmission({
-                photoUrl: imageUrl,
+                photoUrl: imageUrls.analysis,
                 practiceTask: lesson.practiceTask,
                 analysisCriteria: lesson.analysisCriteria || [],
                 language: "tr",
@@ -86,11 +89,11 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
 
             setAnalysisResult(result);
             onFeedbackReady(result);
-            toast({ title: "Geri Bildirim Hazır!", description: "Aşağıdan sonucu görebilirsiniz." });
+            toast({ title: t('toast_feedback_ready_title'), description: t('toast_feedback_ready_description') });
 
         } catch (error) {
             console.error("Analysis failed:", error);
-            toast({ variant: 'destructive', title: "Analiz Başarısız", description: "Yapay zeka geri bildirimi oluştururken bir hata oluştu." });
+            toast({ variant: 'destructive', title: t('toast_analysis_fail_title'), description: t('toast_analysis_fail_description') });
         } finally {
             setIsUploading(false);
             setIsAnalyzing(false);
@@ -99,29 +102,29 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
     
     return (
         <Card>
-            <CardHeader><CardTitle className={typography.cardTitle}>Pratiğini Göster</CardTitle></CardHeader>
+            <CardHeader><CardTitle className={typography.cardTitle}>{t('practice_submission_title')}</CardTitle></CardHeader>
             <CardContent>
-                <p className={typography.body}>Bu ödev için çektiğin fotoğrafı yükle ve anında geri bildirim al.</p>
+                <p className={typography.body}>{t('practice_submission_description')}</p>
                 <div className="grid md:grid-cols-2 gap-6 mt-4">
                     <div>
                         <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}>
                             <input {...getInputProps()} />
                             <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                            {isDragActive ? <p className="text-primary">veya sürükleyip bırakın</p> : <p className={typography.meta}>Yüklemek için tıklayın <span className="text-muted-foreground">veya sürükleyip bırakın</span></p>}
+                            {isDragActive ? <p className="text-primary">{t('upload_prompt_drag')}</p> : <p className={typography.meta}>{t('upload_prompt_click')} <span className="text-muted-foreground">{t('upload_prompt_drag')}</span></p>}
                         </div>
-                        {preview && <div className="mt-4 relative aspect-video rounded-lg overflow-hidden"><Image src={preview} alt="Preview" fill className="object-cover" unoptimized /></div>}
+                        {preview && <div className="mt-4 relative aspect-video rounded-lg overflow-hidden"><img src={preview} alt="Preview" className="object-cover w-full h-full" /></div>}
                     </div>
                     <div className="flex flex-col justify-center items-center">
                         {analysisResult ? (
                             <div className="text-center">
-                                <h3 className={typography.cardTitle}>Puan: {analysisResult.score}/10</h3>
+                                <h3 className={typography.cardTitle}>{t('score', { score: analysisResult.score })}</h3>
                                 <p className={cn(typography.body, "mt-2")}>{analysisResult.feedback}</p>
-                                <Button onClick={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} className={cn(typography.button, "mt-4")}>Yeni Fotoğraf Yükle</Button>
+                                <Button onClick={() => { setFile(null); setPreview(null); setAnalysisResult(null); }} className={cn(typography.button, "mt-4")}>{t('button_new_photo')}</Button>
                             </div>
                         ) : (
                             <Button onClick={handleGetFeedback} disabled={!file || isUploading || isAnalyzing} className={cn(typography.button, "w-full")}>
                                 {(isUploading || isAnalyzing) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isAnalyzing ? "Değerlendiriliyor..." : "Geri Bildirim Al"}
+                                {isAnalyzing ? t('button_evaluating') : t('button_get_feedback')}
                             </Button>
                         )}
                     </div>
@@ -132,6 +135,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
 }
 
 function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCompleted: boolean; onComplete: (lessonId: string) => void; }) {
+  const t = useTranslations('AcademyLevelPage');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [practiceResult, setPracticeResult] = useState<any | null>(null);
   const { currencyName } = useAppConfig();
@@ -145,25 +149,24 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
     <>
       <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
         <div className="relative aspect-video">
-          <Image 
-            src={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)} 
-            alt={lesson.title} 
-            fill 
-            className="object-cover" 
-            data-ai-hint={lesson.imageHint} 
-            unoptimized 
+          <VieworaImage 
+            variants={null}
+            fallbackUrl={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)}
+            type="featureCover"
+            alt={lesson.title}
+            className="transition-transform duration-700 group-hover:scale-110"
           />
         </div>
         <CardContent className="p-4">
           <h3 className={typography.cardTitle}>{lesson.title}</h3>
           <p className={cn(typography.meta, "mt-1")}>{lesson.learningObjective}</p>
           <div className="flex items-center justify-between mt-4">
-            <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)} className={typography.button}>Teori</Button>
+            <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)} className={typography.button}>{t('dialog_theory')}</Button>
             {isCompleted ? (
-              <span className={cn(typography.meta, "flex items-center gap-2 font-semibold text-green-500")}><CheckCircle className="h-4 w-4" /> Bitti</span>
+              <span className={cn(typography.meta, "flex items-center gap-2 font-semibold text-green-500")}><CheckCircle className="h-4 w-4" /> {t('button_completed')}</span>
             ) : (
-                <Button size="sm" onClick={handleLessonComplete} disabled={!practiceResult || practiceResult.score < 7} className={typography.button}>
-                    Dersi Tamamla (+10 XP, +1 {currencyName})
+                <Button size="sm" onClick={handleLessonComplete} disabled={!practiceResult || practiceResult.score < 7} className={cn(typography.button, "text-[10px] sm:text-xs")}>
+                    {t('button_complete_lesson', { xp: 10, auro: 1 })}
                 </Button>
             )}
           </div>
@@ -174,11 +177,11 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
             <DialogHeader><DialogTitle className={typography.cardTitle}>{lesson.title}</DialogTitle></DialogHeader>
             <div className="flex-1 overflow-y-auto pr-4 -mr-4 space-y-6">
                 <Accordion type="multiple" defaultValue={['objective', 'theory']} className="w-full">
-                    <AccordionItem value="objective"><AccordionTrigger className={typography.cardTitle}>Öğrenim Hedefi</AccordionTrigger><AccordionContent className={typography.body}>{lesson.learningObjective}</AccordionContent></AccordionItem>
-                    <AccordionItem value="theory"><AccordionTrigger className={typography.cardTitle}>Teori</AccordionTrigger><AccordionContent className={cn(typography.body, "prose prose-sm dark:prose-invert")}>{lesson.theory}</AccordionContent></AccordionItem>
-                    <AccordionItem value="criteria"><AccordionTrigger className={typography.cardTitle}>Başarı Kriterleri</AccordionTrigger><AccordionContent><ul className={cn(typography.body, "list-disc pl-5 space-y-1")}>{(lesson.analysisCriteria || []).map((c, i) => <li key={i}>{c}</li>)}</ul></AccordionContent></AccordionItem>
-                    <AccordionItem value="task"><AccordionTrigger className={typography.cardTitle}>Pratik Görevi</AccordionTrigger><AccordionContent className={typography.body}>{lesson.practiceTask}</AccordionContent></AccordionItem>
-                    <AccordionItem value="auro-note"><AccordionTrigger className={cn(typography.cardTitle, "text-cyan-400")}>{currencyName} Notu</AccordionTrigger><AccordionContent className={cn(typography.body, "italic")}>{lesson.auroNote}</AccordionContent></AccordionItem>
+                    <AccordionItem value="objective"><AccordionTrigger className={typography.cardTitle}>{t('dialog_objective')}</AccordionTrigger><AccordionContent className={typography.body}>{lesson.learningObjective}</AccordionContent></AccordionItem>
+                    <AccordionItem value="theory"><AccordionTrigger className={typography.cardTitle}>{t('dialog_theory')}</AccordionTrigger><AccordionContent className={cn(typography.body, "prose prose-sm dark:prose-invert")}>{lesson.theory}</AccordionContent></AccordionItem>
+                    <AccordionItem value="criteria"><AccordionTrigger className={typography.cardTitle}>{t('dialog_criteria')}</AccordionTrigger><AccordionContent><ul className={cn(typography.body, "list-disc pl-5 space-y-1")}>{(lesson.analysisCriteria || []).map((c, i) => <li key={i}>{c}</li>)}</ul></AccordionContent></AccordionItem>
+                    <AccordionItem value="task"><AccordionTrigger className={typography.cardTitle}>{t('dialog_task')}</AccordionTrigger><AccordionContent className={typography.body}>{lesson.practiceTask}</AccordionContent></AccordionItem>
+                    <AccordionItem value="auro-note"><AccordionTrigger className={cn(typography.cardTitle, "text-cyan-400")}>{t('dialog_auro_note')}</AccordionTrigger><AccordionContent className={cn(typography.body, "italic")}>{lesson.auroNote}</AccordionContent></AccordionItem>
                 </Accordion>
                 <PracticeSubmission lesson={lesson} onFeedbackReady={setPracticeResult} />
             </div>
@@ -189,6 +192,7 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
 }
 
 export default function AcademyLevelPage() {
+    const t = useTranslations('AcademyLevelPage');
     const params = useParams();
     const router = useRouter();
     const firestore = useFirestore();
@@ -223,12 +227,12 @@ export default function AcademyLevelPage() {
     const groupedLessons = useMemo(() => {
         if (!lessons) return {};
         return lessons.reduce((acc, lesson) => {
-            const category = lesson.category || "Diğer";
+            const category = lesson.category || t('category_other');
             if (!acc[category]) acc[category] = [];
             acc[category].push(lesson);
             return acc;
         }, {} as Record<string, Lesson[]>);
-    }, [lessons]);
+    }, [lessons, t]);
 
     const handleCompleteLesson = useCallback(async (lessonId: string) => {
         if (!user || !firestore || !userProfile) return;
@@ -248,16 +252,16 @@ export default function AcademyLevelPage() {
         });
 
         await batch.commit();
-        toast({ title: "Ödül Kazandın!", description: `Bu dersten ${xpGain} XP ve ${auroGain} ${currencyName} kazandın.` });
+        toast({ title: t('toast_reward_title'), description: t('toast_reward_description', { xp: xpGain, auro: auroGain }) });
 
         const oldLevel = getLevelFromXp(userProfile.current_xp);
         const newLevel = getLevelFromXp(userProfile.current_xp + xpGain);
 
         if (newLevel.name !== oldLevel.name) {
             await updateDoc(userRef, { level_name: newLevel.name });
-            toast({ title: "🎉 Seviye Atladın!", description: `Tebrikler! Yeni seviyen: ${newLevel.name}` });
+            toast({ title: t('toast_level_up_title'), description: t('toast_level_up_description', { level: newLevel.name }) });
         }
-    }, [user, firestore, userProfile, currencyName, toast]);
+    }, [user, firestore, userProfile, toast, t]);
 
     if (isProfileLoading) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
@@ -265,12 +269,12 @@ export default function AcademyLevelPage() {
     
     return (
         <div className="container mx-auto px-4 pt-6 pb-24">
-            <Button variant="ghost" onClick={() => router.push('/academy')} className={cn(typography.button, "mb-4 font-bold text-muted-foreground")}><ArrowLeft className="mr-2 h-4 w-4" /> Akademi'ye Dön</Button>
-            <h1 className={cn(typography.h2, "mb-8 uppercase")}>{levelFormatted} Seviye Dersleri</h1>
+            <Button variant="ghost" onClick={() => router.push('/academy')} className={cn(typography.button, "mb-4 font-bold text-muted-foreground")}><ArrowLeft className="mr-2 h-4 w-4" /> {t('button_back_to_academy')}</Button>
+            <h1 className={cn(typography.h2, "mb-8 uppercase")}>{levelFormatted} {t('page_title_suffix')}</h1>
             {lessonsLoading ? (
                 <div className="space-y-8">
                     {[...Array(2)].map((_, i) => (
-                        <div key={i}><Skeleton className="h-8 w-1/4 mb-4" /><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{[...Array(3)].map((_, j) => (<Card key={j}><Skeleton className="aspect-video" /><CardContent className="p-4"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>))}</div></div>
+                        <div key={i}><Skeleton className="h-8 w-1/4 mb-4" /><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">{[...Array(4)].map((_, j) => (<Card key={j}><Skeleton className="aspect-video" /><CardContent className="p-4"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>))}</div></div>
                     ))}
                 </div>
             ) : Object.keys(groupedLessons).length > 0 ? (
@@ -278,14 +282,14 @@ export default function AcademyLevelPage() {
                     {Object.entries(groupedLessons).map(([category, lessonsInCategory]) => (
                         <section key={category}>
                             <h2 className={cn(typography.cardTitle, "text-2xl mb-4")}>{category}</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                 {lessonsInCategory.map(lesson => (<LessonItem key={lesson.id} lesson={lesson} isCompleted={completedLessonIds.has(lesson.id)} onComplete={handleCompleteLesson} />))}
                             </div>
                         </section>
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16"><h2 className={typography.h2}>Bu Seviyede Henüz Ders Yok</h2></div>
+                <div className="text-center py-16"><h2 className={typography.h2}>{t('no_lessons_title')}</h2></div>
             )}
         </div>
     );

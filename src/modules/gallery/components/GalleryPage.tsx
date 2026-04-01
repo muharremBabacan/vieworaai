@@ -2,17 +2,17 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, doc, writeBatch, increment, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import type { Photo, User, Exhibition } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Star, Globe, X, Camera, Trophy, Layers, Lightbulb, Loader2, Search, ArrowLeft } from 'lucide-react';
+import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers } from 'lucide-react';
+import { VieworaImage } from '@/core/components/viewora-image';
 import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -77,7 +77,7 @@ export default function GalleryPage() {
     { id: 'all', label: t('filter_all'), icon: Layers },
     { id: 'analyzed', label: t('filter_status_analyzed'), icon: Sparkles },
     { id: 'exhibition', label: t('filter_status_exhibition'), icon: Globe },
-    { id: 'best', label: t('filter_status_best'), icon: Trophy },
+    { id: 'best', label: t('filter_status_best'), icon: Camera },
   ];
 
   const CATEGORY_FILTERS = [
@@ -253,7 +253,13 @@ export default function GalleryPage() {
                 className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all hover:scale-[1.02]" 
                 onClick={() => setSelectedPhoto(photo)}
               >
-                <Image src={photo.imageUrl} alt="Galeri" fill className="object-cover" unoptimized />
+                <VieworaImage 
+                  variants={photo.imageUrls}
+                  fallbackUrl={photo.imageUrl}
+                  type="smallSquare"
+                  alt="Galeri Görseli"
+                  containerClassName="w-full h-full"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-3 right-3">
                   {photo.aiFeedback && (
@@ -283,8 +289,14 @@ export default function GalleryPage() {
       <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
         {selectedPhoto && (
           <DialogContent className="max-w-4xl w-[95vw] lg:w-full max-h-[90vh] lg:max-h-[85vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col lg:flex-row rounded-[32px] md:rounded-[48px]">
-            <div className="relative w-full lg:w-3/5 h-[40vh] md:h-[50vh] lg:h-auto bg-black/40 shrink-0 border-b lg:border-b-0 lg:border-r border-border/10">
-              <Image src={selectedPhoto.imageUrl} alt="photo" fill className="object-contain p-4 lg:p-0" unoptimized />
+            <div className="relative w-full md:w-3/5 h-[40vh] md:h-auto bg-black/40 flex items-center justify-center">
+               <VieworaImage 
+                  variants={selectedPhoto.imageUrls}
+                  fallbackUrl={selectedPhoto.imageUrl}
+                  type="detailView"
+                  alt="Eser Detay"
+                  containerClassName="w-full h-full"
+                />
             </div>
             <div className="flex-1 min-h-0 flex flex-col p-6 md:p-10 pb-20 space-y-8 overflow-y-auto overflow-x-hidden no-scrollbar">
               <DialogHeader className="space-y-2">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Share, PlusSquare, X, Download } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -13,6 +14,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function InstallPrompt() {
+  const t = useTranslations('PWA');
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -90,9 +92,9 @@ export default function InstallPrompt() {
           </div>
           
           <div className="space-y-1 pr-6">
-            <h3 className="text-white font-bold text-lg tracking-tight">📲 Use Viewora like an app</h3>
+            <h3 className="text-white font-bold text-lg tracking-tight">{t('title')}</h3>
             <p className="text-gray-400 text-sm leading-snug">
-              Faster access, better experience, no browser needed
+              {t('description')}
             </p>
           </div>
         </div>
@@ -102,15 +104,28 @@ export default function InstallPrompt() {
             <div className="bg-white/5 rounded-2xl p-4 space-y-3">
               <div className="flex items-center gap-3 text-sm text-gray-300">
                 <div className="h-6 w-6 rounded-lg bg-white/10 flex items-center justify-center text-xs font-bold text-white">1</div>
-                <p>Tap the share button <Share size={16} className="inline mx-1 text-blue-400" /> below</p>
+                <p>
+                  {t.rich('ios_step1', {
+                    icon: () => <Share size={16} className="inline mx-1 text-blue-400" />
+                  })}
+                </p>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-300">
                 <div className="h-6 w-6 rounded-lg bg-white/10 flex items-center justify-center text-xs font-bold text-white">2</div>
-                <p>Select <span className="text-white font-medium">"Add to Home Screen"</span> <PlusSquare size={16} className="inline mx-1" /></p>
+                <p>
+                  {t.rich('ios_step2', {
+                    text: () => <span className="text-white font-medium">{t('ios_step2_text')}</span>,
+                    icon: () => <PlusSquare size={16} className="inline mx-1" />
+                  })}
+                </p>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-300">
                 <div className="h-6 w-6 rounded-lg bg-white/10 flex items-center justify-center text-xs font-bold text-white">3</div>
-                <p>Tap <span className="text-blue-400 font-bold uppercase">Add</span> in the top-right</p>
+                <p>
+                  {t.rich('ios_step3', {
+                    text: () => <span className="text-blue-400 font-bold uppercase">{t('ios_step3_text')}</span>
+                  })}
+                </p>
               </div>
             </div>
           ) : (
@@ -119,7 +134,7 @@ export default function InstallPrompt() {
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
             >
               <Download size={20} />
-              Install Now
+              {t('install_button')}
             </button>
           )}
 
@@ -127,7 +142,7 @@ export default function InstallPrompt() {
             onClick={dismissPrompt}
             className="w-full text-gray-500 hover:text-gray-300 text-sm font-medium transition-colors"
           >
-            Maybe later
+            {t('maybe_later')}
           </button>
         </div>
       </div>

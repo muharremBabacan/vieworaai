@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
-import { collection, doc, setDoc, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, query, where, orderBy } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -21,17 +21,33 @@ import { cn } from '@/lib/utils';
 export default function AcademyAdminPanel() {
   const t = useTranslations('AdminPanel');
   const tCur = useTranslations('Curriculum');
+  const locale = useLocale();
   const { toast } = useToast();
   const firestore = useFirestore();
   const storage = getStorage();
 
   const [selectedLevel, setSelectedLevel] = useState<string>('Temel');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [selectedModuleId, setSelectedModuleId] = useState<string>('');
+  const [selectedLessonId, setSelectedLessonId] = useState<string>('');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   
   const [previewLessons, setPreviewLessons] = useState<GeneratedAcademyLesson[]>([]);
+
+  // 1. Fetch Modules for Selected Level
+  const modulesQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'academy', selectedLevel, 'modules'), orderBy('moduleIndex')) : null, 
+    [firestore, selectedLevel]
+  );
+  const { data: modulesData, isLoading: modulesLoading } = useCollection<{ title: string; moduleIndex: number }>(modulesQuery);
+
+  // 2. Fetch Lessons for Selected Module
+  const lessonsQuery = useMemoFirebase(() => 
+    (firestore && selectedModuleId) ? query(collection(firestore, 'academy', selectedLevel, 'modules', selectedModuleId, 'lessons'), orderBy('lessonIndex')) : null, 
+    [firestore, selectedLevel, selectedModuleId]
+  );
+  const { data: curriculumLessons, isLoading: lessonsLoading } = useCollection<{ title: string; type: string; lessonIndex: number; requiresSettings: boolean; description?: string; skills?: string[] }>(lessonsQuery);
 
   // Manual Image Lab States
   const [manualPrompt, setManualPrompt] = useState('');
@@ -40,18 +56,10 @@ export default function AcademyAdminPanel() {
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
 
-  // Fetch Curriculum
-  const curriculumQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'academy_curriculum') : null), [firestore]);
-  const { data: curriculumData } = useCollection<CurriculumTopic>(curriculumQuery);
-
-  const availableCategories = useMemo(() => {
-    return curriculumData?.filter(c => c.level === selectedLevel) || [];
-  }, [curriculumData, selectedLevel]);
-
   const handleGenerateLessons = async (count: number) => {
-    const selectedCurriculum = availableCategories.find(c => c.id === selectedCategoryId);
-    if (!selectedCurriculum) {
-      toast({ variant: 'destructive', title: "Kategori Seçin", description: "Lütfen önce bir kategori seçin." });
+    const selectedCurriculumLesson = curriculumLessons?.find(l => l.id === selectedLessonId);
+    if (!selectedCurriculumLesson) {
+      toast({ variant: 'destructive', title: "Eksik Seçim", description: "Lütfen önce bir ders konusu seçin." });
       return;
     }
 
@@ -61,25 +69,31 @@ export default function AcademyAdminPanel() {
     try {
       const lessons = await generateAcademyLessons({
         level: selectedLevel,
-        category: selectedCurriculum.category,
-        topics: selectedCurriculum.topics,
-        language: "tr",
-        count: count
-      });
+        category: selectedModuleId, // Module ID used as category for context
+        topics: [selectedCurriculumLesson.title],
+        language: locale,
+        count: count,
+        seedLesson: {
+          title: selectedCurriculumLesson.title,
+          type: selectedCurriculumLesson.type,
+          description: (selectedCurriculumLesson as any).description,
+          skills: selectedCurriculumLesson.skills
+        }
+      } as any);
       
       setPreviewLessons(lessons);
       
       // Eğer tek bir ders üretilmişse, promptu otomatik olarak laboratuvar alanına aktar
       if (count === 1 && lessons.length > 0) {
         setManualPrompt(lessons[0].imageHint);
-        toast({ title: "Ders İçeriği Hazır!", description: "Görsel ipucu laboratuvara aktarıldı. Lütfen aşağıdan onaylayıp görseli üretin." });
+        toast({ title: t('toast_lesson_ready_title'), description: t('toast_lesson_ready_desc') });
         
         // Laboratuvar alanına odaklanması için sayfayı kaydır
         setTimeout(() => {
           document.getElementById('image-lab')?.scrollIntoView({ behavior: 'smooth' });
         }, 500);
       } else {
-        toast({ title: `${lessons.length} Taslak Hazır`, description: "Dersleri inceleyip toplu yayınlayabilirsiniz." });
+        toast({ title: t('toast_drafts_ready', { count: lessons.length }), description: t('toast_drafts_ready_desc') });
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: "Hata", description: e.message });
@@ -91,27 +105,51 @@ export default function AcademyAdminPanel() {
   const handlePublishAll = async () => {
     if (previewLessons.length === 0 || !firestore) return;
     
-    const selectedCurriculum = availableCategories.find(c => c.id === selectedCategoryId);
-    if (!selectedCurriculum) return;
+    if (!selectedModuleId || !selectedLessonId) return;
 
     setIsPublishing(true);
 
     try {
       for (let i = 0; i < previewLessons.length; i++) {
         const lesson = previewLessons[i];
-        const lessonId = crypto.randomUUID();
+        // Browser compatible UUID fallback
+        const lessonId = typeof crypto.randomUUID === 'function' 
+          ? crypto.randomUUID() 
+          : Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
         
         // Generate Image for each lesson using its prompt
-        const base64 = await generateLessonImage(lesson.imageHint);
-        const storageRef = ref(storage, `academy-lessons/${lessonId}.jpg`);
-        await uploadString(storageRef, base64, 'base64');
-        const imageUrl = await getDownloadURL(storageRef);
+        let imageResult;
+        try {
+          imageResult = await generateLessonImage(lesson.imageHint);
+        } catch (e) {
+          console.log("Image üretimi atlandı");
+          imageResult = { success: false, imageUrl: "/fallback.jpg" };
+        }
+
+        let imageUrl = imageResult.imageUrl || "/fallback.jpg";
+        if (imageResult.success && imageResult.imageUrl) {
+          try {
+            const storageRef = ref(storage, `academy-lessons/${lessonId}.jpg`);
+            const isBase64 = imageResult.imageUrl.startsWith('data:') || (!imageResult.imageUrl.startsWith('http') && !imageResult.imageUrl.startsWith('/'));
+            
+            if (isBase64) {
+              await uploadString(storageRef, imageResult.imageUrl, 'data_url');
+              imageUrl = await getDownloadURL(storageRef);
+            } else {
+              imageUrl = imageResult.imageUrl;
+            }
+          } catch (storageError) {
+            console.error("Storage upload failed, using original/fallback:", storageError);
+          }
+        }
 
         const lessonData = {
           ...lesson,
           id: lessonId,
-          level: selectedLevel,
-          category: selectedCurriculum.category,
+          level: selectedLevel as any,
+          category: selectedModuleId,
+          moduleId: selectedModuleId,
+          sourceLessonId: selectedLessonId,
           imageUrl,
           createdAt: new Date().toISOString()
         };
@@ -119,10 +157,10 @@ export default function AcademyAdminPanel() {
         await setDoc(doc(firestore, 'academy_lessons', lessonId), lessonData);
       }
 
-      toast({ title: "Başarılı!", description: `${previewLessons.length} ders yayınlandı.` });
+      toast({ title: t('toast_success_title'), description: t('toast_lessons_published', { count: previewLessons.length }) });
       setPreviewLessons([]);
     } catch (e: any) {
-      toast({ variant: 'destructive', title: "Yayınlama Hatası", description: e.message });
+      toast({ variant: 'destructive', title: t('toast_publish_error_title'), description: e.message });
     } finally {
       setIsPublishing(false);
     }
@@ -130,41 +168,56 @@ export default function AcademyAdminPanel() {
 
   const handlePublishSingleWithManualImage = async (lessonIndex: number) => {
     if (!manualPreview || !firestore) {
-      toast({ variant: 'destructive', title: "Görsel Eksik", description: "Lütfen önce görseli üretin." });
+      toast({ variant: 'destructive', title: t('toast_image_missing_title'), description: t('toast_image_missing_desc') });
       return;
     }
 
     const lesson = previewLessons[lessonIndex];
-    const selectedCurriculum = availableCategories.find(c => c.id === selectedCategoryId);
-    if (!selectedCurriculum) return;
+    if (!selectedModuleId || !selectedLessonId) return;
 
     setIsPublishing(true);
     try {
-      const lessonId = crypto.randomUUID();
+      // Browser compatible UUID fallback
+      const lessonId = typeof crypto.randomUUID === 'function' 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+        
       const storageRef = ref(storage, `academy-lessons/${lessonId}.jpg`);
       
-      const base64Data = manualPreview.includes('base64,') ? manualPreview.split('base64,')[1] : manualPreview;
-      await uploadString(storageRef, base64Data, 'base64');
-      const imageUrl = await getDownloadURL(storageRef);
+      let imageUrl = manualPreview;
+      
+      const isBase64 = manualPreview.startsWith('data:') || (!manualPreview.startsWith('http') && !manualPreview.startsWith('/'));
+      
+      if (isBase64) {
+        const uploadFormat = manualPreview.startsWith('data:') ? 'data_url' : 'base64';
+        console.log("[ADMIN] Uploading image...", { format: uploadFormat, size: manualPreview.length });
+        await uploadString(storageRef, manualPreview, uploadFormat);
+        imageUrl = await getDownloadURL(storageRef);
+      }
+      
+      console.log("[ADMIN] Final Image URL:", imageUrl);
 
       const lessonData = {
         ...lesson,
         id: lessonId,
         level: selectedLevel as any,
-        category: selectedCurriculum.category,
+        category: selectedModuleId,
+        moduleId: selectedModuleId,
+        sourceLessonId: selectedLessonId,
         imageUrl,
         createdAt: new Date().toISOString()
       };
 
       await setDoc(doc(firestore, 'academy_lessons', lessonId), lessonData);
       
-      toast({ title: "Ders Yayınlandı!", description: "Seçili görsel ile ders akademiye eklendi." });
+      toast({ title: t('toast_publish_success_title'), description: t('toast_publish_success_desc') });
       
       setPreviewLessons(prev => prev.filter((_, i) => i !== lessonIndex));
       setManualPreview(null);
       setManualPrompt('');
     } catch (e: any) {
-      toast({ variant: 'destructive', title: "Hata", description: e.message });
+      console.error("[ADMIN] Publish single failed:", e);
+      toast({ variant: 'destructive', title: t('toast_error_title'), description: e.message });
     } finally {
       setIsPublishing(false);
     }
@@ -177,10 +230,13 @@ export default function AcademyAdminPanel() {
     setSavedImageUrl(null);
     
     try {
-      const base64 = await generateLessonImage(manualPrompt);
-      if (base64) {
-        setManualPreview(`data:image/jpeg;base64,${base64}`);
-        toast({ title: "Görsel Üretildi" });
+      const result = await generateLessonImage(manualPrompt);
+      if (result.success) {
+        setManualPreview(result.imageUrl);
+        toast({ title: t('toast_image_generated') });
+      } else {
+        setManualPreview(result.imageUrl); // This will be /fallback.jpg
+        toast({ variant: 'destructive', title: t('toast_image_gen_error_title'), description: t('toast_image_fallback_desc') });
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: "Görsel Üretilemedi", description: e.message });
@@ -195,13 +251,22 @@ export default function AcademyAdminPanel() {
     try {
       const fileName = `manual-${Date.now()}.jpg`;
       const storageRef = ref(storage, `academy-lessons/manual-uploads/${fileName}`);
-      const base64Data = manualPreview.split(',')[1];
-      await uploadString(storageRef, base64Data, 'base64');
-      const url = await getDownloadURL(storageRef);
-      setSavedImageUrl(url);
-      toast({ title: "Görsel Kaydedildi" });
+      
+      const isBase64 = manualPreview.startsWith('data:') || (!manualPreview.startsWith('http') && !manualPreview.startsWith('/'));
+      
+      if (isBase64) {
+        const uploadFormat = manualPreview.startsWith('data:') ? 'data_url' : 'base64';
+        await uploadString(storageRef, manualPreview, uploadFormat);
+        const url = await getDownloadURL(storageRef);
+        setSavedImageUrl(url);
+      } else {
+        // Zaten bir URL (http) veya Fallback (/), olduğu gibi kullan
+        setSavedImageUrl(manualPreview);
+      }
+      
+      toast({ title: t('toast_save_success') });
     } catch (e: any) {
-      toast({ variant: 'destructive', title: "Kayıt Hatası" });
+      toast({ variant: 'destructive', title: t('toast_save_error') });
     } finally {
       setIsSavingManual(false);
     }
@@ -240,14 +305,31 @@ export default function AcademyAdminPanel() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('label_category')}</Label>
-              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Modül</Label>
+              <Select value={selectedModuleId} onValueChange={(val) => { setSelectedModuleId(val); setSelectedLessonId(''); }}>
                 <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
-                  <SelectValue placeholder={t('placeholder_category')} />
+                  <SelectValue placeholder="Modül Seçin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableCategories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.category}</SelectItem>
+                  {modulesLoading ? (
+                    <div className="p-2 flex items-center justify-center"><Loader2 className="animate-spin h-4 w-4" /></div>
+                  ) : modulesData?.map(mod => (
+                    <SelectItem key={mod.id} value={mod.id}>{mod.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Ders Konusu</Label>
+              <Select value={selectedLessonId} onValueChange={setSelectedLessonId}>
+                <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
+                  <SelectValue placeholder="Ders Seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {lessonsLoading ? (
+                    <div className="p-2 flex items-center justify-center"><Loader2 className="animate-spin h-4 w-4" /></div>
+                  ) : curriculumLessons?.map(less => (
+                    <SelectItem key={less.id} value={less.id}>{less.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -257,7 +339,7 @@ export default function AcademyAdminPanel() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button 
               onClick={() => handleGenerateLessons(1)} 
-              disabled={isGenerating || !selectedCategoryId} 
+              disabled={isGenerating || !selectedLessonId} 
               variant="outline"
               className="h-14 rounded-2xl font-black uppercase tracking-widest border-2 border-primary/20 text-primary hover:bg-primary/5"
             >
@@ -265,7 +347,7 @@ export default function AcademyAdminPanel() {
             </Button>
             <Button 
               onClick={() => handleGenerateLessons(10)} 
-              disabled={isGenerating || !selectedCategoryId} 
+              disabled={isGenerating || !selectedLessonId} 
               className="h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20"
             >
               {isGenerating ? <Loader2 className="animate-spin" /> : <><Sparkles className="mr-2 h-5 w-5 text-yellow-400" /> {t('btn_generate_ten')}</>}

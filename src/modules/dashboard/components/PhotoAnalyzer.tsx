@@ -2,12 +2,11 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy, limit, updateDoc, arrayUnion } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
+import { uploadAndProcessImage } from '@/lib/image/actions';
 import { useToast } from '@/shared/hooks/use-toast';
 import type { User, Photo, AnalysisLog, UserTier } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,8 @@ import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from '@/navigation';
 import { typography } from "@/lib/design/typography";
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { VieworaImage } from '@/core/components/viewora-image';
 
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -88,6 +88,7 @@ const ScanningOverlay = ({ label }: { label: string }) => (
 export default function PhotoAnalyzer() {
   const t = useTranslations('DashboardPage');
   const tr = useTranslations('Ratings');
+  const locale = useLocale();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -185,20 +186,27 @@ export default function PhotoAnalyzer() {
         setIsLoading(false);
         return;
       }
-      const storage = getStorage();
-      const filePath = `users/${user.uid}/photos/${hash}.jpg`;
-      const storageRef = ref(storage, filePath);
-      const uploadTask = await uploadBytes(storageRef, file);
-      const imageUrl = await getDownloadURL(uploadTask.ref);
+      const photoId = crypto.randomUUID();
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // 🔄 Server Action ile Türevleri Üret ve Yükle
+      const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'photos');
+      
       const batch = writeBatch(firestore);
-      const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), crypto.randomUUID());
+      const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
       const userRef = doc(firestore, 'users', user.uid);
 
       let photoData: Photo = {
-        id: photoDocRef.id,
+        id: photoId,
         userId: user.uid,
-        imageUrl,
-        filePath,
+        imageUrl: imageUrls.analysis, // Eski yapı uyumluluğu için
+        imageUrls, // <--- Yeni sistem
+        imageProcessing: {
+          version: 2,
+          status: 'completed',
+          updatedAt: new Date().toISOString()
+        },
         imageHash: hash,
         createdAt: new Date().toISOString(),
         aiFeedback: null,
@@ -207,7 +215,12 @@ export default function PhotoAnalyzer() {
       };
 
       if (analyze) {
-        const analysis = await generatePhotoAnalysis({ photoUrl: imageUrl, language: userProfile.language || 'tr', tier: currentTier });
+        // AI Analizi 'analysis' türevi üzerinden yapılır (Optimize JPEG)
+        const analysis = await generatePhotoAnalysis({ 
+          photoUrl: imageUrls.analysis, 
+          language: locale, 
+          tier: currentTier 
+        });
         photoData.aiFeedback = analysis;
         photoData.tags = analysis.tags || [];
         const score = getOverallScore(photoData);
@@ -258,10 +271,14 @@ export default function PhotoAnalyzer() {
           </header>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-6">
-              <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
-                <div className="relative aspect-square md:aspect-video">
-                  <Image src={analysisResult.imageUrl} alt="Analiz" fill className="object-contain" unoptimized />
-                </div>
+            <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
+                <VieworaImage 
+                  variants={analysisResult.imageUrls}
+                  fallbackUrl={analysisResult.imageUrl}
+                  type="detailView"
+                  alt="Analiz"
+                  containerClassName="aspect-square md:aspect-video"
+                />
               </Card>
               <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-6">
                 <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div><h3 className="text-lg font-black uppercase tracking-tight">{t('detected_details_title')}</h3></div>
@@ -383,7 +400,7 @@ export default function PhotoAnalyzer() {
         <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm relative overflow-hidden">
           {isLoading && <ScanningOverlay label={t('state_analyzing')} />}
           <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12">
-            <Image src={preview!} alt="Preview" fill className="object-cover" unoptimized />
+            <img src={preview!} alt="Preview" className="object-cover w-full h-full" />
           </div>
           <div className="flex flex-col sm:flex-row justify-center gap-5">
             <Button onClick={() => handleUploadAndOptionalAnalysis(true)} disabled={isDuplicate || isLoading} className="h-16 px-12 rounded-[20px] font-black uppercase shadow-2xl shadow-primary/30">

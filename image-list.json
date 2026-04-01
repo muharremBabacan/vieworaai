@@ -1,0 +1,104 @@
+[
+  {
+    "type": "cover",
+    "lesson": "Fotoğraf Nedir?",
+    "filename": "fotoğraf_nedir?_cover.jpg",
+    "prompt": "Fotoğraf Nedir? photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Kamera Nasıl Çalışır?",
+    "filename": "kamera_nasıl_çalışır?_cover.jpg",
+    "prompt": "Kamera Nasıl Çalışır? photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Diyafram",
+    "filename": "diyafram_cover.jpg",
+    "prompt": "Diyafram photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Enstantane",
+    "filename": "enstantane_cover.jpg",
+    "prompt": "Enstantane photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "ISO",
+    "filename": "iso_cover.jpg",
+    "prompt": "ISO photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Pozlama Üçgeni",
+    "filename": "pozlama_üçgeni_cover.jpg",
+    "prompt": "Pozlama Üçgeni photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Portre Fotoğrafçılığı",
+    "filename": "portre_fotoğrafçılığı_cover.jpg",
+    "prompt": "Portre Fotoğrafçılığı photography clean professional shot"
+  },
+  {
+    "type": "content",
+    "lesson": "Portre Fotoğrafçılığı",
+    "filename": "portre_fotoğrafçılığı_blur.jpg",
+    "prompt": "portrait shallow depth of field blurred background"
+  },
+  {
+    "type": "content",
+    "lesson": "Portre Fotoğrafçılığı",
+    "filename": "portre_fotoğrafçılığı_sharp.jpg",
+    "prompt": "portrait deep focus sharp background"
+  },
+  {
+    "type": "cover",
+    "lesson": "Sokak Fotoğrafçılığı",
+    "filename": "sokak_fotoğrafçılığı_cover.jpg",
+    "prompt": "Sokak Fotoğrafçılığı photography clean professional shot"
+  },
+  {
+    "type": "content",
+    "lesson": "Sokak Fotoğrafçılığı",
+    "filename": "sokak_fotoğrafçılığı_motion.jpg",
+    "prompt": "street photography motion blur people walking"
+  },
+  {
+    "type": "cover",
+    "lesson": "Manzara Fotoğrafçılığı",
+    "filename": "manzara_fotoğrafçılığı_cover.jpg",
+    "prompt": "Manzara Fotoğrafçılığı photography clean professional shot"
+  },
+  {
+    "type": "content",
+    "lesson": "Manzara Fotoğrafçılığı",
+    "filename": "manzara_fotoğrafçılığı_wide.jpg",
+    "prompt": "landscape wide angle dramatic sky"
+  },
+  {
+    "type": "cover",
+    "lesson": "Ürün Fotoğrafçılığı",
+    "filename": "ürün_fotoğrafçılığı_cover.jpg",
+    "prompt": "Ürün Fotoğrafçılığı photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Işık Ustalığı",
+    "filename": "işık_ustalığı_cover.jpg",
+    "prompt": "Işık Ustalığı photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Fotoğraf Hikayesi",
+    "filename": "fotoğraf_hikayesi_cover.jpg",
+    "prompt": "Fotoğraf Hikayesi photography clean professional shot"
+  },
+  {
+    "type": "cover",
+    "lesson": "Portfolyo Oluşturma",
+    "filename": "portfolyo_oluşturma_cover.jpg",
+    "prompt": "Portfolyo Oluşturma photography clean professional shot"
+  }
+]

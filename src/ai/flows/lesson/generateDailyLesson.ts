@@ -10,7 +10,8 @@ import { generateLessonImage } from '../lesson/generate-academy-lessons';
 
 const InputSchema = z.object({
  level: z.enum(['Temel','Orta','İleri']),
- category: z.string()
+ category: z.string(),
+ language: z.string().optional()
 })
 
 const LessonSchema = z.object({
@@ -44,19 +45,20 @@ Ders şunları içermeli:
 - auroNote: Uzman notu
 - imageHint: Görsel için 3-4 İngilizce anahtar kelime
 
-Dil: tr
+Dil: {{{language}}}
 `
 })
 
 export async function generateDailyLesson(input: z.infer<typeof InputSchema>) {
  const { output } = await lessonPrompt(input);
 
- if (!output || output.length === 0) throw new Error("Ders üretimi başarısız oldu.");
+ if (!output || output.length === 0) return null;
 
  const lesson = output[0];
  
  // Mevcut görsel üretim akışını kullanıyoruz
- const base64 = await generateLessonImage(lesson.imageHint);
+ const result = await generateLessonImage(lesson.imageHint);
+ const base64 = result.success ? result.imageUrl : null;
 
  return {
   ...lesson,

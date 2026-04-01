@@ -28,6 +28,18 @@ export type PhotoAnalysisOutput = {
 export async function generatePhotoAnalysis(
   input: PhotoAnalysisInput
 ): Promise<PhotoAnalysisOutput> {
+  const langMap: Record<string, string> = {
+    tr: "Turkish",
+    en: "English",
+    es: "Spanish",
+    fr: "French",
+    de: "German",
+    ru: "Russian",
+    ar: "Arabic",
+    zh: "Chinese",
+    ja: "Japanese"
+  };
+  const fullLanguage = langMap[input.language] || input.language;
 
   const prompt = `
 You are Luma, Viewora's professional photography analysis AI.
@@ -40,7 +52,7 @@ RULES:
 - Max 4 tags
 - Keep explanation concise but insightful
 
-Respond in ${input.language}
+- IMPORTANT: Respond ONLY in the following language: ${fullLanguage}
 
 Return ONLY valid JSON:
 {

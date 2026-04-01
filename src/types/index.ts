@@ -170,10 +170,28 @@ export type AnalysisLog = {
   status: 'success' | 'failed';
 };
 
+export type ImageDerivatives = {
+  smallSquare: string;
+  featureCover: string;
+  detailView: string;
+  detailViewWatermarked: string;
+  analysis: string;
+  original: string;
+};
+
+export type ImageProcessingMetadata = {
+  version: number;
+  status: 'pending' | 'completed' | 'failed';
+  updatedAt: string;
+  error?: string;
+};
+
 export type Photo = {
   id: string;
   userId: string;
-  imageUrl: string;
+  imageUrl: string; // Eskisiyle uyumlu kalması için şimdilik tutuluyor, ancak imageUrls öncelikli olacak
+  imageUrls?: ImageDerivatives;
+  imageProcessing?: ImageProcessingMetadata;
   filePath?: string;
   tags?: string[];
   aiFeedback: PhotoAnalysis | null;
@@ -215,7 +233,9 @@ export type CompetitionEntry = {
   competitionId: string;
   userId: string;
   userName: string;
-  photoUrl: string;
+  photoUrl: string; // Eski yapı uyumluluğu için
+  imageUrls?: ImageDerivatives;
+  imageProcessing?: ImageProcessingMetadata;
   filePath: string;
   submittedAt: string;
   votes: string[];
@@ -224,12 +244,14 @@ export type CompetitionEntry = {
 };
 
 export type GroupPurpose = 'study' | 'challenge' | 'walk' | 'mentor';
+export type OrganizerType = 'official' | 'business' | 'education' | 'personal';
 
 export type Group = {
   id: string;
   name: string;
   description: string;
   purpose: GroupPurpose;
+  organizerType?: OrganizerType;
   ownerId: string;
   memberIds: string[];
   createdAt: string;
@@ -237,6 +259,16 @@ export type Group = {
   maxMembers: number;
   photoURL?: string | null;
   allowMemberComments?: boolean;
+  
+  // Competition fields
+  isGlobal?: boolean;
+  isGalleryPublic?: boolean;
+  showJury?: boolean;
+  competitionSubject?: string;
+  startDate?: string;
+  endDate?: string;
+  juryIds?: string[]; // Member IDs assigned as jury
+  awardsDistributed?: boolean;
 };
 
 export type GroupAssignment = {
@@ -262,7 +294,9 @@ export type GroupSubmission = {
   userId: string;
   userName: string;
   userPhotoURL?: string | null;
-  photoUrl: string;
+  photoUrl: string; // Eski yapı uyumluluğu için
+  imageUrls?: ImageDerivatives;
+  imageProcessing?: ImageProcessingMetadata;
   status: 'pending' | 'approved' | 'rejected';
   likes: string[];
   aiFeedback?: {
@@ -271,6 +305,18 @@ export type GroupSubmission = {
     score: number;
     technicalPoints: string[];
   } | null;
+  
+  // Jury and Awards
+  juryReviews?: Array<{
+    userId: string;
+    userName: string;
+    score: number;
+    feedback: string;
+    criteria?: string[];
+    createdAt: string;
+  }>;
+  award?: 'first' | 'second' | 'third' | 'honorable_mention' | 'participant' | 'viewora_special';
+  
   comments: GroupComment[];
   submittedAt: string;
 };

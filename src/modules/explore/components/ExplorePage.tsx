@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import { collection, query, orderBy, where, doc, updateDoc, arrayUnion, arrayRemove, limit } from 'firebase/firestore';
 import type { Exhibition, Photo, User } from '@/types';
@@ -17,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { typography } from "@/lib/design/typography";
 import { useTranslations } from 'next-intl';
+import { VieworaImage } from '@/core/components/viewora-image';
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -146,7 +146,13 @@ export default function ExplorePage() {
                 onClick={cat.onClick}
               >
                 <div className="relative h-48 w-full shrink-0 overflow-hidden">
-                  <Image src={cat.image} alt={cat.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+                  <VieworaImage 
+                    variants={null}
+                    fallbackUrl={cat.image}
+                    type="featureCover"
+                    alt={cat.title}
+                    containerClassName="w-full h-full transition-transform duration-700 group-hover:scale-110"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                   <div className="absolute bottom-4 left-6 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
                      {cat.id === 'exhibitions' && <Camera className="h-5 w-5" />}
@@ -192,7 +198,15 @@ export default function ExplorePage() {
           {isExLoading ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[32px]" />) : 
            exhibitions?.map(ex => (
              <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
-               <div className="relative h-48 w-full"><Image src={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`} alt={ex.title} fill className="object-cover" unoptimized /></div>
+               <div className="relative h-48 w-full">
+                  <VieworaImage 
+                    variants={null}
+                    fallbackUrl={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`}
+                    type="featureCover"
+                    alt={ex.title}
+                    containerClassName="w-full h-full"
+                  />
+               </div>
                <CardContent className="p-6">
                  <h3 className="text-lg md:text-xl font-black uppercase truncate">{ex.title}</h3>
                  <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">{ex.description}</p>
@@ -210,7 +224,13 @@ export default function ExplorePage() {
                   const isLiked = photo.likes?.includes(user?.uid || '');
                   return (
                     <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
-                      <Image src={photo.imageUrl} alt="Sergi" fill className="object-cover" unoptimized />
+                      <VieworaImage 
+                        variants={photo.imageUrls}
+                        fallbackUrl={photo.imageUrl}
+                        type="smallSquare"
+                        alt="Sergi Görseli"
+                        containerClassName="w-full h-full"
+                      />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
                          <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[9px] md:text-[10px] h-7 md:h-8 px-3 md:px-4 rounded-full font-bold truncate max-w-[120px] md:max-w-none">@{photo.userName || 'Sanatçı'}</Badge>
@@ -231,7 +251,15 @@ export default function ExplorePage() {
       <Dialog open={!!selectedPhoto} onOpenChange={(o) => !o && setSelectedPhoto(null)}>
         {selectedPhoto && (
           <DialogContent className="max-w-4xl max-h-[95vh] md:max-h-[90vh] p-0 overflow-hidden border-border/40 bg-background/95 backdrop-blur-xl flex flex-col md:flex-row rounded-[32px] md:rounded-[48px]">
-            <div className="relative w-full md:w-3/5 h-[35vh] md:h-auto bg-black/40 shrink-0"><Image src={selectedPhoto.imageUrl} alt="Eser" fill className="object-contain" unoptimized /></div>
+            <div className="relative w-full md:w-3/5 h-[35vh] md:h-auto bg-black/40 shrink-0">
+               <VieworaImage 
+                  variants={selectedPhoto.imageUrls}
+                  fallbackUrl={selectedPhoto.imageUrl}
+                  type="detailView"
+                  alt="Eser Detay"
+                  containerClassName="w-full h-full"
+                />
+            </div>
             <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>{t('dialog_title')}<Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge></DialogTitle>

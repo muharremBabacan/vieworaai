@@ -1,0 +1,128 @@
+{
+    "academy": "Viewora Photography",
+    "levels": [
+        {
+            "level": "Temel",
+            "modules": [
+                {
+                    "moduleIndex": 1,
+                    "title": "Fotoğrafın Temelleri",
+                    "lessons": [
+                        {
+                            "lessonIndex": 1,
+                            "title": "Fotoğraf Nedir?",
+                            "type": "concept",
+                            "requiresSettings": false,
+                            "description": "Işığın fotoğraf oluşturmadaki rolü"
+                        },
+                        {
+                            "lessonIndex": 2,
+                            "title": "Kamera Nasıl Çalışır?",
+                            "type": "concept",
+                            "requiresSettings": false,
+                            "description": "Işığın sensöre ulaşma süreci"
+                        }
+                    ]
+                },
+                {
+                    "moduleIndex": 2,
+                    "title": "Pozlama Kontrolü",
+                    "lessons": [
+                        {
+                            "lessonIndex": 3,
+                            "title": "Diyafram",
+                            "type": "technical",
+                            "requiresSettings": true,
+                            "description": "Alan derinliği ve açıklık"
+                        },
+                        {
+                            "lessonIndex": 4,
+                            "title": "Enstantane",
+                            "type": "technical",
+                            "requiresSettings": true,
+                            "description": "Hareket ve süre kontrolü"
+                        },
+                        {
+                            "lessonIndex": 5,
+                            "title": "ISO",
+                            "type": "technical",
+                            "requiresSettings": true,
+                            "description": "Işık hassasiyeti ve noise"
+                        },
+                        {
+                            "lessonIndex": 6,
+                            "title": "Pozlama Üçgeni",
+                            "type": "integration",
+                            "requiresSettings": true,
+                            "description": "ISO + Shutter + Aperture ilişkisi"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "level": "Orta",
+            "modules": [
+                {
+                    "moduleIndex": 3,
+                    "title": "Fotoğraf Türleri",
+                    "lessons": [
+                        {
+                            "lessonIndex": 1,
+                            "title": "Portre Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 2,
+                            "title": "Sokak Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 3,
+                            "title": "Manzara Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 4,
+                            "title": "Ürün Fotoğrafçılığı",
+                            "type": "application",
+                            "requiresSettings": true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "level": "İleri",
+            "modules": [
+                {
+                    "moduleIndex": 4,
+                    "title": "Profesyonel Fotoğraf",
+                    "lessons": [
+                        {
+                            "lessonIndex": 1,
+                            "title": "Işık Ustalığı",
+                            "type": "advanced",
+                            "requiresSettings": true
+                        },
+                        {
+                            "lessonIndex": 2,
+                            "title": "Fotoğraf Hikayesi",
+                            "type": "creative",
+                            "requiresSettings": false
+                        },
+                        {
+                            "lessonIndex": 3,
+                            "title": "Portfolyo Oluşturma",
+                            "type": "project",
+                            "requiresSettings": false
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

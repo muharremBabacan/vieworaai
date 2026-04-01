@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Link } from '@/navigation';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { typography } from "@/lib/design/typography";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
@@ -69,7 +68,7 @@ export default function AcademyHubPage() {
         <p className={cn(typography.subtitle, "opacity-80")}>{t('main_description')}</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
         {academyLevels.map((level) => {
           const unlocked = canAccess(userProfile, level.gate);
 
@@ -81,15 +80,13 @@ export default function AcademyHubPage() {
                 : "opacity-60 grayscale-[0.5] cursor-default"
             )}>
               <div className="relative h-40 w-full overflow-hidden">
-                <Image
+                <img 
                   src={level.imageUrl}
                   alt={level.title}
-                  fill
                   className={cn(
-                    "object-cover transition-transform duration-700",
+                    "object-cover w-full h-full transition-transform duration-700",
                     unlocked && "group-hover:scale-110"
                   )}
-                  unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className={cn(

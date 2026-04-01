@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { cn } from "@/lib/utils";
 
 export default function Logo({ className }: { className?: string }) {
@@ -8,13 +7,10 @@ export default function Logo({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col items-center gap-3", className)}>
       <div className="relative h-20 w-20"> {/* Boyutu görünürlük için 20 yaptık */}
-        <Image
+        <img 
           src={logoUrl}
           alt="Viewora Logo"
-          fill
-          className="object-contain"
-          priority // Logonun her şeyden önce yüklenmesini sağlar
-          unoptimized={true} // Firebase URL'lerinde Next.js işlemci hatalarını (400) engeller
+          className="object-contain w-full h-full"
         />
       </div>
       <div className="flex items-baseline">

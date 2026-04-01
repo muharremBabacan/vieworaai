@@ -2,20 +2,16 @@
 
 import { UserNav } from '@/core/components/user-nav';
 import { Link } from '@/i18n/navigation';
-import Image from 'next/image';
 
 function HeaderLogo() {
     const logoUrl = "https://firebasestorage.googleapis.com/v0/b/studio-8632782825-fce99.firebasestorage.app/o/user-uploads%2Fviewora_logok01.png?alt=media&token=a6e7a558-eaf1-46dd-946e-a61e47d080cc";
     return (
         <Link href="/dashboard" className="flex items-center gap-2 mr-6">
             <div className="relative h-8 w-8">
-                <Image
+                <img 
                     src={logoUrl}
                     alt="Viewora Logo"
-                    fill
-                    className="object-contain"
-                    priority
-                    unoptimized
+                    className="object-contain w-full h-full"
                 />
             </div>
             <div className="flex items-baseline">
