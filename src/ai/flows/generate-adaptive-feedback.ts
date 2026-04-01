@@ -1,90 +1,72 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import OpenAI from "openai";
 
-const PhotoTechnicalSchema = z.object({
-  light_score:z.number(),
-  composition_score:z.number(),
-  technical_clarity_score:z.number(),
-  storytelling_score:z.number().optional(),
-  boldness_score:z.number().optional()
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const AdaptiveInputSchema=z.object({
-  language:z.string(),
-  userLevel:z.string(),
+export type AdaptiveInput = {
+  language: string;
+  userLevel: string;
+  genre: string;
+  scene: string;
+  dominant_subject: string;
+  tags: string[];
+  technical: {
+    light_score: number;
+    composition_score: number;
+    technical_clarity_score: number;
+    storytelling_score?: number;
+    boldness_score?: number;
+  };
+};
 
-  genre:z.string(),
-  scene:z.string(),
-  dominant_subject:z.string(),
-  tags:z.array(z.string()),
-
-  technical:PhotoTechnicalSchema
-});
-
-export type AdaptiveInput=z.infer<typeof AdaptiveInputSchema>;
-
-const AdaptiveOutputSchema=z.object({
-  feedback:z.string()
-});
-
-export async function generateAdaptiveFeedback(
-input:AdaptiveInput
-){
-return flow(input);
-}
-
-const prompt=ai.definePrompt({
-name:'adaptiveLumaPromptV2',
-input:{schema:AdaptiveInputSchema},
-output:{schema:AdaptiveOutputSchema},
-
-system:`
+export async function generateAdaptiveFeedback(input: AdaptiveInput) {
+  const prompt = `
 You are Luma, Viewora's visual mentor.
+Use the scene, subject, and tags to understand the image context.
 
-Use the scene, subject and tags to understand the image context.
-
-Structure feedback:
-
-Işık
-Kompozisyon
-Teknik
-
-Never invent themes unrelated to tags.
-`,
-
-prompt:`
-
-GENRE: {{{genre}}}
-SCENE: {{{scene}}}
-SUBJECT: {{{dominant_subject}}}
+GENRE: ${input.genre}
+SCENE: ${input.scene}
+SUBJECT: ${input.dominant_subject}
 
 TAGS:
-{{#each tags}}
-- {{this}}
-{{/each}}
+${input.tags.map(t => `- ${t}`).join("\n")}
 
 TECHNICAL DATA:
-Light: {{{technical.light_score}}}
-Composition: {{{technical.composition_score}}}
-Clarity: {{{technical.technical_clarity_score}}}
-Storytelling: {{{technical.storytelling_score}}}
-Boldness: {{{technical.boldness_score}}}
+Light: ${input.technical.light_score}
+Composition: ${input.technical.composition_score}
+Clarity: ${input.technical.technical_clarity_score}
+Storytelling: ${input.technical.storytelling_score || 0}
+Boldness: ${input.technical.boldness_score || 0}
 
-Respond in {{{language}}}.
-`
-});
+Structure feedback:
+- Işık
+- Kompozisyon
+- Teknik
 
-const flow=ai.defineFlow(
+Never invent themes unrelated to tags.
+Respond in ${input.language}.
+
+Return ONLY valid JSON:
 {
-name:'adaptiveLumaFlowV2',
-inputSchema:AdaptiveInputSchema,
-outputSchema:AdaptiveOutputSchema
-},
-async(input)=>{
-const {output}=await prompt(input);
-if(!output) throw new Error("Luma feedback failed");
-return output;
+  "feedback": "..."
 }
-);
+`;
+
+  try {
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.6,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const raw = res.choices[0]?.message?.content || "";
+    const clean = raw.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+
+  } catch (e: any) {
+    throw new Error("Luma adaptive feedback failed: " + e.message);
+  }
+}

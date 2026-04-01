@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 
 const trPath = 'd:/viewora/viewora/src/messages/tr.json';
 const enPath = 'd:/viewora/viewora/src/messages/en.json';
@@ -40,7 +40,6 @@ const enUpdates = {
 };
 
 // Run updates
-// For TR, we don't need to remove specific keys except if we want to be sure about duplicates handled by the Object.assign
 updateJson(trPath, trUpdates); 
 updateJson(enPath, enUpdates, ["form_label_group_description"]);
 

@@ -16,6 +16,9 @@ import {
 
 import { doc, collection, query, where, documentId, orderBy, increment, writeBatch, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { uploadAndProcessImage } from '@/lib/image/actions';
+import { moderateSubmission } from '@/ai/flows/moderate-submission';
+import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
+import { runAiJury } from '@/ai/flows/run-ai-jury';
 
 import type {
   Group,
@@ -82,7 +85,8 @@ import {
   Star,
   Check,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Cpu
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -95,6 +99,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
@@ -108,8 +113,6 @@ interface TripParticipant {
   status: ParticipantStatus;
   updatedAt: string;
 }
-
-import { evaluateGroupSubmission } from "@/ai/flows/evaluate-group-submission";
 
 import { useAppConfig } from "@/components/AppConfigProvider";
 import { Progress } from "@/components/ui/progress";
@@ -167,6 +170,7 @@ export default function GroupDetailPage() {
 
   const [activeTab, setActiveTab] = useState('assignments');
   const [isUploading, setIsUploading] = useState(false);
+  const [isJuryRunning, setIsJuryRunning] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);
 
   // 🪝 ALL HOOKS AT TOP
@@ -222,9 +226,32 @@ export default function GroupDetailPage() {
       // 🔄 Server Action ile Türevleri Üret ve Yükle
       const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'submissions');
       
+      // 🆕 Layer 1: AI Moderation & Curation Gatekeeper (gpt-4o)
+      toast({ title: "Moderasyon yapılıyor..." });
+      const modResult = await moderateSubmission({
+        photoUrl: imageUrls.analysis,
+        assignmentTitle: assignment.title || group.name || "Task",
+        assignmentDescription: assignment.description || group.description || "",
+        language: (locale as string) || "tr"
+      });
+
+      if (!modResult.should_analyze) {
+        setIsUploading(false);
+        toast({ variant: 'destructive', title: "Eser Reddedildi", description: modResult.message });
+        return;
+      }
+
       const batch = writeBatch(firestore);
       const submissionRef = doc(collection(firestore, 'groups', group.id, 'submissions'));
-      const aiResult = await evaluateGroupSubmission({ photoUrl: imageUrls.analysis, assignmentTitle: assignment.title, assignmentDescription: assignment.description, language: (locale as string) || "tr" });
+      
+      // 🆕 Layer 2: Deep Analysis & Evaluation (gpt-4o)
+      toast({ title: t('toast_analyzing') });
+      const aiResult = await evaluateGroupSubmission({ 
+        photoUrl: imageUrls.analysis, 
+        assignmentTitle: assignment.title || group.name || "Task", 
+        assignmentDescription: assignment.description || group.description || "", 
+        language: (locale as string) || "tr" 
+      });
       
       batch.set(submissionRef, { 
         id: submissionRef.id, 
@@ -235,15 +262,19 @@ export default function GroupDetailPage() {
         userPhotoURL: userProfile?.photoURL || null, 
         photoUrl: imageUrls.analysis,
         imageUrls,
-        status: aiResult.isSuccess ? 'approved' : 'pending', 
+        status: aiResult.evaluation.isSuccess ? 'approved' : 'pending', 
         likes: [], 
         comments: [], 
+        moderation: { ...modResult, verifiedAt: new Date().toISOString() },
         aiFeedback: aiResult, 
         submittedAt: new Date().toISOString() 
       });
       await batch.commit();
       toast({ title: t('assignment_success_title') });
-    } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); } finally { setIsUploading(false); }
+    } catch (e) { 
+      console.error("Upload Submission Error:", e);
+      toast({ variant: 'destructive', title: t('toast_error') }); 
+    } finally { setIsUploading(false); }
   };
 
   const handleCreateJuryReview = async (submissionId: string, review: any) => {
@@ -300,6 +331,43 @@ export default function GroupDetailPage() {
       await updateDoc(groupRef!, { juryIds: [...juryIds, memberId] });
       toast({ title: t('toast_profile_updated') });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
+  };
+
+  const handleRunAiJury = async () => {
+    if (!firestore || !group || !submissions || submissions.length === 0) return;
+    setIsJuryRunning(true);
+    toast({ title: "AI Jüri değerlendirmesi başlıyor...", description: "Bias düşürmek için çift hesaplama yapılıyor." });
+    try {
+      const approvedSubs = submissions.filter(s => s.status === 'approved');
+      if (approvedSubs.length === 0) {
+        toast({ variant: 'destructive', title: "Hata", description: "Değerlendirilecek onaylı eser bulunamadı." });
+        return;
+      }
+      const juryInput = {
+        photos: approvedSubs.map(s => ({ id: s.id, url: s.photoUrl })),
+        theme: group.competitionSubject || group.name,
+        description: group.description || "",
+        language: (locale as string) || "tr"
+      };
+      const result = await runAiJury(juryInput);
+      const batch = writeBatch(firestore);
+      result.evaluations.forEach(ev => {
+        const subRef = doc(firestore, 'groups', group.id, 'submissions', ev.photo_id);
+        batch.update(subRef, {
+          juryResult: { score: ev.score, comment: ev.comment, evaluatedAt: new Date().toISOString() }
+        });
+      });
+      result.ranking.forEach(rank => {
+        const subRef = doc(firestore, 'groups', group.id, 'submissions', rank.photo_id);
+        const awardMap: Record<number, string> = { 1: 'winner', 2: 'honorable_mention', 3: 'participant' };
+        batch.update(subRef, { award: awardMap[rank.position] || 'none', 'juryResult.finalRank': rank.position });
+      });
+      await batch.commit();
+      toast({ title: "AI Jüri tamamlandı!", description: "Kazananlar ve puanlar güncellendi." });
+    } catch (e: any) {
+      console.error("AI Jury error:", e);
+      toast({ variant: 'destructive', title: "AI Jüri Hatası", description: e.message });
+    } finally { setIsJuryRunning(false); }
   };
 
   const handleCreateTrip = async (tripData: any) => {
@@ -419,6 +487,8 @@ export default function GroupDetailPage() {
           userProfile={userProfile}
           memberProfiles={memberProfiles || []}
           onAssignAward={handleAssignAward}
+          onRunAiJury={handleRunAiJury}
+          isJuryRunning={isJuryRunning}
           onModeration={handleModeration}
           onAddJury={handleAddJury}
           onDeleteGroup={handleDeleteGroup}
@@ -442,6 +512,8 @@ export default function GroupDetailPage() {
           canViewGallery={canViewGallery}
           memberProfiles={memberProfiles || []}
           handleAssignAward={handleAssignAward}
+          handleRunAiJury={handleRunAiJury}
+          isJuryRunning={isJuryRunning}
           handleAddJury={handleAddJury}
           handleCreateTrip={handleCreateTrip}
           handleDeleteGroup={handleDeleteGroup}
@@ -482,17 +554,34 @@ export default function GroupDetailPage() {
                   <div className="relative h-24 w-24 mx-auto flex items-center justify-center">
                     <svg className="absolute inset-0 w-full h-full -rotate-90">
                       <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" strokeWidth="8" className="text-white/10" />
-                      <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray={276} strokeDashoffset={276 - (276 * (selectedSubmission.aiFeedback?.score || 0)) / 10} className="text-primary transition-all duration-1000" />
+                      <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray={276} strokeDashoffset={276 - (276 * (selectedSubmission.aiFeedback?.evaluation?.score || 0)) / 100} className="text-primary transition-all duration-1000" />
                     </svg>
-                    <span className="text-3xl font-black tracking-tighter">{selectedSubmission.aiFeedback?.score}/10</span>
+                    <span className="text-3xl font-black tracking-tighter">{selectedSubmission.aiFeedback?.evaluation?.score || 0}%</span>
                   </div>
                 </div>
 
-                {selectedSubmission.aiFeedback && (
+                {selectedSubmission.aiFeedback?.evaluation && (
                   <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/20 shadow-inner">
                     <p className="text-base font-medium leading-relaxed italic text-foreground/90 font-serif">
-                      "{selectedSubmission.aiFeedback.feedback}"
+                      "{selectedSubmission.aiFeedback.evaluation.feedback}"
                     </p>
+                  </div>
+                )}
+
+                {selectedSubmission.aiFeedback?.analysis && (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                      <p className="text-[8px] font-black uppercase opacity-50 mb-1">Işık</p>
+                      <p className="text-lg font-black">{selectedSubmission.aiFeedback.analysis.light_score}/10</p>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                      <p className="text-[8px] font-black uppercase opacity-50 mb-1">Komp.</p>
+                      <p className="text-lg font-black">{selectedSubmission.aiFeedback.analysis.composition_score}/10</p>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                      <p className="text-[8px] font-black uppercase opacity-50 mb-1">Teknik</p>
+                      <p className="text-lg font-black">{selectedSubmission.aiFeedback.analysis.technical_clarity_score}/10</p>
+                    </div>
                   </div>
                 )}
 
@@ -802,9 +891,23 @@ function JuryManager({ members, juryIds, onAdd, t }: { members: PublicUserProfil
     );
 }
 
-function AwardManager({ submissions, onAssign, t }: { submissions: GroupSubmission[], onAssign: (id: string, award: string) => void, t: any }) {
+function AwardManager({ submissions, onAssign, onRunAiJury, isJuryRunning, t }: { submissions: GroupSubmission[], onAssign: (id: string, award: string) => void, onRunAiJury: () => void, isJuryRunning: boolean, t: any }) {
     return (
         <div className="space-y-6">
+            <div className="p-6 rounded-[32px] bg-amber-500/10 border border-amber-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="space-y-1 text-center md:text-left">
+                    <h4 className="text-sm font-black uppercase tracking-widest text-amber-500">AI Jüri Karar Motoru</h4>
+                    <p className="text-[10px] font-medium opacity-70">Tüm onaylı eserleri gpt-4o ile puanla ve İlk 3'ü belirle.</p>
+                </div>
+                <Button 
+                    onClick={onRunAiJury} 
+                    disabled={isJuryRunning || submissions.length === 0}
+                    className="rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest bg-amber-500 hover:bg-amber-600 shadow-xl shadow-amber-500/20"
+                >
+                    {isJuryRunning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Cpu className="h-4 w-4 mr-2" />}
+                    AI Jüriyi Çalıştır (2x Average)
+                </Button>
+            </div>
             <div className="grid gap-4">
                 {submissions.map(sub => (
                     <div key={sub.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
@@ -900,7 +1003,7 @@ function JuryEvaluationModal({ submission, onSave, t }: { submission: GroupSubmi
 
 function StandardGroupView({ 
     group, activeTab, setActiveTab, trips, isTripsLoading, isOwner, userId, userProfile, assignments, submissions, 
-    handleUploadSubmission, isUploading, setSelectedSubmission, canViewGallery, memberProfiles, handleAssignAward, handleAddJury, handleCreateTrip, 
+    handleUploadSubmission, isUploading, setSelectedSubmission, canViewGallery, memberProfiles, handleAssignAward, handleRunAiJury, isJuryRunning, handleAddJury, handleCreateTrip, 
     canManageGroup, handleDeleteGroup, t 
 }: any) {
     return (
@@ -1042,7 +1145,7 @@ function StandardGroupView({
     );
 }
 
-function ChallengeGroupView({ group, user, submissions, isOwner, isMember, isUploading, onUpload, onSelectSubmission, t, userProfile, memberProfiles, onAssignAward, onModeration, onAddJury, onDeleteGroup, canManageGroup }: any) {
+function ChallengeGroupView({ group, user, submissions, isOwner, isMember, isUploading, onUpload, onSelectSubmission, t, userProfile, memberProfiles, onAssignAward, onRunAiJury, isJuryRunning, onModeration, onAddJury, onDeleteGroup, canManageGroup }: any) {
     const [challengeTab, setChallengeTab] = useState('participation');
     const mySubmission = submissions?.find((s: any) => s.userId === user?.uid);
     const approvedSubmissions = submissions?.filter((s: any) => s.status === 'approved' || s.userId === user?.uid);
@@ -1189,8 +1292,14 @@ function ChallengeGroupView({ group, user, submissions, isOwner, isMember, isUpl
                             <TabsContent value="moderation" className="p-8">
                                 <ModerationManager pendingSubmissions={pendingSubmissions || []} onApprove={(id: string) => onModeration(id, 'approved')} onReject={(id: string) => onModeration(id, 'rejected')} t={t} />
                             </TabsContent>
-                            <TabsContent value="awards" className="p-8">
-                                <AwardManager submissions={approvedSubmissions || []} onAssign={onAssignAward} t={t} />
+                             <TabsContent value="awards" className="p-8">
+                                <AwardManager 
+                                    submissions={approvedSubmissions || []} 
+                                    onAssign={onAssignAward} 
+                                    onRunAiJury={onRunAiJury}
+                                    isJuryRunning={isJuryRunning}
+                                    t={t} 
+                                />
                             </TabsContent>
                             <TabsContent value="jury" className="p-8">
                                 <JuryManager members={memberProfiles || []} juryIds={group.juryIds || []} onAdd={onAddJury} t={t} />

@@ -1,40 +1,28 @@
 'use server'
 
 /**
- * @fileOverview Günlük fotoğrafçılık dersi üretme AI akışı.
+ * @fileOverview Günlük fotoğrafçılık dersi üretme OpenAI akışı.
  */
 
-import { ai } from '@/ai/genkit'
-import { z } from 'genkit'
+import OpenAI from "openai";
 import { generateLessonImage } from '../lesson/generate-academy-lessons';
 
-const InputSchema = z.object({
- level: z.enum(['Temel','Orta','İleri']),
- category: z.string(),
- language: z.string().optional()
-})
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
-const LessonSchema = z.object({
- title: z.string(),
- learningObjective: z.string(),
- theory: z.string(),
- analysisCriteria: z.array(z.string()).length(3),
- practiceTask: z.string(),
- auroNote: z.string(),
- imageHint: z.string()
-})
+export type GenerateDailyLessonInput = {
+  level: 'Temel' | 'Orta' | 'İleri';
+  category: string;
+  language?: string;
+};
 
-const OutputSchema = z.array(LessonSchema).length(1)
-
-const lessonPrompt = ai.definePrompt({
- name: "vieworaLessonGenerator",
- input: { schema: InputSchema },
- output: { schema: OutputSchema },
- prompt: `
+export async function generateDailyLesson(input: GenerateDailyLessonInput) {
+  const prompt = `
 Aşağıdaki müfredat için yapılandırılmış bir fotoğrafçılık mini dersi oluştur.
 
-Seviye: {{{level}}}
-Kategori: {{{category}}}
+Seviye: ${input.level}
+Kategori: ${input.category}
 
 Ders şunları içermeli:
 - title: Başlık
@@ -45,26 +33,49 @@ Ders şunları içermeli:
 - auroNote: Uzman notu
 - imageHint: Görsel için 3-4 İngilizce anahtar kelime
 
-Dil: {{{language}}}
-`
-})
+Dil: ${input.language || "tr"}
 
-export async function generateDailyLesson(input: z.infer<typeof InputSchema>) {
- const { output } = await lessonPrompt(input);
+Return ONLY valid JSON array with 1 object:
+[{
+  "title": "...",
+  "learningObjective": "...",
+  "theory": "...",
+  "analysisCriteria": ["...", "...", "..."],
+  "practiceTask": "...",
+  "auroNote": "...",
+  "imageHint": "..."
+}]
+`;
 
- if (!output || output.length === 0) return null;
+  try {
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      messages: [{ role: "user", content: prompt }],
+    });
 
- const lesson = output[0];
- 
- // Mevcut görsel üretim akışını kullanıyoruz
- const result = await generateLessonImage(lesson.imageHint);
- const base64 = result.success ? result.imageUrl : null;
+    const raw = res.choices[0]?.message?.content || "";
+    const clean = raw.replace(/```json|```/g, "").trim();
+    const output = JSON.parse(clean);
 
- return {
-  ...lesson,
-  level: input.level,
-  category: input.category,
-  generatedImageBase64: base64,
-  createdAt: new Date().toISOString()
- };
+    if (!output || output.length === 0) return null;
+
+    const lesson = output[0];
+    
+    // Mevcut görsel üretim akışını kullanıyoruz
+    const result = await generateLessonImage(lesson.imageHint);
+    const base64 = result.success ? result.imageUrl : null;
+
+    return {
+      ...lesson,
+      level: input.level,
+      category: input.category,
+      generatedImageBase64: base64,
+      createdAt: new Date().toISOString()
+    };
+
+  } catch (e: any) {
+    console.error("Daily Lesson Generation failed:", e);
+    return null;
+  }
 }

@@ -240,7 +240,8 @@ export type CompetitionEntry = {
   submittedAt: string;
   votes: string[];
   aiScore?: number;
-  award?: 'winner' | 'honorable_mention' | 'participant';
+  aiFeedback?: PhotoAnalysis | null;
+  award?: 'winner' | 'honorable_mention' | 'participant' | 'none';
 };
 
 export type GroupPurpose = 'study' | 'challenge' | 'walk' | 'mentor';
@@ -299,11 +300,27 @@ export type GroupSubmission = {
   imageProcessing?: ImageProcessingMetadata;
   status: 'pending' | 'approved' | 'rejected';
   likes: string[];
+  moderation?: {
+    safe: boolean;
+    appropriate: boolean;
+    should_analyze: boolean;
+    message: string;
+    verifiedAt: string;
+  } | null;
   aiFeedback?: {
-    isSuccess: boolean;
-    feedback: string;
+    analysis: PhotoAnalysis;
+    evaluation: {
+      isSuccess: boolean;
+      feedback: string;
+      score: number;
+      technicalPoints: string[];
+    };
+  } | null;
+  juryResult?: {
     score: number;
-    technicalPoints: string[];
+    comment: string;
+    finalRank?: number;
+    evaluatedAt: string;
   } | null;
   
   // Jury and Awards

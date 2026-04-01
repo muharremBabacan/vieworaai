@@ -606,7 +606,12 @@
     "toast_rejected_success": "Work has been rejected.",
     "form_label_comp_subject": "Competition Subject",
     "form_label_comp_start": "Start Date",
-    "form_label_comp_end": "End Date"
+    "form_label_comp_end": "End Date",
+    "form_organizer_official": "Official Institution (Municipality, Government, etc.)",
+    "form_organizer_business": "Private Business / Brand",
+    "form_organizer_education": "Private Education Group / Course",
+    "form_organizer_personal": "Personal Group",
+    "toast_error": "An error occurred."
   },
   "LumaMentorPage": {
     "title": "Luma Mentor",
