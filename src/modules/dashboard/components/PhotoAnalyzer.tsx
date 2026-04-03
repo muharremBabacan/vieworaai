@@ -13,19 +13,82 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb, GraduationCap, Trophy, Users, Brain } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb, GraduationCap, Trophy, Users, Brain, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from '@/navigation';
 import { typography } from "@/lib/design/typography";
 import { useTranslations, useLocale } from 'next-intl';
 import { VieworaImage } from '@/core/components/viewora-image';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 async function generateImageHash(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function resizeImage(file: File, maxDimension: number = 1600): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height *= maxDimension / width;
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width *= maxDimension / height;
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const resizedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(resizedFile);
+          } else {
+            reject(new Error('Canvas toBlob failed'));
+          }
+        }, 'image/jpeg', 0.85);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 const TIER_COSTS: Record<UserTier, number> = {
@@ -98,8 +161,13 @@ export default function PhotoAnalyzer() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingType, setLoadingType] = useState<'upload' | 'analyze'>('analyze');
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<Photo | null>(null);
+  const [showResolutionDialog, setShowResolutionDialog] = useState(false);
+  const [detectedDimensions, setDetectedDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [dailyLimitReached, setDailyLimitReached] = useState(false);
 
   const userDocRef = useMemoFirebase(
     () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
@@ -108,15 +176,33 @@ export default function PhotoAnalyzer() {
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
-  const handleFileSelect = useCallback((selectedFile: File) => {
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      toast({ variant: 'destructive', title: t('toast_file_size_title'), description: t('toast_file_size_description') });
-      return;
-    }
-    setIsDuplicate(false);
+  const handleFileSelect = useCallback(async (selectedFile: File) => {
+    setIsProcessing(true);
     setAnalysisResult(null);
-    setFile(selectedFile);
-    setPreview(URL.createObjectURL(selectedFile));
+    setIsDuplicate(false);
+
+    try {
+      console.log(`[PhotoAnalyzer] Original file size: ${(selectedFile.size / 1024).toFixed(2)} KB`);
+      
+      const resizedFile = await resizeImage(selectedFile, 1600);
+      console.log(`[PhotoAnalyzer] Resized file size: ${(resizedFile.size / 1024).toFixed(2)} KB`);
+
+      // Eski önizlemeyi temizle
+      setPreview(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(resizedFile);
+      });
+      setFile(resizedFile);
+    } catch (error) {
+      console.error('[PhotoAnalyzer] Resize error:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: t('toast_analysis_fail_title'), 
+        description: 'Görsel işlenirken bir hata oluştu.' 
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   }, [toast, t]);
 
   const { getRootProps, getInputProps, open } = useDropzone({
@@ -164,87 +250,180 @@ export default function PhotoAnalyzer() {
   };
 
   const handleUploadAndOptionalAnalysis = async (analyze = false) => {
-    if (!file || !user || !firestore || !userProfile) return;
-    if (analyze && userProfile.auro_balance < analysisCost) {
-      toast({ variant: 'destructive', title: t('toast_insufficient_auro_title'), description: t('toast_insufficient_auro_description', { cost: analysisCost }) });
+    if (!file || !user || !firestore) {
+      console.warn('[PhotoAnalyzer] Missing required context (file, user, or firestore)');
       return;
     }
+
+    // 🔥 Profil yüklenmemişse blokla
+    if (!userProfile) {
+      toast({ title: t('loading_profile') || "Profil yükleniyor..." });
+      return;
+    }
+
+    // 🔥 Pix kontrolü (ANALYZE)
+    const currentBalance = userProfile.pix_balance || 0;
+    if (analyze && currentBalance < analysisCost) {
+      console.log(`[PhotoAnalyzer] Insufficient balance. Cost: ${analysisCost}, Current: ${currentBalance}`);
+      router.push('/pricing');
+      return;
+    }
+
+    // 🔥 Loading HER ZAMAN burada başlar
+    setLoadingType(analyze ? 'analyze' : 'upload');
     setIsLoading(true);
+
     try {
-      const hash = await generateImageHash(file);
-      const q = query(collection(firestore, 'users', user.uid, 'photos'), where('imageHash', '==', hash));
-      const dupSnap = await getDocs(q);
-      if (!dupSnap.empty) {
-        const existingPhoto = dupSnap.docs[0].data() as Photo;
-        if (existingPhoto.aiFeedback) {
-          setAnalysisResult(existingPhoto);
-          toast({ title: t('toast_upload_only_title') });
-        } else {
-          setIsDuplicate(true);
-          toast({ variant: 'destructive', title: t('toast_invalid_file_title') });
-        }
-        setIsLoading(false);
+      // 1. Adım: Çözünürlük Kontrolü
+      console.log('[PhotoAnalyzer] Stage 1: Checking dimensions...');
+      const { width, height } = await getImageDimensions(file);
+      const maxEdge = Math.max(width, height);
+
+      if (maxEdge < 800) {
+        console.warn(`[PhotoAnalyzer] Resolution too low: ${width}x${height}`);
+        setDetectedDimensions({ width, height });
+        setShowResolutionDialog(true);
         return;
       }
+
+      // 2. Adım: Hash Oluşturma
+      console.log('[PhotoAnalyzer] Stage 2: Generating hash...');
+      const hash = await generateImageHash(file);
+
+      // 3. Adım: Duplicate Kontrolü
+      console.log('[PhotoAnalyzer] Stage 3: Checking for duplicates...');
+      const q = query(
+        collection(firestore, 'users', user.uid, 'photos'),
+        where('imageHash', '==', hash)
+      );
+
+      const dupSnap = await getDocs(q);
+
+      if (!dupSnap.empty) {
+        const docSnap = dupSnap.docs[0];
+        const existingPhoto = docSnap.data() as Photo;
+        console.log('[PhotoAnalyzer] Duplicate found:', docSnap.id);
+
+        // Eğer analiz varsa direkt göster
+        if (existingPhoto.aiFeedback) {
+          setAnalysisResult(existingPhoto);
+          toast({ title: t('toast_success_title') });
+          return;
+        }
+
+        // Daha önce yüklenmiş ama analiz yoksa ve kullanıcı analiz istiyorsa
+        if (analyze) {
+          console.log('[PhotoAnalyzer] Existing photo found without analysis. Starting analysis...');
+          const analysis = await generatePhotoAnalysis({
+            photoUrl: existingPhoto.imageUrls?.analysis || existingPhoto.imageUrl,
+            language: locale,
+            tier: currentTier
+          });
+
+          await updateDoc(docSnap.ref, {
+            aiFeedback: analysis,
+            tags: analysis.tags || [],
+            analysisTier: currentTier
+          });
+
+          setAnalysisResult({ ...existingPhoto, aiFeedback: analysis });
+          return;
+        }
+
+        // Sadece upload istiyordu ama zaten var, galeriye yönlendir
+        toast({ title: t('toast_upload_only_title'), description: t('toast_already_uploaded') });
+        router.push('/gallery');
+        return;
+      }
+
+      // 4. Adım: Sunucuya Yükleme (Server Action)
       const photoId = crypto.randomUUID();
+      console.log(`[PhotoAnalyzer] Stage 4: Uploading to server... (ID: ${photoId})`);
+      
       const formData = new FormData();
       formData.append('file', file);
 
-      // 🔄 Server Action ile Türevleri Üret ve Yükle
-      const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'photos');
-      
-      const batch = writeBatch(firestore);
+      // Sunucu taraflı yükleme işlemi
+      const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'photos').catch(err => {
+        console.error('[PhotoAnalyzer] Server Action failed:', err);
+        throw new Error('UPLOAD_FAILED');
+      });
+
+      console.log('[PhotoAnalyzer] Upload successful. Image URLs received.');
+
+      // 5. Adım: Firestore Kaydı ve Opsiyonel Analiz
       const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
       const userRef = doc(firestore, 'users', user.uid);
 
       let photoData: Photo = {
         id: photoId,
         userId: user.uid,
-        imageUrl: imageUrls.analysis, // Eski yapı uyumluluğu için
-        imageUrls, // <--- Yeni sistem
-        imageProcessing: {
-          version: 2,
-          status: 'completed',
-          updatedAt: new Date().toISOString()
-        },
+        imageUrl: imageUrls.analysis,
+        imageUrls,
         imageHash: hash,
         createdAt: new Date().toISOString(),
         aiFeedback: null,
-        tags: [],
-        analysisTier: analyze ? currentTier : undefined
+        tags: []
       };
 
       if (analyze) {
-        // AI Analizi 'analysis' türevi üzerinden yapılır (Optimize JPEG)
-        const analysis = await generatePhotoAnalysis({ 
-          photoUrl: imageUrls.analysis, 
-          language: locale, 
-          tier: currentTier 
+        console.log('[PhotoAnalyzer] Stage 5: Generating AI Analysis...');
+        const analysis = await generatePhotoAnalysis({
+          photoUrl: imageUrls.analysis,
+          language: locale,
+          tier: currentTier
         });
+
         photoData.aiFeedback = analysis;
-        photoData.tags = analysis.tags || [];
-        const score = getOverallScore(photoData);
-        batch.update(userRef, { auro_balance: increment(-analysisCost), total_auro_spent: increment(analysisCost), total_analyses_count: increment(1) });
-        const logRef = doc(collection(firestore, 'analysis_logs'));
-        batch.set(logRef, { id: logRef.id, userId: user.uid, userName: userProfile.name || 'Sanatçı', type: 'technical', auroSpent: analysisCost, timestamp: new Date().toISOString(), status: 'success' });
+        photoData.analysisTier = currentTier;
+
+        const batch = writeBatch(firestore);
         batch.set(photoDocRef, photoData);
-        batch.update(userRef, { current_xp: increment(20) });
+        batch.update(userRef, {
+          pix_balance: increment(-analysisCost),
+          total_analyses_count: increment(1)
+        });
+
         await batch.commit();
-        await updateUserProfileIndex(user.uid, score);
+        console.log('[PhotoAnalyzer] Analysis and firestore record completed.');
+        
+        // Opsiyonel: Profil endeksini güncelle (UI'ı kırmadan arka planda)
+        updateUserProfileIndex(user.uid, getOverallScore(photoData)).catch(err => 
+          console.error('[PhotoAnalyzer] Background index update failed:', err)
+        );
+
         setAnalysisResult(photoData);
-        toast({ title: t('toast_success_title') });
       } else {
+        console.log('[PhotoAnalyzer] Stage 5: Saving database record (No Analysis)...');
+        const batch = writeBatch(firestore);
         batch.set(photoDocRef, photoData);
-        batch.update(userRef, { current_xp: increment(5) });
+        batch.update(userRef, {
+          current_xp: increment(5)
+        });
+
         await batch.commit();
-        toast({ title: t('toast_upload_only_title') });
+        console.log('[PhotoAnalyzer] Database record created. Redirecting to gallery.');
         router.push('/gallery');
       }
+
     } catch (error: any) {
-      console.error(error);
-      toast({ variant: 'destructive', title: t('toast_analysis_fail_title') });
+      console.error('[PhotoAnalyzer] Error in flow:', error);
+      
+      let message = t('toast_analysis_fail_description');
+      if (error.message === 'UPLOAD_FAILED') {
+        message = t('toast_upload_fail_description');
+      } else if (error.code === 'unavailable') {
+        message = t('toast_network_error_description');
+      }
+
+      toast({
+        variant: 'destructive',
+        title: t('toast_analysis_fail_title'),
+        description: message
+      });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); 
+      console.log('[PhotoAnalyzer] Flow finished. Loading state reset.');
     }
   };
 
@@ -253,6 +432,7 @@ export default function PhotoAnalyzer() {
     setPreview(null);
     setAnalysisResult(null);
     setIsDuplicate(false);
+    setDetectedDimensions(null);
   };
 
   if (isProfileLoading)
@@ -271,18 +451,44 @@ export default function PhotoAnalyzer() {
           </header>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-7 space-y-6">
-            <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
-                <VieworaImage 
+              <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
+                <VieworaImage
                   variants={analysisResult.imageUrls}
                   fallbackUrl={analysisResult.imageUrl}
                   type="detailView"
                   alt="Analiz"
-                  containerClassName="aspect-square md:aspect-video"
+                  containerClassName="min-h-[400px]"
                 />
               </Card>
-              <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-6">
-                <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div><h3 className="text-lg font-black uppercase tracking-tight">{t('detected_details_title')}</h3></div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-8">
+                <div className="flex items-center gap-3"><div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div><h3 className="text-lg font-black uppercase tracking-tight">{t('expert_analysis_title')}</h3></div>
+                <div className="space-y-6">
+                  {analysisResult.aiFeedback!.technical_details && (
+                    <>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase text-primary/70 tracking-widest">{t('expert_focus_label')}</p>
+                        <p className="text-sm font-medium leading-relaxed">{analysisResult.aiFeedback!.technical_details.focus}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase text-primary/70 tracking-widest">{t('expert_light_label')}</p>
+                        <p className="text-sm font-medium leading-relaxed">{analysisResult.aiFeedback!.technical_details.light}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase text-primary/70 tracking-widest">{t('expert_color_label')}</p>
+                        <p className="text-sm font-medium leading-relaxed">{analysisResult.aiFeedback!.technical_details.color}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase text-primary/70 tracking-widest">{t('expert_composition_label')}</p>
+                        <p className="text-sm font-medium leading-relaxed">{analysisResult.aiFeedback!.technical_details.composition}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase text-primary/70 tracking-widest">{t('expert_quality_label')}</p>
+                        <p className="text-sm font-medium leading-relaxed">{analysisResult.aiFeedback!.technical_details.technical_quality}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="pt-6 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{t('detail_genre')}</p><p className="text-sm font-bold capitalize">{analysisResult.aiFeedback!.genre}</p></div>
                   <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{t('detail_scene')}</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.scene}</p></div>
                   <div className="p-4 rounded-2xl bg-muted/30 border border-border/40"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{t('detail_subject')}</p><p className="text-sm font-bold truncate">{analysisResult.aiFeedback!.dominant_subject}</p></div>
@@ -291,9 +497,15 @@ export default function PhotoAnalyzer() {
             </div>
             <div className="lg:col-span-5 space-y-6">
               <Card className="p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
-                <div className="relative z-10 flex flex-col items-center text-center space-y-2 mb-10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">{t('overall_score')}</p>
-                  <div className="text-7xl font-black tracking-tighter text-primary">{getOverallScore(analysisResult).toFixed(1)}</div>
+                <div className="relative z-10 flex flex-col items-center text-center space-y-4 mb-10">
+                  <div className="flex gap-2">
+                    <Badge className="bg-primary/20 text-primary border-none font-black text-[9px] uppercase tracking-widest">{analysisResult.aiFeedback!.general_quality}</Badge>
+                    <Badge variant="outline" className="border-primary/30 text-primary font-black text-[9px] uppercase tracking-widest">{analysisResult.aiFeedback!.expert_level}</Badge>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">{t('overall_score')}</p>
+                    <div className="text-7xl font-black tracking-tighter text-primary">{getOverallScore(analysisResult).toFixed(1)}</div>
+                  </div>
                 </div>
                 <div className="space-y-6">
                   <RatingBar label={tr('light')} score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
@@ -303,6 +515,12 @@ export default function PhotoAnalyzer() {
                   <RatingBar label="Cesur Kadraj" score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
                 </div>
               </Card>
+              {analysisResult.aiFeedback!.quality_note && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-bold text-amber-600 leading-relaxed">{analysisResult.aiFeedback!.quality_note}</p>
+                </div>
+              )}
               <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-4">
                 <div className="flex items-center gap-2"><Lightbulb size={18} className="text-amber-400" /><h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('luma_note_title')}</h4></div>
                 <p className="text-base italic text-foreground/90 leading-relaxed font-medium">"{analysisResult.aiFeedback!.short_neutral_analysis}"</p>
@@ -310,7 +528,7 @@ export default function PhotoAnalyzer() {
             </div>
           </div>
         </div>
-      ) : !file ? (
+      ) : (!file && !isProcessing) ? (
         <div className="max-w-6xl mx-auto space-y-16">
           <div {...getRootProps()} className="relative p-10 md:p-16 border-2 border-dashed border-border/60 rounded-[48px] bg-card/30 hover:bg-card/40 transition-all group shadow-inner">
             <input {...getInputProps()} />
@@ -398,20 +616,102 @@ export default function PhotoAnalyzer() {
         </div>
       ) : (
         <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm relative overflow-hidden">
-          {isLoading && <ScanningOverlay label={t('state_analyzing')} />}
+          {(isLoading || isProcessing) && (
+            <ScanningOverlay
+              label={isProcessing ? t('state_processing') : loadingType === 'analyze' ? t('state_analyzing') : t('state_uploading')}
+            />
+          )}
           <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12">
             <img src={preview!} alt="Preview" className="object-cover w-full h-full" />
           </div>
-          <div className="flex flex-col sm:flex-row justify-center gap-5">
-            <Button onClick={() => handleUploadAndOptionalAnalysis(true)} disabled={isDuplicate || isLoading} className="h-16 px-12 rounded-[20px] font-black uppercase shadow-2xl shadow-primary/30">
-              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <><Sparkles className="mr-3 h-6 w-6 text-yellow-400" /> {t('button_analyze', { cost: analysisCost })}</>}
-            </Button>
-            <Button onClick={() => handleUploadAndOptionalAnalysis(false)} variant="secondary" disabled={isDuplicate || isLoading} className="h-16 px-12 rounded-[20px] font-black uppercase">
-              {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : t('button_upload_only')}
-            </Button>
+          <div className="flex flex-col items-center gap-6">
+            {userProfile && (userProfile.pix_balance < analysisCost) && (
+              <p className="text-sm text-red-500 font-black uppercase tracking-widest animate-pulse">
+                {t('label_insufficient_balance')}
+              </p>
+            )}
+            <div className="flex flex-col sm:flex-row justify-center gap-5 w-full max-w-2xl">
+              <Button
+                onClick={() => handleUploadAndOptionalAnalysis(true)}
+                disabled={isLoading || isProcessing || !userProfile || userProfile.pix_balance < analysisCost}
+                className="flex-1 h-16 rounded-[20px] text-lg font-black uppercase tracking-wider group relative overflow-hidden"
+              >
+                {isLoading && loadingType === 'analyze' ? (
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                ) : (
+                  <Sparkles className="h-6 w-6 mr-2 group-hover:scale-125 transition-transform" />
+                )}
+                <span>
+                  {userProfile && userProfile.pix_balance < analysisCost 
+                    ? t('button_analyze_insufficient', { cost: analysisCost, currency: currencyName })
+                    : t('button_analyze', { cost: analysisCost, currency: currencyName })}
+                </span>
+              </Button>
+
+              <Button
+                onClick={() => handleUploadAndOptionalAnalysis(false)}
+                disabled={isLoading || isProcessing}
+                variant="outline"
+                className="flex-1 h-16 rounded-[20px] text-lg font-black uppercase tracking-wider border-2"
+              >
+                {isLoading && loadingType === 'upload' ? (
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                ) : (
+                  <Camera className="h-6 w-6 mr-2" />
+                )}
+                <span>{t('button_upload_only')}</span>
+              </Button>
+            </div>
           </div>
         </Card>
       )}
+
+      {/* Resolution Warning Dialog */}
+      <Dialog
+        open={showResolutionDialog}
+        onOpenChange={(open) => {
+          setShowResolutionDialog(open);
+          if (!open) resetAnalyzer();
+        }}
+      >
+        <DialogContent className="sm:max-w-md rounded-[32px] border-white/10 bg-[#0a0a0b]/95 backdrop-blur-3xl">
+          <DialogHeader className="space-y-4">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-2 border border-amber-500/20">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
+            </div>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-center">
+              {t('error_photo_too_small_dialog_title')}
+            </DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground font-medium leading-relaxed">
+              {detectedDimensions && (
+                <div className="mb-4 p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center gap-4">
+                  <div className="text-center">
+                    <p className="text-[10px] font-black uppercase opacity-50">Genişlik</p>
+                    <p className="text-lg font-black text-primary">{detectedDimensions.width}px</p>
+                  </div>
+                  <div className="h-8 w-px bg-white/10" />
+                  <div className="text-center">
+                    <p className="text-[10px] font-black uppercase opacity-50">Yükseklik</p>
+                    <p className="text-lg font-black text-primary">{detectedDimensions.height}px</p>
+                  </div>
+                </div>
+              )}
+              {t('error_photo_too_small_dialog_description')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6">
+            <Button
+              onClick={() => {
+                setShowResolutionDialog(false);
+                resetAnalyzer();
+              }}
+              className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-primary shadow-xl"
+            >
+              {t('button_ok')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

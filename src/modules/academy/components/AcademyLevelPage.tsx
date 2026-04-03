@@ -91,9 +91,23 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
             onFeedbackReady(result);
             toast({ title: t('toast_feedback_ready_title'), description: t('toast_feedback_ready_description') });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Analysis failed:", error);
-            toast({ variant: 'destructive', title: t('toast_analysis_fail_title'), description: t('toast_analysis_fail_description') });
+            if (error.message === 'PHOTO_TOO_SMALL') {
+                toast({ 
+                    variant: 'destructive', 
+                    title: t('error_photo_too_small_title'),
+                    description: t('error_photo_too_small_description') 
+                });
+            } else if (error.message === 'Failed to fetch' || (error instanceof TypeError && error.message.includes('fetch'))) {
+                toast({ 
+                    variant: 'destructive', 
+                    title: t('toast_network_error_title'), 
+                    description: t('toast_network_error_description') 
+                });
+            } else {
+                toast({ variant: 'destructive', title: t('toast_analysis_fail_title'), description: t('toast_analysis_fail_description') });
+            }
         } finally {
             setIsUploading(false);
             setIsAnalyzing(false);
@@ -274,7 +288,7 @@ export default function AcademyLevelPage() {
             {lessonsLoading ? (
                 <div className="space-y-8">
                     {[...Array(2)].map((_, i) => (
-                        <div key={i}><Skeleton className="h-8 w-1/4 mb-4" /><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">{[...Array(4)].map((_, j) => (<Card key={j}><Skeleton className="aspect-video" /><CardContent className="p-4"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>))}</div></div>
+                        <div key={i}><Skeleton className="h-8 w-1/4 mb-4" /><div className="grid grid-cols-2 lg:grid-cols-3 gap-6">{[...Array(4)].map((_, j) => (<Card key={j}><Skeleton className="aspect-video" /><CardContent className="p-4"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>))}</div></div>
                     ))}
                 </div>
             ) : Object.keys(groupedLessons).length > 0 ? (
@@ -282,7 +296,7 @@ export default function AcademyLevelPage() {
                     {Object.entries(groupedLessons).map(([category, lessonsInCategory]) => (
                         <section key={category}>
                             <h2 className={cn(typography.cardTitle, "text-2xl mb-4")}>{category}</h2>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                                 {lessonsInCategory.map(lesson => (<LessonItem key={lesson.id} lesson={lesson} isCompleted={completedLessonIds.has(lesson.id)} onComplete={handleCompleteLesson} />))}
                             </div>
                         </section>

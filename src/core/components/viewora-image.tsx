@@ -40,8 +40,8 @@ export function VieworaImage({
   const ratioClasses = {
     smallSquare: 'aspect-square object-cover',
     featureCover: 'aspect-video object-cover',
-    detailView: 'aspect-[4/5] object-contain bg-black/5',
-    detailViewWatermarked: 'aspect-[4/5] object-contain bg-black/5',
+    detailView: 'object-contain',
+    detailViewWatermarked: 'object-contain',
     analysis: 'object-contain',
     original: 'object-contain'
   };
@@ -57,7 +57,7 @@ export function VieworaImage({
   );
 
   return (
-    <div className={cn("relative overflow-hidden", containerClassName)}>
+    <div className={cn("relative overflow-hidden w-full h-full min-h-[300px]", containerClassName)}>
       <Image
         src={src}
         alt={alt || "Viewora Visual"}

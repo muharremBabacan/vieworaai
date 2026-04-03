@@ -271,9 +271,23 @@ export default function GroupDetailPage() {
       });
       await batch.commit();
       toast({ title: t('assignment_success_title') });
-    } catch (e) { 
+    } catch (e: any) { 
       console.error("Upload Submission Error:", e);
-      toast({ variant: 'destructive', title: t('toast_error') }); 
+      if (e.message === 'PHOTO_TOO_SMALL') {
+        toast({ 
+          variant: 'destructive', 
+          title: t('error_photo_too_small_title'),
+          description: t('error_photo_too_small_description') 
+        });
+      } else if (e.message === 'Failed to fetch' || (e instanceof TypeError && e.message.includes('fetch'))) {
+        toast({ 
+          variant: 'destructive', 
+          title: t('toast_network_error_title'), 
+          description: t('toast_network_error_description') 
+        });
+      } else {
+        toast({ variant: 'destructive', title: t('toast_error') }); 
+      }
     } finally { setIsUploading(false); }
   };
 
@@ -329,6 +343,14 @@ export default function GroupDetailPage() {
       const juryIds = group.juryIds || [];
       if (juryIds.includes(memberId)) return;
       await updateDoc(groupRef!, { juryIds: [...juryIds, memberId] });
+      toast({ title: t('toast_profile_updated') });
+    } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
+  };
+
+  const handleToggleAiJury = async () => {
+    if (!isCurrentUserOwner || !firestore || !group) return;
+    try {
+      await updateDoc(groupRef!, { isAiJuryEnabled: !group.isAiJuryEnabled });
       toast({ title: t('toast_profile_updated') });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
@@ -491,6 +513,7 @@ export default function GroupDetailPage() {
           isJuryRunning={isJuryRunning}
           onModeration={handleModeration}
           onAddJury={handleAddJury}
+          onToggleAiJury={handleToggleAiJury}
           onDeleteGroup={handleDeleteGroup}
           canManageGroup={canManageGroup}
         />
@@ -857,35 +880,60 @@ function EventCreator({ onCreate }: { onCreate: (data: any) => void }) {
   );
 }
 
-function JuryManager({ members, juryIds, onAdd, t }: { members: PublicUserProfile[], juryIds: string[], onAdd: (id: string) => void, t: any }) {
+function JuryManager({ members, juryIds, isAiJuryEnabled, onAdd, onToggleAiJury, t }: { members: PublicUserProfile[], juryIds: string[], isAiJuryEnabled: boolean, onAdd: (id: string) => void, onToggleAiJury: () => void, t: any }) {
     return (
-        <div className="space-y-4">
-            <p className="text-sm text-muted-foreground mb-4">{t('jury_list_title')}</p>
-            <div className="grid gap-3">
-                {members.map(m => {
-                    const isJury = juryIds.includes(m.id);
-                    return (
-                        <div key={m.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-                            <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={m.photoURL || ''} />
-                                    <AvatarFallback>{m.name[0]}</AvatarFallback>
-                                </Avatar>
-                                <span className="font-bold text-sm">@{m.name}</span>
+        <div className="space-y-6">
+            <div className="p-5 rounded-3xl bg-amber-500/5 border border-amber-500/10 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
+                        <Cpu className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div className="space-y-0.5">
+                        <h4 className="text-sm font-black uppercase tracking-tight text-amber-500">{t('jury_ai_label')}</h4>
+                        <p className="text-[10px] font-medium opacity-60 leading-tight max-w-[200px]">{t('jury_ai_description')}</p>
+                    </div>
+                </div>
+                <Button 
+                    size="sm" 
+                    variant={isAiJuryEnabled ? "secondary" : "outline"} 
+                    onClick={onToggleAiJury}
+                    className={cn("rounded-xl h-9 px-4 font-black uppercase text-[9px] min-w-[100px]", isAiJuryEnabled ? "bg-amber-500 text-black border-none" : "")}
+                >
+                    {isAiJuryEnabled ? <Check size={12} className="mr-1" /> : null}
+                    {isAiJuryEnabled ? t('button_ai_jury_active') : t('button_ai_jury_inactive')}
+                </Button>
+            </div>
+
+            <div className="h-px bg-white/5 mx-2" />
+
+            <div className="space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 ml-2">{t('jury_list_title')}</p>
+                <div className="grid gap-3">
+                    {members.map(m => {
+                        const isJury = juryIds.includes(m.id);
+                        return (
+                            <div key={m.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={m.photoURL || ''} />
+                                        <AvatarFallback>{m.name[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-bold text-sm">@{m.name}</span>
+                                </div>
+                                <Button 
+                                    size="sm" 
+                                    variant={isJury ? "secondary" : "outline"} 
+                                    disabled={isJury}
+                                    onClick={() => onAdd(m.id)}
+                                    className="rounded-xl h-8 px-4 font-black uppercase text-[9px]"
+                                >
+                                    {isJury ? <Check size={12} className="mr-1" /> : null}
+                                    {isJury ? t('tab_admin') : t('button_add_jury')}
+                                </Button>
                             </div>
-                            <Button 
-                                size="sm" 
-                                variant={isJury ? "secondary" : "outline"} 
-                                disabled={isJury}
-                                onClick={() => onAdd(m.id)}
-                                className="rounded-xl h-8 px-4 font-black uppercase text-[9px]"
-                            >
-                                {isJury ? <Check size={12} className="mr-1" /> : null}
-                                {isJury ? t('tab_admin') : t('button_add_jury')}
-                            </Button>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
@@ -1145,7 +1193,7 @@ function StandardGroupView({
     );
 }
 
-function ChallengeGroupView({ group, user, submissions, isOwner, isMember, isUploading, onUpload, onSelectSubmission, t, userProfile, memberProfiles, onAssignAward, onRunAiJury, isJuryRunning, onModeration, onAddJury, onDeleteGroup, canManageGroup }: any) {
+function ChallengeGroupView({ group, user, submissions, isOwner, isMember, isUploading, onUpload, onSelectSubmission, t, userProfile, memberProfiles, onAssignAward, onRunAiJury, isJuryRunning, onModeration, onAddJury, onToggleAiJury, onDeleteGroup, canManageGroup }: any) {
     const [challengeTab, setChallengeTab] = useState('participation');
     const mySubmission = submissions?.find((s: any) => s.userId === user?.uid);
     const approvedSubmissions = submissions?.filter((s: any) => s.status === 'approved' || s.userId === user?.uid);
@@ -1302,7 +1350,14 @@ function ChallengeGroupView({ group, user, submissions, isOwner, isMember, isUpl
                                 />
                             </TabsContent>
                             <TabsContent value="jury" className="p-8">
-                                <JuryManager members={memberProfiles || []} juryIds={group.juryIds || []} onAdd={onAddJury} t={t} />
+                                <JuryManager 
+                                    members={memberProfiles || []} 
+                                    juryIds={group.juryIds || []} 
+                                    isAiJuryEnabled={group.isAiJuryEnabled || false} 
+                                    onAdd={onAddJury} 
+                                    onToggleAiJury={onToggleAiJury}
+                                    t={t} 
+                                />
                             </TabsContent>
                             <TabsContent value="settings" className="p-8 space-y-6">
                                 <div className="p-8 rounded-[32px] bg-red-500/5 border border-red-500/10 space-y-4">

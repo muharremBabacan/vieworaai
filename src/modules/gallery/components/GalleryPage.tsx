@@ -21,7 +21,23 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
+
+const TIER_COSTS: Record<string, number> = {
+  start: 1,
+  pro: 2,
+  master: 3
+};
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  portrait: ['portre', 'portrait', 'people', 'insan', 'person', 'yüz', 'face', 'woman', 'erkek', 'kadın', 'model'],
+  landscape: ['manzara', 'landscape', 'nature', 'doğa', 'dağ', 'deniz', 'sea', 'mountain', 'lake', 'göl', 'sky', 'gökyüzü'],
+  street: ['sokak', 'street', 'şehir', 'city', 'urban', 'cadde', 'pazar', 'market'],
+  architecture: ['mimari', 'architecture', 'bina', 'building', 'yapı', 'ev', 'house', 'müze', 'museum'],
+  pets: ['evcil hayvan', 'pet', 'kedi', 'cat', 'köpek', 'dog', 'animal', 'hayvan'],
+  macro: ['makro', 'macro', 'close-up', 'detay', 'çiçek', 'flower', 'böcek', 'insect', 'yaprak', 'leaf'],
+};
 
 const normalizeScore = (score: number | undefined | null): number => {
   if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -42,8 +58,10 @@ const getOverallScore = (photo: Photo): number => {
 
 export default function GalleryPage() {
   const t = useTranslations('GalleryPage');
+  const tDashboard = useTranslations('DashboardPage');
   const tApp = useTranslations('AppLayout');
   const tr = useTranslations('Ratings');
+  const locale = useLocale();
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -103,7 +121,23 @@ export default function GalleryPage() {
     }
 
     if (categoryFilter !== 'all') {
-      result = result.filter(p => p.aiFeedback?.genre?.toLowerCase().includes(categoryFilter.toLowerCase()));
+      const keywords = CATEGORY_KEYWORDS[categoryFilter] || [categoryFilter];
+      result = result.filter(p => {
+        const genre = p.aiFeedback?.genre?.toLowerCase() || '';
+        const tags = p.aiFeedback?.tags?.map(t => t.toLowerCase()) || [];
+        
+        // Etiketler için TAM eşleşme (Exact Match)
+        const hasTagMatch = tags.some(t => keywords.some(k => t === k));
+        
+        // Tür (Genre) için kelime bazlı kontrol
+        const hasGenreMatch = keywords.some(k => {
+          if (genre === k) return true;
+          // Kelime sınırlarını kontrol et (boşluklu veya direkt kelime)
+          return genre.split(/\s+/).includes(k);
+        });
+
+        return hasTagMatch || hasGenreMatch;
+      });
     }
 
     return result;
@@ -153,7 +187,7 @@ export default function GalleryPage() {
           setIsProcessing(false);
           return;
         }
-        if (userProfile.auro_balance < 1) {
+        if (userProfile.pix_balance < 1) {
           toast({ variant: 'destructive', title: t('toast_insufficient_auro_title') });
           setIsProcessing(false);
           return;
@@ -170,7 +204,7 @@ export default function GalleryPage() {
         });
         batch.update(photoRef, { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
         batch.update(doc(firestore, 'users', user.uid), { 
-          auro_balance: increment(-1), 
+          pix_balance: increment(-1), 
           total_exhibitions_count: increment(1),
           'profile_index.activity_signals.exhibition_score': increment(10)
         });
@@ -185,6 +219,70 @@ export default function GalleryPage() {
       setSelectedPhoto(null);
     } catch (e) {
       toast({ variant: 'destructive', title: t('toast_error_exhibition') });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStartAnalysis = async (photo: Photo) => {
+    if (!user || !firestore || !userProfile || isProcessing) return;
+    
+    const currentTier = userProfile.tier || 'start';
+    const analysisCost = TIER_COSTS[currentTier] || 1;
+
+    if (userProfile.pix_balance < analysisCost) {
+      toast({ variant: 'destructive', title: tDashboard('toast_insufficient_auro_title') });
+      router.push('/pricing');
+      return;
+    }
+
+    setIsProcessing(true);
+    toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
+
+    try {
+      console.log(`[Gallery] Starting analysis for photo: ${photo.id}`);
+      
+      const analysis = await generatePhotoAnalysis({
+        photoUrl: photo.imageUrls?.analysis || photo.imageUrl,
+        language: locale,
+        tier: currentTier
+      });
+
+      const batch = writeBatch(firestore);
+      const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      const userRef = doc(firestore, 'users', user.uid);
+
+      const updatedPhotoData = {
+        ...photo,
+        aiFeedback: analysis,
+        tags: analysis.tags || [],
+        analysisTier: currentTier
+      };
+
+      batch.update(photoRef, {
+        aiFeedback: analysis,
+        tags: analysis.tags || [],
+        analysisTier: currentTier
+      });
+
+      batch.update(userRef, {
+        pix_balance: increment(-analysisCost),
+        total_analyses_count: increment(1)
+      });
+
+      await batch.commit();
+      
+      console.log(`[Gallery] Analysis complete and saved for photo: ${photo.id}`);
+      setSelectedPhoto(updatedPhotoData);
+      toast({ title: t('toast_success_title'), description: t('toast_analysis_complete') });
+
+    } catch (error: any) {
+      console.error('[Gallery] Analysis error:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: t('toast_error_title'), 
+        description: t('toast_error_analysis') 
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -334,6 +432,31 @@ export default function GalleryPage() {
                     <div className="flex items-center gap-2"><Lightbulb size={16} className="text-amber-400" /><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dialog_luma_note_title')}</span></div>
                     <p className="text-sm italic font-medium leading-relaxed text-foreground/90">"{selectedPhoto.aiFeedback.short_neutral_analysis}"</p>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/40 space-y-1">
+                      <p className="text-[9px] font-black uppercase opacity-40">{t('dialog_metadata_genre')}</p>
+                      <p className="text-sm font-bold truncate">{selectedPhoto.aiFeedback.genre}</p>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/40 space-y-1">
+                      <p className="text-[9px] font-black uppercase opacity-40">{t('dialog_metadata_scene')}</p>
+                      <p className="text-sm font-bold truncate">{selectedPhoto.aiFeedback.scene}</p>
+                    </div>
+                  </div>
+
+                  {selectedPhoto.aiFeedback.tags && selectedPhoto.aiFeedback.tags.length > 0 && (
+                    <div className="space-y-2">
+                       <p className="text-[9px] font-black uppercase tracking-widest opacity-40 ml-1">{t('dialog_metadata_tags')}</p>
+                       <div className="flex flex-wrap gap-2">
+                          {selectedPhoto.aiFeedback.tags.map((tag, idx) => (
+                            <Badge key={idx} variant="secondary" className="rounded-full bg-muted/30 text-muted-foreground border-border/40 px-3 py-1 text-[10px] font-bold">
+                              #{tag}
+                            </Badge>
+                          ))}
+                       </div>
+                    </div>
+                  )}
+
                   <div className="space-y-4 pt-4 border-t border-border/40">
                     {!selectedPhoto.isSubmittedToExhibition && (
                       <div className="space-y-2">
@@ -363,7 +486,18 @@ export default function GalleryPage() {
                     <p className="font-black uppercase text-sm">{t('dialog_not_analyzed_title')}</p>
                     <p className="text-xs text-muted-foreground">{t('dialog_not_analyzed_desc')}</p>
                   </div>
-                  <Button variant="outline" className="rounded-xl h-10 px-6 font-bold" onClick={() => router.push('/dashboard')}>{t('button_start_analysis')}</Button>
+                  <Button 
+                    className="rounded-xl h-12 px-10 font-black uppercase tracking-widest shadow-xl shadow-primary/20" 
+                    disabled={isProcessing}
+                    onClick={() => handleStartAnalysis(selectedPhoto)}
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    {t('button_start_analysis')}
+                  </Button>
                 </div>
               )}
 

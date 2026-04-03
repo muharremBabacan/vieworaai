@@ -5,7 +5,6 @@ import Script from 'next/script';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
-import '@/app/globals.css';
 
 type LayoutProps = {
   children: React.ReactNode;

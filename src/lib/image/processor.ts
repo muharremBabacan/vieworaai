@@ -35,10 +35,27 @@ export class ImageProcessor {
   }
 
   /**
+   * Görselin boyutlarını kontrol eder. 
+   * Eğer en uzun kenar 800px'den küçükse hata döner.
+   */
+  async validateResolution(): Promise<{ width: number; height: number }> {
+    const metadata = await sharp(this.buffer).metadata();
+    const width = metadata.width || 0;
+    const height = metadata.height || 0;
+    const maxEdge = Math.max(width, height);
+
+    if (maxEdge < 800) {
+      throw new Error(`RESOLUTION_TOO_LOW:${maxEdge}`);
+    }
+
+    return { width, height };
+  }
+
+  /**
    * Belirli bir türev tipini üretir
    */
   async generateDerivative(type: DerivativeType): Promise<ProcessingResult> {
-    const pipeline = sharp(this.buffer);
+    const pipeline = sharp(this.buffer).rotate();
     const metadata = await pipeline.metadata();
 
     switch (type) {
@@ -71,7 +88,7 @@ export class ImageProcessor {
       case 'detailView':
         // Max 1200x1500 Bounding Box, No Hard Crop, WebP
         const detailRes = await pipeline
-          .resize(1200, 1500, { fit: 'inside', withoutEnlargement: true })
+          .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
           .webp({ quality: 90 })
           .toBuffer();
         
@@ -87,7 +104,8 @@ export class ImageProcessor {
       case 'detailViewWatermarked':
         // Detail View + Watermark Overlay
         const baseDetail = await sharp(this.buffer)
-          .resize(1200, 1500, { fit: 'inside', withoutEnlargement: true })
+          .rotate()
+          .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
           .toBuffer();
         
         const baseMeta = await sharp(baseDetail).metadata();
@@ -141,15 +159,23 @@ export class ImageProcessor {
   }
 
   /**
-   * Tüm türevleri tek seferde üretir
+   * Tüm türevleri paralel olarak üretir
    */
   async generateAll(): Promise<Record<DerivativeType, ProcessingResult>> {
     const types: DerivativeType[] = ['smallSquare', 'featureCover', 'detailView', 'detailViewWatermarked', 'analysis'];
-    const results: any = {};
     
-    for (const type of types) {
-      results[type] = await this.generateDerivative(type);
-    }
+    // Paralel işleme (Speed Optimization)
+    const resultsArray = await Promise.all(
+      types.map(async (type) => ({
+        type,
+        result: await this.generateDerivative(type)
+      }))
+    );
+    
+    const results: any = {};
+    resultsArray.forEach(item => {
+      results[item.type] = item.result;
+    });
     
     return results;
   }

@@ -3,8 +3,11 @@ import withPWAInit from 'next-pwa';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const withPWA = withPWAInit({
   dest: 'public',
+  disable: isDev,
   register: true,
   skipWaiting: true,
 });
@@ -28,9 +31,21 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb"
-    }
-  }
+      bodySizeLimit: '20mb',
+    },
+  },
+  serverExternalPackages: ["sharp"]
 };
 
-export default withNextIntl(withPWA(nextConfig as any));
+// @ts-ignore
+const finalConfig = withNextIntl(withPWA(nextConfig as any));
+
+// Force the properties again on the experimental object to prevent them from being stripped by old plugins
+if (!finalConfig.experimental) finalConfig.experimental = {};
+finalConfig.experimental.serverActions = {
+  bodySizeLimit: '20mb'
+};
+// External packages usually work better at top level or experimental depending on version
+finalConfig.serverExternalPackages = ["sharp"];
+
+export default finalConfig;

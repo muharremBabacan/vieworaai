@@ -8,14 +8,29 @@ export type VisualMarker = {
 };
 
 export type PhotoAnalysis = {
-  genre: string;
-  scene: string;
-  dominant_subject: string;
+  // Existing numeric scores
   light_score: number;
   composition_score: number;
   technical_clarity_score: number;
   storytelling_score?: number;
   boldness_score?: number;
+  
+  // New Expert Details
+  technical_details?: {
+    focus: string;
+    light: string;
+    technical_quality: string;
+    color: string;
+    composition: string;
+  };
+  general_quality?: 'Düşük' | 'Orta' | 'İyi' | 'Çok İyi' | 'Profesyonel';
+  expert_level?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  quality_note?: string;
+
+  // Metadata
+  genre: string;
+  scene: string;
+  dominant_subject: string;
   visual_markers?: VisualMarker[];
   style_analysis?: string;
   tags: string[];
@@ -131,6 +146,8 @@ export type User = {
   level_name: string;
   tier: UserTier;
   is_mentor?: boolean;
+  daily_upload_count?: number;
+  last_upload_date?: string;
   weekly_free_refill_date: string;
   test_balance_reset?: boolean;
   daily_streak?: number;
@@ -270,6 +287,7 @@ export type Group = {
   endDate?: string;
   juryIds?: string[]; // Member IDs assigned as jury
   awardsDistributed?: boolean;
+  isAiJuryEnabled?: boolean;
 };
 
 export type GroupAssignment = {

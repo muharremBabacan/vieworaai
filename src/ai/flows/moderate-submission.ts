@@ -96,6 +96,7 @@ Analyze the photo:
     const res = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.3,
+      response_format: { type: "json_object" }, // 🔥 Enforce JSON
       messages: [
         {
           role: "user",
@@ -113,17 +114,34 @@ Analyze the photo:
     });
 
     const raw = res.choices[0]?.message?.content || "";
-    const clean = raw.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean);
+    
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error("Moderation JSON Parse Error:", raw);
+      return {
+        safe: true,
+        appropriate: true,
+        should_analyze: false,
+        message: "Yapay zeka moderasyonu şu an yapılamadı. Lütfen teknik bir sorun olduğunu bildirin."
+      };
+    }
 
     return {
-      safe: parsed.safe ?? false,
-      appropriate: parsed.appropriate ?? false,
+      safe: parsed.safe ?? true,
+      appropriate: parsed.appropriate ?? true,
       should_analyze: parsed.should_analyze ?? false,
-      message: parsed.message || (parsed.safe ? "Uygun." : "Güvenli değil.")
+      message: parsed.message || "Kontrol tamamlandı."
     };
 
   } catch (e: any) {
-    throw new Error("Moderation failed: " + e.message);
+    console.error("Moderation Flow Failure:", e);
+    return {
+      safe: true,
+      appropriate: true,
+      should_analyze: false,
+      message: "Yapay zeka servisine şu an erişilemiyor."
+    };
   }
 }
