@@ -288,6 +288,29 @@ export type Group = {
   juryIds?: string[]; // Member IDs assigned as jury
   awardsDistributed?: boolean;
   isAiJuryEnabled?: boolean;
+  prizes?: {
+    first?: string;
+    second?: string;
+    third?: string;
+    winner?: string;
+    honorable_mention?: string;
+    participant?: string;
+    viewora?: string;
+  };
+  pastCompetitions?: Array<{
+    id: string;
+    subject: string;
+    startDate: string;
+    endDate: string;
+    prizes?: Group['prizes'];
+    winners: Array<{
+      userId: string;
+      userName: string;
+      award: string;
+      photoUrl: string;
+    }>;
+    archivedAt: string;
+  }>;
 };
 
 export type GroupAssignment = {

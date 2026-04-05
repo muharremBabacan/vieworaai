@@ -403,6 +403,15 @@ export default function PhotoAnalyzer() {
 
         await batch.commit();
         console.log('[PhotoAnalyzer] Database record created. Redirecting to gallery.');
+        
+        toast({ 
+          title: t('toast_upload_only_title'), 
+          description: t('toast_upload_only_description') 
+        });
+
+        // Temizlik ve Yönlendirme
+        setFile(null);
+        setPreview(null);
         router.push('/gallery');
       }
 
@@ -621,8 +630,21 @@ export default function PhotoAnalyzer() {
               label={isProcessing ? t('state_processing') : loadingType === 'analyze' ? t('state_analyzing') : t('state_uploading')}
             />
           )}
-          <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12">
-            <img src={preview!} alt="Preview" className="object-cover w-full h-full" />
+          <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12 bg-black/5">
+            {/* 🔮 Preview Blur Background */}
+            <div className="absolute inset-0 scale-125 blur-3xl opacity-30 select-none pointer-events-none">
+              <img src={preview!} alt="" className="object-cover w-full h-full" />
+            </div>
+            {/* 🖼️ Main Preview Image (Contain) */}
+            <img src={preview!} alt="Preview" className="relative z-10 object-contain w-full h-full transition-all duration-700" />
+            
+            {/* ❌ Quick Close Button */}
+            <button 
+              onClick={resetAnalyzer}
+              className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-all"
+            >
+              <RefreshCw className="h-5 w-5" />
+            </button>
           </div>
           <div className="flex flex-col items-center gap-6">
             {userProfile && (userProfile.pix_balance < analysisCost) && (
@@ -662,6 +684,16 @@ export default function PhotoAnalyzer() {
                 <span>{t('button_upload_only')}</span>
               </Button>
             </div>
+
+            <button 
+              onClick={() => {
+                resetAnalyzer();
+                setTimeout(() => open(), 100);
+              }}
+              className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 hover:text-primary transition-colors mt-4"
+            >
+              {t('button_change_photo') || "Fotoğrafı Değiştir"}
+            </button>
           </div>
         </Card>
       )}

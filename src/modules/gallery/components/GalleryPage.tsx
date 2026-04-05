@@ -6,12 +6,12 @@ import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@
 import { collection, query, where, doc, writeBatch, increment, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
-import type { Photo, User, Exhibition } from '@/types';
+import type { Photo, User, Exhibition, Competition, Group, GroupAssignment } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers } from 'lucide-react';
+import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers, Trophy, Users } from 'lucide-react';
 import { VieworaImage } from '@/core/components/viewora-image';
 import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +73,7 @@ export default function GalleryPage() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [targetExhibitionId, setTargetExhibitionId] = useState<string>('');
+  const [targetCompetitionId, setTargetCompetitionId] = useState<string>('');
 
   const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const photosQuery = useMemoFirebase(() => {
@@ -86,10 +87,20 @@ export default function GalleryPage() {
     if (!firestore) return null;
     return query(collection(firestore, 'exhibitions'), where('isActive', '==', true));
   }, [firestore]);
+  const competitionsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'competitions'), orderBy('endDate', 'desc'));
+  }, [firestore]);
+  const userGroupsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid));
+  }, [firestore, user]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
   const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
   const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
+  const { data: competitions } = useCollection<Competition>(competitionsQuery);
+  const { data: userGroups } = useCollection<Group>(userGroupsQuery);
 
   const STATUS_FILTERS = [
     { id: 'all', label: t('filter_all'), icon: Layers },
@@ -126,13 +137,9 @@ export default function GalleryPage() {
         const genre = p.aiFeedback?.genre?.toLowerCase() || '';
         const tags = p.aiFeedback?.tags?.map(t => t.toLowerCase()) || [];
         
-        // Etiketler için TAM eşleşme (Exact Match)
         const hasTagMatch = tags.some(t => keywords.some(k => t === k));
-        
-        // Tür (Genre) için kelime bazlı kontrol
         const hasGenreMatch = keywords.some(k => {
           if (genre === k) return true;
-          // Kelime sınırlarını kontrol et (boşluklu veya direkt kelime)
           return genre.split(/\s+/).includes(k);
         });
 
@@ -173,49 +180,131 @@ export default function GalleryPage() {
     }
   };
 
-  const handleToggleExhibition = async (photo: Photo) => {
-    if (!user || !firestore || isProcessing || !userProfile) return;
+  const handleToggleCompetition = async (photo: Photo) => {
+    if (!user || !firestore || isProcessing || !userProfile || !targetCompetitionId) return;
+    const isGlobal = targetCompetitionId.startsWith('global-');
+    const compId = targetCompetitionId.replace('global-', '').replace('group-', '');
+    
     setIsProcessing(true);
     try {
       const batch = writeBatch(firestore);
-      const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
-      const isSubmitting = !photo.isSubmittedToExhibition;
+      const userRef = doc(firestore, 'users', user.uid);
+      
+      if (isGlobal) {
+        if (userProfile.auro_balance < 2) {
+          toast({ variant: 'destructive', title: tDashboard('toast_insufficient_auro_title') });
+          router.push('/pricing');
+          return;
+        }
 
-      if (isSubmitting) {
-        if (!targetExhibitionId) {
-          toast({ variant: 'destructive', title: t('dialog_select_exhibition_placeholder') });
-          setIsProcessing(false);
-          return;
-        }
-        if (userProfile.pix_balance < 1) {
-          toast({ variant: 'destructive', title: t('toast_insufficient_auro_title') });
-          setIsProcessing(false);
-          return;
-        }
+        const entryRef = doc(collection(firestore, 'competitions', compId, 'entries'));
+        batch.set(entryRef, {
+          id: entryRef.id,
+          competitionId: compId,
+          userId: user.uid,
+          userName: userProfile.name || 'Sanatçı',
+          photoUrl: photo.imageUrl,
+          imageUrls: photo.imageUrls,
+          filePath: photo.filePath || '',
+          submittedAt: new Date().toISOString(),
+          votes: [],
+          aiScore: getOverallScore(photo),
+          award: 'participant'
+        });
+
+        batch.update(doc(firestore, 'competitions', compId), { participantCount: increment(1) });
+        batch.update(userRef, {
+          auro_balance: increment(-2),
+          total_auro_spent: increment(2),
+          total_competitions_count: increment(1)
+        });
+      } else {
+        const submissionRef = doc(collection(firestore, 'groups', compId, 'submissions'));
+        batch.set(submissionRef, {
+          id: submissionRef.id,
+          groupId: compId,
+          assignmentId: 'gallery_submission',
+          userId: user.uid,
+          userName: userProfile.name || 'Sanatçı',
+          userPhotoURL: userProfile.photoURL || null,
+          photoUrl: photo.imageUrl,
+          imageUrls: photo.imageUrls,
+          status: 'approved',
+          likes: [],
+          comments: [],
+          aiFeedback: { 
+            evaluation: { 
+              score: Math.round(getOverallScore(photo) * 10),
+              feedback: photo.aiFeedback?.short_neutral_analysis || "Başarılı eser."
+            },
+            analysis: photo.aiFeedback
+          },
+          submittedAt: new Date().toISOString()
+        });
+        batch.update(userRef, { total_competitions_count: increment(1) });
+      }
+
+      await batch.commit();
+      toast({ title: tDashboard('toast_success_title') });
+      setSelectedPhoto(null);
+    } catch (e) {
+      console.error("[CompetitionSub] Error:", e);
+      toast({ variant: 'destructive', title: tDashboard('toast_analysis_fail_title') });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleToggleExhibitionExtended = async (photo: Photo) => {
+    if (!user || !firestore || isProcessing || !userProfile || !targetExhibitionId) return;
+    const isGlobal = targetExhibitionId.startsWith('global-');
+    const exhId = targetExhibitionId.replace('global-', '').replace('group-', '');
+    
+    setIsProcessing(true);
+    try {
+      const batch = writeBatch(firestore);
+      if (isGlobal) {
+        const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
         const publicPhotoRef = doc(firestore, 'public_photos', photo.id);
+        
         batch.set(publicPhotoRef, {
           ...photo,
-          exhibitionId: targetExhibitionId,
-          isSubmittedToExhibition: true,
-          userName: userProfile.name || (tApp && tApp('fallback_artist')) || 'Sanatçı',
+          id: photo.id,
+          exhibitionId: exhId,
+          userId: user.uid,
+          userName: userProfile.name || 'Sanatçı',
           userPhotoURL: userProfile.photoURL || null,
           likes: [],
           createdAt: new Date().toISOString()
         });
-        batch.update(photoRef, { isSubmittedToExhibition: true, exhibitionId: targetExhibitionId });
+        batch.update(photoRef, { isSubmittedToExhibition: true, exhibitionId: exhId });
         batch.update(doc(firestore, 'users', user.uid), { 
           pix_balance: increment(-1), 
-          total_exhibitions_count: increment(1),
-          'profile_index.activity_signals.exhibition_score': increment(10)
+          total_exhibitions_count: increment(1)
         });
-        toast({ title: t('toast_submit_exhibition_complete') });
       } else {
-        batch.delete(doc(firestore, 'public_photos', photo.id));
-        batch.update(photoRef, { isSubmittedToExhibition: false, exhibitionId: null });
-        batch.update(doc(firestore, 'users', user.uid), { total_exhibitions_count: increment(-1) });
-        toast({ title: t('toast_withdraw_exhibition_complete') });
+        const submissionRef = doc(collection(firestore, 'groups', exhId, 'submissions'));
+        batch.set(submissionRef, {
+          id: submissionRef.id,
+          groupId: exhId,
+          assignmentId: 'exhibition_submission',
+          userId: user.uid,
+          userName: userProfile.name || 'Sanatçı',
+          userPhotoURL: userProfile.photoURL || null,
+          photoUrl: photo.imageUrl,
+          imageUrls: photo.imageUrls,
+          status: 'approved',
+          likes: [],
+          comments: [],
+          aiFeedback: { 
+            evaluation: { score: Math.round(getOverallScore(photo) * 10), feedback: "Sergi katılımı." },
+            analysis: photo.aiFeedback
+          },
+          submittedAt: new Date().toISOString()
+        });
       }
       await batch.commit();
+      toast({ title: t('toast_submit_exhibition_complete') });
       setSelectedPhoto(null);
     } catch (e) {
       toast({ variant: 'destructive', title: t('toast_error_exhibition') });
@@ -226,7 +315,6 @@ export default function GalleryPage() {
 
   const handleStartAnalysis = async (photo: Photo) => {
     if (!user || !firestore || !userProfile || isProcessing) return;
-    
     const currentTier = userProfile.tier || 'start';
     const analysisCost = TIER_COSTS[currentTier] || 1;
 
@@ -240,8 +328,6 @@ export default function GalleryPage() {
     toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
 
     try {
-      console.log(`[Gallery] Starting analysis for photo: ${photo.id}`);
-      
       const analysis = await generatePhotoAnalysis({
         photoUrl: photo.imageUrls?.analysis || photo.imageUrl,
         language: locale,
@@ -271,18 +357,12 @@ export default function GalleryPage() {
       });
 
       await batch.commit();
-      
-      console.log(`[Gallery] Analysis complete and saved for photo: ${photo.id}`);
       setSelectedPhoto(updatedPhotoData);
       toast({ title: t('toast_success_title'), description: t('toast_analysis_complete') });
 
     } catch (error: any) {
       console.error('[Gallery] Analysis error:', error);
-      toast({ 
-        variant: 'destructive', 
-        title: t('toast_error_title'), 
-        description: t('toast_error_analysis') 
-      });
+      toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_analysis') });
     } finally {
       setIsProcessing(false);
     }
@@ -428,8 +508,12 @@ export default function GalleryPage() {
                       ))}
                     </div>
                   </div>
+                  
                   <div className="p-5 rounded-2xl bg-muted/30 border border-border/40 space-y-3">
-                    <div className="flex items-center gap-2"><Lightbulb size={16} className="text-amber-400" /><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dialog_luma_note_title')}</span></div>
+                    <div className="flex items-center gap-2">
+                      <Lightbulb size={16} className="text-amber-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dialog_luma_note_title')}</span>
+                    </div>
                     <p className="text-sm italic font-medium leading-relaxed text-foreground/90">"{selectedPhoto.aiFeedback.short_neutral_analysis}"</p>
                   </div>
 
@@ -457,26 +541,62 @@ export default function GalleryPage() {
                     </div>
                   )}
 
-                  <div className="space-y-4 pt-4 border-t border-border/40">
-                    {!selectedPhoto.isSubmittedToExhibition && (
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('dialog_select_exhibition')}</Label>
-                        <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId}>
-                          <SelectTrigger className="h-11 rounded-xl bg-muted/30 border-border/60"><SelectValue placeholder={t('dialog_select_exhibition_placeholder')} /></SelectTrigger>
-                          <SelectContent>
-                            {exhibitions?.map(ex => <SelectItem key={ex.id} value={ex.id}>{ex.title}</SelectItem>)}
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500/80 flex items-center gap-2">
+                        <Trophy className="h-3 w-3" /> {tDashboard('ai_analysis_title')}
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select value={targetCompetitionId} onValueChange={setTargetCompetitionId}>
+                          <SelectTrigger className="flex-1 rounded-2xl h-12 bg-white/5 border-white/10 font-bold hover:bg-white/10 transition-colors text-xs overflow-hidden">
+                            <SelectValue placeholder={t('dialog_select_competition')} />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-white/10 bg-[#121214] backdrop-blur-3xl">
+                            {competitions?.filter(c => new Date(c.endDate) > new Date()).map(c => (
+                              <SelectItem key={c.id} value={`global-${c.id}`} className="font-medium focus:bg-primary/20">🌍 {c.title}</SelectItem>
+                            ))}
+                            {userGroups?.filter(g => g.purpose === 'challenge' || g.competitionSubject).map(g => (
+                              <SelectItem key={g.id} value={`group-${g.id}`} className="font-medium focus:bg-primary/20">👥 {g.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
+                        <Button 
+                          onClick={() => handleToggleCompetition(selectedPhoto)} 
+                          disabled={!targetCompetitionId || isProcessing}
+                          className="h-12 px-5 rounded-2xl font-black uppercase tracking-widest bg-amber-500 hover:bg-amber-600 text-black shadow-lg shadow-amber-500/10 shrink-0 text-[10px]"
+                        >
+                          {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : t('button_join_competition')}
+                        </Button>
                       </div>
-                    )}
-                    <Button 
-                      onClick={() => handleToggleExhibition(selectedPhoto)} 
-                      disabled={isProcessing || (!selectedPhoto.isSubmittedToExhibition && !targetExhibitionId)} 
-                      className={cn(typography.button, "w-full h-12 rounded-xl shadow-lg")} 
-                      variant={selectedPhoto.isSubmittedToExhibition ? 'secondary' : 'default'}
-                    >
-                      {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : selectedPhoto.isSubmittedToExhibition ? <><X className="mr-2 h-4 w-4" /> {t('dialog_button_withdraw')}</> : <div className="flex items-center justify-center gap-2 flex-wrap text-center leading-tight"><Globe className="h-4 w-4 shrink-0" /> <span>{t('dialog_button_submit', { cost: 1, currency: currencyName })}</span></div>}
-                    </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 flex items-center gap-2">
+                        <Globe className="h-3 w-3" /> {t('filter_status_exhibition')}
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select value={targetExhibitionId} onValueChange={setTargetExhibitionId}>
+                          <SelectTrigger className="flex-1 rounded-2xl h-12 bg-white/5 border-white/10 font-bold text-xs hover:bg-white/10 transition-colors overflow-hidden">
+                            <SelectValue placeholder={t('dialog_select_exhibition')} />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-white/10 bg-[#121214] backdrop-blur-3xl">
+                            {exhibitions?.map(exh => (
+                              <SelectItem key={exh.id} value={`global-${exh.id}`} className="font-medium focus:bg-primary/20">Globe: {exh.title}</SelectItem>
+                            ))}
+                            {userGroups?.filter(g => g.isGalleryPublic).map(g => (
+                              <SelectItem key={g.id} value={`group-${g.id}`} className="font-medium focus:bg-primary/20">Grup: {g.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          onClick={() => handleToggleExhibitionExtended(selectedPhoto)} 
+                          disabled={!targetExhibitionId || isProcessing}
+                          className="h-12 px-5 rounded-2xl font-black uppercase tracking-widest bg-primary shadow-lg shadow-primary/10 shrink-0 text-[10px]"
+                        >
+                          {isProcessing ? <Loader2 className="animate-spin h-4 w-4" /> : t('button_submit_short')}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
