@@ -76,6 +76,7 @@ const ScoringModelBadge = ({ model }: { model: ScoringModel }) => {
 
 function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfile }: { competition: Competition | null, isOpen: boolean, onOpenChange: (open: boolean) => void, userProfile: User | null }) {
     const firestore = useFirestore();
+    const router = useRouter();
     const entriesQuery = useMemoFirebase(() => (competition && firestore) ? query(collection(firestore, 'competitions', competition.id, 'entries'), orderBy('submittedAt', 'desc')) : null, [competition, firestore]);
     const { data: entries, isLoading } = useCollection<CompetitionEntry>(entriesQuery);
     
@@ -83,7 +84,11 @@ function CompetitionEntriesDialog({ competition, isOpen, onOpenChange, userProfi
 
     const handleToggleLike = async (entry: CompetitionEntry, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!userProfile || !firestore || !competition) return;
+        if (!userProfile) {
+            router.push('/login');
+            return;
+        }
+        if (!firestore || !competition) return;
         const entryRef = doc(firestore, 'competitions', competition.id, 'entries', entry.id);
         const isLiked = entry.votes?.includes(userProfile.id);
 

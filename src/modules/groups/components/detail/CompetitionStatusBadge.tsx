@@ -30,9 +30,9 @@ export function CompetitionStatusBadge({ startDate, endDate, isArchived, t, clas
 
     if (hasEnded) {
         return (
-            <Badge className={cn("bg-red-500/20 text-red-500 border-none font-black text-[9px] uppercase tracking-widest animate-pulse", className)}>
+            <Badge className={cn("bg-amber-500/20 text-amber-500 border-none font-black text-[9px] uppercase tracking-widest", className)}>
                 <Timer size={10} className="mr-1" />
-                {t('status_ended')}
+                {t('status_participation_ended') || 'Yarışmaya Katılım Süresi Bitti'}
             </Badge>
         );
     }

@@ -21,7 +21,7 @@ import {
 import { VieworaImage } from '@/core/components/viewora-image';
 import { cn } from "@/lib/utils";
 
-interface StandardGroupViewProps {
+export interface StandardGroupViewProps {
     group: any;
     activeTab: string;
     setActiveTab: (tab: string) => void;
@@ -44,6 +44,9 @@ interface StandardGroupViewProps {
     handleCreateTrip: (data: any) => void;
     canManageGroup: boolean;
     handleDeleteGroup: () => void;
+    onModeration: (id: string, status: 'approved' | 'rejected') => void;
+    ModerationManager: any;
+    pendingSubmissions: any[];
     t: any;
     // Sub-components
     TripCard: any;
@@ -56,11 +59,15 @@ export function StandardGroupView({
     group, activeTab, setActiveTab, trips, isTripsLoading, isOwner, userId, userProfile, assignments, submissions, 
     handleUploadSubmission, isUploading, setSelectedSubmission, canViewGallery, memberProfiles, handleCreateTrip, 
     canManageGroup, handleDeleteGroup, t,
+    onModeration,
+    ModerationManager,
+    pendingSubmissions,
     TripCard,
     AssignmentUploader,
     EventCreator,
     DeleteGroupModal
 }: StandardGroupViewProps) {
+    const approvedSubmissions = submissions?.filter((s: any) => s.status === 'approved');
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
             <div className="relative filter-scroll">
@@ -97,13 +104,21 @@ export function StandardGroupView({
                                             "{ass.description}"
                                         </div>
                                         {!userSubmission ? <AssignmentUploader onUpload={(file: File) => handleUploadSubmission(ass, file)} isUploading={isUploading} t={t} /> :
-                                            <div className="flex flex-col md:flex-row items-center gap-8 p-10 rounded-[32px] bg-green-500/5 border border-green-500/20 shadow-xl">
-                                                <div className="relative h-32 w-32 rounded-3xl overflow-hidden border-4 border-green-500/20 shadow-2xl shrink-0">
+                                            <div className="flex flex-col md:flex-row items-center gap-8 p-10 rounded-[32px] bg-white/5 border border-white/10 shadow-xl">
+                                                <div className="relative h-32 w-32 rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl shrink-0">
                                                     <img src={userSubmission.photoUrl} alt="Teslimatım" className="object-cover w-full h-full" />
                                                 </div>
-                                                <div className="flex-grow text-center md:text-left">
-                                                    <p className="text-2xl font-black tracking-tight text-green-500 uppercase mb-2">{t('assignment_success_title')}</p>
-                                                    <p className="text-muted-foreground font-medium italic">{t('assignment_success_description')}</p>
+                                                <div className="flex-grow text-center md:text-left space-y-2">
+                                                    <Badge className={cn(
+                                                        "border-none font-black text-[10px] uppercase tracking-widest",
+                                                        userSubmission.status === 'approved' ? "bg-green-500/20 text-green-500" : "bg-amber-500/20 text-amber-500"
+                                                    )}>
+                                                        {userSubmission.status === 'approved' ? t('challenge_status_approved') : t('challenge_status_pending')}
+                                                    </Badge>
+                                                    <p className="text-2xl font-black tracking-tight uppercase mb-2">
+                                                        {userSubmission.status === 'approved' ? t('assignment_success_title') : t('challenge_confirmation_title')}
+                                                    </p>
+                                                    <p className="text-muted-foreground font-medium italic">{userSubmission.status === 'approved' ? t('assignment_success_description') : t('challenge_confirmation_desc')}</p>
                                                 </div>
                                                 <Button onClick={() => setSelectedSubmission(userSubmission)} className="rounded-2xl h-14 px-10 font-black uppercase tracking-wider shadow-lg">{t('assignment_button_detail')}</Button>
                                             </div>
@@ -120,7 +135,7 @@ export function StandardGroupView({
                 {canViewGallery ? (
                     submissions && submissions.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                            {submissions.map((sub: any) => (
+                            {approvedSubmissions.map((sub: any) => (
                                 <Card key={sub.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer border border-white/10 shadow-2xl transition-all hover:scale-[1.02] hover:border-primary/30" onClick={() => setSelectedSubmission(sub)}>
                                     <VieworaImage 
                                         variants={sub.imageUrls}
@@ -179,9 +194,13 @@ export function StandardGroupView({
                     <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-xl overflow-hidden">
                         <Tabs defaultValue="trip">
                             <TabsList className="w-full bg-primary/5 rounded-none h-14 border-b border-white/5">
+                                <TabsTrigger value="moderation" className="flex-1 font-black uppercase text-[10px] tracking-widest">{t('admin_tab_moderation')}</TabsTrigger>
                                 <TabsTrigger value="trip" className="flex-1 font-black uppercase text-[10px] tracking-widest">{t('admin_card_title')}</TabsTrigger>
                                 <TabsTrigger value="settings" className="flex-1 font-black uppercase text-[10px] tracking-widest">{t('tab_settings')}</TabsTrigger>
                             </TabsList>
+                            <TabsContent value="moderation" className="p-8">
+                                <ModerationManager pendingSubmissions={pendingSubmissions || []} onApprove={(id: string) => onModeration(id, 'approved')} onReject={(id: string) => onModeration(id, 'rejected')} t={t} />
+                            </TabsContent>
                             <TabsContent value="trip" className="p-8">
                                 <EventCreator onCreate={handleCreateTrip} />
                             </TabsContent>

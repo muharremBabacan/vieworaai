@@ -1,7 +1,19 @@
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 
-export default createMiddleware(routing);
+import { NextResponse, NextRequest } from 'next/server';
+
+const intlMiddleware = createMiddleware(routing);
+
+export default function middleware(request: NextRequest) {
+  // ⚡️ Skip next-intl for Server Actions (POST + Next-Action header)
+  // to avoid multipart stream disruption and "Unexpected end of form"
+  if (request.method === 'POST' && request.headers.has('next-action')) {
+    return NextResponse.next();
+  }
+  
+  return intlMiddleware(request);
+}
 
 export const config = {
   // Match all pathnames except for

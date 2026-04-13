@@ -49,68 +49,73 @@ export async function runAiJury(
   };
   const fullLanguage = langMap[input.language] || input.language;
 
-  const prompt = `
+  const systemPrompt = `
 Sen profesyonel bir fotoğraf yarışması jürisisin.
+İşin: Fotoğrafları adil, objektif ve profesyonel kriterlere göre (Kompozisyon, Işık, Teknik, Anlatım) değerlendirmek.
 
-Amaç:
-- Fotoğrafları adil ve objektif şekilde değerlendirmek
-- İlk 3 fotoğrafı belirlemek
-- Kararlarını kısa ve net şekilde açıklamak
+MANDATORY RULES:
+1. Respond ONLY in valid JSON format.
+2. Provide evaluations for ALL provided photos.
+3. Ranking must include exactly the top 3 photos.
+4. All text (comments, reasons) must be in the following language: ${fullLanguage}.
+5. Do not include any conversational text or explanations outside the JSON.
+`;
 
+  const userPrompt = `
 YARIŞMA BİLGİLERİ:
 Konu: "${input.theme}"
 Açıklama: "${input.description}"
 
-KURALLAR:
-- Duygusal değil, profesyonel ol
-- Gereksiz uzun yazma
-- Fotoğrafları birbirleriyle kıyasla
-- Sadece verilen kriterlere göre değerlendir (Kompozisyon, Işık kullanımı, Teknik kalite, Anlatım / etki)
+GÖREV:
+- Fotoğrafları birbirleriyle kıyasla.
+- Her fotoğrafa 0-100 arası bir puan ver.
+- İlk 3 fotoğrafı belirle.
 
-Respond ONLY in the following language: ${fullLanguage}
-
-ÇIKTI FORMATI (JSON):
+JSON FORMAT:
 {
   "evaluations": [
-    {
-      "photo_id": "id",
-      "score": 0-100,
-      "comment": "kısa yorum"
-    }
+    { "photo_id": "id", "score": 0-100, "comment": "string" }
   ],
   "ranking": [
-    { "position": 1, "photo_id": "id", "reason": "neden 1. olduğu" },
-    { "position": 2, "photo_id": "id", "reason": "neden 2. olduğu" },
-    { "position": 3, "photo_id": "id", "reason": "neden 3. olduğu" }
+    { "position": 1, "photo_id": "id", "reason": "string" },
+    { "position": 2, "photo_id": "id", "reason": "string" },
+    { "position": 3, "photo_id": "id", "reason": "string" }
   ]
 }
 
-DEĞERLENDİRİLECEK FOTOĞRAFLAR:
+IDs of images provided below: ${input.photos.map(p => p.id).join(", ")}
 `;
 
   // Helper to run a single completion
   const singleRun = async () => {
     const res = await openai.chat.completions.create({
       model: "gpt-4o",
-      temperature: 0.5,
+      temperature: 0.3, // Lower temperature for more consistent JSON
+      response_format: { type: "json_object" },
       messages: [
+        { role: "system", content: systemPrompt },
         {
           role: "user",
           content: [
-            { type: "text", text: prompt },
+            { type: "text", text: userPrompt },
             ...input.photos.map(p => ({
               type: "image_url" as const,
-              image_url: { url: p.url, detail: "low" as const }, // Use low detail for batch if many photos
+              image_url: { url: p.url, detail: "low" as const },
             })),
-            { type: "text", text: `\n\nIDs mapped to images in order: ${input.photos.map(p => p.id).join(", ")}` }
           ],
         },
       ],
     });
 
     const raw = res.choices[0]?.message?.content || "";
-    const clean = raw.replace(/```json|```/g, "").trim();
-    return JSON.parse(clean) as RunAiJuryOutput;
+    try {
+      // Clean potential markdown blocks just in case, though json_object mode usually avoids them
+      const clean = raw.replace(/```json|```/g, "").trim();
+      return JSON.parse(clean) as RunAiJuryOutput;
+    } catch (parseError: any) {
+      console.error("[AI Jury] JSON Parse Error. Raw content:", raw);
+      throw new Error(`Invalid JSON response: ${parseError.message}`);
+    }
   };
 
   try {

@@ -15,6 +15,7 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  middlewareClientMaxBodySize: '20mb',
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   images: {
@@ -45,6 +46,8 @@ if (!finalConfig.experimental) finalConfig.experimental = {};
 finalConfig.experimental.serverActions = {
   bodySizeLimit: '20mb'
 };
+// Add core config after plugins
+finalConfig.middlewareClientMaxBodySize = '20mb';
 // External packages usually work better at top level or experimental depending on version
 finalConfig.serverExternalPackages = ["sharp"];
 

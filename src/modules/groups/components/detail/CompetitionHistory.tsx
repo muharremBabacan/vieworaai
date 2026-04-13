@@ -1,9 +1,10 @@
-'use client';
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Calendar, Medal, Star, Award } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Calendar, Medal, Star, Award, Search, Info } from "lucide-react";
 import type { Group } from "@/types";
+import { ArchivedCompetitionDetail } from "./ArchivedCompetitionDetail";
 
 interface CompetitionHistoryProps {
     history: Group['pastCompetitions'];
@@ -11,6 +12,8 @@ interface CompetitionHistoryProps {
 }
 
 export function CompetitionHistory({ history, t }: CompetitionHistoryProps) {
+    const [selectedDetail, setSelectedDetail] = useState<any>(null);
+
     if (!history || history.length === 0) {
         return (
             <div className="text-center py-20 rounded-3xl border-2 border-dashed border-white/5 bg-white/5 opacity-50">
@@ -33,9 +36,17 @@ export function CompetitionHistory({ history, t }: CompetitionHistoryProps) {
                             <Badge className="bg-primary/20 text-primary border-none font-black text-[9px] uppercase tracking-widest">{item.startDate} — {item.endDate}</Badge>
                             <h3 className="text-2xl font-black uppercase tracking-tight">{item.subject}</h3>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-black uppercase opacity-50">{t('label_archived_at') || 'Arşivlenme Tarihi'}</p>
-                            <p className="text-sm font-bold">{new Date(item.archivedAt).toLocaleDateString('tr')}</p>
+                        <div className="flex flex-col md:flex-row items-center gap-4">
+                            <div className="text-right hidden md:block">
+                                <p className="text-[10px] font-black uppercase opacity-50">{t('label_archived_at') || 'Arşivlenme Tarihi'}</p>
+                                <p className="text-sm font-bold">{new Date(item.archivedAt).toLocaleDateString('tr')}</p>
+                            </div>
+                            <Button 
+                                onClick={() => setSelectedDetail(item)}
+                                className="h-12 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
+                            >
+                                <Search size={14} className="mr-2" /> {t('button_detail_review') || 'Detay İncele'}
+                            </Button>
                         </div>
                     </div>
 
@@ -85,6 +96,13 @@ export function CompetitionHistory({ history, t }: CompetitionHistoryProps) {
                     </div>
                 </Card>
             ))}
+
+            <ArchivedCompetitionDetail 
+                competition={selectedDetail} 
+                isOpen={!!selectedDetail} 
+                onOpenChange={(o) => !o && setSelectedDetail(null)} 
+                t={t} 
+            />
         </div>
     );
 }

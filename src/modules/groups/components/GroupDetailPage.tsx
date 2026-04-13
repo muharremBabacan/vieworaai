@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useRouter, Link } from "@/navigation";
 import { useTranslations, useLocale } from 'next-intl';
+import { prepareOptimizedFile } from '@/lib/image/client-utils';
 import { VieworaImage } from '@/core/components/viewora-image';
 
 import {
@@ -145,6 +146,7 @@ const PURPOSE_CONFIG: Record<GroupPurpose, { labelKey: string; icon: any; color:
   challenge: { labelKey: 'purpose_challenge', icon: Trophy, color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   walk: { labelKey: 'purpose_walk', icon: Map, color: 'bg-green-500/20 text-green-400 border-green-500/30' },
   mentor: { labelKey: 'purpose_mentor', icon: ShieldCheck, color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+  exhibition: { labelKey: 'purpose_exhibition', icon: Camera, color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
 };
 
 const TYPE_MAP: Record<string, { icon: any, labelKey: string, color: string }> = {
@@ -221,9 +223,12 @@ export default function GroupDetailPage() {
     setIsUploading(true);
     toast({ title: t('toast_analyzing') });
     try {
+      // 📐 Client-side Optimization (Resolution Check + Resize)
+      const optimizedFile = await prepareOptimizedFile(file, 1600);
+
       const photoId = crypto.randomUUID();
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', optimizedFile);
       
       // 🔄 Server Action ile Türevleri Üret ve Yükle
       const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'submissions');
@@ -254,6 +259,21 @@ export default function GroupDetailPage() {
         assignmentDescription: assignment.description || group.description || "", 
         language: (locale as string) || "tr" 
       });
+
+      // 🏷️ Tag Validation
+      const requiredTag = assignment.requiredTag || group.requiredTag;
+      if (requiredTag) {
+        const hasTag = aiResult.analysis.tags.some(tag => tag.toLowerCase().includes(requiredTag.toLowerCase()));
+        if (!hasTag) {
+          setIsUploading(false);
+          toast({ 
+            variant: 'destructive', 
+            title: "Etiket Uyumsuzluğu", 
+            description: t('toast_tag_mismatch', { tag: requiredTag }) || `Bu fotoğraf ${requiredTag} etiketiyle eşleşmiyor.`
+          });
+          return;
+        }
+      }
       
       batch.set(submissionRef, { 
         id: submissionRef.id, 
@@ -264,7 +284,7 @@ export default function GroupDetailPage() {
         userPhotoURL: userProfile?.photoURL || null, 
         photoUrl: imageUrls.analysis,
         imageUrls,
-        status: aiResult.evaluation.isSuccess ? 'approved' : 'pending', 
+        status: isCurrentUserOwner ? 'approved' : 'pending', 
         likes: [], 
         comments: [], 
         moderation: { ...modResult, verifiedAt: new Date().toISOString() },
@@ -278,8 +298,8 @@ export default function GroupDetailPage() {
       if (e.message === 'PHOTO_TOO_SMALL') {
         toast({ 
           variant: 'destructive', 
-          title: t('error_photo_too_small_title'),
-          description: t('error_photo_too_small_description') 
+          title: t('error_photo_too_small_title') || "Çözünürlük Çok Düşük",
+          description: t('error_photo_too_small_description') || "Lütfen en az 800px boyutunda bir fotoğraf yükleyin."
         });
       } else if (e.message === 'Failed to fetch' || (e instanceof TypeError && e.message.includes('fetch'))) {
         toast({ 
@@ -420,21 +440,31 @@ export default function GroupDetailPage() {
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
 
-  const handleArchiveCompetition = async (data?: { subject: string, startDate: string, endDate: string }) => {
+  const handleArchiveCompetition = async (data?: { subject: string, startDate: string, endDate: string, reason?: string }) => {
     if (!groupRef || !firestore || !group || !submissions) return;
     try {
-      const awarded = submissions.filter(s => s.award);
+      const awarded = submissions.filter(s => s.award && ['first', 'second', 'third'].includes(s.award));
       const newArchive = {
         id: crypto.randomUUID(),
         subject: group.competitionSubject || group.name,
         startDate: group.startDate || '',
         endDate: group.endDate || '',
         prizes: group.prizes || {},
+        reason: data?.reason || 'completed',
         winners: awarded.map(s => ({
             userId: s.userId,
             userName: s.userName,
             award: s.award!,
             photoUrl: s.photoUrl
+        })),
+        participants: submissions.map(s => ({
+            userId: s.userId,
+            userName: s.userName,
+            photoUrl: s.photoUrl,
+            imageUrls: s.imageUrls,
+            award: s.award || 'participant',
+            aiFeedback: s.aiFeedback,
+            juryReviews: s.juryReviews || []
         })),
         archivedAt: new Date().toISOString()
       };
@@ -445,6 +475,7 @@ export default function GroupDetailPage() {
       await updateDoc(groupRef, {
         pastCompetitions: [newArchive, ...pastCompetitions],
         competitionSubject: data?.subject || null,
+        requiredTag: (data as any)?.required_tag || null, // [NEW] Store required tag at group level
         startDate: data?.startDate || null,
         endDate: data?.endDate || null
       });
@@ -545,9 +576,9 @@ export default function GroupDetailPage() {
         </div>
       </header>
 
-      {group.purpose === 'challenge' ? (
+      {group.purpose === 'challenge' || group.purpose === 'exhibition' ? (
         <ChallengeGroupView 
-          key="challenge_view"
+          key={group.purpose === 'challenge' ? 'challenge_view' : 'exhibition_view'}
           group={group} 
           user={user} 
           submissions={submissions || []} 
@@ -608,6 +639,9 @@ export default function GroupDetailPage() {
           handleDeleteGroup={handleDeleteGroup}
           canManageGroup={!!canManageGroup}
           t={t}
+          onModeration={handleModeration}
+          ModerationManager={ModerationManager}
+          pendingSubmissions={submissions?.filter(s => s.status === 'pending') || []}
           TripCard={TripCard}
           AssignmentUploader={AssignmentUploader}
           EventCreator={EventCreator}

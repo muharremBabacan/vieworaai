@@ -15,7 +15,10 @@ import {
     CheckCircle2, 
     Award, 
     Medal, 
-    ImageIcon 
+    ImageIcon,
+    Tag,
+    Calendar,
+    User
 } from "lucide-react";
 import { VieworaImage } from '@/core/components/viewora-image';
 import { PrizeConfigCard } from "./PrizeConfigCard";
@@ -89,12 +92,60 @@ export function ChallengeGroupView({
 }: ChallengeGroupViewProps) {
     const [challengeTab, setChallengeTab] = useState('participation');
     const mySubmission = submissions?.find((s: any) => s.userId === user?.uid);
-    const approvedSubmissions = submissions?.filter((s: any) => s.status === 'approved' || s.userId === user?.uid);
+    const approvedSubmissions = submissions?.filter((s: any) => s.status === 'approved');
     const awardedSubmissions = submissions?.filter((s: any) => s.award);
     const pendingSubmissions = submissions?.filter((s: any) => s.status === 'pending');
 
     return (
-        <Tabs value={challengeTab} onValueChange={setChallengeTab} className="space-y-10">
+        <div className="space-y-12">
+            {/* Competition Header Card */}
+            <Card className="rounded-[40px] border-border/40 bg-card/50 shadow-2xl overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12">
+                    <div className="lg:col-span-5 h-[300px] lg:h-auto relative">
+                        <VieworaImage 
+                            variants={submissions?.find(s => s.award === 'first')?.imageUrls} 
+                            fallbackUrl="https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1964&auto=format&fit=crop"
+                            type="detailView"
+                            alt="Competition"
+                            containerClassName="w-full h-full"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-card/50" />
+                    </div>
+
+                    <div className="lg:col-span-7 relative p-8 md:p-12 space-y-6 flex flex-col justify-center">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Badge className="bg-primary/20 text-primary border-none font-black text-[10px] uppercase tracking-widest">{t('purpose_challenge')}</Badge>
+                            <CompetitionStatusBadge startDate={group.startDate} endDate={group.endDate} t={t} />
+                            {group.requiredTag && (
+                                <Badge className="bg-amber-500/20 text-amber-500 border-none font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+                                    <Tag size={10} /> {group.requiredTag}
+                                </Badge>
+                            )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">{group.competitionSubject}</h1>
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-muted-foreground font-bold text-xs uppercase tracking-wide">
+                                <div className="flex items-center gap-2">
+                                    <Calendar size={14} className="text-primary" />
+                                    <span>{group.startDate} — {group.endDate}</span>
+                                </div>
+                                <div className="flex items-center gap-2 border-l border-white/10 pl-6">
+                                    <User size={14} className="text-primary" />
+                                    <span>{t('label_organizer')}: {memberProfiles?.find(p => p.id === group.ownerId)?.name || '...'}</span>
+                                    <Badge variant="outline" className="text-[8px] h-4 border-primary/30 text-primary/80">{t(`form_organizer_${group.organizerType || 'personal'}`)}</Badge>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p className="text-muted-foreground font-medium leading-relaxed max-w-3xl italic opacity-80">
+                            {group.description}
+                        </p>
+                    </div>
+                </div>
+            </Card>
+
+            <Tabs value={challengeTab} onValueChange={setChallengeTab} className="space-y-10">
             <div className="relative filter-scroll">
                 <div className="w-full overflow-x-auto no-scrollbar pb-2 touch-pan-x scroll-smooth snap-x">
                     <TabsList className="inline-flex w-max bg-[#121214]/60 backdrop-blur-xl p-1 rounded-2xl h-12 border border-white/5 gap-1 shadow-2xl overflow-hidden">
@@ -314,7 +365,7 @@ export function ChallengeGroupView({
                                                 </div>
                                             </div>
                                             <div className="pt-4 w-full md:w-auto flex flex-col sm:flex-row gap-3">
-                                                <ManualEndModal onConfirm={() => onArchiveCompetition()} t={t} />
+                                                <ManualEndModal onConfirm={(reason) => onArchiveCompetition({ reason })} t={t} />
                                                 <ResetCompetitionModal onConfirm={onArchiveCompetition} currentSubject={group.competitionSubject} t={t} />
                                             </div>
                                         </div>
@@ -339,5 +390,6 @@ export function ChallengeGroupView({
                 </TabsContent>
             )}
         </Tabs>
+    </div>
     );
 }

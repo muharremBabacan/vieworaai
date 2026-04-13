@@ -8,6 +8,7 @@ import type { Lesson, User } from '@/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, doc, updateDoc, writeBatch, increment, orderBy } from 'firebase/firestore';
 import { uploadAndProcessImage } from '@/lib/image/actions';
+import { prepareOptimizedFile } from '@/lib/image/client-utils';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useDropzone } from 'react-dropzone';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -47,14 +48,6 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {
             const acceptedFile = acceptedFiles[0];
-            if (acceptedFile.size > 10 * 1024 * 1024) {
-                toast({
-                    variant: 'destructive',
-                    title: t('toast_file_size_title'),
-                    description: t('toast_file_size_description'),
-                });
-                return;
-            }
             setFile(acceptedFile);
             setPreview(URL.createObjectURL(acceptedFile));
             setAnalysisResult(null);
@@ -70,9 +63,12 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
         toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
         
         try {
+            // 📐 Client-side Optimization (Resolution Check + Resize)
+            const optimizedFile = await prepareOptimizedFile(file, 1600);
+
             const photoId = crypto.randomUUID();
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', optimizedFile);
             
             // 🔄 Server Action ile Türevleri Üret ve Yükle
             const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'academy-practice');

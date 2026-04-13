@@ -174,6 +174,9 @@
     "card_button_details": "View Details"
   },
   "DashboardPage": {
+    "error_photo_too_small_dialog_title": "Photo Too Small",
+    "error_photo_too_small_dialog_description": "The photo you uploaded is below the minimum 800px resolution required for professional analysis. Please upload a higher-quality version.",
+    "button_ok": "OK",
     "main_title": "I am Luma. I'm accompanying you on your photography journey.",
     "greeting_title": "Hello, {name}.",
     "greeting_subtitle": "I am your Visual Coach.",

@@ -70,7 +70,7 @@ export default function AcademyHubPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
         {academyLevels.map((level) => {
-          const unlocked = canAccess(userProfile, level.gate);
+          const unlocked = !user ? level.id === 'temel' : canAccess(userProfile, level.gate);
 
           const content = (
             <Card className={cn(

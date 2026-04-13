@@ -10,15 +10,31 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Power, AlertCircle } from "lucide-react";
+import { Power, AlertCircle, ChevronDown } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface ManualEndModalProps {
-    onConfirm: () => void;
+    onConfirm: (reason: string) => void;
     t: any;
 }
 
 export function ManualEndModal({ onConfirm, t }: ManualEndModalProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [reason, setReason] = useState('other');
+
+    const ARCHIVE_REASONS = [
+        { id: 'canceled', label: t('archive_reason_canceled') || 'İptal Edildi' },
+        { id: 'insufficient', label: t('archive_reason_insufficient') || 'Yetersiz Katılım' },
+        { id: 'postponed', label: t('archive_reason_postponed') || 'Ertelendi' },
+        { id: 'other', label: t('archive_reason_other') || 'Diğer' },
+    ];
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -40,7 +56,21 @@ export function ManualEndModal({ onConfirm, t }: ManualEndModalProps) {
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="py-6">
+                <div className="py-6 space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-wider opacity-60 ml-2">{t('label_archive_reason') || 'Sonlandırma Gerekçesi'}</label>
+                        <Select value={reason} onValueChange={setReason}>
+                            <SelectTrigger className="h-12 rounded-2xl bg-white/5 border-white/10 font-bold">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-white/10 bg-[#161617] text-white">
+                                {ARCHIVE_REASONS.map(r => (
+                                    <SelectItem key={r.id} value={r.id} className="rounded-xl focus:bg-primary/20 focus:text-primary">{r.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex gap-3 items-center">
                         <AlertCircle size={18} className="text-amber-500 shrink-0" />
                         <p className="text-[10px] font-bold text-amber-500/80 uppercase tracking-wide">
@@ -52,8 +82,8 @@ export function ManualEndModal({ onConfirm, t }: ManualEndModalProps) {
                 <DialogFooter>
                     <Button 
                         variant="destructive"
-                        onClick={() => { onConfirm(); setIsOpen(false); }}
-                        className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-red-500/20 active:scale-95"
+                        onClick={() => { onConfirm(reason); setIsOpen(false); }}
+                        className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-red-500/20 active:scale-95 transition-all"
                     >
                         {t('button_finish_now') || 'Evet, Şimdi Bitir'}
                     </Button>

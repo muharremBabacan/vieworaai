@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy, limit, updateDoc, arrayUnion } from 'firebase/firestore';
@@ -13,12 +13,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb, GraduationCap, Trophy, Users, Brain, AlertTriangle } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb, GraduationCap, Trophy, Users, Brain, AlertTriangle, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from '@/navigation';
-import { typography } from "@/lib/design/typography";
 import { useTranslations, useLocale } from 'next-intl';
+import { 
+  prepareOptimizedFile, 
+  generateImageHash, 
+  getImageDimensions 
+} from '@/lib/image/client-utils';
 import { VieworaImage } from '@/core/components/viewora-image';
 import {
   Dialog,
@@ -29,67 +33,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    };
-    img.src = URL.createObjectURL(file);
-  });
-}
-
-async function generateImageHash(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function resizeImage(file: File, maxDimension: number = 1600): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxDimension) {
-            height *= maxDimension / width;
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width *= maxDimension / height;
-            height = maxDimension;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const resizedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(resizedFile);
-          } else {
-            reject(new Error('Canvas toBlob failed'));
-          }
-        }, 'image/jpeg', 0.85);
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 const TIER_COSTS: Record<UserTier, number> = {
   start: 1,
@@ -175,6 +118,19 @@ export default function PhotoAnalyzer() {
   );
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
+  
+  const [guestId, setGuestId] = useState<string | null>(null);
+  const [guestUsed, setGuestUsed] = useState(false);
+  const [showMarketingModal, setShowMarketingModal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const gid = localStorage.getItem('guest_id');
+      const used = localStorage.getItem('guest_analysis_used') === 'true';
+      setGuestId(gid);
+      setGuestUsed(used);
+    }
+  }, []);
 
   const handleFileSelect = useCallback(async (selectedFile: File) => {
     setIsProcessing(true);
@@ -184,22 +140,27 @@ export default function PhotoAnalyzer() {
     try {
       console.log(`[PhotoAnalyzer] Original file size: ${(selectedFile.size / 1024).toFixed(2)} KB`);
       
-      const resizedFile = await resizeImage(selectedFile, 1600);
-      console.log(`[PhotoAnalyzer] Resized file size: ${(resizedFile.size / 1024).toFixed(2)} KB`);
+      const optimizedFile = await prepareOptimizedFile(selectedFile, 1600);
+      console.log(`[PhotoAnalyzer] Optimized file size: ${(optimizedFile.size / 1024).toFixed(2)} KB`);
 
       // Eski önizlemeyi temizle
       setPreview(prev => {
         if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(resizedFile);
+        return URL.createObjectURL(optimizedFile);
       });
-      setFile(resizedFile);
-    } catch (error) {
-      console.error('[PhotoAnalyzer] Resize error:', error);
-      toast({ 
-        variant: 'destructive', 
-        title: t('toast_analysis_fail_title'), 
-        description: 'Görsel işlenirken bir hata oluştu.' 
-      });
+      setFile(optimizedFile);
+    } catch (error: any) {
+      console.error('[PhotoAnalyzer] Optimization error:', error);
+      if (error.message === 'PHOTO_TOO_SMALL') {
+        getImageDimensions(selectedFile).then(setDetectedDimensions);
+        setShowResolutionDialog(true);
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: t('toast_analysis_fail_title'), 
+          description: 'Görsel işlenirken bir hata oluştu.' 
+        });
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -255,18 +216,31 @@ export default function PhotoAnalyzer() {
       return;
     }
 
-    // 🔥 Profil yüklenmemişse blokla
-    if (!userProfile) {
-      toast({ title: t('loading_profile') || "Profil yükleniyor..." });
-      return;
-    }
+    // 🔥 GUEST BYPASS LOGIC
+    if (!user) {
+      if (guestUsed) {
+        setShowMarketingModal(true);
+        return;
+      }
+      // Guests only get 1 analyze, no "upload only"
+      if (!analyze) {
+        setShowMarketingModal(true);
+        return;
+      }
+    } else {
+      // 🔥 Profil yüklenmemişse blokla
+      if (!userProfile) {
+        toast({ title: t('loading_profile') || "Profil yükleniyor..." });
+        return;
+      }
 
-    // 🔥 Pix kontrolü (ANALYZE)
-    const currentBalance = userProfile.pix_balance || 0;
-    if (analyze && currentBalance < analysisCost) {
-      console.log(`[PhotoAnalyzer] Insufficient balance. Cost: ${analysisCost}, Current: ${currentBalance}`);
-      router.push('/pricing');
-      return;
+      // 🔥 Pix kontrolü (ANALYZE)
+      const currentBalance = userProfile.pix_balance || 0;
+      if (analyze && currentBalance < analysisCost) {
+        console.log(`[PhotoAnalyzer] Insufficient balance. Cost: ${analysisCost}, Current: ${currentBalance}`);
+        router.push('/pricing');
+        return;
+      }
     }
 
     // 🔥 Loading HER ZAMAN burada başlar
@@ -274,17 +248,11 @@ export default function PhotoAnalyzer() {
     setIsLoading(true);
 
     try {
-      // 1. Adım: Çözünürlük Kontrolü
-      console.log('[PhotoAnalyzer] Stage 1: Checking dimensions...');
-      const { width, height } = await getImageDimensions(file);
-      const maxEdge = Math.max(width, height);
-
-      if (maxEdge < 800) {
-        console.warn(`[PhotoAnalyzer] Resolution too low: ${width}x${height}`);
-        setDetectedDimensions({ width, height });
-        setShowResolutionDialog(true);
-        return;
-      }
+      // 1. Adım: Optimizasyon (Gerekiyorsa tekrar kontrol/resize)
+      // Not: handleFileSelect zaten yaptıysa bu hızlı geçecektir.
+      console.log('[PhotoAnalyzer] Stage 1: Preparing optimized file...');
+      const optimizedFile = await prepareOptimizedFile(file, 1600);
+      setFile(optimizedFile);
 
       // 2. Adım: Hash Oluşturma
       console.log('[PhotoAnalyzer] Stage 2: Generating hash...');
@@ -377,21 +345,25 @@ export default function PhotoAnalyzer() {
         photoData.aiFeedback = analysis;
         photoData.analysisTier = currentTier;
 
-        const batch = writeBatch(firestore);
-        batch.set(photoDocRef, photoData);
-        batch.update(userRef, {
-          pix_balance: increment(-analysisCost),
-          total_analyses_count: increment(1)
-        });
+        if (user) {
+          const batch = writeBatch(firestore);
+          batch.set(photoDocRef, photoData);
+          batch.update(userRef, {
+            pix_balance: increment(-analysisCost),
+            total_analyses_count: increment(1)
+          });
+          await batch.commit();
+          
+          updateUserProfileIndex(user.uid, getOverallScore(photoData)).catch(err => 
+            console.error('[PhotoAnalyzer] Background index update failed:', err)
+          );
+        } else {
+          // Guest experience finish
+          localStorage.setItem('guest_analysis_used', 'true');
+          setGuestUsed(true);
+        }
 
-        await batch.commit();
-        console.log('[PhotoAnalyzer] Analysis and firestore record completed.');
-        
-        // Opsiyonel: Profil endeksini güncelle (UI'ı kırmadan arka planda)
-        updateUserProfileIndex(user.uid, getOverallScore(photoData)).catch(err => 
-          console.error('[PhotoAnalyzer] Background index update failed:', err)
-        );
-
+        console.log('[PhotoAnalyzer] Analysis completed.');
         setAnalysisResult(photoData);
       } else {
         console.log('[PhotoAnalyzer] Stage 5: Saving database record (No Analysis)...');
@@ -421,6 +393,10 @@ export default function PhotoAnalyzer() {
       let message = t('toast_analysis_fail_description');
       if (error.message === 'UPLOAD_FAILED') {
         message = t('toast_upload_fail_description');
+      } else if (error.message === 'PHOTO_TOO_SMALL') {
+        setShowResolutionDialog(true);
+        setIsLoading(false);
+        return;
       } else if (error.code === 'unavailable') {
         message = t('toast_network_error_description');
       }
@@ -455,6 +431,11 @@ export default function PhotoAnalyzer() {
             <div className="space-y-1">
               <Badge variant="outline" className="px-3 h-6 border-primary/30 text-primary font-black uppercase tracking-widest text-[9px] rounded-full">{t('analysis_report_badge')}</Badge>
               <h1 className="text-4xl font-black tracking-tighter uppercase">{t('analysis_report_title')}</h1>
+              {!user && guestId && (
+                 <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60">
+                    Sanal Vizyon: <span className="text-primary">{guestId}</span>
+                 </p>
+              )}
             </div>
             <Button onClick={resetAnalyzer} variant="ghost" className="rounded-xl font-bold text-muted-foreground"><RefreshCw size={16} className="mr-2" /> {t('button_new_analysis')}</Button>
           </header>
@@ -742,6 +723,61 @@ export default function PhotoAnalyzer() {
               {t('button_ok')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Registration Incentive Modal */}
+      <Dialog open={showMarketingModal} onOpenChange={setShowMarketingModal}>
+        <DialogContent className="max-w-md rounded-[40px] bg-[#0a0a0b] border-white/10 p-0 overflow-hidden shadow-3xl">
+          <div className="relative h-48 w-full">
+            <img src="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover opacity-50" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] to-transparent" />
+            <div className="absolute bottom-6 left-8 right-8">
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles size={16} className="text-primary fill-current" />
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">SINIRLI SÜRELİ TEKLİF</p>
+              </div>
+              <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">İLK 1000 ÜYE ARASINA KATILIN</h2>
+            </div>
+          </div>
+          
+          <div className="p-10 pt-0 space-y-8">
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                Misafir analiz hakkınız doldu. Şimdi ücretsiz üye olarak bu özel avantajları hemen yakalayabilirsiniz:
+              </p>
+              
+              <div className="grid gap-3">
+                {[
+                  { icon: Gem, color: 'text-cyan-400', text: "20 Pix Hoş Geldin Bonusu" },
+                  { icon: RefreshCw, color: 'text-purple-400', text: "Her Hafta Otomatik 5 Pix Yükleme" },
+                  { icon: Globe, color: 'text-blue-400', text: "1 Adet Kişisel Sergi Oluşturma Hakkı" }
+                ].map((f, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 shadow-inner">
+                    <div className={cn("p-2 rounded-xl bg-white/5", f.color)}>
+                      <f.icon size={18} />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-tight">{f.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <Button 
+                onClick={() => router.push('/signup')}
+                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-sm bg-primary text-primary-foreground shadow-2xl flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform active:scale-95"
+              >
+                Hemen Üye Ol <Sparkles size={18} />
+              </Button>
+              <Button 
+                onClick={() => setShowMarketingModal(false)}
+                variant="ghost"
+                className="w-full h-10 rounded-xl font-black uppercase tracking-widest text-[9px] text-muted-foreground opacity-50 hover:opacity-100"
+              >
+                Belki Daha Sonra
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

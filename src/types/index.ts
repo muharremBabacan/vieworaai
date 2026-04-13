@@ -62,6 +62,17 @@ export type AppSettings = {
   maintenanceMode?: boolean;
 };
 
+export type Package = {
+  id: string;
+  name: string;
+  target: string;
+  slogan: string;
+  auro: number;
+  price: number;
+  currency: string;
+  isBestValue: boolean;
+};
+
 export type PixPackage = {
   id: string;
   name: string;
@@ -261,7 +272,7 @@ export type CompetitionEntry = {
   award?: 'winner' | 'honorable_mention' | 'participant' | 'none';
 };
 
-export type GroupPurpose = 'study' | 'challenge' | 'walk' | 'mentor';
+export type GroupPurpose = 'study' | 'challenge' | 'walk' | 'mentor' | 'exhibition';
 export type OrganizerType = 'official' | 'business' | 'education' | 'personal';
 
 export type Group = {
@@ -311,6 +322,7 @@ export type Group = {
     }>;
     archivedAt: string;
   }>;
+  requiredTag?: string;
 };
 
 export type GroupAssignment = {
@@ -320,6 +332,7 @@ export type GroupAssignment = {
   description: string;
   dueDate?: string;
   createdAt: string;
+  requiredTag?: string;
 };
 
 export type GroupComment = {

@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslations } from 'next-intl';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle, LogIn, Users, Crown, Loader2, GraduationCap, Trophy, Map, ShieldCheck, Lock, Hash, Copy } from 'lucide-react';
+import { PlusCircle, LogIn, Users, Crown, Loader2, GraduationCap, Trophy, Map, ShieldCheck, Lock, Hash, Copy, Camera } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -33,6 +33,7 @@ const PURPOSE_CONFIG: Record<GroupPurpose, { labelKey: string; icon: any; color:
   challenge: { labelKey: 'purpose_challenge', icon: Trophy, color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   walk: { labelKey: 'purpose_walk', icon: Map, color: 'bg-green-500/20 text-green-400 border-green-500/30' },
   mentor: { labelKey: 'purpose_mentor', icon: ShieldCheck, color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+  exhibition: { labelKey: 'purpose_exhibition', icon: Camera, color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
 };
 
 export default function GroupsPage() {
@@ -70,7 +71,7 @@ export default function GroupsPage() {
   const createFormSchema = z.object({
     name: z.string().min(3, t('form_error_name_min')).max(50, t('form_error_name_max')),
     description: z.string().max(200, t('form_error_description_max')).optional(),
-    purpose: z.enum(['study', 'challenge', 'walk', 'mentor'] as const, {
+    purpose: z.enum(['study', 'challenge', 'walk', 'mentor', 'exhibition'] as const, {
       required_error: t('form_error_purpose_required'),
     }),
     organizerType: z.enum(['official', 'business', 'education', 'personal'] as const).default('personal'),
@@ -279,6 +280,7 @@ export default function GroupsPage() {
                                                 <SelectItem value="challenge">{t('form_purpose_challenge')}</SelectItem>
                                                 <SelectItem value="walk">{t('form_purpose_walk')}</SelectItem>
                                                 <SelectItem value="mentor">{t('form_purpose_mentor')}</SelectItem>
+                                                <SelectItem value="exhibition">{t('form_purpose_exhibition')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />

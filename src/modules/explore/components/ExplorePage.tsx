@@ -69,7 +69,11 @@ export default function ExplorePage() {
 
   const handleToggleLike = async (photo: Photo, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user || !firestore) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (!firestore) return;
     const photoRef = doc(firestore, 'public_photos', photo.id);
     const isLiked = photo.likes?.includes(user.uid);
     try {
@@ -126,9 +130,13 @@ export default function ExplorePage() {
       }
     ];
 
-    if (view === 'hub') {
-      return (
-        <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
+  return (
+    <div className={cn(
+      "container mx-auto px-4 pt-6 pb-24 animate-in duration-700",
+      view === 'hub' ? "fade-in" : "slide-in-from-right-10"
+    )}>
+      {view === 'hub' ? (
+        <>
           <header className="mb-10 space-y-2">
             <p className={cn(typography.eyebrow, "ml-1")}>{t('hub_eyebrow')}</p>
             <h1 className={cn(typography.h1, "text-4xl md:text-6xl font-black leading-none uppercase tracking-tighter")}>{t('hub_title')}</h1>
@@ -185,67 +193,64 @@ export default function ExplorePage() {
               </Card>
             ))}
           </div>
-        </div>
-      );
-    }
-
-  return (
-    <div className="container mx-auto px-4 pt-6 pb-24 animate-in slide-in-from-right-10 duration-700">
-      <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 rounded-2xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> {t('clear_filter')}</Button>
-      <h1 className={cn(typography.h1, "uppercase mb-10 text-3xl md:text-5xl lg:text-6xl truncate")}>{view === 'featured' ? t('featured_title') : selectedExhibition?.title || t('category_exhibitions')}</h1>
-
-      {view === 'exhibitions' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isExLoading ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[32px]" />) : 
-           exhibitions?.map(ex => (
-             <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
-               <div className="relative h-48 w-full">
-                  <VieworaImage 
-                    variants={null}
-                    fallbackUrl={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`}
-                    type="featureCover"
-                    alt={ex.title}
-                    containerClassName="w-full h-full"
-                  />
-               </div>
-               <CardContent className="p-6">
-                 <h3 className="text-lg md:text-xl font-black uppercase truncate">{ex.title}</h3>
-                 <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">{ex.description}</p>
-               </CardContent>
-             </Card>
-           ))}
-        </div>
+        </>
       ) : (
         <>
-          {isPhotosLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}</div>
-            ) : (photos && photos.length > 0) ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                {photos.map((photo) => {
-                  const isLiked = photo.likes?.includes(user?.uid || '');
-                  return (
-                    <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
+          <Button variant="ghost" onClick={() => setView('hub')} className="mb-8 rounded-2xl font-bold text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> {t('clear_filter')}</Button>
+          <h1 className={cn(typography.h1, "uppercase mb-10 text-3xl md:text-5xl lg:text-6xl truncate")}>{view === 'featured' ? t('featured_title') : selectedExhibition?.title || t('category_exhibitions')}</h1>
+
+          {view === 'exhibitions' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {isExLoading ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[32px]" />) : 
+              exhibitions?.map(ex => (
+                <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
+                  <div className="relative h-48 w-full">
                       <VieworaImage 
-                        variants={photo.imageUrls}
-                        fallbackUrl={photo.imageUrl}
-                        type="smallSquare"
-                        alt="Sergi Görseli"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        variants={null}
+                        fallbackUrl={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`}
+                        type="featureCover"
+                        alt={ex.title}
                         containerClassName="w-full h-full"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
-                         <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[9px] md:text-[10px] h-7 md:h-8 px-3 md:px-4 rounded-full font-bold truncate max-w-[120px] md:max-w-none">@{photo.userName || 'Sanatçı'}</Badge>
-                        <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isLiked ? "text-red-500" : "text-white")} onClick={(e) => handleToggleLike(photo, e)}>
-                          <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-            <div className="text-center py-40 rounded-[64px] border-2 border-dashed bg-muted/5"><Camera size={64} className="mx-auto mb-8 text-muted-foreground/20" /></div>
+                  </div>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg md:text-xl font-black uppercase truncate">{ex.title}</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">{ex.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : isPhotosLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}</div>
+          ) : (photos && photos.length > 0) ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {photos.map((photo) => {
+                const isLiked = photo.likes?.includes(user?.uid || '');
+                return (
+                  <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
+                    <VieworaImage 
+                      variants={photo.imageUrls}
+                      fallbackUrl={photo.imageUrl}
+                      type="smallSquare"
+                      alt="Sergi Görseli"
+                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      containerClassName="w-full h-full"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
+                        <Badge variant="secondary" className="bg-white/10 backdrop-blur-xl text-white text-[9px] md:text-[10px] h-7 md:h-8 px-3 md:px-4 rounded-full font-bold truncate max-w-[120px] md:max-w-none">@{photo.userName || 'Sanatçı'}</Badge>
+                      <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isLiked ? "text-red-500" : "text-white")} onClick={(e) => handleToggleLike(photo, e)}>
+                        <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-40 rounded-[64px] border-2 border-dashed bg-muted/5">
+              <Camera size={64} className="mx-auto mb-8 text-muted-foreground/20" />
+            </div>
           )}
         </>
       )}

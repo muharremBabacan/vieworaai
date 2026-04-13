@@ -2,6 +2,7 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +48,7 @@ const userEditSchema = z.object({
 
 export default function AdminPanel() {
   const t = useTranslations('MasterAdmin');
+  const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -117,9 +119,17 @@ export default function AdminPanel() {
     return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
 
-  // Conditional rendering AFTER all hooks
+  // Conditional rendering AFTER all hooks to maintain stable order
   if (!isAdmin) {
-    return <div className="p-20 text-center font-bold text-destructive uppercase tracking-widest">{t('unauthorized')}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 animate-in fade-in duration-500">
+        <Shield size={64} className="text-destructive/20" />
+        <h2 className="text-2xl font-black uppercase tracking-tighter">{t('unauthorized')}</h2>
+        <Button variant="outline" onClick={() => router.push('/')} className="rounded-xl font-bold uppercase tracking-widest text-[10px]">
+          Ana Sayfaya Dön
+        </Button>
+      </div>
+    );
   }
 
   const handleApprovePurchase = async (purchase: PixPurchase) => {

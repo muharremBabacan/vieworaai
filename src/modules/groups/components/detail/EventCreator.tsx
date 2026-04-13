@@ -23,7 +23,15 @@ interface EventCreatorProps {
 
 export function EventCreator({ onCreate }: EventCreatorProps) {
   const t = useTranslations('GroupDetailPage');
-  const [formData, setFormData] = useState({ title: '', description: '', startPoint: '', endPoint: '', date: '', max_participants: 15 });
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    description: '', 
+    startPoint: '', 
+    endPoint: '', 
+    date: '', 
+    max_participants: 15,
+    requiredTag: '' 
+  });
 
   const handleTemplateSelect = (title: string) => { 
     const tmpl = ISTANBUL_TEMPLATES.find(x => x.title === title); 
@@ -60,6 +68,12 @@ export function EventCreator({ onCreate }: EventCreatorProps) {
           className="h-10" 
         />
       </div>
+      <Input 
+        value={formData.requiredTag} 
+        onChange={e => setFormData({ ...formData, requiredTag: e.target.value })} 
+        placeholder={t('admin_form_required_tag_placeholder') || 'Zorunlu Etiket (Opsiyonel)'} 
+        className="rounded-xl h-11" 
+      />
       <Button onClick={() => onCreate(formData)} className="w-full h-12 rounded-xl font-black uppercase shadow-lg shadow-primary/20">{t('admin_button_publish')}</Button>
     </div>
   );

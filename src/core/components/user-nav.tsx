@@ -1,5 +1,5 @@
 'use client';
-
+import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import {
@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { Gem, LogOut, Coins, Settings, Shield, User as UserIcon, Flame, Globe, Trophy } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Gem, RefreshCw, Lock, Scan, SearchCode, Lightbulb, GraduationCap, Trophy, Users, Brain, AlertTriangle, Globe, LogOut, Settings, Shield, User as UserIcon, Flame, Coins } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
@@ -32,6 +32,13 @@ export function UserNav() {
   const firestore = useFirestore();
   const router = useRouter();
   const { currencyName } = useAppConfig();
+  const [guestId, setGuestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setGuestId(localStorage.getItem('guest_id'));
+    }
+  }, []);
 
   const userDocRef = useMemoFirebase(() => {
     if (!authUser || !firestore) return null;
@@ -67,9 +74,21 @@ export function UserNav() {
       {isLoading ? (
         <Skeleton className="h-10 w-10 rounded-full" />
       ) : isLoggedOut ? (
-        <Button variant="outline" onClick={() => router.push('/login')}>
-          {tFallback('login')}
-        </Button>
+        <div className="flex items-center gap-4">
+          {guestId && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/10">
+              <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60">Vizyon:</span>
+              <span className="text-[10px] font-black uppercase text-primary tracking-widest">{guestId}</span>
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            onClick={() => router.push('/login')}
+            className="rounded-xl font-black uppercase tracking-widest text-[10px] h-9 px-5 border-primary/20 hover:bg-primary/5 transition-all"
+          >
+            {tFallback('login')}
+          </Button>
+        </div>
       ) : (
         <div className="flex items-center gap-2">
           <TooltipProvider>
