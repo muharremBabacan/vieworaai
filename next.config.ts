@@ -10,6 +10,8 @@ const withPWA = withPWAInit({
   disable: isDev,
   register: true,
   skipWaiting: true,
+  publicExcludes: ['!firestore.googleapis.com/**', '!firebasestorage.googleapis.com/**'],
+  buildExcludes: [/firestore\.googleapis\.com/],
 });
 
 const nextConfig: import('next').NextConfig = {

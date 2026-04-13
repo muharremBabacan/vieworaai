@@ -1,0 +1,1 @@
+self.addEventListener("fetch",e=>{const t=new URL(e.request.url);t.pathname.startsWith("/api")||t.hostname.includes("googleapis.com")||t.hostname.includes("firebase")||e.request.headers.get("next-action")});

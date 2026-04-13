@@ -24,6 +24,18 @@ export type EvaluateGroupSubmissionOutput = {
   };
 };
 
+/**
+ * AI bazen sayı yerine "8/10" veya "8.5" gibi stringler dönebiliyor.
+ * Bunları güvenli bir şekilde sayıya çevirir.
+ */
+function parseSafeScore(score: any): number {
+  if (typeof score === 'number') return score;
+  if (typeof score !== 'string') return 0;
+  const cleanScore = score.split('/')[0].replace(',', '.').trim();
+  const num = parseFloat(cleanScore);
+  return isNaN(num) ? 0 : num;
+}
+
 export async function evaluateGroupSubmission(
   input: EvaluateGroupSubmissionInput
 ): Promise<EvaluateGroupSubmissionOutput> {
@@ -47,7 +59,7 @@ Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisi
 Amaç:
 - Fotoğrafı teknik ve estetik açıdan yüksek doğrulukla analiz etmek
 - "${input.assignmentTitle}" ödevi kapsamında başarısını değerlendirmek
-- Fotoğrafın seviyesini ve kalitesini objektif olarak belirlemek
+- Fotoğrafın seviyesini ve kalinesini objektif olarak belirlemek
 
 ÖDEV BAĞLAMI:
 Başlık: "${input.assignmentTitle}"
@@ -134,24 +146,33 @@ Analyze the photo:
       };
     }
 
+    const aiAnalysis = parsed.analysis || parsed;
+    const aiEvaluation = parsed.evaluation || {};
+
     return {
       analysis: {
-        genre: parsed.analysis?.genre || parsed.genre || "",
-        scene: parsed.analysis?.scene || parsed.scene || "",
-        dominant_subject: parsed.analysis?.dominant_subject || parsed.dominant_subject || "",
-        light_score: Number(parsed.analysis?.light_score || parsed.light_score) || 0,
-        composition_score: Number(parsed.analysis?.composition_score || parsed.composition_score) || 0,
-        technical_clarity_score: Number(parsed.analysis?.technical_clarity_score || parsed.technical_clarity_score) || 0,
-        storytelling_score: Number(parsed.analysis?.storytelling_score || parsed.storytelling_score) || 0,
-        boldness_score: Number(parsed.analysis?.boldness_score || parsed.boldness_score) || 0,
-        tags: Array.isArray(parsed.analysis?.tags || parsed.tags) ? (parsed.analysis?.tags || parsed.tags).slice(0, 4) : [],
-        short_neutral_analysis: parsed.analysis?.short_neutral_analysis || parsed.short_neutral_analysis || "",
+        genre: aiAnalysis.genre || "",
+        scene: aiAnalysis.scene || "",
+        dominant_subject: aiAnalysis.dominant_subject || "",
+        light_score: parseSafeScore(aiAnalysis.light_score),
+        composition_score: parseSafeScore(aiAnalysis.composition_score),
+        technical_clarity_score: parseSafeScore(aiAnalysis.technical_clarity_score),
+        storytelling_score: parseSafeScore(aiAnalysis.storytelling_score),
+        boldness_score: parseSafeScore(aiAnalysis.boldness_score),
+        tags: Array.isArray(aiAnalysis.tags) ? aiAnalysis.tags.slice(0, 4) : [],
+        short_neutral_analysis: aiAnalysis.short_neutral_analysis || "",
+        technical_details: aiAnalysis.technical_details || {
+          focus: "", light: "", technical_quality: "", color: "", composition: ""
+        },
+        general_quality: aiAnalysis.general_quality || "Orta",
+        expert_level: aiAnalysis.expert_level || "Beginner",
+        quality_note: aiAnalysis.quality_note
       },
       evaluation: {
-        isSuccess: parsed.evaluation?.isSuccess ?? true,
-        feedback: parsed.evaluation?.feedback || parsed.evaluation?.comment || "",
-        score: Number(parsed.evaluation?.score) || 0,
-        technicalPoints: Array.isArray(parsed.evaluation?.technicalPoints) ? parsed.evaluation.technicalPoints : []
+        isSuccess: aiEvaluation.isSuccess ?? true,
+        feedback: aiEvaluation.feedback || aiEvaluation.comment || "",
+        score: parseSafeScore(aiEvaluation.score),
+        technicalPoints: Array.isArray(aiEvaluation.technicalPoints) ? aiEvaluation.technicalPoints : []
       }
     };
 

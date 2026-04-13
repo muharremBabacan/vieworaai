@@ -1,6 +1,8 @@
 'use server';
 
-import OpenAI from "openai";
+import OpenAI from 'openai';
+import { adminDb } from "@/lib/firebase/admin-init";
+import { PhotoAnalysis } from "@/types";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -12,6 +14,7 @@ export type PhotoAnalysisInput = {
   photoUrl: string;
   language: string;
   tier: Tier;
+  guestId?: string; // 🔥 Kilit için eklendi
 };
 
 export type PhotoAnalysisOutput = {
@@ -36,6 +39,21 @@ export type PhotoAnalysisOutput = {
   short_neutral_analysis: string;
   quality_note?: string;
 };
+
+/**
+ * AI bazen sayı yerine "8/10" veya "8.5" gibi stringler dönebiliyor.
+ * Bunları güvenli bir şekilde sayıya çevirir ve 0-10 aralığına normalize eder.
+ */
+function parseSafeScore(score: any): number {
+  if (typeof score === 'number') return score;
+  if (typeof score !== 'string') return 0;
+
+  // "8/10" formatını temizle
+  const cleanScore = score.split('/')[0].replace(',', '.').trim();
+  const num = parseFloat(cleanScore);
+  
+  return isNaN(num) ? 0 : num;
+}
 
 export async function generatePhotoAnalysis(
   input: PhotoAnalysisInput
@@ -106,6 +124,22 @@ DİL: ${fullLanguage}
 `;
 
   try {
+    // 🔒 THE LOCK: Sunucu tarafı kontrolü
+    if (input.guestId && adminDb) {
+      const usageRef = adminDb.collection('guest_usage').doc(input.guestId);
+      const usageDoc = await usageRef.get();
+      
+      if (usageDoc.exists) {
+        const lastUsedAt = usageDoc.data()?.last_used_at;
+        if (lastUsedAt) {
+          const cooldown = 7 * 24 * 60 * 60 * 1000;
+          if (Date.now() - lastUsedAt < cooldown) {
+            throw new Error("GUEST_LIMIT_REACHED");
+          }
+        }
+      }
+    }
+
     const res = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3,
@@ -129,15 +163,23 @@ DİL: ${fullLanguage}
     const raw = res.choices[0]?.message?.content || "";
     const parsed = JSON.parse(raw);
 
+    // 📝 THE RECORD: Kullanımı kaydet
+    if (input.guestId && adminDb) {
+      await adminDb.collection('guest_usage').doc(input.guestId).set({
+        last_used_at: Date.now(),
+        last_photo_url: input.photoUrl
+      }, { merge: true });
+    }
+
     return {
       genre: parsed.genre || "",
       scene: parsed.scene || "",
       dominant_subject: parsed.dominant_subject || "",
-      light_score: Number(parsed.light_score) || 0,
-      composition_score: Number(parsed.composition_score) || 0,
-      technical_clarity_score: Number(parsed.technical_clarity_score) || 0,
-      storytelling_score: Number(parsed.storytelling_score) || 0,
-      boldness_score: Number(parsed.boldness_score) || 0,
+      light_score: parseSafeScore(parsed.light_score),
+      composition_score: parseSafeScore(parsed.composition_score),
+      technical_clarity_score: parseSafeScore(parsed.technical_clarity_score),
+      storytelling_score: parseSafeScore(parsed.storytelling_score),
+      boldness_score: parseSafeScore(parsed.boldness_score),
       technical_details: {
         focus: parsed.technical_details?.focus || "",
         light: parsed.technical_details?.light || "",
@@ -153,6 +195,7 @@ DİL: ${fullLanguage}
     };
 
   } catch (e: any) {
+    if (e.message === "GUEST_LIMIT_REACHED") throw e;
     throw new Error("AI analysis failed: " + e.message);
   }
 }

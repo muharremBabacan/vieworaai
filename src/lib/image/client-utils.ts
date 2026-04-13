@@ -8,6 +8,7 @@
  */
 export async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
+    const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url); // 🔥 Cleanup memory
