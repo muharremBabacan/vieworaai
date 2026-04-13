@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import PhotoAnalyzer from '@/modules/dashboard/components/PhotoAnalyzer';
+import AnalizMerkezi from '@/modules/dashboard/components/AnalizMerkezi';
 
 export default function Page() {
-    return <PhotoAnalyzer />;
+    return <AnalizMerkezi />;
 }

@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from '@/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { getImageDimensions } from '@/lib/image/image-optimizer';
+import { getImageDimensions } from '@/lib/image/image-processing-final';
 import {
   Dialog,
   DialogContent,
@@ -36,8 +36,8 @@ export default function PhotoAnalyzer() {
   const { toast } = useToast();
   const { user } = useUser();
   
-  // 🔥 Force Cache Bust v3.2.2
-  useEffect(() => { console.log('Viewora Orchestrator v3.2.2 Live'); }, []);
+  // 🔥 Final Cache Bust v3.2.5
+  useEffect(() => { console.log('Analiz Merkezi v3.2.5 Live (Atomic Fix)'); }, []);
 
   const firestore = useFirestore();
   const router = useRouter();

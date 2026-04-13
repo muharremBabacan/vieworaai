@@ -1,13 +1,13 @@
-/** v1.0.3 - Renamed to image-optimizer.ts for cache busting */
+/** v3.2.5 - Final Nuclear Cache Bust: Refactored correctly with 'img' declaration */
 /**
  * Client-side image utility functions for Viewora.
- * These functions run ONLY in the browser.
+ * Renamed to force fresh bundle generation.
  */
 
 export async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     try {
-      const img = new Image();
+      const img = new Image(); // ✅ Explicity declared
       const url = URL.createObjectURL(file);
       
       img.onload = () => {
@@ -39,7 +39,7 @@ export async function resizeImage(file: File, maxDimension: number = 1600): Prom
     const reader = new FileReader();
     
     reader.onload = (e) => {
-      const img = new Image();
+      const img = new Image(); // ✅ Explicity declared
       
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -63,7 +63,7 @@ export async function resizeImage(file: File, maxDimension: number = 1600): Prom
         const ctx = canvas.getContext('2d');
         
         if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height); // ✅ Scoped correctly
         }
 
         canvas.toBlob((blob) => {
