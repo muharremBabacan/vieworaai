@@ -1,3 +1,4 @@
+/** v1.0.2 - Force reload for image optimization reference fix */
 /**
  * Client-side image utility functions for Viewora.
  * These functions run ONLY in the browser.
