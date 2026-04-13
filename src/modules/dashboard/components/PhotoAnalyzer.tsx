@@ -35,6 +35,10 @@ export default function PhotoAnalyzer() {
   const locale = useLocale();
   const { toast } = useToast();
   const { user } = useUser();
+  
+  // 🔥 Force Cache Bust v3.2.2
+  useEffect(() => { console.log('Viewora Orchestrator v3.2.2 Live'); }, []);
+
   const firestore = useFirestore();
   const router = useRouter();
   const { currencyName } = useAppConfig();
