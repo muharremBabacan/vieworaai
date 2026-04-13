@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useRouter, Link } from "@/navigation";
 import { useTranslations, useLocale } from 'next-intl';
-import { prepareOptimizedFile } from '@/lib/image/client-utils';
+import { prepareOptimizedFile } from '@/lib/image/image-optimizer';
 import { VieworaImage } from '@/core/components/viewora-image';
 
 import {

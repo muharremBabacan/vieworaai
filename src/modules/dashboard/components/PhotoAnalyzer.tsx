@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useRouter } from '@/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { getImageDimensions } from '@/lib/image/client-utils';
+import { getImageDimensions } from '@/lib/image/image-optimizer';
 import {
   Dialog,
   DialogContent,

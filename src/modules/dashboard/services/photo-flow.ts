@@ -2,7 +2,7 @@
 import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy, limit, updateDoc, arrayUnion, Firestore } from 'firebase/firestore';
 import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import { uploadAndProcessImage } from '@/lib/image/actions';
-import { prepareOptimizedFile, generateImageHash } from '@/lib/image/client-utils';
+import { prepareOptimizedFile, generateImageHash } from '@/lib/image/image-optimizer';
 import { User, Photo, UserTier } from '@/types';
 
 export const TIER_COSTS: Record<UserTier, number> = {
