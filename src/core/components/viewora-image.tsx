@@ -65,6 +65,7 @@ export function VieworaImage({
             src={src}
             alt=""
             fill
+            sizes="100vw"
             className="object-cover"
             priority={props.priority}
           />

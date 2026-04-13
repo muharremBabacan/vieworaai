@@ -1,4 +1,4 @@
-
+import Image from 'next/image';
 import { RefreshCw, Loader2, Sparkles, Camera } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,9 @@ export const ProcessingStage = ({
       
       <div className="relative max-w-xl mx-auto aspect-square rounded-[32px] overflow-hidden border-8 border-background shadow-2xl mb-12 bg-black/5">
         <div className="absolute inset-0 scale-125 blur-3xl opacity-30 select-none pointer-events-none">
-          <img src={preview!} alt="" className="object-cover w-full h-full" />
+          <Image src={preview!} alt="" fill sizes="10vw" className="object-cover" />
         </div>
-        <img src={preview!} alt="Preview" className="relative z-10 object-contain w-full h-full transition-all duration-700" />
+        <Image src={preview!} alt="Preview" fill sizes="(max-width: 1024px) 100vw, 800px" className="relative z-10 object-contain transition-all duration-700" />
         
         <button 
           onClick={resetAnalyzer}
