@@ -141,5 +141,9 @@ service cloud.firestore {
         allow update: if isSignedIn();
       }
     }
+    match /guest_usage/{guestId} {
+      allow get: if true;
+      allow write: if false; // Only allowed via Server Actions (Admin SDK)
+    }
   }
 }
