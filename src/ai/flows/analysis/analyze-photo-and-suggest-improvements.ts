@@ -124,6 +124,18 @@ DİL: ${fullLanguage}
 `;
 
   try {
+    // 🔍 Diagnostics
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('❌ Server Action Error: OPENAI_API_KEY is missing.');
+      throw new Error('CONFIG_ERROR: OPENAI_API_KEY is not defined in environment.');
+    }
+
+    if (!adminDb) {
+      const initErr = (global as any)._adminInitError || 'Unknown Error';
+      console.error('❌ Server Action Error: adminDb is null. Init Error:', initErr);
+      throw new Error(`FIREBASE_ERROR: Admin SDK not initialized (${initErr})`);
+    }
+
     // 🔒 THE LOCK: Sunucu tarafı kontrolü
     if (input.guestId && adminDb) {
       const usageRef = adminDb.collection('guest_usage').doc(input.guestId);

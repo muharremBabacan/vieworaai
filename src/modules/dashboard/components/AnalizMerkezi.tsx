@@ -137,9 +137,13 @@ export default function PhotoAnalyzer() {
           return;
         }
 
-        console.error('[flow error]', err);
+        console.error('[AnalizMerkezi] Flow error:', err);
         setIsLoading(false);
-        toast({ variant: 'destructive', title: t('toast_analysis_fail_title'), description: t('toast_analysis_fail_description') });
+        toast({ 
+          variant: 'destructive', 
+          title: t('toast_analysis_fail_title'), 
+          description: err.message || t('toast_analysis_fail_description') 
+        });
       }
     });
   };
