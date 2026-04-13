@@ -143,10 +143,13 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions) => 
     }
 
     // 4. Upload
+    console.log("FLOW START");
+    console.log("FILE:", file);
     const formData = new FormData();
     formData.append('file', optimizedFile);
     const currentUserId = user?.uid || guestId || 'anonymous';
     const imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId, 'photos');
+    console.log("UPLOADED URL:", imageUrls.analysis);
 
     // 5. Data Prep
     const photoData: Photo = {
@@ -168,6 +171,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions) => 
         tier: currentTier,
         guestId: !user ? (guestId || undefined) : undefined
       });
+      console.log("ANALYSIS RESULT:", analysis);
 
       photoData.aiFeedback = analysis;
       photoData.analysisTier = currentTier;
