@@ -1,0 +1,1 @@
+self.addEventListener("fetch",e=>{!new URL(e.request.url).pathname.startsWith("/api")&&e.request.headers.get("next-action")});

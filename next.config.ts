@@ -12,10 +12,8 @@ const withPWA = withPWAInit({
   skipWaiting: true,
 });
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: import('next').NextConfig = {
   reactStrictMode: false,
-  middlewareClientMaxBodySize: '20mb',
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   images: {
@@ -39,16 +37,6 @@ const nextConfig = {
 };
 
 // @ts-ignore
-const finalConfig = withNextIntl(withPWA(nextConfig as any));
-
-// Force the properties again on the experimental object to prevent them from being stripped by old plugins
-if (!finalConfig.experimental) finalConfig.experimental = {};
-finalConfig.experimental.serverActions = {
-  bodySizeLimit: '20mb'
-};
-// Add core config after plugins
-finalConfig.middlewareClientMaxBodySize = '20mb';
-// External packages usually work better at top level or experimental depending on version
-finalConfig.serverExternalPackages = ["sharp"];
+const finalConfig = withNextIntl(withPWA(nextConfig));
 
 export default finalConfig;

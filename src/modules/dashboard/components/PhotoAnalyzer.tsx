@@ -211,8 +211,8 @@ export default function PhotoAnalyzer() {
   };
 
   const handleUploadAndOptionalAnalysis = async (analyze = false) => {
-    if (!file || !user || !firestore) {
-      console.warn('[PhotoAnalyzer] Missing required context (file, user, or firestore)');
+    if (!file || !firestore) {
+      console.warn('[PhotoAnalyzer] Missing context');
       return;
     }
 
@@ -258,28 +258,28 @@ export default function PhotoAnalyzer() {
       console.log('[PhotoAnalyzer] Stage 2: Generating hash...');
       const hash = await generateImageHash(file);
 
-      // 3. Adım: Duplicate Kontrolü
-      console.log('[PhotoAnalyzer] Stage 3: Checking for duplicates...');
-      const q = query(
-        collection(firestore, 'users', user.uid, 'photos'),
-        where('imageHash', '==', hash)
-      );
+      // 3. Adım: Duplicate Kontrolü (Sadece Üyeler İçin)
+      let duplicateDoc: any = null;
+      if (user) {
+        console.log('[PhotoAnalyzer] Stage 3: Checking for duplicates...');
+        const q = query(
+          collection(firestore, 'users', user.uid, 'photos'),
+          where('imageHash', '==', hash)
+        );
+        const dupSnap = await getDocs(q);
+        if (!dupSnap.empty) duplicateDoc = dupSnap.docs[0];
+      }
 
-      const dupSnap = await getDocs(q);
+      if (duplicateDoc) {
+        const existingPhoto = duplicateDoc.data() as Photo;
+        console.log('[PhotoAnalyzer] Duplicate found:', duplicateDoc.id);
 
-      if (!dupSnap.empty) {
-        const docSnap = dupSnap.docs[0];
-        const existingPhoto = docSnap.data() as Photo;
-        console.log('[PhotoAnalyzer] Duplicate found:', docSnap.id);
-
-        // Eğer analiz varsa direkt göster
         if (existingPhoto.aiFeedback) {
           setAnalysisResult(existingPhoto);
           toast({ title: t('toast_success_title') });
           return;
         }
 
-        // Daha önce yüklenmiş ama analiz yoksa ve kullanıcı analiz istiyorsa
         if (analyze) {
           console.log('[PhotoAnalyzer] Existing photo found without analysis. Starting analysis...');
           const analysis = await generatePhotoAnalysis({
@@ -288,7 +288,7 @@ export default function PhotoAnalyzer() {
             tier: currentTier
           });
 
-          await updateDoc(docSnap.ref, {
+          await updateDoc(duplicateDoc.ref, {
             aiFeedback: analysis,
             tags: analysis.tags || [],
             analysisTier: currentTier
@@ -298,7 +298,6 @@ export default function PhotoAnalyzer() {
           return;
         }
 
-        // Sadece upload istiyordu ama zaten var, galeriye yönlendir
         toast({ title: t('toast_upload_only_title'), description: t('toast_already_uploaded') });
         router.push('/gallery');
         return;
@@ -312,7 +311,8 @@ export default function PhotoAnalyzer() {
       formData.append('file', file);
 
       // Sunucu taraflı yükleme işlemi
-      const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'photos').catch(err => {
+      const currentUserId = user?.uid || guestId || 'anonymous';
+      const imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId, 'photos').catch(err => {
         console.error('[PhotoAnalyzer] Server Action failed:', err);
         throw new Error('UPLOAD_FAILED');
       });

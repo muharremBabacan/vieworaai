@@ -19,10 +19,22 @@ export interface ProcessingResult {
 
 export class ImageProcessor {
   private buffer: Buffer;
+  private rotatedBuffer: Buffer | null = null;
   private watermarkBuffer: Buffer | null = null;
 
   constructor(buffer: Buffer) {
     this.buffer = buffer;
+  }
+
+  /**
+   * Base optimizasyon: Görseli bir kere döndürür ve tampona alır.
+   * Bu sayede her türev için tekrar döndürme işlemi yapılmasına gerek kalmaz.
+   */
+  private async getRotatedPipeline() {
+    if (!this.rotatedBuffer) {
+      this.rotatedBuffer = await sharp(this.buffer).rotate().toBuffer();
+    }
+    return sharp(this.rotatedBuffer);
   }
 
   /**
@@ -55,7 +67,7 @@ export class ImageProcessor {
    * Belirli bir türev tipini üretir
    */
   async generateDerivative(type: DerivativeType): Promise<ProcessingResult> {
-    const pipeline = sharp(this.buffer).rotate();
+    const pipeline = await this.getRotatedPipeline();
     const metadata = await pipeline.metadata();
 
     switch (type) {
@@ -102,14 +114,12 @@ export class ImageProcessor {
         };
 
       case 'detailViewWatermarked':
-        // Detail View + Watermark Overlay
-        const baseDetail = await sharp(this.buffer)
-          .rotate()
+        // Base rotated image for watermarking
+        const baseDetail = await (await this.getRotatedPipeline())
           .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
           .toBuffer();
         
         const baseMeta = await sharp(baseDetail).metadata();
-        
         let finalPipeline = sharp(baseDetail);
         
         if (this.watermarkBuffer) {
@@ -159,23 +169,15 @@ export class ImageProcessor {
   }
 
   /**
-   * Tüm türevleri paralel olarak üretir
+   * Tüm türevleri SEQUENTIAL olarak üretir (Memory Safety)
    */
   async generateAll(): Promise<Record<DerivativeType, ProcessingResult>> {
     const types: DerivativeType[] = ['smallSquare', 'featureCover', 'detailView', 'detailViewWatermarked', 'analysis'];
-    
-    // Paralel işleme (Speed Optimization)
-    const resultsArray = await Promise.all(
-      types.map(async (type) => ({
-        type,
-        result: await this.generateDerivative(type)
-      }))
-    );
-    
     const results: any = {};
-    resultsArray.forEach(item => {
-      results[item.type] = item.result;
-    });
+    
+    for (const type of types) {
+      results[type] = await this.generateDerivative(type);
+    }
     
     return results;
   }
