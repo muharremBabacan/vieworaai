@@ -60,8 +60,14 @@ export async function uploadAndProcessImage(
 
     // Tüm türevleri üret
     console.log('[Server Action] Generating image derivatives (Sharp)...');
-    const derivatives = await processor.generateAll();
-    console.log('[Server Action] Successfully generated all derivatives.');
+    let derivatives: Record<DerivativeType, ProcessingResult>;
+    try {
+      derivatives = await processor.generateAll();
+      console.log('[Server Action] Successfully generated all derivatives.');
+    } catch (sharpError: any) {
+      console.error('[Server Action] Sharp processing failed:', sharpError.message);
+      throw new Error(`SHARP_PROCESSING_FAILED: ${sharpError.message}`);
+    }
 
     const bucket = adminStorage.bucket();
     if (!bucket) throw new Error('STORAGE_BUCKET_NOT_FOUND');
@@ -71,32 +77,49 @@ export async function uploadAndProcessImage(
     // Her türevi Storage'a yükle
     console.log('[Server Action] Starting upload to Storage bucket:', bucket.name || 'default');
     const uploadPromises = Object.entries(derivatives).map(async ([type, result]) => {
-      const typedResult = result as ProcessingResult | any;
+      const typedResult = result as ProcessingResult;
       if (!typedResult?.buffer) return;
 
       const filePath = `users/${userId}/${folder}/${photoId}/${type}.${typedResult.format || 'jpg'}`;
       const fileObj = bucket.file(filePath);
 
-      console.log(`[Server Action] Uploading ${type}... -> ${filePath}`);
+      console.log(`[Server Action] Uploading ${type}... (${typedResult.buffer.length} bytes)`);
 
-      await fileObj.save(typedResult.buffer, {
-        contentType: `image/${typedResult.format || 'jpg'}`,
-        metadata: { 
-          cacheControl: 'public, max-age=31536000'
-        }
-      });
+      try {
+        await fileObj.save(typedResult.buffer, {
+          contentType: `image/${typedResult.format || 'jpg'}`,
+          metadata: { 
+            cacheControl: 'public, max-age=31536000'
+          }
+        });
 
-      await fileObj.makePublic().catch(err => {
-        console.warn(`[Server Action] Failed to make file public (continuing): ${filePath}`, err?.message);
-      });
+        await fileObj.makePublic().catch(err => {
+          console.warn(`[Server Action] Failed to make file public: ${filePath}`, err?.message);
+        });
 
-      imageUrls[type as DerivativeType] = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        imageUrls[type as DerivativeType] = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+      } catch (uploadErr: any) {
+        console.error(`[Server Action] Failed to upload ${type}:`, uploadErr.message);
+        throw uploadErr;
+      }
     });
 
     await Promise.all(uploadPromises);
 
-    imageUrls.original = imageUrls.analysis || Object.values(imageUrls)[0];
-    console.log('[Server Action] Upload completed successfully. All URLs generated.');
+    // Final Validation
+    if (!imageUrls.analysis) {
+       console.error('[Server Action] Analysis URL is missing. Available URLs:', Object.keys(imageUrls));
+       throw new Error('MISSING_ANALYSIS_URL');
+    }
+
+    // Fill missing ones with analysis fallback to prevent crash in type-safe objects
+    imageUrls.original = imageUrls.analysis;
+    imageUrls.smallSquare = imageUrls.smallSquare || imageUrls.analysis;
+    imageUrls.featureCover = imageUrls.featureCover || imageUrls.analysis;
+    imageUrls.detailView = imageUrls.detailView || imageUrls.analysis;
+    imageUrls.detailViewWatermarked = imageUrls.detailViewWatermarked || imageUrls.analysis;
+
+    console.log('[Server Action] Upload completed successfully. All derivatives mapped.');
     return imageUrls as ImageDerivatives;
 
   } catch (error: any) {

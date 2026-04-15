@@ -37,6 +37,37 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     ... (isPublicPage ? [pathname] : [])
   ].includes(pathname);
   
+  // 🚀 GUEST TRACKING & PUBLIC ACCESS (İyileştirilmiş: Navigation döngüsünden ayrıldı)
+  useEffect(() => {
+    if (user || !firestore) return;
+
+    const handleGuestTracking = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const ref = searchParams.get('ref');
+      
+      let guestId = localStorage.getItem('guest_id');
+      if (!guestId) {
+        guestId = `GUEST-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        localStorage.setItem('guest_id', guestId);
+        
+        try {
+          await setDoc(doc(firestore, 'guest_sessions', guestId), {
+            guestId,
+            source: ref || 'direct',
+            firstSeen: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            isConverted: false
+          });
+          console.debug('[ClientLayout] New guest session tracked:', guestId);
+        } catch (e) {
+          console.error("Guest tracking error:", e);
+        }
+      }
+    };
+
+    handleGuestTracking();
+  }, [user, firestore]);
+
   // Navigation Logic
   useEffect(() => {
     if (isUserLoading || (user && isProfileLoading)) return;
@@ -61,39 +92,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         }
       }
     } else {
-      // 🚀 GUEST TRACKING & PUBLIC ACCESS
-      const handleGuestTracking = async () => {
-        const searchParams = new URLSearchParams(window.location.search);
-        const ref = searchParams.get('ref');
-        
-        let guestId = localStorage.getItem('guest_id');
-        if (!guestId) {
-          guestId = `GUEST-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-          localStorage.setItem('guest_id', guestId);
-          
-          if (firestore) {
-            try {
-              await setDoc(doc(firestore, 'guest_sessions', guestId), {
-                guestId,
-                source: ref || 'direct',
-                firstSeen: new Date().toISOString(),
-                userAgent: navigator.userAgent,
-                isConverted: false
-              });
-            } catch (e) {
-              console.error("Guest tracking error:", e);
-            }
-          }
-        }
-      };
-
-      handleGuestTracking();
-
       if (!isStandalonePage && !isPublicPage) {
         router.replace('/login');
       }
     }
-  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage, isPublicPage, firestore]);
+  // isStandalonePage ve isPublicPage deps'lere eklendi. Firestore signature'dan ayrıldı.
+  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage, isPublicPage]);
 
   // Global Loader for critical states
   if (isUserLoading || (user && isProfileLoading && !userProfile)) {

@@ -40,7 +40,7 @@ const configSchema = z.object({
 
 const userEditSchema = z.object({
   level_name: z.string(),
-  auro_balance: z.coerce.number().min(0),
+  Pix_balance: z.coerce.number().min(0),
   total_analyses_count: z.coerce.number().min(0),
   total_mentor_analyses_count: z.coerce.number().min(0),
   total_exhibitions_count: z.coerce.number().min(0),
@@ -117,12 +117,12 @@ export default function AdminPanel() {
   const metrics = useMemo(() => {
     if (!logs) return null;
     return {
-      totalAuro: logs.filter(l => l.auroSpent > 0).reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      techAuro: logs.filter(l => l.type === 'technical').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      mentorAuro: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      exhibitionAuro: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      competitionAuro: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.auroSpent || 0), 0),
-      totalGifts: Math.abs(logs.filter(l => l.type === 'gift').reduce((sum, log) => sum + (log.auroSpent || 0), 0)),
+      totalPix: logs.filter(l => l.PixSpent > 0).reduce((sum, log) => sum + (log.PixSpent || 0), 0),
+      techPix: logs.filter(l => l.type === 'technical').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
+      mentorPix: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
+      exhibitionPix: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
+      competitionPix: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
+      totalGifts: Math.abs(logs.filter(l => l.type === 'gift').reduce((sum, log) => sum + (log.PixSpent || 0), 0)),
     };
   }, [logs]);
 
@@ -162,7 +162,7 @@ export default function AdminPanel() {
       });
 
       batch.update(userRef, {
-        auro_balance: increment(purchase.pix_amount),
+        Pix_balance: increment(purchase.pix_amount),
         pix_balance: increment(purchase.pix_amount)
       });
 
@@ -171,7 +171,7 @@ export default function AdminPanel() {
         userId: purchase.user_id,
         userName: purchase.user_name,
         type: 'package',
-        auroSpent: -purchase.pix_amount,
+        PixSpent: -purchase.pix_amount,
         timestamp: new Date().toISOString(),
         status: 'success'
       } as AnalysisLog);
@@ -266,7 +266,7 @@ export default function AdminPanel() {
                 <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">{t('package')}</div>
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t('spent')}</CardDescription>
               </CardHeader>
-              <CardContent><p className="text-4xl font-black text-primary">{metrics?.totalAuro || 0}</p></CardContent>
+              <CardContent><p className="text-4xl font-black text-primary">{metrics?.totalPix || 0}</p></CardContent>
             </Card>
             {/* Other metric cards... */}
           </div>
@@ -284,7 +284,7 @@ export default function AdminPanel() {
                         <div><p className="text-lg font-black tracking-tight">{log.userName}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">{safeDate(log.timestamp) ? formatDistanceToNow(safeDate(log.timestamp)!, { addSuffix: true, locale: tr }) : '...'}</p></div>
                       </div>
                       <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/30 border border-border/40 font-black text-primary text-sm">
-                        <Gem className="h-3.5 w-3.5" /> {log.auroSpent > 0 ? `-${log.auroSpent}` : `+${Math.abs(log.auroSpent)}`}
+                        <Gem className="h-3.5 w-3.5" /> {log.PixSpent > 0 ? `-${log.PixSpent}` : `+${Math.abs(log.PixSpent)}`}
                       </div>
                     </div>
                   ))}
@@ -338,7 +338,7 @@ export default function AdminPanel() {
                     <TableRow key={u.id} className="group hover:bg-muted/30 transition-colors">
                       <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-base">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase font-bold">{u.email}</span></div></TableCell>
                       <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 text-primary">{u.level_name}</Badge></TableCell>
-                      <TableCell className="font-black text-foreground">{u.auro_balance}</TableCell>
+                      <TableCell className="font-black text-foreground">{u.Pix_balance}</TableCell>
                       <TableCell><div className="flex gap-2 text-[10px] font-bold uppercase"><span className="text-blue-400">F: {u.total_analyses_count || 0}</span><span className="text-purple-400">L: {u.total_mentor_analyses_count || 0}</span></div></TableCell>
                       <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> {t('manage')}</Button></TableCell>
                     </TableRow>
@@ -475,7 +475,7 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
     resolver: zodResolver(userEditSchema),
     defaultValues: {
       level_name: userToEdit?.level_name || 'Neuner',
-      auro_balance: userToEdit?.auro_balance || 0,
+      Pix_balance: userToEdit?.Pix_balance || 0,
       total_analyses_count: userToEdit?.total_analyses_count || 0,
       total_mentor_analyses_count: userToEdit?.total_mentor_analyses_count || 0,
       total_exhibitions_count: userToEdit?.total_exhibitions_count || 0,
@@ -487,7 +487,7 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
     if (userToEdit) {
       form.reset({
         level_name: userToEdit.level_name,
-        auro_balance: userToEdit.auro_balance,
+        Pix_balance: userToEdit.Pix_balance,
         total_analyses_count: userToEdit.total_analyses_count || 0,
         total_mentor_analyses_count: userToEdit.total_mentor_analyses_count || 0,
         total_exhibitions_count: userToEdit.total_exhibitions_count || 0,
@@ -537,7 +537,7 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
               />
               <FormField
                 control={form.control}
-                name="auro_balance"
+                name="Pix_balance"
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('pix_balance')}</FormLabel>

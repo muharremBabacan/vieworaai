@@ -37,7 +37,7 @@ export function useDoc<T = any>(
   // Loop Protection: Doc Signature
   const docSignature = useMemo(() => {
     if (!memoizedDocRef) return null;
-    return memoizedDocRef.path; // Doc path is stable
+    return memoizedDocRef.path; // Doc path is stable and uniquely identifies the document
   }, [memoizedDocRef]);
 
   useEffect(() => {

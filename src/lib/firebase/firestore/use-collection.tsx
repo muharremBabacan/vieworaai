@@ -37,15 +37,20 @@ export function useCollection<T = any>(
   const [error, setError] = useState<Error | null>(null);
 
   // Loop Protection: Query Signature
-  // Firestore objelerinin referansı her renderda değişebilir. 
-  // Ama path ve query yapısı aynıysa listener'ı yeniden başlatmamalıyız.
+  // Firestore objects change references on every query() call.
+  // We extract internal query structure to ensure stable listeners.
   const querySignature = useMemo(() => {
     if (!queryObj) return null;
     try {
-      // Query'nin iç yapısını string olarak alarak unique bir ID oluşturuyoruz
-      return (queryObj as any)._query?.toString() || 'unknown-query';
+      // For Firestore v9 SDK, _query contains the path and filters
+      const q = (queryObj as any)._query;
+      if (q) {
+        return `${q.path?.toString() || ''}|${JSON.stringify(q.filters || [])}|${JSON.stringify(q.explicitOrderBy || [])}`;
+      }
+      return (queryObj as any).toString(); 
     } catch (e) {
-      return Math.random().toString(); // Fallback
+      // If we can't signature it, we MUST NOT use Math.random() as it kills performance
+      return 'static-query-fallback'; 
     }
   }, [queryObj]);
 

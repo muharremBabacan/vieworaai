@@ -49,11 +49,22 @@ if (!admin.apps.length) {
   }
 }
 
-// 🛡️ Safe Export: Eğer başlatılamadıysa null dön veya hata fırlatıldığında terminalde görünüp UI'yı kırmasın.
-// Ancak Firestore işlemlerinde bu değişkenler kullanılacağı için başlatılmış olması zorunludur.
-const getAdminDb = () => admin.apps.length ? admin.firestore() : null!;
-const getAdminStorage = () => admin.apps.length ? admin.storage() : null!;
-const getAdminAuth = () => admin.apps.length ? admin.auth() : null!;
+// 🛡️ Safe Export: Eğer başlatılamadıysa hata fırlatan yardımcılar kullanıyoruz.
+// Bu sayede "Cannot read properties of null" yerine anlamlı bir hata mesajı alıyoruz.
+const getAdminDb = () => {
+  if (!admin.apps.length) throw new Error('FIREBASE_ADMIN_NOT_INITIALIZED: Admin DB access failed.');
+  return admin.firestore();
+};
+
+const getAdminStorage = () => {
+  if (!admin.apps.length) throw new Error('FIREBASE_ADMIN_NOT_INITIALIZED: Admin Storage access failed.');
+  return admin.storage();
+};
+
+const getAdminAuth = () => {
+  if (!admin.apps.length) throw new Error('FIREBASE_ADMIN_NOT_INITIALIZED: Admin Auth access failed.');
+  return admin.auth();
+};
 
 export const adminDb = getAdminDb();
 export const adminStorage = getAdminStorage();

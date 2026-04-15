@@ -59,13 +59,13 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const isNotificationsEnabled = userProfile?.notifications_enabled;
+
   const setupFCM = useCallback(async () => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !user) return;
     
-    // Check if user has explicitly enabled notifications in their profile
-    // If userProfile is still loading, we might wait or skip. 
-    // Usually, we skip if it's explicitly false.
-    if (userProfile && userProfile.notifications_enabled === false) {
+    // Check if user has explicitly disabled notifications in their profile
+    if (isNotificationsEnabled === false) {
       console.log('[PushProvider] Notifications are disabled in user profile. Skipping FCM setup.');
       return;
     }
@@ -96,7 +96,7 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (currentToken) {
-        console.log('[PushProvider] Token:', currentToken);
+        console.log('[PushProvider] Token identified. Syncing...');
         await NotificationAPI.saveToken(user.uid, currentToken);
         await NotificationAPI.subscribeToTopic(currentToken, 'all_users');
       }
@@ -105,10 +105,8 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
       onMessage(messaging, (payload) => {
         console.log('[PushProvider] Foreground Message:', payload);
         
-        // Double check enabled flag before showing toast
-        // We might want to show it anyway if the user is active, but the request was "turning off".
-        // Let's respect the flag.
-        if (userProfile?.notifications_enabled === false) return;
+        // Double check enabled flag
+        if (isNotificationsEnabled === false) return;
 
         toast({
           title: payload.notification?.title || 'Yeni Bildirim',
@@ -138,7 +136,7 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('[PushProvider] Setup failed:', error);
     }
-  }, [user, userProfile, toast]);
+  }, [user, isNotificationsEnabled, toast]); // Now depends on primitive flag instead of whole object
 
   useEffect(() => {
     if (user) {
