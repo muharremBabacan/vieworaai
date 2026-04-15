@@ -298,7 +298,7 @@ export default function AcademyAdminPanel() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('label_level')}</Label>
-              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+              <Select value={selectedLevel} onValueChange={(val) => { setSelectedLevel(val); setSelectedModuleId(''); setSelectedLessonId(''); }}>
                 <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-border/60">
                   <SelectValue />
                 </SelectTrigger>

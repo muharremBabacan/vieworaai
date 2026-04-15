@@ -42,7 +42,7 @@ export function serializeData(data: any): any {
   // SADECE PURE OBJECT ise her key'i tara
   // Bu kontrol, Firestore DocumentReference veya Firebase App gibi devasa objelerin 
   // içine girip sistemi çökertmeyi (stack overflow/serialization error) engeller.
-  if (Object.prototype.toString.call(data) === '[object Object]') {
+  if (data.constructor === Object) {
     const result: any = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
