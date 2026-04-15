@@ -90,7 +90,9 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     guestId, guestUsed, currentTier
   } = options;
 
-  console.log('🚀 [photo-flow] STARTING FLOW', { 
+  let lastSuccessfulStep = 'INITIALIZATION';
+
+  console.log('🚀 [photo-flow] STARTING NUCLEAR FLOW', { 
     analyze, 
     userId: user?.uid || 'guest', 
     guestId, 
@@ -100,67 +102,76 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     fileType: file?.type 
   });
 
-  // 0. HARD GUARDS
-  if (!file) {
-    console.error('❌ [photo-flow] FATAL: No file provided');
-    return { type: 'error', code: 'MISSING_FILE' };
-  }
-  if (!firestore) {
-    console.error('❌ [photo-flow] FATAL: Firestore instance is missing');
-    return { type: 'error', code: 'FIRESTORE_NOT_INITIALIZED' };
-  }
-
-  const analysisCost = TIER_COSTS[currentTier] || 1;
-
-  // 1. Initial Checks & Context
-  if (!user) {
-    console.log('📍 [photo-flow] Context: Guest User');
-    if (guestUsed || !analyze) {
-      console.warn('⚠️ [photo-flow] Guest limit reached or analysis disabled');
-      return { type: 'marketing_required' };
-    }
-  } else {
-    console.log('📍 [photo-flow] Context: Registered User', { balance: userProfile?.pix_balance });
-    const currentBalance = userProfile?.pix_balance || 0;
-    
-    if (analyze && currentBalance < analysisCost) {
-      console.warn('⚠️ [photo-flow] Insufficient balance for user:', user.uid);
-      return { type: 'error', code: 'INSUFFICIENT_BALANCE' };
-    }
-  }
-
   try {
+    // 0. HARD GUARDS
+    if (!file) {
+      console.error('❌ [photo-flow] FATAL: No file provided');
+      return { type: 'error', code: 'MISSING_FILE' };
+    }
+    if (!firestore) {
+      console.error('❌ [photo-flow] FATAL: Firestore instance is missing');
+      return { type: 'error', code: 'FIRESTORE_NOT_INITIALIZED' };
+    }
+
+    const analysisCost = TIER_COSTS[currentTier] || 1;
+
+    // 1. Initial Checks & Context
+    console.log('📍 [photo-flow] STEP 1: Context validation...');
+    if (!user) {
+      if (guestUsed || !analyze) {
+        console.warn('⚠️ [photo-flow] Guest limit reached or analysis disabled');
+        return { type: 'marketing_required' };
+      }
+    } else {
+      const currentBalance = userProfile?.pix_balance || 0;
+      if (analyze && currentBalance < analysisCost) {
+        console.warn('⚠️ [photo-flow] Insufficient balance');
+        return { type: 'error', code: 'INSUFFICIENT_BALANCE' };
+      }
+    }
+    lastSuccessfulStep = 'STEP_1_CONTEXT_OK';
+
+    // 2. Photo ID generation
     const photoId = doc(collection(firestore, 'photos')).id;
-    console.log('📦 [photo-flow] STEP 1: Generated Photo ID:', photoId);
+    console.log('📦 [photo-flow] STEP 2: Photo ID:', photoId);
+    lastSuccessfulStep = 'STEP_2_ID_GENERATED';
 
-    // 2. Hash & Optimization
-    console.log('⚙️ [photo-flow] STEP 2: Processing image (hash/dims/optimization)...');
+    // 3. Hash & Optimization
+    console.log('⚙️ [photo-flow] STEP 3: Generating Image Hash...');
     const hash = await generateImageHash(file);
-    const dims = await getImageDimensions(file);
-    console.log('📊 [photo-flow] Image stats:', { hash, dims });
+    console.log('✅ [photo-flow] Hash calculated:', hash);
+    lastSuccessfulStep = 'STEP_3A_HASH_OK';
 
+    console.log('⚙️ [photo-flow] STEP 3B: Getting Dimensions...');
+    const dims = await getImageDimensions(file);
+    console.log('📊 [photo-flow] Dimensions:', dims);
+    lastSuccessfulStep = 'STEP_3B_DIMS_OK';
+
+    console.log('⚙️ [photo-flow] STEP 3C: Optimizing/Resizing (1600px)...');
     let optimizedFile: File;
     try {
       optimizedFile = await prepareOptimizedFile(file, 1600);
-      console.log('✅ [photo-flow] Optimization complete');
+      console.log('✅ [photo-flow] Optimization complete. New size:', optimizedFile.size);
     } catch (err: any) {
-      console.error('❌ [photo-flow] Optimization failed:', err?.message);
+      console.error('❌ [photo-flow] Image optimization failed:', err?.message);
       if (err?.message === 'PHOTO_TOO_SMALL') {
         return { type: 'resolution_error', dims };
       }
-      throw err || new Error('Optimization failed');
+      throw err;
     }
+    lastSuccessfulStep = 'STEP_3C_OPTIMIZATION_OK';
 
-    // 3. Duplicate Check
+    // 4. Duplicate Check
     if (user) {
-      console.log('🔍 [photo-flow] STEP 3: Performing duplicate check...');
+      console.log('🔍 [photo-flow] STEP 4: Checking for duplicates in user library...');
       const q = query(
         collection(firestore, 'users', user.uid, 'photos'),
         where('imageHash', '==', hash)
       );
       const dupSnap = await getDocs(q);
+      
       if (!dupSnap.empty) {
-        console.log('♻️ [photo-flow] Duplicate found in library');
+        console.log('♻️ [photo-flow] Duplicate found. ID:', dupSnap.docs[0].id);
         const existingData = dupSnap.docs[0].data();
         if (!existingData) throw new Error('DUPLICATE_DATA_MISSING');
         
@@ -182,7 +193,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
            if (!analysis) throw new Error('AI_ANALYSIS_FAILED');
 
-           console.log('💾 [photo-flow] Updating existing record with AI feedback');
+           console.log('💾 [photo-flow] Saving analysis to existing record...');
            const batch = writeBatch(firestore);
            batch.update(dupSnap.docs[0].ref, {
              aiFeedback: analysis,
@@ -190,39 +201,40 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
              analysisTier: currentTier
            });
            
-           const userRef = doc(firestore, 'users', user.uid);
-           batch.update(userRef, {
+           batch.update(doc(firestore, 'users', user.uid), {
              pix_balance: increment(-analysisCost),
              total_analyses_count: increment(1)
            });
            
            await batch.commit();
-           console.log('✅ [photo-flow] Batch update complete');
+           console.log('✅ [photo-flow] Duplicate analysis saved');
 
-           updateUserProfileIndex(firestore, user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo)).catch(err => 
-             console.error('⚠️ [photo-flow] Index update failed:', err)
+           updateUserProfileIndex(firestore, user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo)).catch(e => 
+             console.error('⚠️ [photo-flow] Index update error:', e)
            );
 
            return { type: 'success', data: serializeData({ ...existingPhoto, aiFeedback: analysis, id: dupSnap.docs[0].id }) };
         }
-        console.log('✅ [photo-flow] Returning upload-only for duplicate');
         return { type: 'upload_only' };
       }
     }
+    lastSuccessfulStep = 'STEP_4_DUPLICATE_CHECK_OK';
 
-    // 4. Upload
-    console.log('☁️ [photo-flow] STEP 4: Uploading to storage...');
+    // 5. Upload
+    console.log('☁️ [photo-flow] STEP 5: Calling Server Action for Upload...');
     const formData = new FormData();
     formData.append('file', optimizedFile);
     const currentUserId = user?.uid || guestId || 'anonymous';
+    
+    // Potansiyel Server Action sızmasını önlemek için async/await'i dikkatli kullan
     const imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId, 'photos');
     
     if (!imageUrls?.analysis) {
-      throw new Error('UPLOAD_FAILED_NO_URL');
+      throw new Error('UPLOAD_SERVER_ACTION_RETURNED_EMPTY_URLS');
     }
     console.log('✅ [photo-flow] Upload successful:', imageUrls.analysis);
+    lastSuccessfulStep = 'STEP_5_UPLOAD_OK';
 
-    // 5. Data Prep
     const photoData: Photo = {
       id: photoId,
       userId: currentUserId,
@@ -234,9 +246,9 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       tags: []
     };
 
-    // 6. Analysis OR Save
+    // 6. Analysis
     if (analyze) {
-      console.log('🤖 [photo-flow] STEP 5: Starting AI analysis...');
+      console.log('🤖 [photo-flow] STEP 6: Starting AI Analysis (GPT-4o)...');
       const analysis = await generatePhotoAnalysis({
         photoUrl: imageUrls.analysis,
         language: locale,
@@ -251,7 +263,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       photoData.analysisTier = currentTier;
 
       if (user) {
-        console.log('💾 [photo-flow] STEP 6: Saving to Firestore (Batch)...');
+        console.log('💾 [photo-flow] STEP 7: Saving to Firestore (Batch Commit)...');
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
         const userRef = doc(firestore, 'users', user.uid);
         const batch = writeBatch(firestore);
@@ -263,37 +275,48 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
         });
         
         await batch.commit();
-        console.log('✅ [photo-flow] Save complete');
+        console.log('✅ [photo-flow] Firestore save complete');
         
-        updateUserProfileIndex(firestore, user.uid, getOverallScore(photoData)).catch(err => 
-          console.error('⚠️ [photo-flow] Index update failed:', err)
+        updateUserProfileIndex(firestore, user.uid, getOverallScore(photoData)).catch(e => 
+          console.error('⚠️ [photo-flow] Profile index update failure:', e)
         );
       }
+      lastSuccessfulStep = 'STEP_7_COMPLETE';
       return { type: 'success', data: serializeData(photoData) };
     } else {
       if (user) {
-        console.log('💾 [photo-flow] STEP 5: Saving upload-only to Firestore...');
+        console.log('💾 [photo-flow] STEP 6: Saving upload-only entry...');
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
-        const userRef = doc(firestore, 'users', user.uid);
         const batch = writeBatch(firestore);
         batch.set(photoDocRef, photoData);
-        batch.update(userRef, { current_xp: increment(5) });
+        batch.update(doc(firestore, 'users', user.uid), { current_xp: increment(5) });
         await batch.commit();
         console.log('✅ [photo-flow] Upload-only save complete');
       }
+      lastSuccessfulStep = 'STEP_6_UPLOAD_ONLY_COMPLETE';
       return { type: 'upload_only' };
     }
   } catch (error: any) {
-    const errorMsg = error?.message || 'Unknown fatal error in photo-flow';
-    console.error('🔥 [photo-flow] FATAL ERROR:', { 
+    // 🔥 ELITE ERROR LOGGING
+    console.error('🚨 [photo-flow] CRITICAL EXCEPTION CAUGHT');
+    console.error('Last Successful Step:', lastSuccessfulStep);
+    
+    // Log the raw error so browser console can format it properly
+    console.error('Raw Error:', error);
+
+    const errorMsg = error?.message || 'Unknown execution error';
+    const errorCode = error?.code || 'FLOW_CRASH';
+
+    console.error('Summary:', { 
       message: errorMsg, 
-      code: error?.code,
-      stack: error?.stack?.substring(0, 200) 
+      code: errorCode,
+      lastStep: lastSuccessfulStep 
     });
+
     return { 
       type: 'error', 
-      code: error?.code || 'EXECUTION_FAILED', 
-      message: errorMsg 
+      code: errorCode, 
+      message: `${errorMsg} (at ${lastSuccessfulStep})`
     };
   }
 };
