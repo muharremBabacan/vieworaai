@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { cn, safeDate } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
 import { useTranslations, useLocale } from 'next-intl';
@@ -510,7 +510,7 @@ export default function GalleryPage() {
                   )}
                 </DialogTitle>
                 <DialogDescription className="text-[10px] md:text-xs font-black uppercase tracking-widest text-muted-foreground/60">
-                  {t('dialog_upload_date', { date: new Date(selectedPhoto.createdAt).toLocaleDateString() })}
+                  {t('dialog_upload_date', { date: safeDate(selectedPhoto.createdAt)?.toLocaleDateString() || '...' })}
                 </DialogDescription>
               </DialogHeader>
 

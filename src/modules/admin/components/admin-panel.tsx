@@ -26,7 +26,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { cn, safeDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAppConfig } from '@/components/AppConfigProvider';
@@ -281,7 +281,7 @@ export default function AdminPanel() {
                         <div className={cn("p-3 rounded-2xl border", log.type === 'technical' ? "bg-blue-500/10 text-blue-400" : log.type === 'mentor' ? "bg-purple-500/10 text-purple-400" : "bg-cyan-500/10 text-cyan-400")}>
                           {log.type === 'technical' ? <Camera className="h-5 w-5" /> : log.type === 'mentor' ? <Sparkles className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
                         </div>
-                        <div><p className="text-lg font-black tracking-tight">{log.userName}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">{formatDistanceToNow(new Date(log.timestamp), { addSuffix: true, locale: tr })}</p></div>
+                        <div><p className="text-lg font-black tracking-tight">{log.userName}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">{safeDate(log.timestamp) ? formatDistanceToNow(safeDate(log.timestamp)!, { addSuffix: true, locale: tr }) : '...'}</p></div>
                       </div>
                       <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/30 border border-border/40 font-black text-primary text-sm">
                         <Gem className="h-3.5 w-3.5" /> {log.auroSpent > 0 ? `-${log.auroSpent}` : `+${Math.abs(log.auroSpent)}`}
@@ -414,7 +414,7 @@ export default function AdminPanel() {
                                     <TableCell className="px-8 font-bold">{ex.title}</TableCell>
                                     <TableCell><Badge className={cn(ex.isActive ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground")}>{ex.isActive ? "Aktif" : "Pasif"}</Badge></TableCell>
                                     <TableCell className="text-right px-8 text-[10px] font-bold text-muted-foreground">
-                                        {typeof ex.startDate === 'string' ? ex.startDate : (ex.startDate as any)?.toDate()?.toLocaleDateString('tr-TR')} - {typeof ex.endDate === 'string' ? ex.endDate : (ex.endDate as any)?.toDate()?.toLocaleDateString('tr-TR')}
+                                        {safeDate(ex.startDate)?.toLocaleDateString('tr-TR')} - {safeDate(ex.endDate)?.toLocaleDateString('tr-TR')}
                                     </TableCell>
                                 </TableRow>
                             ))}

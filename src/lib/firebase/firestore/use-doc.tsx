@@ -10,7 +10,7 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { serializeData } from '@/lib/utils';
+import { serializeData, deepCompare } from '@/lib/utils';
 
 type WithId<T> = T & { id: string };
 
@@ -34,24 +34,39 @@ export function useDoc<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
+  // Loop Protection: Doc Signature
+  const docSignature = useMemo(() => {
+    if (!memoizedDocRef) return null;
+    return memoizedDocRef.path; // Doc path is stable
+  }, [memoizedDocRef]);
+
   useEffect(() => {
     let unsubscribe: () => void = () => {};
 
     if (!memoizedDocRef) {
-      setData(null);
+      if (data !== null) setData(null);
       setError(null);
       setIsLoading(false);
       return;
     }
+
+    // DEBUG: Listener start
+    console.debug(`[useDoc] Starting ${realtime ? 'realtime' : 'one-time'} fetch for:`, docSignature);
 
     setIsLoading(true);
     setError(null);
 
     const processSnapshot = (snapshot: DocumentSnapshot<DocumentData>) => {
       if (snapshot.exists()) {
-        setData({
+        const result = {
           ...(serializeData(snapshot.data()) as T),
           id: snapshot.id,
+        };
+        
+        // LOOP PROTECTION: Sadece veri gerçekten değiştiyse state update yap
+        setData(prev => {
+          if (deepCompare(prev, result)) return prev;
+          return result;
         });
       } else {
         setData(null);
@@ -61,8 +76,6 @@ export function useDoc<T = any>(
 
     const handleError = (err: FirestoreError) => {
       const auth = getAuth();
-
-      // Logout sırasında gelen permission hatasını ignore et
       if (err.code === 'permission-denied' && !auth.currentUser) {
         setData(null);
         setIsLoading(false);
@@ -70,7 +83,6 @@ export function useDoc<T = any>(
       }
 
       console.error('Firestore useDoc error:', err);
-
       setError(err);
       setData(null);
       setIsLoading(false);
@@ -79,16 +91,18 @@ export function useDoc<T = any>(
     if (realtime) {
       unsubscribe = onSnapshot(memoizedDocRef, processSnapshot, handleError);
     } else {
-      getDoc(memoizedDocRef)
-        .then(processSnapshot)
-        .catch(handleError);
+      getDoc(memoizedDocRef).then(processSnapshot).catch(handleError);
     }
 
     return () => {
-      if (realtime) unsubscribe();
+      if (realtime) {
+        console.debug(`[useDoc] Unsubscribing from:`, docSignature);
+        unsubscribe();
+      }
     };
 
-  }, [memoizedDocRef, realtime]);
+  // docSignature kullanarak referans değişimlerinden kaynaklanan loop'u önlüyoruz
+  }, [docSignature, realtime]);
 
   return {
     data,
