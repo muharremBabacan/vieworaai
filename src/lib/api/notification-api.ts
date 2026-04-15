@@ -1,98 +1,113 @@
-const NOTIFICATION_SERVER_URL = process.env.NEXT_PUBLIC_NOTIFICATION_SERVER_URL || 'http://localhost:3001';
+const NOTIFICATION_SERVER_URL = process.env.NEXT_PUBLIC_NOTIFICATION_SERVER_URL;
+
+// 🔴 HARD FAIL (production'da localhost'a düşmez)
+if (!NOTIFICATION_SERVER_URL) {
+  console.warn("Notification disabled (no server)");
+}
+
+const buildUrl = (path: string) => {
+  if (!NOTIFICATION_SERVER_URL) return null;
+  return `${NOTIFICATION_SERVER_URL}${path}`;
+};
+
+const safeFetch = async (url: string | null, options: RequestInit) => {
+  if (!url) {
+    console.warn('[NotificationAPI] Skipped request: URL not defined');
+    return null;
+  }
+
+  try {
+    const response = await fetch(url, options);
+
+    // 🛡️ response kontrolü
+    if (!response.ok) {
+      console.warn('[NotificationAPI] Non-200 response:', response.status);
+      return null;
+    }
+
+    // JSON parse güvenli
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+
+  } catch (error) {
+    console.warn('[NotificationAPI] Server unreachable:', url);
+    return null;
+  }
+};
 
 export class NotificationAPI {
-  /**
-   * Cihaz token'ını sunucuya kaydeder.
-   */
+
   static async saveToken(userId: string, token: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${NOTIFICATION_SERVER_URL}/api/save-token`, {
+    if (!NOTIFICATION_SERVER_URL) return false;
+    const data = await safeFetch(
+      buildUrl('/api/save-token'),
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, token }),
-      });
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
-      return false;
-    }
+      }
+    );
+
+    return !!data?.success;
   }
 
-  /**
-   * Konu (Topic) aboneliği yapar.
-   */
   static async subscribeToTopic(token: string, topic: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${NOTIFICATION_SERVER_URL}/api/subscribe`, {
+    if (!NOTIFICATION_SERVER_URL) return false;
+    const data = await safeFetch(
+      buildUrl('/api/subscribe'),
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, topic }),
-      });
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
-      return false;
-    }
+      }
+    );
+
+    return !!data?.success;
   }
 
-  /**
-   * [TEST] Moderasyon sonucunu tetikle.
-   */
   static async triggerModerationEvent(userId: string, photoId: string): Promise<void> {
-    try {
-      await fetch(`${NOTIFICATION_SERVER_URL}/api/test/approve-photo`, {
+    await safeFetch(
+      buildUrl('/api/test/approve-photo'),
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, photoId }),
-      });
-    } catch (error) {
-      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
-    }
+      }
+    );
   }
 
-  /**
-   * [TEST] Yeni yarışma tetikle.
-   */
   static async triggerNewCompetitionEvent(): Promise<void> {
-    try {
-      await fetch(`${NOTIFICATION_SERVER_URL}/api/test/new-competition`, {
+    await safeFetch(
+      buildUrl('/api/test/new-competition'),
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-      });
-    } catch (error) {
-      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
-    }
+      }
+    );
   }
 
-  /**
-   * [TEST] Yeni ders tetikle.
-   */
   static async triggerNewLessonEvent(count: number): Promise<void> {
-    try {
-      await fetch(`${NOTIFICATION_SERVER_URL}/api/test/new-lesson`, {
+    await safeFetch(
+      buildUrl('/api/test/new-lesson'),
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ count }),
-      });
-    } catch (error) {
-      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
-    }
+      }
+    );
   }
 
-  /**
-   * [TEST] Admin mesajı gönder.
-   */
   static async triggerAdminMessage(userId: string, title: string, body: string): Promise<void> {
-    try {
-      await fetch(`${NOTIFICATION_SERVER_URL}/api/test/admin-message`, {
+    await safeFetch(
+      buildUrl('/api/test/admin-message'),
+      {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, title, body }),
-      });
-    } catch (error) {
-      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
-    }
+      }
+    );
   }
 }
