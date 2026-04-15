@@ -26,14 +26,17 @@ export async function uploadAndProcessImage(
 
   try {
     const file = formData.get('file') as File;
-    if (!file) {
-      console.error('[Server Action] No file found in FormData');
-      throw new Error('No file provided in FormData');
+    if (!file || !userId || !photoId) {
+      console.error('[Server Action] Missing required data:', { hasFile: !!file, userId, photoId });
+      throw new Error('MISSING_DATA');
     }
     
     console.log(`[Server Action] File received: ${file.name}, Size: ${file.size} bytes, Type: ${file.type}`);
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    if (!buffer || buffer.length === 0) {
+      throw new Error('INVALID_BUFFER');
+    }
     console.log('[Server Action] Buffer created. Size:', buffer.length);
 
     const processor = new ImageProcessor(buffer);
@@ -41,17 +44,19 @@ export async function uploadAndProcessImage(
     // Çözünürlük Kontrolü (Min 800px)
     console.log('[Server Action] Validating resolution...');
     await processor.validateResolution().catch(err => {
-      console.warn(`[Server Action] Resolution validation failed: ${err.message}`);
-      if (err.message.startsWith('RESOLUTION_TOO_LOW')) {
+      console.warn(`[Server Action] Resolution validation failed: ${err?.message || 'Unknown'}`);
+      if (err?.message?.startsWith('RESOLUTION_TOO_LOW')) {
         throw new Error('PHOTO_TOO_SMALL');
       }
-      throw err;
+      throw err || new Error('VALIDATION_FAILED');
     });
 
     // Watermark yükle (public klasöründen)
     const watermarkPath = path.join(process.cwd(), 'public/icon-512.png');
     console.log('[Server Action] Loading watermark from:', watermarkPath);
-    await processor.loadWatermark(watermarkPath);
+    await processor.loadWatermark(watermarkPath).catch(err => {
+      console.warn('[Server Action] Watermark loading failed, continuing without it:', err?.message);
+    });
 
     // Tüm türevleri üret
     console.log('[Server Action] Generating image derivatives (Sharp)...');
@@ -59,26 +64,30 @@ export async function uploadAndProcessImage(
     console.log('[Server Action] Successfully generated all derivatives.');
 
     const bucket = adminStorage.bucket();
+    if (!bucket) throw new Error('STORAGE_BUCKET_NOT_FOUND');
+    
     const imageUrls: Partial<ImageDerivatives> = {};
 
     // Her türevi Storage'a yükle
-    console.log('[Server Action] Starting upload to Storage bucket:', bucket.name);
+    console.log('[Server Action] Starting upload to Storage bucket:', bucket.name || 'default');
     const uploadPromises = Object.entries(derivatives).map(async ([type, result]) => {
-      const typedResult = result as ProcessingResult;
-      const filePath = `users/${userId}/${folder}/${photoId}/${type}.${typedResult.format}`;
-      const file = bucket.file(filePath);
+      const typedResult = result as ProcessingResult | any;
+      if (!typedResult?.buffer) return;
+
+      const filePath = `users/${userId}/${folder}/${photoId}/${type}.${typedResult.format || 'jpg'}`;
+      const fileObj = bucket.file(filePath);
 
       console.log(`[Server Action] Uploading ${type}... -> ${filePath}`);
 
-      await file.save(typedResult.buffer, {
-        contentType: `image/${typedResult.format}`,
+      await fileObj.save(typedResult.buffer, {
+        contentType: `image/${typedResult.format || 'jpg'}`,
         metadata: { 
           cacheControl: 'public, max-age=31536000'
         }
       });
 
-      await file.makePublic().catch(err => {
-        console.warn(`[Server Action] Failed to make file public (continuing): ${filePath}`, err.message);
+      await fileObj.makePublic().catch(err => {
+        console.warn(`[Server Action] Failed to make file public (continuing): ${filePath}`, err?.message);
       });
 
       imageUrls[type as DerivativeType] = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
@@ -86,13 +95,14 @@ export async function uploadAndProcessImage(
 
     await Promise.all(uploadPromises);
 
-    imageUrls.original = imageUrls.analysis;
+    imageUrls.original = imageUrls.analysis || Object.values(imageUrls)[0];
     console.log('[Server Action] Upload completed successfully. All URLs generated.');
     return imageUrls as ImageDerivatives;
 
   } catch (error: any) {
-    console.error('[Server Action] FATAL ERROR in uploadAndProcessImage:', error.message);
-    if (error.stack) console.error(error.stack);
-    throw error;
+    const errorMsg = error?.message || 'Unknown fatal error in upload service';
+    console.error('[Server Action] FATAL ERROR in uploadAndProcessImage:', errorMsg);
+    if (error?.stack) console.error(error.stack);
+    throw new Error(errorMsg);
   }
 }

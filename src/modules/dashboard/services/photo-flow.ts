@@ -4,6 +4,7 @@ import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-sug
 import { uploadAndProcessImage } from '@/lib/image/actions';
 import { prepareOptimizedFile, generateImageHash, getImageDimensions } from '@/lib/image/image-processing-final';
 import { User, Photo, UserTier } from '@/types';
+import { serializeData } from '@/lib/utils';
 
 export const TIER_COSTS: Record<UserTier, number> = {
   start: 1,
@@ -69,7 +70,7 @@ export type FlowResult =
   | { type: 'upload_only' }
   | { type: 'resolution_error'; dims: { width: number; height: number } }
   | { type: 'marketing_required' }
-  | { type: 'error'; code: string };
+  | { type: 'error'; code: string; message?: string };
 
 export type AnalysisFlowOptions = {
   file: File;
@@ -91,14 +92,18 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
   const analysisCost = TIER_COSTS[currentTier] || 1;
 
-  // 1. Context & Balance Check
+  // 1. Initial Guest check
   if (!user) {
     if (guestUsed || !analyze) {
       return { type: 'marketing_required' };
     }
-  } else {
-    const currentBalance = userProfile?.pix_balance || 0;
+  }
+
+  // 2. Initial Balance check
+  if (user && userProfile) {
+    const currentBalance = userProfile.pix_balance || 0;
     if (analyze && currentBalance < analysisCost) {
+      console.warn('[photo-flow] Insufficient balance for user:', user.uid);
       return { type: 'error', code: 'INSUFFICIENT_BALANCE' };
     }
   }
@@ -107,39 +112,42 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     const photoId = doc(collection(firestore, 'photos')).id;
 
     // 2. Hash & Optimization
-    // We hash the ORIGINAL file for deterministic duplicate detection across any browser/device.
     const hash = await generateImageHash(file);
-
-    // Get dimensions early for potential error reporting
     const dims = await getImageDimensions(file);
 
     let optimizedFile: File;
     try {
       optimizedFile = await prepareOptimizedFile(file, 1600);
     } catch (err: any) {
-      if (err.message === 'PHOTO_TOO_SMALL') {
+      if (err?.message === 'PHOTO_TOO_SMALL') {
         return { type: 'resolution_error', dims };
       }
-      throw err;
+      throw err || new Error('Optimization failed');
     }
 
     // 3. Duplicate Check
     if (user) {
+      console.log('[photo-flow] Performing duplicate check...');
       const q = query(
         collection(firestore, 'users', user.uid, 'photos'),
         where('imageHash', '==', hash)
       );
       const dupSnap = await getDocs(q);
       if (!dupSnap.empty) {
-        const existingPhoto = dupSnap.docs[0].data() as Photo;
+        console.log('[photo-flow] Duplicate found.');
+        const existingPhoto = serializeData(dupSnap.docs[0].data()) as Photo;
+        
         if (existingPhoto.aiFeedback) {
-          return { type: 'success', data: existingPhoto };
+          return { type: 'success', data: { ...existingPhoto, id: dupSnap.docs[0].id } };
         }
+        
         if (analyze) {
+           console.log('[photo-flow] Re-analyzing existing photo...');
            const analysis = await generatePhotoAnalysis({
              photoUrl: existingPhoto.imageUrls?.analysis || existingPhoto.imageUrl,
              language: locale,
-             tier: currentTier
+             tier: currentTier,
+             guestId: undefined
            });
 
            const batch = writeBatch(firestore);
@@ -149,13 +157,11 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
              analysisTier: currentTier
            });
            
-           if (user) {
-             const userRef = doc(firestore, 'users', user.uid);
-             batch.update(userRef, {
-               pix_balance: increment(-analysisCost),
-               total_analyses_count: increment(1)
-             });
-           }
+           const userRef = doc(firestore, 'users', user.uid);
+           batch.update(userRef, {
+             pix_balance: increment(-analysisCost),
+             total_analyses_count: increment(1)
+           });
            
            await batch.commit();
 
@@ -164,13 +170,14 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
              console.error('[photo-flow] Index update failed:', err)
            );
 
-           return { type: 'success', data: { ...existingPhoto, aiFeedback: analysis } };
+           return { type: 'success', data: serializeData({ ...existingPhoto, aiFeedback: analysis, id: dupSnap.docs[0].id }) };
         }
         return { type: 'upload_only' };
       }
     }
 
     // 4. Upload
+    console.log('[photo-flow] Uploading new photo...');
     const formData = new FormData();
     formData.append('file', optimizedFile);
     const currentUserId = user?.uid || guestId || 'anonymous';
@@ -190,6 +197,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
     // 6. Analysis OR Save
     if (analyze) {
+      console.log('[photo-flow] Starting AI analysis...');
       const analysis = await generatePhotoAnalysis({
         photoUrl: imageUrls.analysis,
         language: locale,
@@ -201,6 +209,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       photoData.analysisTier = currentTier;
 
       if (user) {
+        console.log('[photo-flow] Saving analysis result to Firestore...');
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
         const userRef = doc(firestore, 'users', user.uid);
         const batch = writeBatch(firestore);
@@ -216,9 +225,10 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
           console.error('[photo-flow] Index update failed:', err)
         );
       }
-      return { type: 'success', data: photoData };
+      return { type: 'success', data: serializeData(photoData) };
     } else {
       if (user) {
+        console.log('[photo-flow] Saving upload-only to Firestore...');
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
         const userRef = doc(firestore, 'users', user.uid);
         const batch = writeBatch(firestore);
@@ -229,8 +239,10 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       return { type: 'upload_only' };
     }
   } catch (error: any) {
-    console.error('[photo-flow] Execution error:', error);
-    return { type: 'error', code: error.code || 'UNKNOWN_ERROR' };
+    const errorMsg = error?.message || 'Unknown fatal error in photo-flow';
+    console.error('[photo-flow] Execution error:', errorMsg);
+    if (error?.stack) console.error(error.stack);
+    return { type: 'error', code: error?.code || 'UNKNOWN_ERROR', message: errorMsg };
   }
 };
 

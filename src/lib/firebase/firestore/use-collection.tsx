@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   onSnapshot,
+  getDocs,
   DocumentData,
   FirestoreError,
   Query,
@@ -10,15 +11,17 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useUser } from '@/lib/firebase/provider';
+import { serializeData } from '@/lib/utils';
 
 export type WithId<T> = T & { id: string };
 
 interface UseCollectionOptions {
   requireAuth?: boolean;
+  realtime?: boolean;
 }
 
 export function useCollection<T = any>(
-  query: Query<DocumentData> | null | undefined,
+  queryObj: Query<DocumentData> | null | undefined,
   options: UseCollectionOptions = {}
 ): {
   data: WithId<T>[] | null;
@@ -26,7 +29,7 @@ export function useCollection<T = any>(
   error: Error | null;
 } {
 
-  const { requireAuth = false } = options;
+  const { requireAuth = false, realtime = true } = options;
   const { user } = useUser();
 
   const [data, setData] = useState<WithId<T>[] | null>(null);
@@ -34,8 +37,9 @@ export function useCollection<T = any>(
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    let unsubscribe: () => void = () => {};
 
-    if (!query || (requireAuth && !user?.uid)) {
+    if (!queryObj || (requireAuth && !user?.uid)) {
       setData(null);
       setIsLoading(false);
       return;
@@ -44,50 +48,54 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    const unsubscribe = onSnapshot(
-      query,
+    const processSnapshot = (snapshot: QuerySnapshot<DocumentData>) => {
+      const results = snapshot.docs.map((doc) => ({
+        ...(serializeData(doc.data()) as T),
+        id: doc.id,
+      }));
 
-      (snapshot: QuerySnapshot<DocumentData>) => {
+      setData(results);
+      setIsLoading(false);
+    };
 
-        const results = snapshot.docs.map((doc) => ({
-          ...(doc.data() as T),
-          id: doc.id,
-        }));
+    const handleError = (err: FirestoreError | any) => {
+      const auth = getAuth();
 
-        setData(results);
+      // Logout sırasında gelen permission hatasını ignore et
+      if (err.code === 'permission-denied' && !auth.currentUser) {
+        setData(null);
         setIsLoading(false);
-      },
-
-      (err: FirestoreError) => {
-
-        const auth = getAuth();
-
-        // Logout sırasında gelen permission hatasını ignore et
-        if (err.code === 'permission-denied' && !auth.currentUser) {
-          setData(null);
-          setIsLoading(false);
-          return;
-        }
-
-        console.error('Firestore useCollection error:', err);
-
-        if (err.code === 'failed-precondition') {
-          setError(
-            new Error(
-              'Veritabanı indeksleri hazırlanıyor. Lütfen birkaç dakika sonra tekrar deneyin.'
-            )
-          );
-        } else {
-          setError(err);
-        }
-
-        setIsLoading(false);
+        return;
       }
-    );
 
-    return () => unsubscribe();
+      console.error('Firestore useCollection error:', err);
 
-  }, [query, requireAuth, user?.uid]);
+      if (err.code === 'failed-precondition') {
+        setError(
+          new Error(
+            'Veritabanı indeksleri hazırlanıyor. Lütfen birkaç dakika sonra tekrar deneyin.'
+          )
+        );
+      } else {
+        setError(err instanceof Error ? err : new Error(err.message || 'Firestore connection error'));
+      }
+
+      setIsLoading(false);
+    };
+
+    if (realtime) {
+      unsubscribe = onSnapshot(queryObj, processSnapshot, handleError);
+    } else {
+      getDocs(queryObj)
+        .then(processSnapshot)
+        .catch(handleError);
+    }
+
+    return () => {
+      if (realtime) unsubscribe();
+    };
+
+  }, [queryObj, requireAuth, user?.uid, realtime]);
 
   return { data, isLoading, error };
 }

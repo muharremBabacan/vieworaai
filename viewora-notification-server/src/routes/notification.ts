@@ -72,4 +72,17 @@ router.post('/test/new-competition', async (req: Request, res: Response) => {
     res.json({ success: true, message: "Competition Event triggered" });
 });
 
+router.post('/test/new-lesson', async (req: Request, res: Response) => {
+    const { count } = req.body;
+    await exhibitionService.notifyNewLessons(count || 1);
+    res.json({ success: true, message: "Lesson Event triggered" });
+});
+
+router.post('/test/admin-message', async (req: Request, res: Response) => {
+    const { userId, title, body } = req.body;
+    console.log(`[Route] Incoming Admin Message for User: ${userId}`);
+    await exhibitionService.notifyAdminMessage(userId, title, body);
+    res.json({ success: true, message: "Admin Message sent" });
+});
+
 export default router;

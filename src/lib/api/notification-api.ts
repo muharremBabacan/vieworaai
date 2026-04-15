@@ -65,4 +65,34 @@ export class NotificationAPI {
       console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
     }
   }
+
+  /**
+   * [TEST] Yeni ders tetikle.
+   */
+  static async triggerNewLessonEvent(count: number): Promise<void> {
+    try {
+      await fetch(`${NOTIFICATION_SERVER_URL}/api/test/new-lesson`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count }),
+      });
+    } catch (error) {
+      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
+    }
+  }
+
+  /**
+   * [TEST] Admin mesajı gönder.
+   */
+  static async triggerAdminMessage(userId: string, title: string, body: string): Promise<void> {
+    try {
+      await fetch(`${NOTIFICATION_SERVER_URL}/api/test/admin-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, title, body }),
+      });
+    } catch (error) {
+      console.warn('[NotificationAPI] Notification Server is unreachable. Connection failed.');
+    }
+  }
 }

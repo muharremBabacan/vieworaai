@@ -17,6 +17,7 @@ import { Loader2, Sparkles, GraduationCap, Image as ImageIcon, Save, CheckCircle
 import { generateAcademyLessons, generateLessonImage, type GeneratedAcademyLesson } from '@/ai/flows/lesson/generate-academy-lessons';
 import type { CurriculumTopic } from '@/types';
 import { cn } from '@/lib/utils';
+import { NotificationAPI } from '@/lib/api/notification-api';
 
 export default function AcademyAdminPanel() {
   const t = useTranslations('AdminPanel');
@@ -158,6 +159,10 @@ export default function AcademyAdminPanel() {
       }
 
       toast({ title: t('toast_success_title'), description: t('toast_lessons_published', { count: previewLessons.length }) });
+      
+      // 🚀 AUTOMATIC NOTIFICATION: Trigger broadcast to all users
+      await NotificationAPI.triggerNewLessonEvent(previewLessons.length);
+
       setPreviewLessons([]);
     } catch (e: any) {
       toast({ variant: 'destructive', title: t('toast_publish_error_title'), description: e.message });

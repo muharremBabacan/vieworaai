@@ -24,6 +24,17 @@ class ExhibitionService {
     // 2. Broadcast to all
     await notificationService.notifyNewCompetition();
   }
+
+  async notifyNewLessons(count: number): Promise<void> {
+    const title = "Yeni Dersler Yayında! 🎓";
+    const body = `${count} yeni akademi dersi şimdi seni bekliyor. Hemen öğrenmeye başla!`;
+    await notificationService.sendToTopic('all_users', title, body);
+  }
+
+  async notifyAdminMessage(userId: string, title: string, body: string): Promise<void> {
+    console.log(`[Admin Message] Sending to user ${userId}: ${title}`);
+    await notificationService.sendToUser(userId, title, body);
+  }
 }
 
 export const exhibitionService = new ExhibitionService();

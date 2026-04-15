@@ -357,7 +357,7 @@
     "filter_status_exhibition": "Sergidekiler",
     "filter_status_best": "En İyilerim",
     "filter_category_all": "Tüm Türler",
-    "badge_in_exhibition": "SERGİDE",
+
     "dialog_details_title": "Eser Detayları",
     "dialog_upload_date": "{date} tarihinde yüklendi",
     "dialog_luma_report_title": "Luma Karnesi",
@@ -465,14 +465,10 @@
     "form_visibility_private_desc": "Sadece üyeler görebilir",
     "form_placeholder_comp_subject": "Örn: Sokak Fotoğrafçılığı"
   },
-  "CompetitionsPage": {
-    "title": "Yarışmalar",
-    "card_button_details": "DETAYLARI GÖR",
-    "button_view_entries": "KATILIMLARI GÖRÜNTÜLE"
-  },
+
   "GroupDetailPage": {
     "toast_profile_updated": "Grup ayarları güncellendi.",
-    "toast_error": "Bir hata oluştu, lütfen tekrar deneyin.",
+
     "status_saving": "Kaydediliyor...",
     "button_join": "Gruba Katıl",
     "label_prizes": "Ödül Listesi",
@@ -550,7 +546,7 @@
     "tab_events": "Etkinlikler",
     "tab_trainings": "Eğitimler",
     "tab_settings": "Ayarlar",
-    "badge_founder": "Kurucu",
+
     "archive_detail_label": "YARIŞMA DETAYI LİSTESİ",
     "label_archive_reason": "Sonlandırma Gerekçesi",
     "label_participants": "Katılımcı",
@@ -614,7 +610,7 @@
     "trip_card_button_yes": "Geliyorum",
     "trip_card_button_no": "Gelemem",
     "toast_rsvp_updated": "RSVP Güncellendi",
-    "badge_founder": "KURUCU",
+
     "label_total_members": "TOPLAM ÜYE",
     "assignment_success_description": "Çalışman sistem tarafından başarıyla kaydedildi.",
     "type_start": "BAŞLANGIÇ",
@@ -719,8 +715,8 @@
     "archive_reason_other": "Diğer",
     "button_detail_review": "Detay İncele",
     "admin_form_required_tag_placeholder": "Zorunlu Etiket (Opsiyonel)",
-    "toast_tag_mismatch": "Bu fotoğraf yarışma etiketiyle ({tag}) eşleşmiyor.",
-    "toast_error": "Bir hata oluştu."
+    "toast_tag_mismatch": "Bu fotoğraf yarışma etiketiyle ({tag}) eşleşmiyor."
+
   },
   "GuestExperience": {
     "guest_code_label": "Ziyaretçi Kodu",
@@ -917,6 +913,14 @@
     "invite_button_decline": "Reddet"
   },
   "SettingsPage": {
+    "notification_settings_title": "Bildirim Ayarları",
+    "notification_modal_title": "Bildirimleri Aç 🎓",
+    "notification_modal_desc": "Yarışma sonuçları, fotoğraf analizleri ve özel duyurulardan anında haberdar ol.",
+    "notification_button_enable": "Şimdi Aktifleştir",
+    "notification_button_later": "Daha Sonra",
+    "notification_enabled": "Açık",
+    "notification_disabled": "Kapalı",
+    "notification_toggle_label": "Bildirimleri Yönet",
     "profile_settings": "Profil Ayarları",
     "nickname_label": "Takma Ad",
     "phone_label": "Telefon",
@@ -1012,6 +1016,7 @@
     "list_groups": "Grup Yönetimi",
     "list_exhibitions": "Platform Sergileri"
   },
+
   "PWA": {
     "title": "📲 Viewora’yı uygulama gibi kullan",
     "description": "Daha hızlı erişim, daha iyi deneyim, tarayıcıya gerek yok",

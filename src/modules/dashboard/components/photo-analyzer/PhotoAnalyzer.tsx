@@ -17,6 +17,9 @@ import { ProcessingStage } from './ProcessingStage';
 import { ResultStage } from './ResultStage';
 import { ResolutionDialog } from './ResolutionDialog';
 import { MarketingModal } from './MarketingModal';
+import { usePush } from '@/components/providers/PushProvider';
+import { Bell, ShieldCheck } from 'lucide-react';
+import { NotificationOnboarding } from '@/components/notifications/NotificationOnboarding';
 
 // Constants
 import { TIER_COSTS } from '../../services/photo-flow';
@@ -29,6 +32,7 @@ export default function PhotoAnalyzer() {
   const { toast } = useToast();
   const router = useRouter();
   const { currencyName } = useAppConfig();
+  const { permission, requestPermission } = usePush();
   
   const {
     status,
@@ -106,6 +110,8 @@ export default function PhotoAnalyzer() {
   return (
     <div className="container mx-auto px-4 pt-6 pb-24 animate-in fade-in duration-700">
       
+      <NotificationOnboarding />
+
       {status === 'done' && analysisResult && (
         <ResultStage 
           analysisResult={analysisResult} 

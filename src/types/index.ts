@@ -175,6 +175,7 @@ export type User = {
   language?: string;
   score_history?: { score: number; date: string }[];
   profile_index?: UserProfileIndex;
+  notifications_enabled?: boolean;
   provider: 'google' | 'email';
 };
 

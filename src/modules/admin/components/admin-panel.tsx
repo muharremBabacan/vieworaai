@@ -19,7 +19,7 @@ import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@
 import {
   Loader2, Trophy, Camera, Users, Globe, Gem, Settings2, Sparkles, GraduationCap, Package, Save, CreditCard, Activity as ActivityIcon, Edit3, Shield
 } from 'lucide-react';
-import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase } from '@/types';
+import type { Competition, Exhibition, AnalysisLog, User, AppSettings, PixPackage, PixPurchase, Group } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
@@ -32,6 +32,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAppConfig } from '@/components/AppConfigProvider';
 import AcademyAdminPanel from './AcademyAdminPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { NotificationAPI } from '@/lib/api/notification-api';
 
 const configSchema = z.object({
   currencyName: z.string().min(2, 'En az 2 karakter').max(10, 'En fazla 10 karakter'),
@@ -89,13 +90,13 @@ export default function AdminPanel() {
     [firestore]
   );
 
-  const { data: appConfig } = useDoc<AppSettings>(configRef);
-  const { data: logs } = useCollection<AnalysisLog>(logsQuery);
-  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
-  const { data: dbPackages } = useCollection<PixPackage>(packagesQuery);
-  const { data: pendingPurchases } = useCollection<PixPurchase>(purchasesQuery);
-  const { data: allGroups } = useCollection<Group>(allGroupsQuery);
-  const { data: allExhibitions } = useCollection<Exhibition>(allExhibitionsQuery);
+  const { data: appConfig } = useDoc<AppSettings>(configRef, { realtime: false });
+  const { data: logs } = useCollection<AnalysisLog>(logsQuery, { realtime: false });
+  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery, { realtime: false });
+  const { data: dbPackages } = useCollection<PixPackage>(packagesQuery, { realtime: false });
+  const { data: pendingPurchases } = useCollection<PixPurchase>(purchasesQuery, { realtime: false });
+  const { data: allGroups } = useCollection<Group>(allGroupsQuery, { realtime: false });
+  const { data: allExhibitions } = useCollection<Exhibition>(allExhibitionsQuery, { realtime: false });
 
   const configForm = useForm({
     resolver: zodResolver(configSchema),
@@ -186,7 +187,10 @@ export default function AdminPanel() {
     if (!firestore || !notifyingOwnerId || !notificationMsg || isSubmitting) return;
     setIsSubmitting(true);
     try {
-        const notifRef = doc(collection(firestore, 'notifications'));
+        console.log('[AdminPanel] Sending notification...', { notifyingOwnerId, notificationMsg });
+        
+        // Correct path: /users/{userId}/notifications/{notifId}
+        const notifRef = doc(collection(firestore, 'users', notifyingOwnerId, 'notifications'));
         await setDoc(notifRef, {
             id: notifRef.id,
             userId: notifyingOwnerId,
@@ -196,10 +200,23 @@ export default function AdminPanel() {
             createdAt: new Date().toISOString(),
             read: false
         });
+
+        console.log('[AdminPanel] Firestore record created, triggering Push...');
+
+        // 🚀 PUSH NOTIFICATION: Send instant alert via Notification Server
+        await NotificationAPI.triggerAdminMessage(
+            notifyingOwnerId, 
+            "Admin Mesajı 🛡️", 
+            notificationMsg
+        );
+
+        console.log('[AdminPanel] Push Notification triggered successfully');
+
         toast({ title: t('toast_notification_sent') });
         setNotifyingOwnerId(null);
         setNotificationMsg('');
     } catch (e) {
+        console.error('[AdminPanel] Notification Error:', e);
         toast({ variant: 'destructive', title: t('toast_error') });
     } finally { setIsSubmitting(false); }
   };
@@ -235,6 +252,7 @@ export default function AdminPanel() {
               <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_accounting')}</TabsTrigger>
               <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_payments')}</TabsTrigger>
               <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_users')}</TabsTrigger>
+              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_academy')}</TabsTrigger>
               <TabsTrigger value="community" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_community')}</TabsTrigger>
               <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_general')}</TabsTrigger>
             </TabsList>
@@ -395,7 +413,9 @@ export default function AdminPanel() {
                                 <TableRow key={ex.id} className="group hover:bg-muted/30">
                                     <TableCell className="px-8 font-bold">{ex.title}</TableCell>
                                     <TableCell><Badge className={cn(ex.isActive ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground")}>{ex.isActive ? "Aktif" : "Pasif"}</Badge></TableCell>
-                                    <TableCell className="text-right px-8 text-[10px] font-bold text-muted-foreground">{ex.startDate} - {ex.endDate}</TableCell>
+                                    <TableCell className="text-right px-8 text-[10px] font-bold text-muted-foreground">
+                                        {typeof ex.startDate === 'string' ? ex.startDate : (ex.startDate as any)?.toDate()?.toLocaleDateString('tr-TR')} - {typeof ex.endDate === 'string' ? ex.endDate : (ex.endDate as any)?.toDate()?.toLocaleDateString('tr-TR')}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

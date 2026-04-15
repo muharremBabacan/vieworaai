@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, Settings as SettingsIcon, User as UserIcon, Camera, Check, ShieldAlert, Sparkles, Diamond, Zap, Flame, Award, HelpCircle, Phone, Instagram, Languages, Loader2 } from 'lucide-react';
+import { LogOut, Settings as SettingsIcon, User as UserIcon, Camera, Check, ShieldAlert, Sparkles, Diamond, Zap, Flame, Award, HelpCircle, Phone, Instagram, Languages, Loader2, Bell } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -18,6 +18,7 @@ import { signOut, updateProfile } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useTranslations } from 'next-intl';
+import { usePush } from '@/components/providers/PushProvider';
 
 const PRESET_AVATARS = Array.from({ length: 12 }, (_, i) => {
   const num = i + 1;
@@ -39,6 +40,72 @@ const LANGUAGE_OPTIONS = [
   { value: 'ru', label: 'Русский' },
   { value: 'zh', label: '中文' },
 ];
+
+import { Switch } from '@/components/ui/switch';
+
+const NotificationSettings = ({ t, user, firestore, notificationsEnabled }: { t: any, user: any, firestore: any, notificationsEnabled: boolean }) => {
+  const { permission, requestPermission } = usePush();
+  const [isPending, setIsPending] = useState(false);
+
+  const handleToggle = async (checked: boolean) => {
+    if (!user || !firestore) return;
+    setIsPending(true);
+    try {
+      // 1. Update Firestore
+      await updateDoc(doc(firestore, 'users', user.uid), { 
+        notifications_enabled: checked 
+      });
+
+      // 2. If enabling, ensure permission is requested
+      if (checked && permission === 'default') {
+        await requestPermission();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsPending(false);
+    }
+  };
+  
+  return (
+    <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 shadow-sm animate-in fade-in duration-500">
+      <CardHeader className="p-8 border-b bg-primary/5">
+        <CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight">
+          <Bell className="h-6 w-6 text-primary" /> {t('notification_settings_title')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-8 space-y-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-1 text-center md:text-left">
+            <h4 className="font-black text-sm uppercase tracking-tight">{t('notification_toggle_label')}</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t('notification_modal_desc')}
+            </p>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end gap-1">
+                <span className={cn(
+                    "text-[10px] font-black uppercase tracking-widest",
+                    notificationsEnabled ? "text-green-500" : "text-muted-foreground"
+                )}>
+                    {notificationsEnabled ? t('notification_enabled') : t('notification_disabled')}
+                </span>
+                <span className="text-[8px] font-bold text-muted-foreground uppercase opacity-50">
+                    Sistem: {permission.toUpperCase()}
+                </span>
+            </div>
+            <Switch 
+                checked={notificationsEnabled}
+                onCheckedChange={handleToggle}
+                disabled={isPending}
+                className="data-[state=checked]:bg-green-500"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function SettingsPage() {
   const t = useTranslations('SettingsPage');
@@ -231,6 +298,13 @@ export default function SettingsPage() {
       </Card>
 
       {isDevUser && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
+
+      <NotificationSettings 
+        t={t} 
+        user={user} 
+        firestore={firestore} 
+        notificationsEnabled={userProfile?.notifications_enabled ?? false} 
+      />
 
       <Card className="rounded-[32px] overflow-hidden border-border/40 bg-card/50">
         <CardHeader className="p-8 border-b bg-secondary/10">
