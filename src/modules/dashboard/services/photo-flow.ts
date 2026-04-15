@@ -34,7 +34,7 @@ export const updateUserProfileIndex = async (firestore: Firestore, userId: strin
   const q = query(photosRef, where('aiFeedback', '!=', null), orderBy('createdAt', 'desc'), limit(12));
   const snap = await getDocs(q);
   if (snap.empty) return;
-  
+
   const analyzedPhotos = snap.docs.map(d => d.data() as Photo);
   const count = analyzedPhotos.length;
   const totals = analyzedPhotos.reduce((acc, p) => {
@@ -85,21 +85,21 @@ export type AnalysisFlowOptions = {
 };
 
 export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Promise<FlowResult> => {
-  const { 
-    file, analyze, user, userProfile, firestore, locale, 
+  const {
+    file, analyze, user, userProfile, firestore, locale,
     guestId, guestUsed, currentTier
   } = options;
 
   let lastSuccessfulStep = 'INITIALIZATION';
 
-  console.log('🚀 [photo-flow] STARTING NUCLEAR FLOW', { 
-    analyze, 
-    userId: user?.uid || 'guest', 
-    guestId, 
-    locale, 
+  console.log('🚀 [photo-flow] STARTING NUCLEAR FLOW', {
+    analyze,
+    userId: user?.uid || 'guest',
+    guestId,
+    locale,
     tier: currentTier,
     fileSize: file?.size,
-    fileType: file?.type 
+    fileType: file?.type
   });
 
   try {
@@ -169,51 +169,51 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
         where('imageHash', '==', hash)
       );
       const dupSnap = await getDocs(q);
-      
+
       if (!dupSnap.empty) {
         console.log('♻️ [photo-flow] Duplicate found. ID:', dupSnap.docs[0].id);
         const existingData = dupSnap.docs[0].data();
         if (!existingData) throw new Error('DUPLICATE_DATA_MISSING');
-        
+
         const existingPhoto = serializeData(existingData) as Photo;
-        
+
         if (existingPhoto.aiFeedback) {
           console.log('✅ [photo-flow] Returning existing analyzed photo');
           return { type: 'success', data: { ...existingPhoto, id: dupSnap.docs[0].id } };
         }
-        
+
         if (analyze) {
-           console.log('🤖 [photo-flow] Re-analyzing existing photo...');
-           const analysis = await generatePhotoAnalysis({
-             photoUrl: existingPhoto.imageUrls?.analysis || existingPhoto.imageUrl,
-             language: locale,
-             tier: currentTier,
-             guestId: undefined
-           });
+          console.log('🤖 [photo-flow] Re-analyzing existing photo...');
+          const analysis = await generatePhotoAnalysis({
+            photoUrl: existingPhoto.imageUrls?.analysis || existingPhoto.imageUrl,
+            language: locale,
+            tier: currentTier,
+            guestId: undefined
+          });
 
-           if (!analysis) throw new Error('AI_ANALYSIS_FAILED');
+          if (!analysis) throw new Error('AI_ANALYSIS_FAILED');
 
-           console.log('💾 [photo-flow] Saving analysis to existing record...');
-           const batch = writeBatch(firestore);
-           batch.update(dupSnap.docs[0].ref, {
-             aiFeedback: analysis,
-             tags: analysis.tags || [],
-             analysisTier: currentTier
-           });
-           
-           batch.update(doc(firestore, 'users', user.uid), {
-             pix_balance: increment(-analysisCost),
-             total_analyses_count: increment(1)
-           });
-           
-           await batch.commit();
-           console.log('✅ [photo-flow] Duplicate analysis saved');
+          console.log('💾 [photo-flow] Saving analysis to existing record...');
+          const batch = writeBatch(firestore);
+          batch.update(dupSnap.docs[0].ref, {
+            aiFeedback: analysis,
+            tags: analysis.tags || [],
+            analysisTier: currentTier
+          });
 
-           updateUserProfileIndex(firestore, user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo)).catch(e => 
-             console.error('⚠️ [photo-flow] Index update error:', e)
-           );
+          batch.update(doc(firestore, 'users', user.uid), {
+            pix_balance: increment(-analysisCost),
+            total_analyses_count: increment(1)
+          });
 
-           return { type: 'success', data: serializeData({ ...existingPhoto, aiFeedback: analysis, id: dupSnap.docs[0].id }) };
+          await batch.commit();
+          console.log('✅ [photo-flow] Duplicate analysis saved');
+
+          updateUserProfileIndex(firestore, user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo)).catch(e =>
+            console.error('⚠️ [photo-flow] Index update error:', e)
+          );
+
+          return { type: 'success', data: serializeData({ ...existingPhoto, aiFeedback: analysis, id: dupSnap.docs[0].id }) };
         }
         return { type: 'upload_only' };
       }
@@ -225,12 +225,12 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     const formData = new FormData();
     formData.append('file', optimizedFile);
     const currentUserId = user?.uid || guestId || 'anonymous';
-    
+
     const imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId, 'photos').catch(e => {
-       console.error('[FLOW-ERROR] Upload Server Action failed:', e.message);
-       throw e;
+      console.error('[FLOW-ERROR] Upload Server Action failed:', e.message);
+      throw e;
     });
-    
+
     if (!imageUrls?.analysis) {
       console.error('[FLOW-ERROR] Upload succeeded but analysis URL is missing');
       throw new Error('UPLOAD_SERVER_ACTION_RETURNED_EMPTY_URLS');
@@ -250,30 +250,65 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     };
 
     // 6. Analysis
+    // 6. Analysis
     if (analyze) {
       console.log('[FLOW-DEBUG] STEP 6: Starting AI Analysis...');
-      
-      // 🛡️ Hard Guard: Don't call AI without URL
+
+      // 🛡️ Hard Guard
       if (!imageUrls.analysis) {
         throw new Error("photoUrl missing before AI call");
       }
 
-      const analysis = await generatePhotoAnalysis({
-        photoUrl: imageUrls.analysis,
-        language: locale,
-        tier: currentTier,
-        guestId: !user ? (guestId || undefined) : undefined
-      }).catch(e => {
-        console.error('[FLOW-ERROR] AI Analysis Service failed:', e.message);
-        throw e;
-      });
+      let analysis = null; // 🔴 BURASI ÖNEMLİ
 
-      if (!analysis) {
-        console.error('[FLOW-ERROR] AI Service returned null/undefined');
-        throw new Error('analysis failed');
+      try {
+        console.log('[FLOW-DEBUG] STEP 6: Calling AI...');
+
+        const raw = await generatePhotoAnalysis({
+          photoUrl: imageUrls.analysis,
+          language: locale,
+          tier: currentTier,
+          guestId: !user ? (guestId || undefined) : undefined
+        });
+
+        if (!raw) {
+          throw new Error('AI_EMPTY_RESPONSE');
+        }
+
+        // 🛡️ JSON güvenliği
+        if (typeof raw === 'string') {
+          try {
+            analysis = JSON.parse(raw);
+          } catch (e) {
+            console.error('[AI ERROR] JSON PARSE FAILED:', raw);
+            throw new Error('AI_INVALID_JSON');
+          }
+        } else {
+          analysis = raw;
+        }
+
+      } catch (e: any) {
+        console.error('🔥 [AI FAILSAFE TRIGGERED]', {
+          message: e?.message,
+          stack: e?.stack
+        });
+
+        // 💡 FALLBACK → sistem çökmez
+        analysis = {
+          light_score: 0,
+          composition_score: 0,
+          technical_clarity_score: 0,
+          storytelling_score: 0,
+          boldness_score: 0,
+          tags: ['analysis_failed'],
+          summary: 'AI analysis failed. Please retry.'
+        };
       }
-      
-      console.log('[FLOW-DEBUG] AI Analysis successful Result:', JSON.stringify(analysis).substring(0, 100) + '...');
+
+      console.log(
+        '[FLOW-DEBUG] AI Analysis Result:',
+        JSON.stringify(analysis).substring(0, 100) + '...'
+      );
 
       photoData.aiFeedback = analysis;
       photoData.analysisTier = currentTier;
@@ -283,20 +318,20 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
         const userRef = doc(firestore, 'users', user.uid);
         const batch = writeBatch(firestore);
-        
+
         batch.set(photoDocRef, photoData);
         batch.update(userRef, {
           pix_balance: increment(-analysisCost),
           total_analyses_count: increment(1)
         });
-        
+
         await batch.commit().catch(e => {
           console.error('[FLOW-ERROR] Firestore batch commit failed:', e.message);
           throw e;
         });
         console.log('[FLOW-DEBUG] Flow Complete. Overall Score:', getOverallScore(photoData));
-        
-        updateUserProfileIndex(firestore, user.uid, getOverallScore(photoData)).catch(e => 
+
+        updateUserProfileIndex(firestore, user.uid, getOverallScore(photoData)).catch(e =>
           console.error('[FLOW-ERROR] Profile index update failure:', e.message)
         );
       }
@@ -318,22 +353,53 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       lastSuccessfulStep = 'STEP_6_UPLOAD_ONLY_COMPLETE';
       return { type: 'upload_only' };
     }
-  } catch (error: any) {
-    // 🔥 FLOW ERROR LOGGING
-    console.error('[FLOW-ERROR] CRITICAL EXCEPTION IN PHOTO FLOW');
-    console.error('Last Step:', lastSuccessfulStep);
-    console.error('Message:', error?.message);
-    console.error('Stack:', error?.stack);
-    console.error('Full Object:', JSON.stringify(error, null, 2));
+  }
+  catch (error: any) {
+    console.error('🚨 [photo-flow] CRITICAL EXCEPTION CAUGHT');
 
-    const errorMsg = error?.message || 'Unknown execution error';
-    const errorCode = error?.code || 'FLOW_CRASH';
+    console.error('STEP:', lastSuccessfulStep);
 
-    return { 
-      type: 'error', 
-      code: errorCode, 
-      message: `${errorMsg} (at ${lastSuccessfulStep})`
+    console.error('ERROR DETAILS:', {
+      message: error?.message,
+      code: error?.code,
+      digest: error?.digest,
+      name: error?.name,
+      stack: error?.stack,
+    });
+
+    if (error?.cause) {
+      console.error('CAUSE:', error.cause);
+    }
+
+    console.error('CONTEXT:', {
+      userId: user?.uid || guestId || 'anonymous',
+      analyze,
+      locale,
+      tier: currentTier,
+      fileSize: file?.size,
+      fileType: file?.type,
+      lastStep: lastSuccessfulStep
+    });
+
+    const hasDigest = !!error?.digest;
+
+    const message = hasDigest
+      ? `Server Error (Digest: ${error.digest})`
+      : (error?.message || 'Unknown execution error');
+
+    const code = error?.code || (hasDigest ? 'SERVER_COMPONENT_CRASH' : 'FLOW_CRASH');
+
+    return {
+      type: 'error',
+      code,
+      message: `${message} (at ${lastSuccessfulStep})`
     };
   }
+
+
+
+
+
+
 };
 

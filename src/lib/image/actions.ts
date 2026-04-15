@@ -119,13 +119,18 @@ export async function uploadAndProcessImage(
     imageUrls.detailView = imageUrls.detailView || imageUrls.analysis;
     imageUrls.detailViewWatermarked = imageUrls.detailViewWatermarked || imageUrls.analysis;
 
-    console.log('[Server Action] Upload completed successfully. All derivatives mapped.');
-    return imageUrls as ImageDerivatives;
+    console.log('[UPLOAD-DEBUG] Upload completed successfully. All derivatives mapped. Returning result...');
+    
+    // 🔥 SERIALIZATION SAFETY: Next.js Production Crash Fix
+    return JSON.parse(JSON.stringify(imageUrls)) as ImageDerivatives;
 
   } catch (error: any) {
     const errorMsg = error?.message || 'Unknown fatal error in upload service';
-    console.error('[Server Action] FATAL ERROR in uploadAndProcessImage:', errorMsg);
-    if (error?.stack) console.error(error.stack);
+    console.error('[UPLOAD-ERROR] FATAL EXCEPTION IN uploadAndProcessImage');
+    console.error('Message:', errorMsg);
+    console.error('Stack:', error?.stack);
+    
+    // Server Action'dan temiz bir hata fırlatılması için sadece mesajı gönderiyoruz
     throw new Error(errorMsg);
   }
 }
