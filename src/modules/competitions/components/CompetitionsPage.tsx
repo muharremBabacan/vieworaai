@@ -21,7 +21,7 @@ import { useRouter } from '@/navigation';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { VieworaImage } from '@/core/components/viewora-image';
 
-const COMPETITION_JOIN_COST = 2;
+const COMPETITION_JOIN_COST = 5;
 
 const normalizeScore = (score: number | undefined | null): number => {
     if (score === undefined || score === null || !isFinite(score)) return 0;
@@ -201,8 +201,8 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     const handleConfirmJoin = async () => {
         if (!selectedPhotoId || !competition || !userProfile || !firestore) return;
         
-        if (userProfile.auro_balance < COMPETITION_JOIN_COST) {
-            toast({ variant: 'destructive', title: `Yetersiz ${currencyName}` });
+        if (userProfile.pix_balance < COMPETITION_JOIN_COST) {
+            toast({ variant: 'destructive', title: `Yetersiz Pix` });
             return;
         }
 
@@ -234,8 +234,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
 
             batch.update(compRef, { participantCount: increment(1) });
             batch.update(userRef, {
-                auro_balance: increment(-COMPETITION_JOIN_COST),
-                total_auro_spent: increment(COMPETITION_JOIN_COST),
+                pix_balance: increment(-COMPETITION_JOIN_COST),
                 total_competitions_count: increment(1),
                 'profile_index.activity_signals.competition_score': increment(10) // Performans Sinyali (Davranış Katmanı)
             });
@@ -245,10 +244,10 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                 userId: userProfile.id,
                 userName: userProfile.name || 'Sanatçı',
                 type: 'competition',
-                auroSpent: COMPETITION_JOIN_COST,
+                pixSpent: COMPETITION_JOIN_COST,
                 timestamp: new Date().toISOString(),
                 status: 'success'
-            } as AnalysisLog);
+            } as any);
 
             await batch.commit();
             toast({ title: "Tebrikler!", description: "Yarışmaya katıldınız." });

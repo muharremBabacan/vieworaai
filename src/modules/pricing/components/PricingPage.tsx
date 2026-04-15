@@ -74,7 +74,7 @@ export default function PricingPage() {
                   <span className="text-lg font-bold text-muted-foreground/60 uppercase">TL</span>
                 </div>
                 <p className="text-xs font-black text-cyan-400/60 uppercase tracking-[0.2em] flex items-center gap-1.5">
-                  <Gem size={14} /> {pkg.auro} {currencyName} YÜKLEMESİ
+                  <Gem size={14} /> {pkg.pix} {currencyName} YÜKLEMESİ
                 </p>
               </div>
               <p className="text-sm font-medium text-foreground/50 leading-relaxed">{pkg.slogan}</p>

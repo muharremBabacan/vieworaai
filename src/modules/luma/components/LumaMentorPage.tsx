@@ -134,14 +134,14 @@ export default function LumaMentorPage() {
       return;
     }
 
-    if (userProfile.auro_balance < strategicCost) {
+    if (userProfile.pix_balance < strategicCost) {
       toast({
         variant: 'destructive',
         title: t('toast_insufficient_auro', { currency: currencyName }),
         description: t('toast_insufficient_auro_desc', { cost: strategicCost, currency: currencyName }),
         action: (
           <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>
-            {currencyName} Yükle
+            Pix Yükle
           </Button>
         )
       });
@@ -189,8 +189,7 @@ export default function LumaMentorPage() {
 
       batch.set(feedbackRef, { ...feedbackData, id: feedbackRef.id });
       batch.update(userRef, {
-        auro_balance: increment(-strategicCost),
-        total_auro_spent: increment(strategicCost),
+        pix_balance: increment(-strategicCost),
         total_mentor_analyses_count: increment(1)
       });
 
@@ -199,10 +198,10 @@ export default function LumaMentorPage() {
         userId: user.uid,
         userName: userProfile.name || 'Sanatçı',
         type: 'mentor',
-        auroSpent: strategicCost,
+        pixSpent: strategicCost,
         timestamp: feedbackData.createdAt,
         status: 'success'
-      } as AnalysisLog);
+      } as any);
 
       await batch.commit();
       
@@ -282,7 +281,7 @@ export default function LumaMentorPage() {
                     <div className="w-px h-3 bg-border" />
                     <div className="flex items-center gap-1.5">
                       <Gem className="h-3.5 w-3.5 text-cyan-400" /> 
-                      <span className={cn(typography.meta, "font-black uppercase tracking-widest text-[9px]")}>{userProfile?.auro_balance} {currencyName}</span>
+                      <span className={cn(typography.meta, "font-black uppercase tracking-widest text-[9px]")}>{userProfile?.pix_balance} {currencyName}</span>
                     </div>
                   </div>
                 </div>

@@ -59,7 +59,7 @@ export function UserNav() {
   const isLoading = isUserLoading || (authUser && isProfileLoading);
   const isLoggedOut = !authUser || !userProfile;
 
-  const auroBalance = Number.isFinite(userProfile?.auro_balance) ? userProfile!.auro_balance : 0;
+  const pixBalance = Number.isFinite(userProfile?.pix_balance) ? userProfile!.pix_balance : 0;
   const isAdmin = userProfile?.email === 'admin@viewora.ai' || authUser?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
   const streak = userProfile?.daily_streak || 1;
   const exhibitionCount = userProfile?.total_exhibitions_count || 0;
@@ -131,7 +131,7 @@ export function UserNav() {
 
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-full border border-border/50">
             <Gem className="h-4 w-4 text-cyan-400" />
-            <span className="text-sm font-bold">{auroBalance}</span>
+            <span className="text-sm font-bold">{pixBalance}</span>
             <span className="text-[10px] font-black uppercase opacity-60 ml-1">{currencyName}</span>
           </div>
 

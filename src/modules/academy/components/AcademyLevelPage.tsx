@@ -252,17 +252,17 @@ export default function AcademyLevelPage() {
         const userRef = doc(firestore, 'users', user.uid);
         
         const xpGain = 10;
-        const auroGain = 1;
+        const pixGain = 1;
 
         batch.set(progressRef, { lessonId, isCompleted: true, completedAt: new Date().toISOString() });
         batch.update(userRef, { 
             current_xp: increment(xpGain),
-            auro_balance: increment(auroGain),
+            pix_balance: increment(pixGain),
             'profile_index.activity_signals.learning_score': increment(5) 
         });
 
         await batch.commit();
-        toast({ title: t('toast_reward_title'), description: t('toast_reward_description', { xp: xpGain, auro: auroGain }) });
+        toast({ title: t('toast_reward_title'), description: t('toast_reward_description', { xp: xpGain, auro: pixGain }) });
 
         const oldLevel = getLevelFromXp(userProfile.current_xp);
         const newLevel = getLevelFromXp(userProfile.current_xp + xpGain);

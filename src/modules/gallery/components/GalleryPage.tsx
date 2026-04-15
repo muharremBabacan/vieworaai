@@ -191,7 +191,7 @@ export default function GalleryPage() {
       const userRef = doc(firestore, 'users', user.uid);
       
       if (isGlobal) {
-        if (userProfile.auro_balance < 2) {
+        if (userProfile.pix_balance < 5) {
           toast({ variant: 'destructive', title: tDashboard('toast_insufficient_auro_title') });
           router.push('/pricing');
           return;
@@ -214,8 +214,7 @@ export default function GalleryPage() {
 
         batch.update(doc(firestore, 'competitions', compId), { participantCount: increment(1) });
         batch.update(userRef, {
-          auro_balance: increment(-2),
-          total_auro_spent: increment(2),
+          pix_balance: increment(-5),
           total_competitions_count: increment(1)
         });
       } else {

@@ -67,7 +67,7 @@ export type Package = {
   name: string;
   target: string;
   slogan: string;
-  auro: number;
+  pix: number;
   price: number;
   currency: string;
   isBestValue: boolean;
@@ -194,7 +194,7 @@ export type AnalysisLog = {
   userId: string;
   userName: string;
   type: 'technical' | 'mentor' | 'exhibition' | 'competition' | 'gift' | 'package';
-  auroSpent: number;
+  pixSpent: number;
   timestamp: string;
   status: 'success' | 'failed';
 };
