@@ -14,7 +14,8 @@ const withPWA = withPWAInit({
   buildExcludes: [/firestore\.googleapis\.com/],
 });
 
-const nextConfig: import('next').NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: false,
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
@@ -29,6 +30,19 @@ const nextConfig: import('next').NextConfig = {
       { protocol: "https", hostname: "picsum.photos", pathname: '/**' },
       { protocol: "https", hostname: "api.qrserver.com", pathname: '/**' }
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+        ],
+      },
+    ];
   },
   experimental: {
     serverActions: {

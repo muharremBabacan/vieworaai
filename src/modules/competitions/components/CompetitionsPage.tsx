@@ -1,8 +1,8 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
-import { collection, query, orderBy, doc, where, writeBatch, increment, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import type { Competition, User, Photo, CompetitionEntry, ScoringModel, AnalysisLog } from '@/types';
+import { collection, query, orderBy, doc, where, writeBatch, increment, updateDoc, arrayUnion, arrayRemove, limit } from 'firebase/firestore';
+import type { Competition, User, Photo, CompetitionEntry, ScoringModel, AnalysisLog, Group } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -321,6 +321,7 @@ export default function CompetitionsPage() {
     const t = useTranslations('CompetitionsPage');
     const firestore = useFirestore();
     const { user } = useUser();
+    const router = useRouter();
     const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isEntriesOpen, setIsEntriesOpen] = useState(false);
@@ -330,42 +331,87 @@ export default function CompetitionsPage() {
     const { data: userProfile } = useDoc<User>(userDocRef);
     
     const competitionsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null, [firestore]);
-    const { data: competitions, isLoading } = useCollection<Competition>(competitionsQuery);
+    const { data: platformCompetitions, isLoading: isCompLoading } = useCollection<Competition>(competitionsQuery);
+
+    const publicGroupsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'groups'), where('isGalleryPublic', '==', true), orderBy('createdAt', 'desc'), limit(10)) : null, [firestore]);
+    const { data: publicGroups, isLoading: isGroupsLoading } = useCollection<Group>(publicGroupsQuery);
+
+    const unifiedList = useMemo(() => {
+        const platform = (platformCompetitions || []).map(c => ({ ...c, $type: 'platform' as const }));
+        const groups = (publicGroups || []).map(g => ({
+            id: g.id,
+            title: g.name,
+            description: g.description,
+            imageUrl: g.photoURL || '/images/placeholders/group-cover.jpg', // Fallback
+            startDate: g.startDate || g.createdAt,
+            endDate: g.endDate || new Date(Date.now() + 864000000).toISOString(),
+            scoringModel: 'hybrid' as ScoringModel,
+            createdAt: g.createdAt,
+            $type: 'group' as const,
+            original: g
+        }));
+        return [...platform, ...groups].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }, [platformCompetitions, publicGroups]);
+
+    const isLoading = isCompLoading || isGroupsLoading;
 
     return (
         <div className="container mx-auto px-4 pb-12">
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-10 truncate">{t('title')}</h1>
             {isLoading ? <Skeleton className="h-64 w-full rounded-3xl" /> : 
-             competitions && competitions.length > 0 ? (
+             unifiedList.length > 0 ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {competitions.map(comp => {
-                        const status = getCompetitionStatus(comp.startDate, comp.endDate);
+                    {unifiedList.map(item => {
+                        const status = getCompetitionStatus(item.startDate, item.endDate);
+                        const isGroup = item.$type === 'group';
+                        
                         return (
-                            <Card key={comp.id} className="overflow-hidden flex flex-col group border-border/40 rounded-[32px] bg-card/40 shadow-2xl transition-all hover:border-primary/20">
+                            <Card key={item.id} className="overflow-hidden flex flex-col group border-border/40 rounded-[32px] bg-card/40 shadow-2xl transition-all hover:border-primary/20">
                                 <div className="relative h-64 w-full overflow-hidden">
                                     <VieworaImage 
-                                      variants={null} // Yarışma kapağı için şu an türev yok, orijinali kullanıyoruz ama bileşeni hazır tutuyoruz
-                                      fallbackUrl={comp.imageUrl}
+                                      variants={null}
+                                      fallbackUrl={item.imageUrl}
                                       type="featureCover"
-                                      alt={comp.title}
+                                      alt={item.title}
                                       containerClassName="w-full h-full transition-transform duration-700 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                                    {isGroup && (
+                                        <div className="absolute top-6 left-6">
+                                            <Badge className="bg-primary/20 text-primary border-primary/30 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                                Topluluk Akımı
+                                            </Badge>
+                                        </div>
+                                    )}
                                     <div className="absolute bottom-6 left-6 right-6">
-                                    <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter drop-shadow-2xl truncate">{comp.title}</h2>
+                                        <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter drop-shadow-2xl truncate">{item.title}</h2>
                                     </div>
                                 </div>
                                 <CardContent className="p-6 space-y-4">
                                     <Button 
                                         className="w-full rounded-2xl h-12 md:h-14 font-black uppercase tracking-widest text-xs md:text-sm bg-[#1e1e20] hover:bg-[#2a2a2d] border border-white/5 shadow-xl transition-all active:scale-[0.98]" 
-                                        onClick={() => { setSelectedCompetition(comp); setIsDetailOpen(true); }}
+                                        onClick={() => { 
+                                            if (isGroup) {
+                                                router.push(`/groups/${item.id}`);
+                                            } else {
+                                                setSelectedCompetition(item as unknown as Competition); 
+                                                setIsDetailOpen(true); 
+                                            }
+                                        }}
                                     >
                                         {t('card_button_details')}
                                     </Button>
                                     <Button 
                                         variant="ghost" 
                                         className="w-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] h-10 text-muted-foreground hover:text-foreground transition-colors" 
-                                        onClick={() => { setCompetitionForEntries(comp); setIsEntriesOpen(true); }}
+                                        onClick={() => { 
+                                            if (isGroup) {
+                                                router.push(`/groups/${item.id}?tab=exhibition`);
+                                            } else {
+                                                setCompetitionForEntries(item as unknown as Competition); 
+                                                setIsEntriesOpen(true); 
+                                            }
+                                        }}
                                     >
                                         <LayoutGrid className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" /> {t('button_view_entries')}
                                     </Button>

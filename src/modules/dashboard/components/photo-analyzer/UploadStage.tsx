@@ -1,9 +1,16 @@
-
+import { DropzoneRootProps, DropzoneInputProps } from 'react-dropzone';
 import { Camera, Sparkles, GraduationCap, Trophy, Users, Brain } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-export const UploadStage = ({ getRootProps, getInputProps, open, t }: any) => {
+interface UploadStageProps {
+  getRootProps: () => DropzoneRootProps;
+  getInputProps: () => DropzoneInputProps;
+  open: () => void;
+  t: (key: string, values?: any) => string;
+}
+
+export const UploadStage = ({ getRootProps, getInputProps, open, t }: UploadStageProps) => {
   return (
     <div className="max-w-6xl mx-auto space-y-16">
       <div {...getRootProps()} className="relative p-10 md:p-16 border-2 border-dashed border-border/60 rounded-[48px] bg-card/30 hover:bg-card/40 transition-all group shadow-inner">
@@ -43,7 +50,12 @@ export const UploadStage = ({ getRootProps, getInputProps, open, t }: any) => {
   );
 };
 
-const FeatureCard = ({ icon: Icon, title, desc, color }: any) => (
+const FeatureCard = ({ icon: Icon, title, desc, color }: {
+  icon: any;
+  title: string;
+  desc: string;
+  color: string;
+}) => (
   <Card className="p-8 rounded-[32px] border-border/40 bg-card/30 hover:bg-card/40 transition-all flex flex-col items-center text-center space-y-4 group">
     <div className={`h-14 w-14 rounded-2xl bg-${color}/10 flex items-center justify-center text-${color} group-hover:scale-110 transition-transform`}>
       <Icon size={28} />

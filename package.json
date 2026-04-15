@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 9002",
+    "dev:notifications": "cd viewora-notification-server && npm run dev",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:notifications\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -68,6 +70,7 @@
     "@types/node": "^20",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "concurrently": "^9.2.1",
     "genkit-cli": "^1.28.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",

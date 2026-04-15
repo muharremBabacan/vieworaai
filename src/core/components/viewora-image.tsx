@@ -38,7 +38,7 @@ export function VieworaImage({
 
   // 2. Boyutlandırma ve Ratio (Tailwind)
   const ratioClasses = {
-    smallSquare: 'object-contain',
+    smallSquare: 'object-cover',
     featureCover: 'object-contain',
     detailView: 'object-contain',
     detailViewWatermarked: 'object-contain',
@@ -50,7 +50,7 @@ export function VieworaImage({
   // Sizes özniteliği tarayıcıya hangi boyutu indirmesi gerektiğini söyler (LCP optimizasyonu)
   const sizes = props.sizes || (
     type === 'smallSquare' 
-      ? '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 320px' 
+      ? '(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 300px' 
       : type === 'featureCover'
       ? '100vw'
       : '(max-width: 1024px) 100vw, 1200px'
@@ -65,7 +65,7 @@ export function VieworaImage({
             src={src}
             alt=""
             fill
-            sizes="100vw"
+            sizes="30vw"
             className="object-cover"
             priority={props.priority}
           />

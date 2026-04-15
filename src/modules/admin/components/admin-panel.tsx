@@ -13,7 +13,7 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   collection, doc, updateDoc, query, orderBy,
-  addDoc, setDoc, increment, where, writeBatch
+  addDoc, setDoc, increment, where, writeBatch, deleteDoc
 } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import {
@@ -58,6 +58,9 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('accounting');
   const [userSearch, setUserSearch] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [notifyingOwnerId, setNotifyingOwnerId] = useState<string | null>(null);
+  const [notifyingOwnerName, setNotifyingOwnerName] = useState<string | null>(null);
+  const [notificationMsg, setNotificationMsg] = useState('');
 
   // Unconditional Hooks at top
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
@@ -77,12 +80,22 @@ export default function AdminPanel() {
     firestore ? query(collection(firestore, 'pix_purchases'), where('status', '==', 'pending'), orderBy('created_at', 'desc')) : null,
     [firestore]
   );
+  const allGroupsQuery = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'groups'), orderBy('createdAt', 'desc')) : null,
+    [firestore]
+  );
+  const allExhibitionsQuery = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'exhibitions'), orderBy('createdAt', 'desc')) : null,
+    [firestore]
+  );
 
   const { data: appConfig } = useDoc<AppSettings>(configRef);
   const { data: logs } = useCollection<AnalysisLog>(logsQuery);
   const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
   const { data: dbPackages } = useCollection<PixPackage>(packagesQuery);
   const { data: pendingPurchases } = useCollection<PixPurchase>(purchasesQuery);
+  const { data: allGroups } = useCollection<Group>(allGroupsQuery);
+  const { data: allExhibitions } = useCollection<Exhibition>(allExhibitionsQuery);
 
   const configForm = useForm({
     resolver: zodResolver(configSchema),
@@ -169,6 +182,45 @@ export default function AdminPanel() {
     } finally { setIsSubmitting(false); }
   };
 
+  const handleSendNotification = async () => {
+    if (!firestore || !notifyingOwnerId || !notificationMsg || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+        const notifRef = doc(collection(firestore, 'notifications'));
+        await setDoc(notifRef, {
+            id: notifRef.id,
+            userId: notifyingOwnerId,
+            title: "Admin Mesajı",
+            message: notificationMsg,
+            type: 'system',
+            createdAt: new Date().toISOString(),
+            read: false
+        });
+        toast({ title: t('toast_notification_sent') });
+        setNotifyingOwnerId(null);
+        setNotificationMsg('');
+    } catch (e) {
+        toast({ variant: 'destructive', title: t('toast_error') });
+    } finally { setIsSubmitting(false); }
+  };
+
+  const handleArchiveGroup = async (groupId: string) => {
+    if (!firestore || isSubmitting) return;
+    try {
+        await updateDoc(doc(firestore, 'groups', groupId), { isArchived: true });
+        toast({ title: "Grup Arşivlendi" });
+    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!firestore || isSubmitting) return;
+    if (!confirm("Bu grubu tamamen silmek istediğinize emin misiniz?")) return;
+    try {
+        await deleteDoc(doc(firestore, 'groups', groupId));
+        toast({ title: "Grup Silindi" });
+    } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
+  };
+
   return (
     <div className="container mx-auto px-4 pb-24 pt-10 animate-in fade-in duration-700">
       <header className="mb-16 text-center space-y-2">
@@ -183,7 +235,7 @@ export default function AdminPanel() {
               <TabsTrigger value="accounting" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_accounting')}</TabsTrigger>
               <TabsTrigger value="payments" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_payments')}</TabsTrigger>
               <TabsTrigger value="users" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_users')}</TabsTrigger>
-              <TabsTrigger value="academy" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_academy')}</TabsTrigger>
+              <TabsTrigger value="community" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_community')}</TabsTrigger>
               <TabsTrigger value="settings" className="shrink-0 px-8 font-black uppercase text-xs tracking-widest rounded-xl snap-start">{t('tab_general')}</TabsTrigger>
             </TabsList>
           </div>
@@ -281,6 +333,77 @@ export default function AdminPanel() {
 
         <TabsContent value="academy"><AcademyAdminPanel /></TabsContent>
 
+        <TabsContent value="community" className="space-y-8">
+            <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
+                <CardHeader className="bg-secondary/20 border-b p-8">
+                    <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><Globe className="h-6 w-6 text-primary" /> {t('list_groups')}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="px-8 font-black">Grup Adı</TableHead>
+                                <TableHead>Tür</TableHead>
+                                <TableHead>Gizlilik</TableHead>
+                                <TableHead>Üye</TableHead>
+                                <TableHead className="text-right px-8">İşlemler</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {allGroups?.map(g => (
+                                <TableRow key={g.id} className="group hover:bg-muted/30">
+                                    <TableCell className="px-8">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold">{g.name}</span>
+                                            <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-60">ID: {g.id}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase">{g.purpose}</Badge></TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary" className={cn("text-[10px] font-black uppercase", g.isGalleryPublic ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
+                                            {g.isGalleryPublic ? "Global" : "Özel"}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="font-bold">{g.memberIds.length}</TableCell>
+                                    <TableCell className="text-right px-8 space-x-2">
+                                        <Button size="sm" variant="outline" className="h-8 rounded-lg text-[10px] font-black uppercase" onClick={() => { setNotifyingOwnerId(g.ownerId); setNotifyingOwnerName(g.name); }}>{t('button_notify')}</Button>
+                                        <Button size="sm" variant="ghost" className="h-8 rounded-lg text-amber-500 hover:text-amber-600" onClick={() => handleArchiveGroup(g.id)}>{t('button_archive')}</Button>
+                                        <Button size="sm" variant="ghost" className="h-8 rounded-lg text-red-500 hover:text-red-600" onClick={() => handleDeleteGroup(g.id)}>{t('button_delete')}</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-2xl">
+                <CardHeader className="bg-secondary/20 border-b p-8">
+                    <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight"><Trophy className="h-6 w-6 text-primary" /> {t('list_exhibitions')}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="px-8 font-black">Sergi Adı</TableHead>
+                                <TableHead>Durum</TableHead>
+                                <TableHead className="text-right px-8">Tarih</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {allExhibitions?.map(ex => (
+                                <TableRow key={ex.id} className="group hover:bg-muted/30">
+                                    <TableCell className="px-8 font-bold">{ex.title}</TableCell>
+                                    <TableCell><Badge className={cn(ex.isActive ? "bg-green-500/20 text-green-500" : "bg-muted text-muted-foreground")}>{ex.isActive ? "Aktif" : "Pasif"}</Badge></TableCell>
+                                    <TableCell className="text-right px-8 text-[10px] font-bold text-muted-foreground">{ex.startDate} - {ex.endDate}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </TabsContent>
+
         <TabsContent value="settings" className="space-y-12">
           <Card className="rounded-[40px] border-border/40 bg-card/50 overflow-hidden shadow-xl">
             <CardHeader className="bg-primary/5 border-b p-8"><CardTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-tight"><Settings2 className="h-6 w-6 text-primary" /> {t('branding')}</CardTitle></CardHeader>
@@ -297,6 +420,29 @@ export default function AdminPanel() {
       </Tabs>
 
       <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={async (id, v) => { if(firestore) await updateDoc(doc(firestore, 'users', id), v); toast({title: t("toast_user_updated")}); }} />
+
+      <Dialog open={!!notifyingOwnerId} onOpenChange={(o) => !o && setNotifyingOwnerId(null)}>
+        <DialogContent className="max-w-md rounded-[32px]">
+            <DialogHeader>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight">Sahibine Mesaj Gönder</DialogTitle>
+                <p className="text-xs font-bold text-muted-foreground">{notifyingOwnerName} Grubu Hakkında</p>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase ml-1">Mesajınız</Label>
+                    <textarea 
+                        value={notificationMsg} 
+                        onChange={(e) => setNotificationMsg(e.target.value)}
+                        className="w-full h-32 rounded-2xl bg-muted/30 border border-border/60 p-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Grup kurulalları ihlali veya bilgilendirme..."
+                    />
+                </div>
+                <Button onClick={handleSendNotification} disabled={isSubmitting || !notificationMsg} className="w-full h-12 rounded-2xl font-black uppercase shadow-xl">
+                    {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : "Bildirimi Gönder"}
+                </Button>
+            </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

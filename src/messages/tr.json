@@ -338,6 +338,7 @@
     "no_photos_filtered_title": "Bu filtreyle eşleşen fotoğraf bulunamadı.",
     "no_photos_filtered_description": "Farklı bir etiket seçin veya tüm fotoğraflarınızı görmek için \"Tümü\" filtresini kullanın.",
     "status_awaiting_analysis": "Analiz Bekliyor",
+    "status_pending_analysis": "Analiz Bekliyor",
     "filter_all": "Tümü",
     "no_photos_title": "Galerinizde Henüz Fotoğraf Yok",
     "no_photos_description": "Yapay zeka koçu ile ilk analizinizi yaparak galeriyi doldurun!",
@@ -381,7 +382,9 @@
     "filter_category_macro": "Makro",
     "dialog_select_competition": "Bir Yarışma Seçin",
     "button_join_competition": "KATIL",
-    "button_submit_short": "YAYINLA"
+    "button_submit_short": "YAYINLA",
+    "badge_in_exhibition": "Sergide",
+    "badge_competition_entry": "Yarışma"
   },
   "GroupsPage": {
     "title": "Gruplarım",
@@ -462,7 +465,16 @@
     "form_visibility_private_desc": "Sadece üyeler görebilir",
     "form_placeholder_comp_subject": "Örn: Sokak Fotoğrafçılığı"
   },
+  "CompetitionsPage": {
+    "title": "Yarışmalar",
+    "card_button_details": "DETAYLARI GÖR",
+    "button_view_entries": "KATILIMLARI GÖRÜNTÜLE"
+  },
   "GroupDetailPage": {
+    "toast_profile_updated": "Grup ayarları güncellendi.",
+    "toast_error": "Bir hata oluştu, lütfen tekrar deneyin.",
+    "status_saving": "Kaydediliyor...",
+    "button_join": "Gruba Katıl",
     "label_prizes": "Ödül Listesi",
     "label_winners": "Kazananlar",
     "status_no_pending": "Onay bekleyen çalışma yok.",
@@ -638,6 +650,22 @@
     "jury_criteria_simplicity": "Basit ve Net Anlatım",
     "jury_button_submit": "Değerlendirmeyi Kaydet",
     "award_first": "1.LİK",
+    "label_items": "Eser",
+    "label_public_gallery": "Global Sergi",
+    "desc_public_gallery": "Sergiyi ve sonuçları tüm kullanıcılara açık hale getir.",
+    "button_like": "Beğen",
+    "button_unlike": "Beğeni Kaldır",
+    "voting_closed": "Oylama Sona Erdi",
+    "label_score": "Puan",
+    "label_likes": "Beğeni",
+    "toast_like_success": "Beğenildi!",
+    "toast_unlike_success": "Beğeni geri alındı.",
+    "toast_withdraw_success": "Eseriniz yarışmadan çekildi.",
+    "confirm_withdraw": "Bu eseri yarışmadan çekmek istediğinize emin misiniz?",
+    "button_withdraw": "Vazgeç",
+    "status_moderated": "İşlem Yapılanlar",
+    "status_approved": "Onaylandı",
+    "status_rejected": "Reddedildi",
     "award_second": "2.LİK",
     "award_third": "3.LÜK",
     "award_winner": "BİRİNCİ",
@@ -850,6 +878,7 @@
     "exposure": "Pozlama",
     "storytelling": "Hikaye Anlatımı",
     "consistency": "Tutarlılık",
+    "boldness": "Cesur Kadraj",
     "likes": "Beğeni"
   },
   "Curriculum": {
@@ -973,7 +1002,15 @@
     "toast_saved": "Kaydedildi",
     "toast_user_updated": "Kullanıcı Güncellendi",
     "package": "Paket",
-    "price": "Fiyat"
+    "price": "Fiyat",
+    "tab_community": "Topluluk",
+    "label_owner": "Sahip",
+    "button_notify": "Mesaj",
+    "button_archive": "Arşiv",
+    "button_delete": "Sil",
+    "toast_notification_sent": "Bildirim grup sahibine gönderildi.",
+    "list_groups": "Grup Yönetimi",
+    "list_exhibitions": "Platform Sergileri"
   },
   "PWA": {
     "title": "📲 Viewora’yı uygulama gibi kullan",

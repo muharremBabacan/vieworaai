@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useRouter, Link } from "@/navigation";
 import { useTranslations, useLocale } from 'next-intl';
-import { prepareOptimizedFile } from '@/lib/image/image-optimizer';
+import { prepareOptimizedFile } from '@/lib/image/image-processing-final';
 import { VieworaImage } from '@/core/components/viewora-image';
 
 import {
@@ -15,11 +15,12 @@ import {
   useMemoFirebase
 } from "@/lib/firebase";
 
-import { doc, collection, query, where, documentId, orderBy, increment, writeBatch, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, collection, query, where, documentId, orderBy, increment, writeBatch, getDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { uploadAndProcessImage } from '@/lib/image/actions';
 import { moderateSubmission } from '@/ai/flows/moderate-submission';
 import { evaluateGroupSubmission } from '@/ai/flows/evaluate-group-submission';
 import { runAiJury } from '@/ai/flows/run-ai-jury';
+import { NotificationAPI } from '@/lib/api/notification-api';
 
 import type {
   Group,
@@ -42,14 +43,6 @@ import {
 } from "@/components/ui/tabs";
 
 import { Button } from "@/components/ui/button";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from "@/components/ui/card";
 
 import {
   Avatar,
@@ -88,7 +81,8 @@ import {
   Check,
   Trash2,
   AlertTriangle,
-  Cpu
+  Cpu,
+  Heart
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -141,6 +135,7 @@ import { EventCreator } from "./detail/EventCreator";
 import { DeleteGroupModal } from "./detail/DeleteGroupModal";
 import { JuryEvaluationModal } from "./detail/JuryEvaluationModal";
 import { PrizeConfigCard } from "./detail/PrizeConfigCard";
+
 const PURPOSE_CONFIG: Record<GroupPurpose, { labelKey: string; icon: any; color: string }> = {
   study: { labelKey: 'purpose_study', icon: GraduationCap, color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   challenge: { labelKey: 'purpose_challenge', icon: Trophy, color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
@@ -223,17 +218,12 @@ export default function GroupDetailPage() {
     setIsUploading(true);
     toast({ title: t('toast_analyzing') });
     try {
-      // 📐 Client-side Optimization (Resolution Check + Resize)
       const optimizedFile = await prepareOptimizedFile(file, 1600);
-
       const photoId = crypto.randomUUID();
       const formData = new FormData();
       formData.append('file', optimizedFile);
-      
-      // 🔄 Server Action ile Türevleri Üret ve Yükle
       const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'submissions');
       
-      // 🆕 Layer 1: AI Moderation & Curation Gatekeeper (gpt-4o)
       toast({ title: "Moderasyon yapılıyor..." });
       const modResult = await moderateSubmission({
         photoUrl: imageUrls.analysis,
@@ -251,7 +241,6 @@ export default function GroupDetailPage() {
       const batch = writeBatch(firestore);
       const submissionRef = doc(collection(firestore, 'groups', group.id, 'submissions'));
       
-      // 🆕 Layer 2: Deep Analysis & Evaluation (gpt-4o)
       toast({ title: t('toast_analyzing') });
       const aiResult = await evaluateGroupSubmission({ 
         photoUrl: imageUrls.analysis, 
@@ -260,17 +249,12 @@ export default function GroupDetailPage() {
         language: (locale as string) || "tr" 
       });
 
-      // 🏷️ Tag Validation
       const requiredTag = assignment.requiredTag || group.requiredTag;
       if (requiredTag) {
         const hasTag = aiResult.analysis.tags.some(tag => tag.toLowerCase().includes(requiredTag.toLowerCase()));
         if (!hasTag) {
           setIsUploading(false);
-          toast({ 
-            variant: 'destructive', 
-            title: "Etiket Uyumsuzluğu", 
-            description: t('toast_tag_mismatch', { tag: requiredTag }) || `Bu fotoğraf ${requiredTag} etiketiyle eşleşmiyor.`
-          });
+          toast({ variant: 'destructive', title: "Etiket Uyumsuzluğu", description: t('toast_tag_mismatch', { tag: requiredTag }) || `Bu fotoğraf ${requiredTag} etiketiyle eşleşmiyor.` });
           return;
         }
       }
@@ -295,21 +279,7 @@ export default function GroupDetailPage() {
       toast({ title: t('assignment_success_title') });
     } catch (e: any) { 
       console.error("Upload Submission Error:", e);
-      if (e.message === 'PHOTO_TOO_SMALL') {
-        toast({ 
-          variant: 'destructive', 
-          title: t('error_photo_too_small_title') || "Çözünürlük Çok Düşük",
-          description: t('error_photo_too_small_description') || "Lütfen en az 800px boyutunda bir fotoğraf yükleyin."
-        });
-      } else if (e.message === 'Failed to fetch' || (e instanceof TypeError && e.message.includes('fetch'))) {
-        toast({ 
-          variant: 'destructive', 
-          title: t('toast_network_error_title'), 
-          description: t('toast_network_error_description') 
-        });
-      } else {
-        toast({ variant: 'destructive', title: t('toast_error') }); 
-      }
+      toast({ variant: 'destructive', title: t('toast_error') }); 
     } finally { setIsUploading(false); }
   };
 
@@ -354,25 +324,72 @@ export default function GroupDetailPage() {
     if (!isCurrentUserOwner || !firestore || !group) return;
     try {
       const submissionRef = doc(firestore, 'groups', group.id, 'submissions', submissionId);
+      const subSnap = await getDoc(submissionRef);
       await updateDoc(submissionRef, { status });
+      
+      if (subSnap.exists()) {
+        const subData = subSnap.data() as GroupSubmission;
+        // [EVENT] Notify User via Notification Server
+        await NotificationAPI.triggerModerationEvent(subData.userId, submissionId);
+      }
+      
       toast({ title: status === 'approved' ? t('toast_approved_success') : t('toast_rejected_success') });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
 
+  const handleWithdrawSubmission = async (submissionId: string) => {
+    if (!user || !group || !firestore) return;
+    try {
+      const submissionRef = doc(firestore, 'groups', group.id, 'submissions', submissionId);
+      await deleteDoc(submissionRef);
+      toast({ title: t('toast_withdraw_success') || 'Başarıyla vazgeçildi.' });
+    } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
+  };
+
+  const handleLikeSubmission = async (submissionId: string) => {
+    if (!user || !group || !firestore) return;
+    if (group.endDate) {
+      const now = new Date();
+      if (now > new Date(group.endDate)) {
+        toast({ title: t('voting_closed'), variant: 'destructive' });
+        return;
+      }
+    }
+    try {
+      const submissionRef = doc(firestore, 'groups', group.id, 'submissions', submissionId);
+      const subSnap = await getDoc(submissionRef);
+      if (!subSnap.exists()) return;
+      const subData = subSnap.data() as GroupSubmission;
+      const isLiked = subData.likes?.includes(user.uid);
+      await updateDoc(submissionRef, {
+        likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+      });
+      toast({ title: isLiked ? t('toast_unlike_success') : t('toast_like_success'), duration: 2000 });
+    } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
+  };
+
+  const handleUpdateGalleryPrivacy = async (isPublic: boolean) => {
+    if (!canManageGroup || !groupRef) return;
+    try {
+      await updateDoc(groupRef, { isGalleryPublic: isPublic });
+      toast({ title: t('toast_profile_updated') });
+    } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
+  };
+
   const handleAddJury = async (memberId: string) => {
-    if (!isCurrentUserOwner || !firestore || !group) return;
+    if (!isCurrentUserOwner || !firestore || !group || !groupRef) return;
     try {
       const juryIds = group.juryIds || [];
       if (juryIds.includes(memberId)) return;
-      await updateDoc(groupRef!, { juryIds: [...juryIds, memberId] });
+      await updateDoc(groupRef, { juryIds: [...juryIds, memberId] });
       toast({ title: t('toast_group_updated') });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
 
   const handleToggleAiJury = async () => {
-    if (!isCurrentUserOwner || !firestore || !group) return;
+    if (!isCurrentUserOwner || !groupRef) return;
     try {
-      await updateDoc(groupRef!, { isAiJuryEnabled: !group.isAiJuryEnabled });
+      await updateDoc(groupRef, { isAiJuryEnabled: !group.isAiJuryEnabled });
       toast({ title: t('toast_profile_updated') });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
@@ -380,13 +397,10 @@ export default function GroupDetailPage() {
   const handleRunAiJury = async () => {
     if (!firestore || !group || !submissions || submissions.length === 0) return;
     setIsJuryRunning(true);
-    toast({ title: "AI Jüri değerlendirmesi başlıyor...", description: "Bias düşürmek için çift hesaplama yapılıyor." });
+    toast({ title: "AI Jüri değerlendirmesi başlıyor..." });
     try {
       const approvedSubs = submissions.filter(s => s.status === 'approved');
-      if (approvedSubs.length === 0) {
-        toast({ variant: 'destructive', title: "Hata", description: "Değerlendirilecek onaylı eser bulunamadı." });
-        return;
-      }
+      if (approvedSubs.length === 0) return;
       const juryInput = {
         photos: approvedSubs.map(s => ({ id: s.id, url: s.photoUrl })),
         theme: group.competitionSubject || group.name,
@@ -397,9 +411,7 @@ export default function GroupDetailPage() {
       const batch = writeBatch(firestore);
       result.evaluations.forEach(ev => {
         const subRef = doc(firestore, 'groups', group.id, 'submissions', ev.photo_id);
-        batch.update(subRef, {
-          juryResult: { score: ev.score, comment: ev.comment, evaluatedAt: new Date().toISOString() }
-        });
+        batch.update(subRef, { juryResult: { score: ev.score, comment: ev.comment, evaluatedAt: new Date().toISOString() } });
       });
       result.ranking.forEach(rank => {
         const subRef = doc(firestore, 'groups', group.id, 'submissions', rank.photo_id);
@@ -407,8 +419,8 @@ export default function GroupDetailPage() {
         batch.update(subRef, { award: awardMap[rank.position] || 'none', 'juryResult.finalRank': rank.position });
       });
       await batch.commit();
-      toast({ title: "AI Jüri tamamlandı!", description: "Kazananlar ve puanlar güncellendi." });
-    } catch (e: any) {
+      toast({ title: "AI Jüri tamamlandı!" });
+    } catch (e: any) { 
       console.error("AI Jury error:", e);
       toast({ variant: 'destructive', title: "AI Jüri Hatası", description: e.message });
     } finally { setIsJuryRunning(false); }
@@ -433,7 +445,7 @@ export default function GroupDetailPage() {
   };
 
   const handleUpdatePrizes = async (newPrizes: any) => {
-    if (!groupRef || !firestore) return;
+    if (!groupRef) return;
     try {
       await updateDoc(groupRef, { prizes: newPrizes });
       toast({ title: t('toast_prizes_updated') });
@@ -447,52 +459,27 @@ export default function GroupDetailPage() {
       const newArchive = {
         id: crypto.randomUUID(),
         subject: group.competitionSubject || group.name,
-        startDate: group.startDate || '',
-        endDate: group.endDate || '',
-        prizes: group.prizes || {},
-        reason: data?.reason || 'completed',
-        winners: awarded.map(s => ({
-            userId: s.userId,
-            userName: s.userName,
-            award: s.award!,
-            photoUrl: s.photoUrl
-        })),
-        participants: submissions.map(s => ({
-            userId: s.userId,
-            userName: s.userName,
-            photoUrl: s.photoUrl,
-            imageUrls: s.imageUrls,
-            award: s.award || 'participant',
-            aiFeedback: s.aiFeedback,
-            juryReviews: s.juryReviews || []
-        })),
+        winners: awarded.map(s => ({ userId: s.userId, userName: s.userName, award: s.award!, photoUrl: s.photoUrl })),
         archivedAt: new Date().toISOString()
       };
 
-      const pastCompetitions = group.pastCompetitions || [];
-      
-      // 1. Update Group metadata
       await updateDoc(groupRef, {
-        pastCompetitions: [newArchive, ...pastCompetitions],
+        pastCompetitions: [newArchive, ...(group.pastCompetitions || [])],
         competitionSubject: data?.subject || null,
-        requiredTag: (data as any)?.required_tag || null, // [NEW] Store required tag at group level
         startDate: data?.startDate || null,
         endDate: data?.endDate || null
       });
 
-      // 2. Clear current submissions (Resetting for new round)
       const batch = writeBatch(firestore);
-      submissions.forEach(sub => {
-        batch.delete(doc(firestore, 'groups', group.id, 'submissions', sub.id));
-      });
+      submissions.forEach(sub => batch.delete(doc(firestore, 'groups', group.id, 'submissions', sub.id)));
       await batch.commit();
 
-      toast({ title: t('toast_archive_success') || 'Yarışma arşivlendi ve yeni tur başladı!' });
-      window.location.reload(); // Refresh to clear state
-    } catch (e) {
-      console.error(e);
-      toast({ variant: 'destructive', title: t('toast_error') });
-    }
+      // [EVENT] Notify New Competition
+      await NotificationAPI.triggerNewCompetitionEvent();
+
+      toast({ title: t('toast_archive_success') || 'Yarışma arşivlendi!' });
+      window.location.reload();
+    } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
 
   if (isGroupLoading) return <div className="container mx-auto px-4 py-20 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -518,33 +505,12 @@ export default function GroupDetailPage() {
                 <Badge variant="secondary" className={cn("px-3 h-6 text-[9px] font-black uppercase tracking-widest border", purpose.color)}>
                   <purpose.icon size={10} className="mr-1.5" /> {t(purpose.labelKey)}
                 </Badge>
-                {group.organizerType && (
-                  <Badge variant="outline" className="px-3 h-6 text-[9px] font-black uppercase tracking-widest bg-white/5 border-white/10">
-                    {t(`form_organizer_${group.organizerType}`)}
-                  </Badge>
-                )}
               </div>
             </div>
-            
-            {group.purpose === 'challenge' && (
-                <div className="flex flex-wrap items-center gap-6 p-6 rounded-[32px] bg-amber-500/5 border border-amber-500/10 shadow-inner">
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-black text-amber-500/60 uppercase tracking-[0.2em]">{t('form_label_comp_subject')}</p>
-                        <p className="text-lg font-black uppercase tracking-tight">{group.competitionSubject || t('not_determined')}</p>
-                    </div>
-                    <div className="h-10 w-px bg-white/5 hidden md:block" />
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                           <p className="text-[10px] font-black text-amber-500/60 uppercase tracking-[0.2em]">{t('comp_card_dates_label')}</p>
-                           <CompetitionStatusBadge startDate={group.startDate} endDate={group.endDate} t={t} className="h-5 px-2 text-[8px]" />
-                        </div>
-                        <p className="text-sm font-bold">{group.startDate} — {group.endDate}</p>
-                    </div>
-                </div>
-            )}
 
             <div className="flex flex-wrap items-center gap-4">
               <p className="text-muted-foreground font-medium text-sm max-w-2xl">{group.description}</p>
+              
               {group.joinCode && isMember && (
                 <div className="bg-[#121214] border border-white/5 rounded-full px-4 h-8 flex items-center gap-2 shadow-xl cursor-pointer hover:bg-white/5 transition-colors" onClick={() => { navigator.clipboard.writeText(group.joinCode!); toast({ title: t('toast_copied_title') }); }}>
                   <Hash size={10} className="text-primary" />
@@ -553,55 +519,30 @@ export default function GroupDetailPage() {
               )}
             </div>
           </div>
-
-          <div className="flex items-center gap-4">
-            {!isMember && (
-              <Button 
-                onClick={() => router.push(`/groups/join/${group.joinCode}`)} 
-                className="h-12 px-8 rounded-2xl font-black uppercase tracking-wider bg-primary shadow-xl hover:scale-105 transition-all"
-              >
-                {t('button_join')}
-              </Button>
-            )}
-            <Card className="bg-[#121214]/60 border border-white/5 rounded-3xl p-4 min-w-[160px] shadow-2xl flex items-center gap-4">
-              <div className="bg-primary/10 p-2.5 rounded-2xl border border-primary/20">
-                <Users size={18} className="text-primary" />
-              </div>
-              <div>
-                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mb-0.5">{t('label_total_members')}</p>
-                <p className="text-xl font-black tracking-tighter italic">{group.memberIds.length} / {group.maxMembers}</p>
-              </div>
-            </Card>
-          </div>
         </div>
       </header>
 
       {group.purpose === 'challenge' || group.purpose === 'exhibition' ? (
         <ChallengeGroupView 
-          key={group.purpose === 'challenge' ? 'challenge_view' : 'exhibition_view'}
           group={group} 
           user={user} 
           submissions={submissions || []} 
           isOwner={!!isCurrentUserOwner} 
           isMember={!!isMember} 
           isUploading={!!isUploading}
-          onUpload={(file: File) => handleUploadSubmission({ 
-            id: 'challenge_entry', 
-            title: group.competitionSubject || group.name, 
-            description: group.description,
-            groupId: group.id,
-            ownerId: group.ownerId,
-            createdAt: new Date().toISOString()
-          } as GroupAssignment, file)}
+          onUpload={(file: File) => handleUploadSubmission({ id: 'entry', title: group.name, description: group.description, groupId: group.id, ownerId: group.ownerId, createdAt: new Date().toISOString() } as GroupAssignment, file)}
           onSelectSubmission={setSelectedSubmission}
           t={t}
           userProfile={userProfile}
           memberProfiles={memberProfiles || []}
           onAssignAward={handleAssignAward}
           onUpdatePrizes={handleUpdatePrizes}
+          onUpdateGalleryPrivacy={handleUpdateGalleryPrivacy}
           onRunAiJury={handleRunAiJury}
           isJuryRunning={!!isJuryRunning}
           onModeration={handleModeration}
+          onWithdraw={handleWithdrawSubmission}
+          onLike={handleLikeSubmission}
           onAddJury={handleAddJury}
           onToggleAiJury={handleToggleAiJury}
           onDeleteGroup={handleDeleteGroup}
@@ -610,12 +551,12 @@ export default function GroupDetailPage() {
           AwardManager={AwardManager}
           JuryManager={JuryManager}
           ModerationManager={ModerationManager}
+          allSubmissions={submissions || []}
           DeleteGroupModal={DeleteGroupModal}
           AssignmentUploader={AssignmentUploader}
         />
       ) : (
         <StandardGroupView 
-          key="standard_view"
           group={group}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -623,25 +564,15 @@ export default function GroupDetailPage() {
           isTripsLoading={!!isTripsLoading}
           isOwner={isCurrentUserOwner}
           userId={user?.uid || ''}
-          userProfile={userProfile || null}
           assignments={assignments || []}
           submissions={submissions || []}
           handleUploadSubmission={handleUploadSubmission}
           isUploading={!!isUploading}
           setSelectedSubmission={setSelectedSubmission}
-          canViewGallery={!!canViewGallery}
-          memberProfiles={memberProfiles || []}
-          handleAssignAward={handleAssignAward}
-          handleRunAiJury={handleRunAiJury}
-          isJuryRunning={!!isJuryRunning}
-          handleAddJury={handleAddJury}
-          handleCreateTrip={handleCreateTrip}
-          handleDeleteGroup={handleDeleteGroup}
-          canManageGroup={!!canManageGroup}
+          onLike={handleLikeSubmission}
           t={t}
           onModeration={handleModeration}
           ModerationManager={ModerationManager}
-          pendingSubmissions={submissions?.filter(s => s.status === 'pending') || []}
           TripCard={TripCard}
           AssignmentUploader={AssignmentUploader}
           EventCreator={EventCreator}
@@ -652,93 +583,40 @@ export default function GroupDetailPage() {
       <Dialog open={!!selectedSubmission} onOpenChange={(o) => !o && setSelectedSubmission(null)}>
         {selectedSubmission && (
           <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden border-white/10 bg-[#0a0a0b]/95 backdrop-blur-3xl flex flex-col md:flex-row rounded-[48px] shadow-3xl">
-            <div className="relative w-full md:w-3/5 h-[45vh] md:h-auto bg-black/60 shrink-0 border-r border-white/5 shadow-2xl overflow-hidden group">
-              <VieworaImage 
-                variants={selectedSubmission.imageUrls}
-                fallbackUrl={selectedSubmission.photoUrl}
-                type="detailView"
-                alt="Eser"
-                containerClassName="w-full h-full"
-              />
+            <div className="relative w-full md:w-3/5 h-[45vh] md:h-auto bg-black/60 shrink-0 border-r border-white/5 overflow-hidden group">
+              <VieworaImage variants={selectedSubmission.imageUrls} fallbackUrl={selectedSubmission.photoUrl} type="detailView" alt="Eser" containerClassName="w-full h-full" />
             </div>
             <div className="flex-1 md:w-2/5 flex flex-col p-10 space-y-8 overflow-y-auto">
               <DialogHeader className="space-y-6">
-                <div className="flex items-center gap-4 py-4 border-y border-white/5 translate-y-2">
-                  <Avatar className="h-14 w-14 border-4 border-white/10 shadow-2xl">
-                    <AvatarImage src={selectedSubmission.userPhotoURL || ''} />
-                    <AvatarFallback className="bg-primary/20">{selectedSubmission.userName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <DialogTitle className="text-xl font-black tracking-tighter uppercase mb-0.5">@{selectedSubmission.userName}</DialogTitle>
-                    <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{new Date(selectedSubmission.submittedAt).toLocaleString('tr')}</DialogDescription>
+                <div className="flex items-center justify-between py-4 border-y border-white/5">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-14 w-14 border-4 border-white/10">
+                      <AvatarImage src={selectedSubmission.userPhotoURL || ''} />
+                      <AvatarFallback>{selectedSubmission.userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <DialogTitle className="text-xl font-black tracking-tighter uppercase mb-0.5">@{selectedSubmission.userName}</DialogTitle>
+                      <DialogDescription className="text-[10px] uppercase font-black">{new Date(selectedSubmission.submittedAt).toLocaleString('tr')}</DialogDescription>
+                    </div>
                   </div>
+                  <Button onClick={() => handleLikeSubmission(selectedSubmission.id)} variant={selectedSubmission.likes?.includes(user?.uid) ? 'default' : 'outline'} className="gap-2">
+                    <Heart className={cn("h-4 w-4", selectedSubmission.likes?.includes(user?.uid) ? "fill-current" : "")} />
+                    {selectedSubmission.likes?.length || 0}
+                  </Button>
                 </div>
               </DialogHeader>
-
-              <div className="space-y-8 pt-4">
-                <div className="text-center space-y-4">
-                  <h3 className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground/60">{t('dialog_eval_title')}</h3>
-                  <div className="relative h-24 w-24 mx-auto flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" strokeWidth="8" className="text-white/10" />
-                      <circle cx="48" cy="48" r="44" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray={276} strokeDashoffset={276 - (276 * (selectedSubmission.aiFeedback?.evaluation?.score || 0)) / 100} className="text-primary transition-all duration-1000" />
-                    </svg>
-                    <span className="text-3xl font-black tracking-tighter">{selectedSubmission.aiFeedback?.evaluation?.score || 0}%</span>
-                  </div>
+              <div className="space-y-8">
+                <div className="text-center">
+                    <p className="text-3xl font-black">{selectedSubmission.aiFeedback?.evaluation?.score || 0}%</p>
+                    <p className="text-muted-foreground italic text-sm">"{selectedSubmission.aiFeedback?.evaluation?.feedback}"</p>
                 </div>
-
-                {selectedSubmission.aiFeedback?.evaluation && (
-                  <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/20 shadow-inner">
-                    <p className="text-base font-medium leading-relaxed italic text-foreground/90 font-serif">
-                      "{selectedSubmission.aiFeedback.evaluation.feedback}"
-                    </p>
-                  </div>
-                )}
-
-                {selectedSubmission.aiFeedback?.analysis && (
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-                      <p className="text-[8px] font-black uppercase opacity-50 mb-1">Işık</p>
-                      <p className="text-lg font-black">{selectedSubmission.aiFeedback.analysis.light_score}/10</p>
+                {selectedSubmission.juryReviews?.map(rev => (
+                    <div key={rev.userId} className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                        <p className="font-bold">@{rev.userName} - {rev.score}/10</p>
+                        <p className="text-sm italic">"{rev.feedback}"</p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-                      <p className="text-[8px] font-black uppercase opacity-50 mb-1">Komp.</p>
-                      <p className="text-lg font-black">{selectedSubmission.aiFeedback.analysis.composition_score}/10</p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-                      <p className="text-[8px] font-black uppercase opacity-50 mb-1">Teknik</p>
-                      <p className="text-lg font-black">{selectedSubmission.aiFeedback.analysis.technical_clarity_score}/10</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Jury Reviews */}
-                {((group?.showJury || isCurrentUserOwner) && selectedSubmission.juryReviews && selectedSubmission.juryReviews.length > 0) && (
-                    <div className="space-y-6 pt-6 border-t border-white/5">
-                        <h3 className="text-sm font-black uppercase tracking-[0.2em]">{t('jury_list_title')}</h3>
-                        {selectedSubmission.juryReviews.map(rev => (
-                            <div key={rev.userId} className="p-6 rounded-[32px] bg-white/5 border border-white/5 space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-black text-sm uppercase tracking-tighter">@{rev.userName}</span>
-                                    <Badge className="bg-primary/20 text-primary border-none">{rev.score} / 10</Badge>
-                                </div>
-                                <p className="text-sm italic text-muted-foreground">"{rev.feedback}"</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {rev.criteria?.map(c => <Badge key={c} variant="outline" className="text-[9px] uppercase font-black">{t(`jury_criteria_${c}`)}</Badge>)}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Jury Evaluation Button */}
-                {isCurrentUserJury && selectedSubmission && (
-                    <JuryEvaluationModal 
-                        submission={selectedSubmission}
-                        onSave={(review) => handleCreateJuryReview(selectedSubmission!.id, review)}
-                        t={t}
-                    />
-                )}
+                ))}
+                {isCurrentUserJury && <JuryEvaluationModal submission={selectedSubmission} onSave={(review) => handleCreateJuryReview(selectedSubmission.id, review)} t={t} />}
               </div>
             </div>
           </DialogContent>

@@ -7,7 +7,18 @@ import { VieworaImage } from '@/core/components/viewora-image';
 import { RatingBar } from './ui-utils';
 import { normalizeScore, getOverallScore } from '../../services/photo-flow';
 
-export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, tr }: any) => {
+import type { User, Photo } from '@/types';
+
+interface ResultStageProps {
+  analysisResult: Photo;
+  user: { uid: string } | null;
+  guestId: string | null;
+  resetAnalyzer: () => void;
+  t: (key: string, values?: any) => string;
+  tr: (key: string, values?: any) => string;
+}
+
+export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, tr }: ResultStageProps) => {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-10 duration-700">
       <header className="flex justify-between items-center">
@@ -81,11 +92,11 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
               <RatingBar label={tr('composition')} score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
               <RatingBar label={tr('technical')} score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
               <RatingBar label={tr('storytelling')} score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} isLocked={analysisResult.analysisTier === 'start'} />
-              <RatingBar label="Cesur Kadraj" score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
+              <RatingBar label={tr('boldness')} score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
             </div>
           </Card>
 
-          {analysisResult.aiFeedback!.quality_note && (
+          {analysisResult.aiFeedback!.quality_note && !analysisResult.aiFeedback!.quality_note.toLowerCase().includes('uyarısı yok') && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
               <p className="text-xs font-bold text-amber-600 leading-relaxed">{analysisResult.aiFeedback!.quality_note}</p>
@@ -105,14 +116,14 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
   );
 };
 
-const DetailSection = ({ label, content }: any) => (
+const DetailSection = ({ label, content }: { label: string; content: string }) => (
   <div className="space-y-2">
     <p className="text-[10px] font-black uppercase text-primary/70 tracking-widest">{label}</p>
     <p className="text-sm font-medium leading-relaxed">{content}</p>
   </div>
 );
 
-const MetadataBox = ({ label, value }: any) => (
+const MetadataBox = ({ label, value }: { label: string; value: string | undefined }) => (
   <div className="p-4 rounded-2xl bg-muted/30 border border-border/40">
     <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">{label}</p>
     <p className="text-sm font-bold capitalize truncate">{value}</p>

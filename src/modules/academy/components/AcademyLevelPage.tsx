@@ -8,7 +8,7 @@ import type { Lesson, User } from '@/types';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { collection, query, where, doc, updateDoc, writeBatch, increment, orderBy } from 'firebase/firestore';
 import { uploadAndProcessImage } from '@/lib/image/actions';
-import { prepareOptimizedFile } from '@/lib/image/image-optimizer';
+import { prepareOptimizedFile } from '@/lib/image/image-processing-final';
 import { getLevelFromXp } from '@/lib/gamification';
 import { useDropzone } from 'react-dropzone';
 import { useToast } from '@/shared/hooks/use-toast';

@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers, Trophy, Users } from 'lucide-react';
+import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers, Trophy, Users, Heart, ShieldCheck, Flag } from 'lucide-react';
 import { VieworaImage } from '@/core/components/viewora-image';
 import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -243,6 +243,9 @@ export default function GalleryPage() {
         });
         batch.update(userRef, { total_competitions_count: increment(1) });
       }
+      
+      const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      batch.update(photoRef, { isSubmittedToCompetition: true, competitionId: compId });
 
       await batch.commit();
       toast({ title: tDashboard('toast_success_title') });
@@ -428,7 +431,7 @@ export default function GalleryPage() {
             return (
               <Card 
                 key={photo.id} 
-                className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all hover:scale-[1.02]" 
+                className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all hover:scale-105 transform-gpu isolate" 
                 onClick={() => setSelectedPhoto(photo)}
               >
                 <VieworaImage 
@@ -438,19 +441,39 @@ export default function GalleryPage() {
                   alt="Galeri Görseli"
                   containerClassName="w-full h-full"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute top-3 right-3">
-                  {photo.aiFeedback && (
-                    <Badge className="bg-black/60 text-white border-white/10 backdrop-blur-md px-2 h-6 font-black text-[10px]">
-                      <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" /> {overallScore.toFixed(1)}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                {/* HUD: Top Status & Score */}
+                <div className="absolute top-5 left-5 right-5 z-20 flex justify-between items-start pointer-events-none">
+                  <div className="flex flex-col gap-1 items-start">
+                    {photo.isSubmittedToExhibition && (
+                      <Badge className="bg-primary text-white border-none h-6 px-2 font-black text-[9px] uppercase tracking-tighter shadow-lg">
+                        {t('badge_in_exhibition')}
+                      </Badge>
+                    )}
+                    {photo.isSubmittedToCompetition && (
+                       <Badge className="bg-amber-500 text-black border-none h-6 px-2 font-black text-[9px] uppercase tracking-tighter shadow-lg">
+                          {t('badge_competition_entry') || 'Yarışma'}
+                       </Badge>
+                    )}
+                  </div>
+
+                  {photo.aiFeedback ? (
+                    <Badge className="bg-black/60 text-yellow-400 border-white/10 backdrop-blur-md px-2 h-6 font-black text-[10px] rounded-lg shadow-xl">
+                      <Star className="h-3.5 w-3.5 mr-1.5 fill-current" /> {overallScore.toFixed(1)}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-black/60 text-white/40 border-white/10 backdrop-blur-md px-2 h-6 font-black text-[8px] uppercase tracking-wider rounded-lg shadow-sm">
+                      {t('status_pending_analysis') || 'Analiz Bekliyor'}
                     </Badge>
                   )}
                 </div>
-                {photo.isSubmittedToExhibition && (
-                  <div className="absolute top-3 left-3">
-                    <Badge className="bg-primary text-white border-none h-6 px-2 font-black text-[9px] uppercase tracking-tighter">{t('badge_in_exhibition')}</Badge>
-                  </div>
-                )}
+
+                {/* HUD: Bottom Likes */}
+                <div className="absolute bottom-5 right-5 z-20 flex items-center gap-1.5 px-3 h-8 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                   <Heart size={12} className={cn(user && photo.likes?.includes(user.uid) ? "fill-red-500 text-red-500" : "text-white")} />
+                   <span className="text-[10px] font-black">{photo.likes?.length || 0}</span>
+                </div>
               </Card>
             );
           })}

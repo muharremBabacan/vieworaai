@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/lib/firebase';
 import { collection, query, orderBy, where, doc, updateDoc, arrayUnion, arrayRemove, limit } from 'firebase/firestore';
-import type { Exhibition, Photo, User } from '@/types';
+import type { Exhibition, Photo, User, Group } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +53,29 @@ export default function ExplorePage() {
     firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
     [firestore]
   );
-  const { data: exhibitions, isLoading: isExLoading } = useCollection<Exhibition>(exhibitionsQuery);
+  const { data: platformExhibitions, isLoading: isPlatformExLoading } = useCollection<Exhibition>(exhibitionsQuery);
+
+  const publicGroupsQuery = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'groups'), where('isGalleryPublic', '==', true), orderBy('createdAt', 'desc'), limit(10)) : null,
+    [firestore]
+  );
+  const { data: publicGroups, isLoading: isGroupsLoading } = useCollection<Group>(publicGroupsQuery);
+
+  const unifiedExhibitions = useMemo(() => {
+    const platform = (platformExhibitions || []).map(ex => ({ ...ex, $type: 'platform' as const }));
+    const groups = (publicGroups || []).map(g => ({
+        id: g.id,
+        title: g.name,
+        description: g.description,
+        imageUrl: g.photoURL || 'https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=2070&auto=format&fit=crop', // Fallback
+        isActive: true,
+        createdAt: g.createdAt,
+        $type: 'group' as const
+    }));
+    return [...platform, ...groups].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [platformExhibitions, publicGroups]);
+
+  const isExLoading = isPlatformExLoading || isGroupsLoading;
 
   const photosQuery = useMemoFirebase(() => {
     if (!firestore || view === 'hub') return null;
@@ -202,23 +224,40 @@ export default function ExplorePage() {
           {view === 'exhibitions' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {isExLoading ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[32px]" />) : 
-              exhibitions?.map(ex => (
-                <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { setSelectedExhibition(ex); setView('exhibition-detail'); }}>
-                  <div className="relative h-48 w-full">
-                      <VieworaImage 
-                        variants={null}
-                        fallbackUrl={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`}
-                        type="featureCover"
-                        alt={ex.title}
-                        containerClassName="w-full h-full"
-                      />
-                  </div>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg md:text-xl font-black uppercase truncate">{ex.title}</h3>
-                    <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">{ex.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              unifiedExhibitions?.map(ex => {
+                const isGroup = ex.$type === 'group';
+                return (
+                  <Card key={ex.id} className="rounded-[32px] overflow-hidden border-border/40 bg-card/50 group cursor-pointer" onClick={() => { 
+                      if (isGroup) {
+                          router.push(`/groups/${ex.id}?tab=exhibition`);
+                      } else {
+                          setSelectedExhibition(ex as unknown as Exhibition); 
+                          setView('exhibition-detail'); 
+                      }
+                  }}>
+                    <div className="relative h-48 w-full">
+                        <VieworaImage 
+                          variants={null}
+                          fallbackUrl={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`}
+                          type="featureCover"
+                          alt={ex.title}
+                          containerClassName="w-full h-full"
+                        />
+                        {isGroup && (
+                            <div className="absolute top-4 right-4">
+                                <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 backdrop-blur-md px-3 h-6 rounded-full text-[9px] font-black uppercase">
+                                    Topluluk Sergisi
+                                </Badge>
+                            </div>
+                        )}
+                    </div>
+                    <CardContent className="p-6">
+                      <h3 className="text-lg md:text-xl font-black uppercase truncate">{ex.title}</h3>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-2 line-clamp-2">{ex.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           ) : isPhotosLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">{[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-[32px]" />)}</div>

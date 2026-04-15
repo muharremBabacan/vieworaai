@@ -16,8 +16,12 @@ import {
     Info, 
     ImageIcon, 
     ShieldCheck, 
-    Trophy 
+    Flag,
+    Heart,
+    Star
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+
 import { VieworaImage } from '@/core/components/viewora-image';
 import { cn } from "@/lib/utils";
 
@@ -44,9 +48,9 @@ export interface StandardGroupViewProps {
     handleCreateTrip: (data: any) => void;
     canManageGroup: boolean;
     handleDeleteGroup: () => void;
-    onModeration: (id: string, status: 'approved' | 'rejected') => void;
-    ModerationManager: any;
     pendingSubmissions: any[];
+    onUpdateGalleryPrivacy: (isPublic: boolean) => void;
+    onLike: (id: string) => void;
     t: any;
     // Sub-components
     TripCard: any;
@@ -60,6 +64,8 @@ export function StandardGroupView({
     handleUploadSubmission, isUploading, setSelectedSubmission, canViewGallery, memberProfiles, handleCreateTrip, 
     canManageGroup, handleDeleteGroup, t,
     onModeration,
+    onUpdateGalleryPrivacy,
+    onLike,
     ModerationManager,
     pendingSubmissions,
     TripCard,
@@ -136,32 +142,43 @@ export function StandardGroupView({
                     submissions && submissions.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                             {approvedSubmissions.map((sub: any) => (
-                                <Card key={sub.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer border border-white/10 shadow-2xl transition-all hover:scale-[1.02] hover:border-primary/30" onClick={() => setSelectedSubmission(sub)}>
-                                    <VieworaImage 
-                                        variants={sub.imageUrls}
-                                        fallbackUrl={sub.photoUrl}
-                                        type="smallSquare"
-                                        alt="Student Work"
-                                        containerClassName="w-full h-full"
-                                    />
-                                    {sub.award && (
-                                        <div className="absolute top-4 left-4 z-20">
-                                            <Badge className="bg-amber-500 text-black font-black border-none shadow-lg animate-pulse">
-                                                {sub.award === 'first' && <Trophy size={12} className="mr-1" />}
-                                                {t(`award_${sub.award}`)}
-                                            </Badge>
+                                <Card key={sub.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer border border-white/10 shadow-2xl transition-all hover:scale-105 hover:border-primary/30 transform-gpu isolate" onClick={() => setSelectedSubmission(sub)}>
+                                    <VieworaImage variants={sub.imageUrls} fallbackUrl={sub.photoUrl} type="smallSquare" alt="Student Work" containerClassName="w-full h-full" />
+                                    
+                                    {/* Sub-status badges */}
+                                    <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-start pointer-events-none">
+                                        <div className="flex flex-col gap-1 items-start">
+                                            {sub.award && (
+                                                <Badge className="bg-amber-500 text-black font-black border-none shadow-lg animate-pulse whitespace-nowrap">
+                                                    {t(`award_${sub.award}`)}
+                                                </Badge>
+                                            )}
                                         </div>
-                                    )}
+
+                                        {sub.aiFeedback?.evaluation?.score ? (
+                                            <Badge className="bg-black/60 text-yellow-400 border-white/10 backdrop-blur-md px-2 h-6 font-black text-[10px] rounded-lg shadow-xl">
+                                                <Star className="h-3.5 w-3.5 mr-1.5 fill-current" /> {(sub.aiFeedback.evaluation.score / 10).toFixed(1)}
+                                            </Badge>
+                                        ) : (
+                                            <Badge className="bg-black/60 text-white/40 border-white/10 backdrop-blur-md px-2 h-6 font-black text-[8px] uppercase tracking-wider rounded-lg shadow-sm">
+                                                {t('status_pending_analysis') || 'Analiz Bekliyor'}
+                                            </Badge>
+                                        )}
+                                    </div>
+
+                                    {/* Like overlay */}
+                                    <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 px-3 h-8 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Heart size={12} className={cn(userId && sub.likes?.includes(userId) ? "fill-red-500 text-red-500" : "text-white")} />
+                                        <span className="text-[10px] font-black">{sub.likes?.length || 0}</span>
+                                    </div>
+
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
-                                        <Avatar className="h-10 w-10 border-2 border-white/50 shadow-xl overflow-hidden">
+                                        <Avatar className="h-10 w-10 border-2 border-white/50">
                                             <AvatarImage src={sub.userPhotoURL || ''} />
                                             <AvatarFallback className="bg-primary/20 text-[10px] font-black">{sub.userName.substring(0, 2).toUpperCase()}</AvatarFallback>
                                         </Avatar>
-                                        <div className="flex flex-col">
-                                            <span className="text-xs font-black text-white uppercase tracking-tighter drop-shadow-lg">@{sub.userName}</span>
-                                            <span className="text-[10px] font-medium text-primary-foreground/70">{new Date(sub.submittedAt).toLocaleDateString('tr')}</span>
-                                        </div>
+                                        <div><p className="text-xs font-black text-white uppercase drop-shadow-lg">@{sub.userName}</p></div>
                                     </div>
                                 </Card>
                             ))}
@@ -205,6 +222,24 @@ export function StandardGroupView({
                                 <EventCreator onCreate={handleCreateTrip} />
                             </TabsContent>
                             <TabsContent value="settings" className="p-8 space-y-6">
+                                <div className="p-8 rounded-[32px] bg-white/5 border border-white/10 space-y-6 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8 opacity-5 -rotate-12 pointer-events-none"><Flag size={120} /></div>
+                                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <ShieldCheck size={16} className="text-primary" />
+                                                <h3 className="text-sm font-black uppercase tracking-[0.2em]">{t('label_public_gallery')}</h3>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground font-medium max-w-sm">{t('desc_public_gallery')}</p>
+                                        </div>
+                                        <Switch 
+                                            checked={!!group.isGalleryPublic} 
+                                            onCheckedChange={(v) => onUpdateGalleryPrivacy(v)}
+                                            className="data-[state=checked]:bg-primary cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="p-8 rounded-[32px] bg-red-500/5 border border-red-500/10 space-y-4">
                                     <h3 className="text-xl font-black uppercase text-red-500">{t('delete_group_title')}</h3>
                                     <p className="text-sm text-muted-foreground font-medium">{t('delete_group_description')}</p>

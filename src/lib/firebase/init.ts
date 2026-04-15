@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
 
 /**
  * Firebase istemci servislerini başlatır.
@@ -13,6 +14,7 @@ export function initializeFirebase(): {
   auth: Auth | null;
   firestore: Firestore | null;
   storage: FirebaseStorage | null;
+  messaging: Messaging | null;
 } {
   // 🚫 SSR veya Build sırasında Firebase'i başlatma
   if (typeof window === 'undefined') {
@@ -21,16 +23,33 @@ export function initializeFirebase(): {
       auth: null,
       firestore: null,
       storage: null,
+      messaging: null,
     };
   }
 
   // Tarayıcı ortamında güvenli başlatma
   const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
+  let messaging: Messaging | null = null;
+  
+  // Messaging check (only in supported environments)
+  isSupported().then(supported => {
+    if (supported) {
+      messaging = getMessaging(firebaseApp);
+    }
+  });
+
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
     storage: getStorage(firebaseApp),
+    messaging: null, // Will be async initialized or accessed via getMessaging directly
   };
+}
+
+export async function getMessagingService(app: FirebaseApp): Promise<Messaging | null> {
+    if (typeof window === 'undefined') return null;
+    const supported = await isSupported();
+    return supported ? getMessaging(app) : null;
 }

@@ -233,6 +233,7 @@
     "upload_prompt_main_new": "Drag or upload your photo",
     "upload_prompt_sub_new": "JPG, PNG, HEIC supported",
     "button_select_photo": "Select Photo",
+    "button_change_photo": "Change Photo",
     "analysis_report_badge": "LUMA ANALYSIS REPORT",
     "analysis_report_title": "Your Progress Summary",
     "detected_details_title": "Detected Details",
@@ -335,6 +336,7 @@
     "no_photos_filtered_title": "No photos matched this filter.",
     "no_photos_filtered_description": "Select a different tag or use the \"All\" filter to see all your photos.",
     "status_awaiting_analysis": "Awaiting Analysis",
+    "status_pending_analysis": "Pending Analysis",
     "filter_all": "All",
     "no_photos_title": "No Photos in Your Gallery Yet",
     "no_photos_description": "Fill your gallery by doing your first analysis with the AI coach!",
@@ -372,7 +374,14 @@
     "filter_category_street": "Street",
     "filter_category_architecture": "Architecture",
     "filter_category_pets": "Pets",
-    "filter_category_macro": "Macro"
+    "filter_category_macro": "Macro",
+    "dialog_metadata_genre": "Genre",
+    "dialog_metadata_scene": "Scene",
+    "dialog_metadata_tags": "Tags",
+    "dialog_select_competition": "Select a Competition",
+    "button_join_competition": "JOIN",
+    "button_submit_short": "PUBLISH",
+    "badge_competition_entry": "Competition"
   },
   "GroupsPage": {
     "title": "My Groups",
@@ -451,6 +460,10 @@
     "form_placeholder_comp_subject": "e.g., Street Photography"
   },
   "GroupDetailPage": {
+    "toast_profile_updated": "Group settings updated.",
+    "toast_error": "An error occurred, please try again.",
+    "status_saving": "Saving...",
+    "button_join": "Join Group",
     "label_prizes": "Prize List",
     "label_winners": "Winners",
     "status_no_pending": "No pending submissions.",
@@ -616,9 +629,25 @@
     "jury_criteria_simplicity": "Simple Narrative",
     "jury_button_submit": "Save Evaluation",
     "award_first": "1st Place Award",
+    "label_items": "Items",
+    "label_public_gallery": "Global Exhibition",
+    "desc_public_gallery": "Make the gallery and results public to all users.",
+    "button_like": "Like",
+    "button_unlike": "Unlike",
+    "voting_closed": "Voting Closed",
+    "label_score": "Score",
+    "label_likes": "Likes",
+    "toast_like_success": "Liked!",
+    "toast_unlike_success": "Like removed.",
+    "toast_withdraw_success": "Your work has been withdrawn from the competition.",
+    "confirm_withdraw": "Are you sure you want to withdraw this work from the competition?",
+    "button_withdraw": "Withdraw",
+    "status_moderated": "Moderated Items",
+    "status_approved": "Approved",
+    "status_rejected": "Rejected",
     "award_second": "2nd Place Award",
     "award_third": "3rd Place Award",
-    "award_honorable": "Honorable Mention",
+    "award_honorable_mention": "Honorable Mention",
     "award_participant": "Participation Award",
     "award_viewora": "Viewora Special Award",
     "button_assign_award": "Assign Award",
@@ -654,8 +683,7 @@
     "form_organizer_official": "Official Institution (Municipality, Government, etc.)",
     "form_organizer_business": "Private Business / Brand",
     "form_organizer_education": "Private Education Group / Course",
-    "form_organizer_personal": "Personal Group",
-    "toast_error": "An error occurred."
+    "form_organizer_personal": "Personal Group"
   },
   "LumaMentorPage": {
     "title": "Luma Mentor",
@@ -804,6 +832,7 @@
     "exposure": "Exposure",
     "storytelling": "Storytelling",
     "consistency": "Consistency",
+    "boldness": "Bold Framing",
     "likes": "Likes"
   },
   "Curriculum": {
@@ -927,7 +956,15 @@
     "toast_saved": "Saved",
     "toast_user_updated": "User Updated",
     "package": "Package",
-    "price": "Price"
+    "price": "Price",
+    "tab_community": "Community",
+    "label_owner": "Owner",
+    "button_notify": "Notify",
+    "button_archive": "Archive",
+    "button_delete": "Delete",
+    "toast_notification_sent": "Notification sent to group owner.",
+    "list_groups": "Group Management",
+    "list_exhibitions": "Platform Exhibitions"
   },
   "PWA": {
     "title": "📲 Use Viewora like an app",

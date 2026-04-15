@@ -2,7 +2,7 @@
 import { doc, increment, collection, writeBatch, query, where, getDocs, orderBy, limit, updateDoc, arrayUnion, Firestore } from 'firebase/firestore';
 import { generatePhotoAnalysis } from '@/ai/flows/analysis/analyze-photo-and-suggest-improvements';
 import { uploadAndProcessImage } from '@/lib/image/actions';
-import { prepareOptimizedFile, generateImageHash } from '@/lib/image/image-processing-final';
+import { prepareOptimizedFile, generateImageHash, getImageDimensions } from '@/lib/image/image-processing-final';
 import { User, Photo, UserTier } from '@/types';
 
 export const TIER_COSTS: Record<UserTier, number> = {
@@ -63,6 +63,14 @@ export const updateUserProfileIndex = async (firestore: Firestore, userId: strin
   });
 };
 
+
+export type FlowResult =
+  | { type: 'success'; data: Photo }
+  | { type: 'upload_only' }
+  | { type: 'resolution_error'; dims: { width: number; height: number } }
+  | { type: 'marketing_required' }
+  | { type: 'error'; code: string };
+
 export type AnalysisFlowOptions = {
   file: File;
   analyze: boolean;
@@ -73,41 +81,47 @@ export type AnalysisFlowOptions = {
   guestId: string | null;
   guestUsed: boolean;
   currentTier: UserTier;
-  onSuccess: (result: Photo) => void;
-  onUploadOnly: () => void;
-  onMarketingRequired: () => void;
-  onResolutionRequired: (dimensions: { width: number; height: number }) => void;
-  onError: (error: any) => void;
 };
 
-export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions) => {
+export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Promise<FlowResult> => {
   const { 
     file, analyze, user, userProfile, firestore, locale, 
-    guestId, guestUsed, currentTier, 
-    onSuccess, onUploadOnly, onMarketingRequired, onResolutionRequired, onError 
+    guestId, guestUsed, currentTier
   } = options;
 
-  const analysisCost = TIER_COSTS[currentTier];
+  const analysisCost = TIER_COSTS[currentTier] || 1;
 
   // 1. Context & Balance Check
   if (!user) {
     if (guestUsed || !analyze) {
-      onMarketingRequired();
-      return;
+      return { type: 'marketing_required' };
     }
   } else {
     const currentBalance = userProfile?.pix_balance || 0;
     if (analyze && currentBalance < analysisCost) {
-      throw new Error('INSUFFICIENT_BALANCE');
+      return { type: 'error', code: 'INSUFFICIENT_BALANCE' };
     }
   }
 
   try {
     const photoId = doc(collection(firestore, 'photos')).id;
 
-    // 2. Optimization & Hash
-    const optimizedFile = await prepareOptimizedFile(file, 1600);
-    const hash = await generateImageHash(optimizedFile);
+    // 2. Hash & Optimization
+    // We hash the ORIGINAL file for deterministic duplicate detection across any browser/device.
+    const hash = await generateImageHash(file);
+
+    // Get dimensions early for potential error reporting
+    const dims = await getImageDimensions(file);
+
+    let optimizedFile: File;
+    try {
+      optimizedFile = await prepareOptimizedFile(file, 1600);
+    } catch (err: any) {
+      if (err.message === 'PHOTO_TOO_SMALL') {
+        return { type: 'resolution_error', dims };
+      }
+      throw err;
+    }
 
     // 3. Duplicate Check
     if (user) {
@@ -119,37 +133,48 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions) => 
       if (!dupSnap.empty) {
         const existingPhoto = dupSnap.docs[0].data() as Photo;
         if (existingPhoto.aiFeedback) {
-          onSuccess(existingPhoto);
-          return;
+          return { type: 'success', data: existingPhoto };
         }
         if (analyze) {
-           // Analyze existing but unanalyzed photo
            const analysis = await generatePhotoAnalysis({
              photoUrl: existingPhoto.imageUrls?.analysis || existingPhoto.imageUrl,
              language: locale,
              tier: currentTier
            });
-           await updateDoc(dupSnap.docs[0].ref, {
+
+           const batch = writeBatch(firestore);
+           batch.update(dupSnap.docs[0].ref, {
              aiFeedback: analysis,
              tags: analysis.tags || [],
              analysisTier: currentTier
            });
-           onSuccess({ ...existingPhoto, aiFeedback: analysis });
-           return;
+           
+           if (user) {
+             const userRef = doc(firestore, 'users', user.uid);
+             batch.update(userRef, {
+               pix_balance: increment(-analysisCost),
+               total_analyses_count: increment(1)
+             });
+           }
+           
+           await batch.commit();
+
+           // Background Index Update
+           updateUserProfileIndex(firestore, user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo)).catch(err => 
+             console.error('[photo-flow] Index update failed:', err)
+           );
+
+           return { type: 'success', data: { ...existingPhoto, aiFeedback: analysis } };
         }
-        onUploadOnly();
-        return;
+        return { type: 'upload_only' };
       }
     }
 
     // 4. Upload
-    console.log("FLOW START");
-    console.log("FILE:", file);
     const formData = new FormData();
     formData.append('file', optimizedFile);
     const currentUserId = user?.uid || guestId || 'anonymous';
     const imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId, 'photos');
-    console.log("UPLOADED URL:", imageUrls.analysis);
 
     // 5. Data Prep
     const photoData: Photo = {
@@ -171,7 +196,6 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions) => 
         tier: currentTier,
         guestId: !user ? (guestId || undefined) : undefined
       });
-      console.log("ANALYSIS RESULT:", analysis);
 
       photoData.aiFeedback = analysis;
       photoData.analysisTier = currentTier;
@@ -192,7 +216,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions) => 
           console.error('[photo-flow] Index update failed:', err)
         );
       }
-      onSuccess(photoData);
+      return { type: 'success', data: photoData };
     } else {
       if (user) {
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
@@ -202,9 +226,11 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions) => 
         batch.update(userRef, { current_xp: increment(5) });
         await batch.commit();
       }
-      onUploadOnly();
+      return { type: 'upload_only' };
     }
   } catch (error: any) {
-    onError(error);
+    console.error('[photo-flow] Execution error:', error);
+    return { type: 'error', code: error.code || 'UNKNOWN_ERROR' };
   }
 };
+

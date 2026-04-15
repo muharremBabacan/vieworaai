@@ -4,15 +4,33 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScanningOverlay } from './ui-utils';
 
+import { AnalyzerStatus } from '../../hooks/usePhotoAnalyzer';
+import type { User } from '@/types';
+
+interface ProcessingStageProps {
+  preview: string | null;
+  status: AnalyzerStatus;
+  user: { uid: string } | null; 
+  userProfile: User | null;
+  analysisCost: number;
+  currencyName: string;
+  handleAction: (analyze: boolean) => void;
+  resetAnalyzer: () => void;
+  open: () => void;
+  t: (key: string, values?: any) => string;
+}
+
 export const ProcessingStage = ({ 
-  preview, isLoading, isProcessing, loadingType, user, userProfile, 
+  preview, status, user, userProfile, 
   analysisCost, currencyName, handleAction, resetAnalyzer, open, t 
-}: any) => {
+}: ProcessingStageProps) => {
+  const isLoading = status === 'uploading' || status === 'analyzing';
+
   return (
     <Card className="p-12 text-center rounded-[48px] border-border/40 bg-card/50 backdrop-blur-sm relative overflow-hidden">
-      {(isLoading || isProcessing) && (
+      {isLoading && (
         <ScanningOverlay
-          label={isProcessing ? t('state_processing') : loadingType === 'analyze' ? t('state_analyzing') : t('state_uploading')}
+          label={status === 'analyzing' ? t('state_analyzing') : t('state_uploading')}
         />
       )}
       
@@ -40,10 +58,10 @@ export const ProcessingStage = ({
         <div className="flex flex-col sm:flex-row justify-center gap-5 w-full max-w-2xl">
           <Button
             onClick={() => handleAction(true)}
-            disabled={!!(isLoading || isProcessing || (user && (!userProfile || userProfile.pix_balance < analysisCost)))}
+            disabled={isLoading || (!!user && (!userProfile || userProfile.pix_balance < analysisCost))}
             className="flex-1 h-16 rounded-[20px] text-lg font-black uppercase tracking-wider group relative overflow-hidden"
           >
-            {isLoading && loadingType === 'analyze' ? (
+            {status === 'analyzing' ? (
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
             ) : (
               <Sparkles className="h-6 w-6 mr-2 group-hover:scale-125 transition-transform" />
@@ -57,11 +75,11 @@ export const ProcessingStage = ({
 
           <Button
             onClick={() => handleAction(false)}
-            disabled={isLoading || isProcessing}
+            disabled={isLoading}
             variant="outline"
             className="flex-1 h-16 rounded-[20px] text-lg font-black uppercase tracking-wider border-2"
           >
-            {isLoading && loadingType === 'upload' ? (
+            {status === 'uploading' ? (
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
             ) : (
               <Camera className="h-6 w-6 mr-2" />
