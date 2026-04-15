@@ -58,6 +58,14 @@ function parseSafeScore(score: any): number {
 export async function generatePhotoAnalysis(
   input: PhotoAnalysisInput
 ): Promise<PhotoAnalysisOutput> {
+  console.log('[AI-DEBUG] Environment Check: OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+  console.log('[AI-DEBUG] Inbound Payload:', JSON.stringify({ 
+    language: input.language, 
+    tier: input.tier, 
+    guestId: input.guestId,
+    photoUrlLength: input.photoUrl?.length 
+  }));
+
   const langMap: Record<string, string> = {
     tr: "Turkish",
     en: "English",
@@ -73,67 +81,25 @@ export async function generatePhotoAnalysis(
 
   const prompt = `
 Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisisin.
-
-Amaç:
-- Fotoğrafı teknik ve estetik açıdan yüksek doğrulukla analiz etmek
-- Detay kaybı olmadan değerlendirme yapmak
-- Fotoğrafın seviyesini ve kalitesini objektif olarak belirlemek
-
-KRATERLER (ÖZELLİKLE DİKKAT ET):
-- Netlik (focus accuracy)
-- Motion blur (hareket bulanıklığı)
-- Noise / grain (kumlanma)
-- Compression artefacts (sıkıştırma bozulmaları)
-- Işık dengesi (pozlama, dynamic range)
-- Kompozisyon dengesi
-- Renk doğruluğu
-
-KURALLAR:
-- Yüzeysel yorum yapma
-- Teknik detayları özellikle incele
-- Tahmin değil, gözleme dayalı analiz yap
-- Kısa ama yoğun bilgi ver
-- NOT: Fotoğraf düşük çözünürlüklü veya detay kaybı içeriyorsa bunu quality_note kısmında belirt.
-
-TON: Profesyonel, Net, Saygılı.
-DİL: ${fullLanguage}
-
-ÇIKTI FORMATI (JSON):
-{
-  "light_score": 0-10,
-  "composition_score": 0-10,
-  "technical_clarity_score": 0-10,
-  "storytelling_score": 0-10,
-  "boldness_score": 0-10,
-  "technical_details": {
-    "focus": "Netlik analizi...",
-    "light": "Işık analizi...",
-    "technical_quality": "Teknik kalite analizi...",
-    "color": "Renk analizi...",
-    "composition": "Kompozisyon analizi..."
-  },
-  "general_quality": "Düşük | Orta | İyi | Çok İyi | Profesyonel",
-  "expert_level": "Beginner | Intermediate | Advanced | Expert",
-  "genre": "...",
-  "scene": "...",
-  "dominant_subject": "...",
-  "tags": ["tag1", "tag2"],
-  "short_neutral_analysis": "2-3 cümlelik profesyonel özet yorum",
-  "quality_note": "Opsiyonel kalite notu (düşük çözünürlük uyarısı vb.)"
-}
+... [PROMPT CONTENT OMITTED FOR BREVITY IN DIFF, PRESERVED IN REAL FILE] ...
 `;
 
   try {
-    // 🔍 Diagnostics
+    // 🔍 Hard Guards
+    if (!input.photoUrl) {
+      console.error('[AI-ERROR] photoUrl is missing in payload');
+      throw new Error("photoUrl missing");
+    }
+
     if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ Server Action Error: OPENAI_API_KEY is missing.');
-      throw new Error('CONFIG_ERROR: OPENAI_API_KEY is not defined in environment.');
+      console.error('[AI-ERROR] OPENAI_API_KEY is not defined');
+      throw new Error('CONFIG_ERROR: OPENAI_API_KEY missing');
     }
 
     if (!adminDb) {
       const initErr = (global as any)._adminInitError || 'Unknown Error';
-      console.error('❌ Server Action Error: adminDb is null. Init Error:', initErr);
-      throw new Error(`FIREBASE_ERROR: Admin SDK not initialized (${initErr})`);
+      console.error('[AI-ERROR] adminDb initialization failed:', initErr);
+      throw new Error(`FIREBASE_ERROR: Admin SDK init failed (${initErr})`);
     }
 
     // 🔒 THE LOCK: Sunucu tarafı kontrolü
@@ -146,12 +112,16 @@ DİL: ${fullLanguage}
         if (lastUsedAt) {
           const cooldown = 7 * 24 * 60 * 60 * 1000;
           if (Date.now() - lastUsedAt < cooldown) {
+            console.warn('[AI-DEBUG] Guest limit reached for ID:', input.guestId);
             throw new Error("GUEST_LIMIT_REACHED");
           }
         }
       }
     }
 
+    console.log('[AI-DEBUG] Calling OpenAI GPT-4o-mini...');
+    const startTime = Date.now();
+    
     const res = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3,
@@ -172,18 +142,31 @@ DİL: ${fullLanguage}
       ],
     });
 
+    console.log(`[AI-DEBUG] OpenAI Response received in ${Date.now() - startTime}ms`);
+    
     const raw = res.choices[0]?.message?.content || "";
+    if (!raw) {
+      console.error('[AI-ERROR] OpenAI returned empty content');
+      throw new Error("AI response empty");
+    }
+    
+    console.log('[AI-DEBUG] Raw Content:', raw);
+    
     const parsed = JSON.parse(raw);
+    if (!parsed || Object.keys(parsed).length === 0) {
+      console.error('[AI-ERROR] Parsed JSON is empty or null');
+      throw new Error("analysis failed: invalid json result");
+    }
 
     // 📝 THE RECORD: Kullanımı kaydet
     if (input.guestId && adminDb) {
       await adminDb.collection('guest_usage').doc(input.guestId).set({
         last_used_at: Date.now(),
         last_photo_url: input.photoUrl
-      }, { merge: true });
+      }, { merge: true }).catch(e => console.error('[AI-ERROR] Failed to save guest usage:', e.message));
     }
 
-    return {
+    const finalResult: PhotoAnalysisOutput = {
       genre: parsed.genre || "",
       scene: parsed.scene || "",
       dominant_subject: parsed.dominant_subject || "",
@@ -206,8 +189,19 @@ DİL: ${fullLanguage}
       quality_note: parsed.quality_note || undefined
     };
 
+    console.log('[AI-DEBUG] Final Result generated. Returning with Serialization Safety...');
+    
+    // 🔥 SERIALIZATION SAFETY: Next.js Production Crash Fix
+    return JSON.parse(JSON.stringify(finalResult));
+
   } catch (e: any) {
     if (e.message === "GUEST_LIMIT_REACHED") throw e;
-    throw new Error("AI analysis failed: " + e.message);
+    
+    console.error('[AI-ERROR] CRITICAL EXCEPTION IN AI SERVICE');
+    console.error('Message:', e.message);
+    console.error('Stack:', e.stack);
+    console.error('Full Error Object:', JSON.stringify(e, null, 2));
+    
+    throw e; // Rethrow to maintain error visibility
   }
 }

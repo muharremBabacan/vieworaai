@@ -221,18 +221,21 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     lastSuccessfulStep = 'STEP_4_DUPLICATE_CHECK_OK';
 
     // 5. Upload
-    console.log('☁️ [photo-flow] STEP 5: Calling Server Action for Upload...');
+    console.log('[FLOW-DEBUG] STEP 5: Calling Server Action (Upload)...');
     const formData = new FormData();
     formData.append('file', optimizedFile);
     const currentUserId = user?.uid || guestId || 'anonymous';
     
-    // Potansiyel Server Action sızmasını önlemek için async/await'i dikkatli kullan
-    const imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId, 'photos');
+    const imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId, 'photos').catch(e => {
+       console.error('[FLOW-ERROR] Upload Server Action failed:', e.message);
+       throw e;
+    });
     
     if (!imageUrls?.analysis) {
+      console.error('[FLOW-ERROR] Upload succeeded but analysis URL is missing');
       throw new Error('UPLOAD_SERVER_ACTION_RETURNED_EMPTY_URLS');
     }
-    console.log('✅ [photo-flow] Upload successful:', imageUrls.analysis);
+    console.log('[FLOW-DEBUG] Upload successful. URL:', imageUrls.analysis);
     lastSuccessfulStep = 'STEP_5_UPLOAD_OK';
 
     const photoData: Photo = {
@@ -248,22 +251,35 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
     // 6. Analysis
     if (analyze) {
-      console.log('🤖 [photo-flow] STEP 6: Starting AI Analysis (GPT-4o)...');
+      console.log('[FLOW-DEBUG] STEP 6: Starting AI Analysis...');
+      
+      // 🛡️ Hard Guard: Don't call AI without URL
+      if (!imageUrls.analysis) {
+        throw new Error("photoUrl missing before AI call");
+      }
+
       const analysis = await generatePhotoAnalysis({
         photoUrl: imageUrls.analysis,
         language: locale,
         tier: currentTier,
         guestId: !user ? (guestId || undefined) : undefined
+      }).catch(e => {
+        console.error('[FLOW-ERROR] AI Analysis Service failed:', e.message);
+        throw e;
       });
 
-      if (!analysis) throw new Error('AI_ANALYSIS_RETURNED_NULL');
-      console.log('✅ [photo-flow] AI Analysis complete');
+      if (!analysis) {
+        console.error('[FLOW-ERROR] AI Service returned null/undefined');
+        throw new Error('analysis failed');
+      }
+      
+      console.log('[FLOW-DEBUG] AI Analysis successful Result:', JSON.stringify(analysis).substring(0, 100) + '...');
 
       photoData.aiFeedback = analysis;
       photoData.analysisTier = currentTier;
 
       if (user) {
-        console.log('💾 [photo-flow] STEP 7: Saving to Firestore (Batch Commit)...');
+        console.log('[FLOW-DEBUG] STEP 7: Saving to Firestore...');
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
         const userRef = doc(firestore, 'users', user.uid);
         const batch = writeBatch(firestore);
@@ -274,44 +290,44 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
           total_analyses_count: increment(1)
         });
         
-        await batch.commit();
-        console.log('✅ [photo-flow] Firestore save complete');
+        await batch.commit().catch(e => {
+          console.error('[FLOW-ERROR] Firestore batch commit failed:', e.message);
+          throw e;
+        });
+        console.log('[FLOW-DEBUG] Flow Complete. Overall Score:', getOverallScore(photoData));
         
         updateUserProfileIndex(firestore, user.uid, getOverallScore(photoData)).catch(e => 
-          console.error('⚠️ [photo-flow] Profile index update failure:', e)
+          console.error('[FLOW-ERROR] Profile index update failure:', e.message)
         );
       }
       lastSuccessfulStep = 'STEP_7_COMPLETE';
       return { type: 'success', data: serializeData(photoData) };
     } else {
       if (user) {
-        console.log('💾 [photo-flow] STEP 6: Saving upload-only entry...');
+        console.log('[FLOW-DEBUG] STEP 6: Saving upload-only entry...');
         const photoDocRef = doc(collection(firestore, 'users', user.uid, 'photos'), photoId);
         const batch = writeBatch(firestore);
         batch.set(photoDocRef, photoData);
         batch.update(doc(firestore, 'users', user.uid), { current_xp: increment(5) });
-        await batch.commit();
-        console.log('✅ [photo-flow] Upload-only save complete');
+        await batch.commit().catch(e => {
+          console.error('[FLOW-ERROR] Upload-only commit failed:', e.message);
+          throw e;
+        });
+        console.log('[FLOW-DEBUG] Upload-only save complete');
       }
       lastSuccessfulStep = 'STEP_6_UPLOAD_ONLY_COMPLETE';
       return { type: 'upload_only' };
     }
   } catch (error: any) {
-    // 🔥 ELITE ERROR LOGGING
-    console.error('🚨 [photo-flow] CRITICAL EXCEPTION CAUGHT');
-    console.error('Last Successful Step:', lastSuccessfulStep);
-    
-    // Log the raw error so browser console can format it properly
-    console.error('Raw Error:', error);
+    // 🔥 FLOW ERROR LOGGING
+    console.error('[FLOW-ERROR] CRITICAL EXCEPTION IN PHOTO FLOW');
+    console.error('Last Step:', lastSuccessfulStep);
+    console.error('Message:', error?.message);
+    console.error('Stack:', error?.stack);
+    console.error('Full Object:', JSON.stringify(error, null, 2));
 
     const errorMsg = error?.message || 'Unknown execution error';
     const errorCode = error?.code || 'FLOW_CRASH';
-
-    console.error('Summary:', { 
-      message: errorMsg, 
-      code: errorCode,
-      lastStep: lastSuccessfulStep 
-    });
 
     return { 
       type: 'error', 
