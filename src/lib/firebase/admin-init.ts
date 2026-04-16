@@ -8,7 +8,8 @@ function ensureAdminInitialized() {
 
   try {
     let serviceAccount: any;
-    const envKey = process.env.FIREBASE_SERVICE_ACCOUNT;
+    // 🔑 Support both standard and the specific APP_ADMIN_KEY mapping from apphosting.yaml
+    const envKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT;
     const serviceAccountPath = path.join(process.cwd(), 'serviceAccount.json');
     
     console.log(`[AdminInit] Checking credentials... CWD: ${process.cwd()}`);
