@@ -76,7 +76,7 @@ class NotificationService {
 
   // 3. User Bazlı Gönderim (Multi-device support)
   async sendToUser(userId: string, title: string, body: string): Promise<void> {
-    const tokens = this.getUserTokens(userId);
+    const tokens = await this.getUserTokens(userId);
     if (tokens.length === 0) return;
 
     // Basic Dedup (Anti-spam)

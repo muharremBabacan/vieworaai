@@ -65,7 +65,7 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !user) return;
     
     // Check if user has explicitly disabled notifications in their profile
-    if (userProfile?.notifications_enabled === false) {
+    if ((userProfile?.notifications_enabled as any) === false) {
       console.log('[PushProvider] Notifications are disabled in user profile. Skipping FCM setup.');
       return;
     }
@@ -113,7 +113,7 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('[PushProvider] Foreground Message:', payload);
         
         // Double check enabled flag
-        if (userProfile?.notifications_enabled === false) return;
+        if ((userProfile?.notifications_enabled as any) === false) return;
 
         toast({
           title: payload.notification?.title || 'Yeni Bildirim',

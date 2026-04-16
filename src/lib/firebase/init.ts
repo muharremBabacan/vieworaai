@@ -5,59 +5,47 @@ import { getFirestore, Firestore, initializeFirestore } from 'firebase/firestore
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
 
-/**
- * Firebase istemci servislerini başlatır.
- * Bu fonksiyon sadece tarayıcı ortamında çalışacak şekilde tasarlanmıştır.
- */
-export function initializeFirebase(): {
-  firebaseApp: FirebaseApp | null;
-  auth: Auth | null;
-  firestore: Firestore | null;
-  storage: FirebaseStorage | null;
-  messaging: Messaging | null;
-} {
-  // 🚫 SSR veya Build sırasında Firebase'i başlatma
-  if (typeof window === 'undefined') {
-    return {
-      firebaseApp: null,
-      auth: null,
-      firestore: null,
-      storage: null,
-      messaging: null,
-    };
-  }
+// Singleton instances
+let firebaseApp: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
 
-  // Tarayıcı ortamında güvenli başlatma
-  const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-  let messaging: Messaging | null = null;
+if (typeof window !== 'undefined') {
+  firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(firebaseApp);
   
-  // Messaging check (only in supported environments)
-  isSupported().then(supported => {
-    if (supported) {
-      messaging = getMessaging(firebaseApp);
-    }
-  });
-
-  let firestore: Firestore;
+  // Guarded Firestore Init
   try {
-    firestore = initializeFirestore(firebaseApp, { 
+    db = initializeFirestore(firebaseApp, { 
         experimentalForceLongPolling: true,
         useFetchStreams: false 
     });
   } catch (e) {
-    // If already initialized, fallback to getFirestore
-    firestore = getFirestore(firebaseApp);
+    db = getFirestore(firebaseApp);
+  }
+  
+  storage = getStorage(firebaseApp);
+}
+
+/**
+ * Backward compatibility for Provider-based usage
+ */
+export function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    return { firebaseApp: null, auth: null, firestore: null, storage: null, messaging: null };
   }
 
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore,
-    storage: getStorage(firebaseApp),
+    auth,
+    firestore: db,
+    storage,
     messaging: null,
   };
 }
+
+export { firebaseApp as app, auth, db, storage };
 
 export async function getMessagingService(app: FirebaseApp): Promise<Messaging | null> {
     if (typeof window === 'undefined') return null;

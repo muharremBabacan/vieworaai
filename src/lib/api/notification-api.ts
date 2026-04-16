@@ -1,12 +1,7 @@
-const NOTIFICATION_SERVER_URL = process.env.NEXT_PUBLIC_NOTIFICATION_SERVER_URL;
-
-// 🔴 HARD FAIL (production'da localhost'a düşmez)
-if (!NOTIFICATION_SERVER_URL) {
-  console.warn("Notification disabled (no server)");
-}
+// 🔔 Use Internal Proxy
+const NOTIFICATION_SERVER_URL = '/api/notifications';
 
 const buildUrl = (path: string) => {
-  if (!NOTIFICATION_SERVER_URL) return null;
   return `${NOTIFICATION_SERVER_URL}${path}`;
 };
 
