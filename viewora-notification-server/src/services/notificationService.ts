@@ -8,24 +8,46 @@ interface UserTokenMap {
 }
 
 class NotificationService {
-  private userTokens: UserTokenMap = {};
+  private db = admin.firestore();
   private lastNotified: Map<string, number> = new Map(); // Simple dedup
 
   // 1. Token Yönetimi
-  saveToken(userId: string, token: string): void {
-    if (!this.userTokens[userId]) {
-      this.userTokens[userId] = new Set();
+  async saveToken(userId: string, token: string): Promise<void> {
+    try {
+      const tokenRef = this.db.collection('fcm_tokens').doc(`${userId}_${token.substring(0, 50)}`);
+      await tokenRef.set({
+        userId,
+        token,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log(`[Token Saved] User: ${userId}, Token indexed in Firestore`);
+    } catch (error) {
+      console.error(`[Error] Failed to save token for ${userId}:`, error);
     }
-    this.userTokens[userId].add(token);
-    console.log(`[Token Saved] User: ${userId}, Total Tokens: ${this.userTokens[userId].size}`);
   }
 
-  getUserTokens(userId: string): string[] {
-    return Array.from(this.userTokens[userId] || []);
+  async getUserTokens(userId: string): Promise<string[]> {
+    try {
+      const snapshot = await this.db.collection('fcm_tokens')
+        .where('userId', '==', userId)
+        .get();
+      
+      return snapshot.docs.map(doc => doc.data().token);
+    } catch (error) {
+      console.error(`[Error] Failed to get tokens for ${userId}:`, error);
+      return [];
+    }
   }
 
-  getAllTokens(): UserTokenMap {
-    return this.userTokens;
+  async getAllTokens(): Promise<Record<string, string[]>> {
+    const snapshot = await this.db.collection('fcm_tokens').get();
+    const result: Record<string, string[]> = {};
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (!result[data.userId]) result[data.userId] = [];
+      result[data.userId].push(data.token);
+    });
+    return result;
   }
 
   // 2. Topic Sistemi
@@ -77,13 +99,16 @@ class NotificationService {
       
       // Geçersiz token temizliği
       if (response.failureCount > 0) {
+        const batch = this.db.batch();
         response.responses.forEach((resp, idx) => {
           if (!resp.success && (resp.error?.code === 'messaging/invalid-registration-token' || resp.error?.code === 'messaging/registration-token-not-registered')) {
             const invalidToken = tokens[idx];
-            this.userTokens[userId].delete(invalidToken);
-            console.warn(`[Cleanup] Removed invalid token for user ${userId}`);
+            const tokenRef = this.db.collection('fcm_tokens').doc(`${userId}_${invalidToken.substring(0, 50)}`);
+            batch.delete(tokenRef);
+            console.warn(`[Cleanup] Scheduled deletion of invalid token for user ${userId}`);
           }
         });
+        await batch.commit();
       }
       console.log(`[Send Success] Sent to user ${userId} (${response.successCount} successful)`);
     } catch (error) {

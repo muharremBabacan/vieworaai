@@ -118,7 +118,7 @@ export function ChallengeGroupView({
                     <div className="lg:col-span-5 h-[300px] lg:h-auto relative">
                         <VieworaImage 
                             variants={submissions?.find(s => s.award === 'first')?.imageUrls} 
-                            fallbackUrl="https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1964&auto=format&fit=crop"
+                            fallbackUrl="/competition-fallback.png"
                             type="detailView"
                             alt="Competition"
                             containerClassName="w-full h-full"

@@ -95,12 +95,12 @@
   "AcademyPage": {
     "main_title": "Viewora Akademi",
     "main_description": "Fotoğrafçılık bilginizi temelden ustalığa taşıyın.",
-    "level_basic_title": "Temel Seviye",
-    "level_basic_description": "Kameranızın temellerini öğrenin, pozlamayı anlayın ve temel kompozisyon kurallarında ustalaşın.",
-    "level_intermediate_title": "Orta Seviye",
-    "level_intermediate_description": "Farklı türlerde çekim yapın, gelişmiş teknikleri uygulayın ve ışığı bilinçli bir şekilde yönetin.",
-    "level_advanced_title": "İleri Seviye",
-    "level_advanced_description": "Kendi sanatsal tarzınızı yaratın, profesyonel ışık kurulumlarını öğrenin ve fotoğrafçılıkta uzmanlaşın.",
+    "level_basic_title": "Ortaokul",
+    "level_basic_description": "Fotoğrafın alfabesi, ekipman tanıma ve ışık prensipleri.",
+    "level_intermediate_title": "Lise",
+    "level_intermediate_description": "İleri kompozisyon, post-prodüksiyon ve yaratıcı çekim teknikleri.",
+    "level_advanced_title": "Üniversite",
+    "level_advanced_description": "Kavramsal fotoğrafçılık, sanatsal üslup ve profesyonel küratörlük.",
     "button_view_lessons": "Dersleri Gör",
     "tooltip_intermediate": "Orta Seviye — İlerlemeye devam et, kilit açılıyor.",
     "tooltip_advanced": "İleri Seviye için Uzman içerik. Kilidi açmak için gelişimine devam et.",
@@ -172,6 +172,20 @@
     "button_view_entries": "Katılımları Görüntüle",
     "card_button_join": "Hemen Katıl",
     "card_button_details": "Detayları Gör"
+  },
+  "LandingPage": {
+    "platform_title": "GELECEĞİN FOTOĞRAF PLATFORMU",
+    "platform_card_1_title": "YAPAY ZEKA ANALİZİ",
+    "platform_card_1_desc": "Fotoğraflarınızı teknik ve sanatsal açıdan saniyeler içinde değerlendirin.",
+    "platform_card_2_title": "VİZYON AKADEMİ",
+    "platform_card_2_desc": "Kamera ayarlarından kompozisyona, her seviyeye uygun eğitimlerle gelişin.",
+    "platform_card_3_title": "KÜRESEL TOPLULUK",
+    "platform_card_3_desc": "Dünyanın her yerinden fotoğrafçılarla yarışın ve sergilere katılın.",
+    "platform_card_4_title": "GERÇEK ZAMANLI GERİ BİLDİRİM",
+    "platform_card_4_desc": "Luma ile her deklanşörde daha iyisini nasıl yapacağınızı öğrenin.",
+    "platform_card_5_title": "DİJİTAL SERGİLER",
+    "platform_card_5_desc": "En iyi karelerinizi prestijli dijital hallerimizde sergileyin.",
+    "platform_footer": "Türkiye'de geliştirilen, fotoğrafları yapay zekâ ile analiz ederek kullanıcıların öğrenmesini sağlayan küresel platform."
   },
   "DashboardPage": {
     "error_photo_too_small_dialog_title": "Fotoğraf Çok Küçük",
@@ -500,6 +514,7 @@
     "toast_prizes_updated": "Yarışma ödülleri başarıyla güncellendi.",
     "award_prize_label": "Ödül:",
     "toast_group_updated": "Grup ayarları başarıyla güncellendi.",
+    "badge_founder": "KURUCU",
     "tooltip_user_not_found": "Kullanıcı bulunamadı",
     "button_invite_member": "Üye Davet Et",
     "invite_member_description": "Gruba davet etmek istediğiniz kullanıcının e-posta adresini girin.",
@@ -1016,7 +1031,10 @@
     "button_delete": "Sil",
     "toast_notification_sent": "Bildirim grup sahibine gönderildi.",
     "list_groups": "Grup Yönetimi",
-    "list_exhibitions": "Platform Sergileri"
+    "list_exhibitions": "Platform Sergileri",
+    "mentor_analysis": "Mentor Analizi",
+    "exhibitions": "Sergiler",
+    "competitions": "Yarışmalar"
   },
 
   "PWA": {

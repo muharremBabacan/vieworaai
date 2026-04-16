@@ -123,7 +123,7 @@ export default function ExplorePage() {
         desc: t('category_competitions_desc'),
         features: t('category_competitions_features').split(','),
         button: t('category_competitions_button'),
-        image: "https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80&w=1964&auto=format&fit=crop",
+        image: "/competition-fallback.png",
         borderColor: "hover:border-blue-400/30",
         btnColor: "bg-blue-600 shadow-lg shadow-blue-600/20 hover:bg-blue-700",
         onClick: () => router.push('/competitions')

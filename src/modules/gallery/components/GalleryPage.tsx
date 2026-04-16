@@ -185,17 +185,18 @@ export default function GalleryPage() {
     const isGlobal = targetCompetitionId.startsWith('global-');
     const compId = targetCompetitionId.replace('global-', '').replace('group-', '');
     
+    if (isGlobal && userProfile.pix_balance < 5) {
+      toast({ variant: 'destructive', title: tDashboard('toast_insufficient_auro_title') });
+      router.push('/pricing');
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const batch = writeBatch(firestore);
       const userRef = doc(firestore, 'users', user.uid);
       
       if (isGlobal) {
-        if (userProfile.pix_balance < 5) {
-          toast({ variant: 'destructive', title: tDashboard('toast_insufficient_auro_title') });
-          router.push('/pricing');
-          return;
-        }
 
         const entryRef = doc(collection(firestore, 'competitions', compId, 'entries'));
         batch.set(entryRef, {
@@ -430,7 +431,7 @@ export default function GalleryPage() {
             return (
               <Card 
                 key={photo.id} 
-                className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all hover:scale-105 transform-gpu isolate" 
+                className="group relative aspect-square rounded-[32px] overflow-hidden border-none bg-card/50 cursor-pointer shadow-xl transition-all duration-500 hover:scale-[1.03] transform-gpu isolate will-change-transform" 
                 onClick={() => setSelectedPhoto(photo)}
               >
                 <VieworaImage 
@@ -438,7 +439,8 @@ export default function GalleryPage() {
                   fallbackUrl={photo.imageUrl}
                   type="smallSquare"
                   alt="Galeri Görseli"
-                  containerClassName="w-full h-full"
+                  containerClassName="w-full h-full rounded-[32px] overflow-hidden"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 

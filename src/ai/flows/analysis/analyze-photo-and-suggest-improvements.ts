@@ -51,7 +51,7 @@ function parseSafeScore(score: any): number {
   // "8/10" formatını temizle
   const cleanScore = score.split('/')[0].replace(',', '.').trim();
   const num = parseFloat(cleanScore);
-  
+
   return isNaN(num) ? 0 : num;
 }
 
@@ -59,11 +59,11 @@ export async function generatePhotoAnalysis(
   input: PhotoAnalysisInput
 ): Promise<PhotoAnalysisOutput> {
   console.log('[AI-DEBUG] Environment Check: OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
-  console.log('[AI-DEBUG] Inbound Payload:', JSON.stringify({ 
-    language: input.language, 
-    tier: input.tier, 
+  console.log('[AI-DEBUG] Inbound Payload:', JSON.stringify({
+    language: input.language,
+    tier: input.tier,
     guestId: input.guestId,
-    photoUrlLength: input.photoUrl?.length 
+    photoUrlLength: input.photoUrl?.length
   }));
 
   const langMap: Record<string, string> = {
@@ -106,7 +106,7 @@ Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisi
     if (input.guestId && adminDb) {
       const usageRef = adminDb.collection('guest_usage').doc(input.guestId);
       const usageDoc = await usageRef.get();
-      
+
       if (usageDoc.exists) {
         const lastUsedAt = usageDoc.data()?.last_used_at;
         if (lastUsedAt) {
@@ -119,11 +119,11 @@ Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisi
       }
     }
 
-    console.log('[AI-DEBUG] Calling OpenAI GPT-4o-mini...');
+    console.log('[AI-DEBUG] Calling OpenAI GPT-4.1-mini...');
     const startTime = Date.now();
-    
+
     const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-mini",
       temperature: 0.3,
       response_format: { type: "json_object" },
       messages: [
@@ -143,15 +143,15 @@ Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisi
     });
 
     console.log(`[AI-DEBUG] OpenAI Response received in ${Date.now() - startTime}ms`);
-    
+
     const raw = res.choices[0]?.message?.content || "";
     if (!raw) {
       console.error('[AI-ERROR] OpenAI returned empty content');
       throw new Error("AI response empty");
     }
-    
+
     console.log('[AI-DEBUG] Raw Content:', raw);
-    
+
     const parsed = JSON.parse(raw);
     if (!parsed || Object.keys(parsed).length === 0) {
       console.error('[AI-ERROR] Parsed JSON is empty or null');
@@ -190,18 +190,18 @@ Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisi
     };
 
     console.log('[AI-DEBUG] Final Result generated. Returning with Serialization Safety...');
-    
+
     // 🔥 SERIALIZATION SAFETY: Next.js Production Crash Fix
     return JSON.parse(JSON.stringify(finalResult));
 
   } catch (e: any) {
     if (e.message === "GUEST_LIMIT_REACHED") throw e;
-    
+
     console.error('[AI-ERROR] CRITICAL EXCEPTION IN AI SERVICE');
     console.error('Message:', e.message);
     console.error('Stack:', e.stack);
     console.error('Full Error Object:', JSON.stringify(e, null, 2));
-    
+
     throw e; // Rethrow to maintain error visibility
   }
 }

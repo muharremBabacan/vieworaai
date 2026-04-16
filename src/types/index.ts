@@ -148,6 +148,7 @@ export type User = {
   instagram?: string;
   auro_balance: number;
   pix_balance: number;
+  Pix_balance?: number; // Backward compatibility
   total_auro_spent?: number;
   total_analyses_count: number;
   total_mentor_analyses_count: number;

@@ -1,7 +1,7 @@
 import { firebaseConfig } from '@/lib/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
 
@@ -42,9 +42,12 @@ export function initializeFirebase(): {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp),
+    firestore: initializeFirestore(firebaseApp, { 
+        experimentalForceLongPolling: true,
+        useFetchStreams: false 
+    }),
     storage: getStorage(firebaseApp),
-    messaging: null, // Will be async initialized or accessed via getMessaging directly
+    messaging: null,
   };
 }
 

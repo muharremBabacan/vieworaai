@@ -40,7 +40,7 @@ const configSchema = z.object({
 
 const userEditSchema = z.object({
   level_name: z.string(),
-  Pix_balance: z.coerce.number().min(0),
+  pix_balance: z.coerce.number().min(0),
   total_analyses_count: z.coerce.number().min(0),
   total_mentor_analyses_count: z.coerce.number().min(0),
   total_exhibitions_count: z.coerce.number().min(0),
@@ -104,7 +104,7 @@ export default function AdminPanel() {
   });
 
   useEffect(() => {
-    if (appConfig) configForm.reset({ currencyName: appConfig.currencyName });
+    if (appConfig) configForm.reset({ currencyName: appConfig.currencyName || 'Pix' });
   }, [appConfig, configForm]);
 
   const isAdmin = useMemo(() => {
@@ -117,12 +117,12 @@ export default function AdminPanel() {
   const metrics = useMemo(() => {
     if (!logs) return null;
     return {
-      totalPix: logs.filter(l => l.PixSpent > 0).reduce((sum, log) => sum + (log.PixSpent || 0), 0),
-      techPix: logs.filter(l => l.type === 'technical').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
-      mentorPix: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
-      exhibitionPix: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
-      competitionPix: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.PixSpent || 0), 0),
-      totalGifts: Math.abs(logs.filter(l => l.type === 'gift').reduce((sum, log) => sum + (log.PixSpent || 0), 0)),
+      totalPix: logs.reduce((sum, log) => sum + (log.pixSpent || (log as any).PixSpent || (log as any).auroSpent || 0), 0),
+      techPix: logs.filter(l => l.type === 'technical').reduce((sum, log) => sum + (log.pixSpent || (log as any).PixSpent || (log as any).auroSpent || 0), 0),
+      mentorPix: logs.filter(l => l.type === 'mentor').reduce((sum, log) => sum + (log.pixSpent || (log as any).PixSpent || (log as any).auroSpent || 0), 0),
+      exhibitionPix: logs.filter(l => l.type === 'exhibition').reduce((sum, log) => sum + (log.pixSpent || (log as any).PixSpent || (log as any).auroSpent || 0), 0),
+      competitionPix: logs.filter(l => l.type === 'competition').reduce((sum, log) => sum + (log.pixSpent || (log as any).PixSpent || (log as any).auroSpent || 0), 0),
+      totalGifts: Math.abs(logs.filter(l => l.type === 'gift').reduce((sum, log) => sum + (log.pixSpent || (log as any).PixSpent || (log as any).auroSpent || 0), 0)),
     };
   }, [logs]);
 
@@ -162,8 +162,8 @@ export default function AdminPanel() {
       });
 
       batch.update(userRef, {
-        Pix_balance: increment(purchase.pix_amount),
-        pix_balance: increment(purchase.pix_amount)
+        pix_balance: increment(purchase.pix_amount),
+        Pix_balance: increment(purchase.pix_amount)
       });
 
       batch.set(logRef, {
@@ -171,7 +171,7 @@ export default function AdminPanel() {
         userId: purchase.user_id,
         userName: purchase.user_name,
         type: 'package',
-        PixSpent: -purchase.pix_amount,
+        pixSpent: -purchase.pix_amount,
         timestamp: new Date().toISOString(),
         status: 'success'
       } as AnalysisLog);
@@ -284,7 +284,11 @@ export default function AdminPanel() {
                         <div><p className="text-lg font-black tracking-tight">{log.userName}</p><p className="text-[10px] font-bold text-muted-foreground uppercase">{safeDate(log.timestamp) ? formatDistanceToNow(safeDate(log.timestamp)!, { addSuffix: true, locale: tr }) : '...'}</p></div>
                       </div>
                       <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/30 border border-border/40 font-black text-primary text-sm">
-                        <Gem className="h-3.5 w-3.5" /> {log.PixSpent > 0 ? `-${log.PixSpent}` : `+${Math.abs(log.PixSpent)}`}
+                        <Gem className="h-3.5 w-3.5" /> 
+                        {(() => {
+                          const amount = log.pixSpent || (log as any).PixSpent || (log as any).auroSpent || 0;
+                          return amount > 0 ? `-${amount}` : `+${Math.abs(amount)}`;
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -338,7 +342,7 @@ export default function AdminPanel() {
                     <TableRow key={u.id} className="group hover:bg-muted/30 transition-colors">
                       <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-base">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase font-bold">{u.email}</span></div></TableCell>
                       <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 text-primary">{u.level_name}</Badge></TableCell>
-                      <TableCell className="font-black text-foreground">{u.Pix_balance}</TableCell>
+                      <TableCell className="font-black text-foreground">{u.pix_balance || u.Pix_balance || u.auro_balance || 0}</TableCell>
                       <TableCell><div className="flex gap-2 text-[10px] font-bold uppercase"><span className="text-blue-400">F: {u.total_analyses_count || 0}</span><span className="text-purple-400">L: {u.total_mentor_analyses_count || 0}</span></div></TableCell>
                       <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> {t('manage')}</Button></TableCell>
                     </TableRow>
@@ -475,7 +479,7 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
     resolver: zodResolver(userEditSchema),
     defaultValues: {
       level_name: userToEdit?.level_name || 'Neuner',
-      Pix_balance: userToEdit?.Pix_balance || 0,
+      pix_balance: userToEdit?.pix_balance || userToEdit?.Pix_balance || userToEdit?.auro_balance || 0,
       total_analyses_count: userToEdit?.total_analyses_count || 0,
       total_mentor_analyses_count: userToEdit?.total_mentor_analyses_count || 0,
       total_exhibitions_count: userToEdit?.total_exhibitions_count || 0,
@@ -486,8 +490,8 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
   useEffect(() => {
     if (userToEdit) {
       form.reset({
-        level_name: userToEdit.level_name,
-        Pix_balance: userToEdit.Pix_balance,
+        level_name: userToEdit.level_name || 'Neuner',
+        pix_balance: userToEdit.pix_balance || userToEdit.Pix_balance || userToEdit.auro_balance || 0,
         total_analyses_count: userToEdit.total_analyses_count || 0,
         total_mentor_analyses_count: userToEdit.total_mentor_analyses_count || 0,
         total_exhibitions_count: userToEdit.total_exhibitions_count || 0,
@@ -499,7 +503,14 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
   const onSubmit = async (values: any) => {
     if (!userToEdit) return;
     setIsUpdating(true);
-    await onUpdate(userToEdit.id, values);
+    try {
+      await onUpdate(userToEdit.id, {
+        ...values,
+        Pix_balance: values.pix_balance // Sync for backward compatibility on update
+      });
+    } catch (e) {
+      console.error(e);
+    }
     setIsUpdating(false);
     onClose();
   };
@@ -537,7 +548,7 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
               />
               <FormField
                 control={form.control}
-                name="Pix_balance"
+                name="pix_balance"
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('pix_balance')}</FormLabel>

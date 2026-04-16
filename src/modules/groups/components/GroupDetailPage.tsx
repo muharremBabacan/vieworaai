@@ -222,7 +222,13 @@ export default function GroupDetailPage() {
       const photoId = crypto.randomUUID();
       const formData = new FormData();
       formData.append('file', optimizedFile);
-      const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'submissions');
+      const imageUrlsResponse = await uploadAndProcessImage(formData, user.uid, photoId, 'submissions');
+      
+      if (!imageUrlsResponse.success) {
+        throw new Error(imageUrlsResponse.error || 'Upload failed');
+      }
+
+      const imageUrls = imageUrlsResponse.data;
       
       toast({ title: "Moderasyon yapılıyor..." });
       const modResult = await moderateSubmission({

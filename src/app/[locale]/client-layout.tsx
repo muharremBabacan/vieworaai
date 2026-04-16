@@ -122,7 +122,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const showBottomNav = (user || isPublicPage) && !['/', '/login', '/signup', '/onboarding'].includes(pathname);
 
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div className="relative flex min-h-[100dvh] flex-col">
       {showHeader && <AppHeader />}
       <main className={`flex-1 ${showHeader ? 'py-8 pb-24' : ''}`}>
         {children}

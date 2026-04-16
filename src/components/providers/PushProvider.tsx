@@ -65,7 +65,7 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !user) return;
     
     // Check if user has explicitly disabled notifications in their profile
-    if (isNotificationsEnabled === false) {
+    if (userProfile?.notifications_enabled === false) {
       console.log('[PushProvider] Notifications are disabled in user profile. Skipping FCM setup.');
       return;
     }
@@ -96,9 +96,16 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (currentToken) {
-        console.log('[PushProvider] Token identified. Syncing...');
+        console.log('[PushProvider] Token identified. Syncing with Server...');
         await NotificationAPI.saveToken(user.uid, currentToken);
+        
+        // Subscribe to relevant topics
+        console.log('[PushProvider] Subscribing to topics...');
         await NotificationAPI.subscribeToTopic(currentToken, 'all_users');
+        await NotificationAPI.subscribeToTopic(currentToken, 'competitions');
+        await NotificationAPI.subscribeToTopic(currentToken, 'lessons');
+        
+        console.log('[PushProvider] All topics synced successfully.');
       }
 
       // 4. Foreground Message Listener
@@ -106,7 +113,7 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('[PushProvider] Foreground Message:', payload);
         
         // Double check enabled flag
-        if (isNotificationsEnabled === false) return;
+        if (userProfile?.notifications_enabled === false) return;
 
         toast({
           title: payload.notification?.title || 'Yeni Bildirim',

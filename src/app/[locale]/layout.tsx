@@ -5,6 +5,24 @@ import Script from 'next/script';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { Metadata, Viewport } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Viewora | Global AI Photography Platform',
+  description: 'Analyze, learn, and showcase your photography with AI-powered coaching.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/icon-512.png',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#0A0A0B',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 type LayoutProps = {
   children: React.ReactNode;

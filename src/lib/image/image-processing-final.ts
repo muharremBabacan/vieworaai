@@ -92,7 +92,8 @@ export async function prepareOptimizedFile(file: File, maxDimension: number = 16
   const dims = await getImageDimensions(file);
   const longestEdge = Math.max(dims.width, dims.height);
   
-  if (longestEdge < 800) {
+  // 📉 RELAXED: Reduced from 800 to 200 to support thumbnails/avatars without crashing flow
+  if (longestEdge < 200) {
     throw new Error('PHOTO_TOO_SMALL');
   }
 

@@ -95,12 +95,12 @@
   "AcademyPage": {
     "main_title": "Viewora Academy",
     "main_description": "Take your photography knowledge from the basics to mastery.",
-    "level_basic_title": "Basic Level",
-    "level_basic_description": "Learn the basics of your camera, understand exposure, and master the fundamental composition rules.",
-    "level_intermediate_title": "Intermediate Level",
-    "level_intermediate_description": "Shoot in different styles, apply advanced techniques, and consciously manage light.",
-    "level_advanced_title": "Advanced Level",
-    "level_advanced_description": "Create your artistic style, learn professional lighting setups, and specialize in photography.",
+    "level_basic_title": "Middle School",
+    "level_basic_description": "The photography alphabet, equipment recognition, and light principles.",
+    "level_intermediate_title": "High School",
+    "level_intermediate_description": "Advanced composition, post-production, and creative shooting techniques.",
+    "level_advanced_title": "University",
+    "level_advanced_description": "Conceptual photography, artistic style, and professional curation.",
     "button_view_lessons": "View Lessons",
     "tooltip_intermediate": "Intermediate Level — Keep progressing, unlock the key.",
     "tooltip_advanced": "Expert content for Advanced Level. Continue your development to unlock it.",
@@ -172,6 +172,20 @@
     "button_view_entries": "View Entries",
     "card_button_join": "Join Now",
     "card_button_details": "View Details"
+  },
+  "LandingPage": {
+    "platform_title": "PHOTOGRAPHY PLATFORM OF THE FUTURE",
+    "platform_card_1_title": "AI ANALYSIS",
+    "platform_card_1_desc": "Evaluate your photos technically and artistically in seconds.",
+    "platform_card_2_title": "VISION ACADEMY",
+    "platform_card_2_desc": "Improve with training suitable for every level, from camera settings to composition.",
+    "platform_card_3_title": "GLOBAL COMMUNITY",
+    "platform_card_3_desc": "Compete with photographers from all over the world and participate in exhibitions.",
+    "platform_card_4_title": "REAL-TIME FEEDBACK",
+    "platform_card_4_desc": "Learn how to do better with every shutter press with Luma.",
+    "platform_card_5_title": "DIGITAL EXHIBITIONS",
+    "platform_card_5_desc": "Showcase your best shots in our prestigious digital halls.",
+    "platform_footer": "A global platform developed in Turkey that analyzes photos with AI to enable user learning."
   },
   "DashboardPage": {
     "error_photo_too_small_dialog_title": "Photo Too Small",
@@ -944,7 +958,10 @@
     "button_delete": "Delete",
     "toast_notification_sent": "Notification sent to group owner.",
     "list_groups": "Group Management",
-    "list_exhibitions": "Platform Exhibitions"
+    "list_exhibitions": "Platform Exhibitions",
+    "competitions": "Competitions",
+    "exhibitions": "Exhibitions",
+    "mentor_analysis": "Mentor Analysis"
   },
   "SettingsPage": {
     "notification_settings_title": "Notification Settings",

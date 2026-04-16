@@ -97,7 +97,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
   let lastSuccessfulStep = 'INITIALIZATION';
 
   // 🚀 DEPLOY VERSION TAG (Check this in console to verify deploy)
-  const DEPLOY_VERSION = '2026-04-15-V7-FIXED-DUPS';
+  const DEPLOY_VERSION = '2026-04-16-V9-STABLE-PROMPT';
   console.log(`%c 🛡️ [VIEWORA-DEPLOY] CURRENT VERSION: ${DEPLOY_VERSION}`, 'background: #222; color: #bada55; font-size: 14px; padding: 4px; border-radius: 4px;');
 
   console.log('🚀 [photo-flow] STARTING NUCLEAR FLOW', {
@@ -235,7 +235,14 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       formData.append('file', optimizedFile);
       
       console.log('📍 [photo-flow] Calling uploadAndProcessImage Server Action...');
-      imageUrls = await uploadAndProcessImage(formData, currentUserId, photoId);
+      const response = await uploadAndProcessImage(formData, currentUserId, photoId);
+      
+      if (!response.success) {
+        console.error('🔥 [UPLOAD ERROR] Server Action reported failure:', response.error, 'at step:', response.step);
+        throw new Error(`SERVER_ERROR: ${response.error} (at ${response.step})`);
+      }
+
+      imageUrls = response.data;
       console.log('✅ [photo-flow] Server-side Processing complete');
     } catch (e: any) {
       console.error('🔥 [UPLOAD ERROR]:', e);

@@ -144,7 +144,7 @@ const PixBalance = ({ userProfile, router }: { userProfile: User, router: any })
         <CardContent className="p-8 pt-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-5xl font-black tracking-tighter text-foreground">{userProfile.pix_balance}</p>
+              <p className="text-5xl font-black tracking-tighter text-foreground">{userProfile.pix_balance ?? userProfile.Pix_balance ?? 0}</p>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400">{currencyName} {t('current_balance')}</p>
             </div>
             <Button onClick={() => router.push('/pricing')} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">

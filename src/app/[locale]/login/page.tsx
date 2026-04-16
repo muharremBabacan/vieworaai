@@ -37,15 +37,15 @@ function MilkyWayEffect() {
   return (
     <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-40">
       {stars.map((star) => (
-        <div
-          key={star.id}
-          className="absolute h-1.5 w-1.5 bg-yellow-400 rounded-full blur-[1px] animate-star-trail"
-          style={{
-            '--tw-translate-x': `${star.tx}px`,
-            '--tw-translate-y': `${star.ty}px`,
-            animationDelay: `${star.delay}s`,
-          } as any}
-        />
+      <div
+        key={star.id}
+        className="absolute h-[1px] w-[1px] bg-yellow-200/60 rounded-full blur-[0.5px] animate-star-trail"
+        style={{
+          '--tw-translate-x': `${star.tx}px`,
+          '--tw-translate-y': `${star.ty}px`,
+          animationDelay: `${star.delay}s`,
+        } as any}
+      />
       ))}
     </div>
   );
@@ -164,9 +164,23 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background p-4 items-center justify-center relative overflow-hidden">
-      <MilkyWayEffect />
-      <div className="w-full max-w-[400px] space-y-8 animate-in fade-in duration-700 relative z-10">
+    <div className="flex min-h-screen flex-col bg-[#0A0A0B] p-4 items-center justify-center relative overflow-hidden">
+      {/* Hero Background with Blur */}
+      <div 
+        className="absolute inset-0 z-0 opacity-40 mix-blend-screen bg-cover bg-center blur-sm"
+        style={{ backgroundImage: 'url("/hero-bg.png")' }}
+      />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#0A0A0B]/80 via-transparent to-[#0A0A0B]" />
+      
+      {/* Animated Glows - Hidden on Mobile for Performance */}
+      <div className="hidden sm:block absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="hidden sm:block absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-pulse delay-700" />
+      
+      <div className="hidden sm:block">
+        <MilkyWayEffect />
+      </div>
+
+      <div className="w-full max-w-[400px] space-y-8 sm:animate-in sm:fade-in sm:duration-700 relative z-10">
         <div className="flex flex-col items-center text-center space-y-4">
           <Logo className="scale-90" />
           <div className="space-y-2">

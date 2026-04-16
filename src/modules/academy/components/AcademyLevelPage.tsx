@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, CheckCircle, UploadCloud, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, UploadCloud, Loader2, GraduationCap, Camera, Scan, Lightbulb, Brain } from 'lucide-react';
 import { evaluatePracticeSubmission, type EvaluatePracticeSubmissionOutput } from '@/ai/flows/evaluate-practice-submission';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { typography } from "@/lib/design/typography";
@@ -71,7 +71,13 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
             formData.append('file', optimizedFile);
             
             // 🔄 Server Action ile Türevleri Üret ve Yükle
-            const imageUrls = await uploadAndProcessImage(formData, user.uid, photoId, 'academy-practice');
+            const imageUrlsResponse = await uploadAndProcessImage(formData, user.uid, photoId, 'academy-practice');
+            
+            if (!imageUrlsResponse.success) {
+                throw new Error(imageUrlsResponse.error || 'Upload failed');
+            }
+
+            const imageUrls = imageUrlsResponse.data;
             
             setIsUploading(false);
             setIsAnalyzing(true);
@@ -157,26 +163,53 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
 
   return (
     <>
-      <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
-        <div className="relative aspect-video">
+      <Card className={cn(
+        "group overflow-hidden rounded-[28px] border-border/40 bg-card/40 backdrop-blur-sm transition-all duration-500",
+        isCompleted ? "opacity-80 grayscale-[0.3]" : "hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
+      )}>
+        <div className="aspect-[4/3] relative overflow-hidden">
           <VieworaImage 
-            variants={null}
+            url={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)}
             fallbackUrl={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)}
             type="featureCover"
             alt={lesson.title}
-            className="transition-transform duration-700 group-hover:scale-110"
+            className="transition-transform duration-700 group-hover:scale-105"
           />
+          {isCompleted && (
+            <div className="absolute top-3 right-3 bg-green-500 text-white p-1.5 rounded-full shadow-lg z-10 animate-in zoom-in duration-300">
+              <CheckCircle size={14} className="fill-current"/>
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 to-transparent opacity-60 pointer-events-none" />
         </div>
-        <CardContent className="p-4">
-          <h3 className={typography.cardTitle}>{lesson.title}</h3>
-          <p className={cn(typography.meta, "mt-1")}>{lesson.learningObjective}</p>
-          <div className="flex items-center justify-between mt-4">
-            <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)} className={typography.button}>{t('dialog_theory')}</Button>
+        <CardContent className="p-4 space-y-3">
+          <div className="min-h-[3.5rem]">
+            <h3 className="text-sm font-black uppercase tracking-tight leading-tight line-clamp-2 transition-colors group-hover:text-primary">{lesson.title}</h3>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 line-clamp-1 opacity-70">{lesson.learningObjective}</p>
+          </div>
+          
+          <div className="flex items-center justify-between pt-2 border-t border-border/40">
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsDialogOpen(true)} 
+                className="h-8 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 hover:text-primary"
+            >
+                {t('dialog_theory')}
+            </Button>
+            
             {isCompleted ? (
-              <span className={cn(typography.meta, "flex items-center gap-2 font-semibold text-green-500")}><CheckCircle className="h-4 w-4" /> {t('button_completed')}</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20">
+                <span className="text-[10px] font-black uppercase tracking-tighter">{t('button_completed')}</span>
+              </div>
             ) : (
-                <Button size="sm" onClick={handleLessonComplete} disabled={!practiceResult || practiceResult.score < 7} className={cn(typography.button, "text-[10px] sm:text-xs")}>
-                    {t('button_complete_lesson', { xp: 10, auro: 1 })}
+                <Button 
+                    size="sm" 
+                    onClick={handleLessonComplete} 
+                    disabled={!practiceResult || practiceResult.score < 7} 
+                    className="h-8 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+                >
+                    {t('button_complete_lesson', { xp: 10, Pix: 1 })}
                 </Button>
             )}
           </div>
@@ -191,7 +224,7 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
                     <AccordionItem value="theory"><AccordionTrigger className={typography.cardTitle}>{t('dialog_theory')}</AccordionTrigger><AccordionContent className={cn(typography.body, "prose prose-sm dark:prose-invert")}>{lesson.theory}</AccordionContent></AccordionItem>
                     <AccordionItem value="criteria"><AccordionTrigger className={typography.cardTitle}>{t('dialog_criteria')}</AccordionTrigger><AccordionContent><ul className={cn(typography.body, "list-disc pl-5 space-y-1")}>{(lesson.analysisCriteria || []).map((c, i) => <li key={i}>{c}</li>)}</ul></AccordionContent></AccordionItem>
                     <AccordionItem value="task"><AccordionTrigger className={typography.cardTitle}>{t('dialog_task')}</AccordionTrigger><AccordionContent className={typography.body}>{lesson.practiceTask}</AccordionContent></AccordionItem>
-                    <AccordionItem value="auro-note"><AccordionTrigger className={cn(typography.cardTitle, "text-cyan-400")}>{t('dialog_auro_note')}</AccordionTrigger><AccordionContent className={cn(typography.body, "italic")}>{lesson.auroNote}</AccordionContent></AccordionItem>
+                    <AccordionItem value="auro-note"><AccordionTrigger className={cn(typography.cardTitle, "text-cyan-400")}>{t('dialog_Pix_note')}</AccordionTrigger><AccordionContent className={cn(typography.body, "italic")}>{lesson.auroNote}</AccordionContent></AccordionItem>
                 </Accordion>
                 <PracticeSubmission lesson={lesson} onFeedbackReady={setPracticeResult} />
             </div>
@@ -244,6 +277,8 @@ export default function AcademyLevelPage() {
         }, {} as Record<string, Lesson[]>);
     }, [lessons, t]);
 
+    const lessonsInCategoryCount = lessons?.length || 0;
+
     const handleCompleteLesson = useCallback(async (lessonId: string) => {
         if (!user || !firestore || !userProfile) return;
 
@@ -262,7 +297,10 @@ export default function AcademyLevelPage() {
         });
 
         await batch.commit();
-        toast({ title: t('toast_reward_title'), description: t('toast_reward_description', { xp: xpGain, auro: pixGain }) });
+        toast({
+        title: t('toast_reward_title'),
+        description: t('toast_reward_description', { xp: xpGain, Pix: pixGain }),
+      });
 
         const oldLevel = getLevelFromXp(userProfile.current_xp);
         const newLevel = getLevelFromXp(userProfile.current_xp + xpGain);
@@ -277,29 +315,72 @@ export default function AcademyLevelPage() {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
     }
     
+    const getCategoryIcon = (category: string) => {
+        const cat = category.toLowerCase();
+        if (cat.includes('pozlama') || cat.includes('exposure')) return <Camera className="h-5 w-5 text-blue-400" />;
+        if (cat.includes('kompozisyon') || cat.includes('composition')) return <Scan className="h-5 w-5 text-purple-400" />;
+        if (cat.includes('ışık') || cat.includes('light')) return <Lightbulb className="h-5 w-5 text-amber-400" />;
+        if (cat.includes('giriş') || cat.includes('intro')) return <GraduationCap className="h-5 w-5 text-green-400" />;
+        return <Brain className="h-5 w-5 text-primary" />;
+    };
+
     return (
         <div className="container mx-auto px-4 pt-6 pb-24">
-            <Button variant="ghost" onClick={() => router.push('/academy')} className={cn(typography.button, "mb-4 font-bold text-muted-foreground")}><ArrowLeft className="mr-2 h-4 w-4" /> {t('button_back_to_academy')}</Button>
-            <h1 className={cn(typography.h2, "mb-8 uppercase")}>{levelFormatted} {t('page_title_suffix')}</h1>
+            <header className="mb-12">
+                <Button variant="ghost" onClick={() => router.push('/academy')} className="mb-6 h-8 rounded-xl px-0 font-black uppercase text-[10px] tracking-widest text-muted-foreground hover:bg-transparent hover:text-primary transition-colors">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> {t('button_back_to_academy')}
+                </Button>
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <h1 className="text-5xl font-black tracking-tighter uppercase leading-none">{levelFormatted} <span className="text-primary block sm:inline">{t('page_title_suffix')}</span></h1>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
+                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" /> 
+                         {lessonsInCategoryCount} Ders Mevcut
+                    </div>
+                </div>
+            </header>
+
             {lessonsLoading ? (
-                <div className="space-y-8">
-                    {[...Array(2)].map((_, i) => (
-                        <div key={i}><Skeleton className="h-8 w-1/4 mb-4" /><div className="grid grid-cols-2 lg:grid-cols-3 gap-6">{[...Array(4)].map((_, j) => (<Card key={j}><Skeleton className="aspect-video" /><CardContent className="p-4"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>))}</div></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="space-y-6">
+                            <Skeleton className="h-10 w-2/3 rounded-2xl" />
+                            <div className="space-y-4">
+                                {[...Array(3)].map((_, j) => (
+                                    <Skeleton key={j} className="h-64 w-full rounded-[28px]" />
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             ) : Object.keys(groupedLessons).length > 0 ? (
-                <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 items-start">
                     {Object.entries(groupedLessons).map(([category, lessonsInCategory]) => (
-                        <section key={category}>
-                            <h2 className={cn(typography.cardTitle, "text-2xl mb-4")}>{category}</h2>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                                {lessonsInCategory.map(lesson => (<LessonItem key={lesson.id} lesson={lesson} isCompleted={completedLessonIds.has(lesson.id)} onComplete={handleCompleteLesson} />))}
+                        <section key={category} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both" style={{ animationDelay: '0.1s' }}>
+                            <div className="flex items-center gap-3 pb-4 border-b border-border/40">
+                                <div className="p-2.5 rounded-2xl bg-secondary/50 border border-border/40 shadow-inner">
+                                    {getCategoryIcon(category)}
+                                </div>
+                                <h2 className="text-xl font-black uppercase tracking-tighter transition-colors select-none">{category}</h2>
+                            </div>
+                            <div className="flex flex-col gap-6">
+                                {lessonsInCategory.map(lesson => (
+                                    <LessonItem 
+                                        key={lesson.id} 
+                                        lesson={lesson} 
+                                        isCompleted={completedLessonIds.has(lesson.id)} 
+                                        onComplete={handleCompleteLesson} 
+                                    />
+                                ))}
                             </div>
                         </section>
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16"><h2 className={typography.h2}>{t('no_lessons_title')}</h2></div>
+                <div className="text-center py-24 bg-card/20 rounded-[40px] border border-dashed border-border/60">
+                    <GraduationCap size={64} className="mx-auto text-muted-foreground/30 mb-6" />
+                    <h2 className="text-2xl font-black uppercase tracking-tight mb-2">{t('no_lessons_title')}</h2>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('no_lessons_description')}</p>
+                </div>
             )}
         </div>
     );
