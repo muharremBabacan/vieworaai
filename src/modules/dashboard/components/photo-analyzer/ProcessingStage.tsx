@@ -12,6 +12,7 @@ interface ProcessingStageProps {
   status: AnalyzerStatus;
   user: { uid: string } | null; 
   userProfile: User | null;
+  guestPix: number; // Added
   analysisCost: number;
   currencyName: string;
   handleAction: (analyze: boolean) => void;
@@ -21,7 +22,7 @@ interface ProcessingStageProps {
 }
 
 export const ProcessingStage = ({ 
-  preview, status, user, userProfile, 
+  preview, status, user, userProfile, guestPix,
   analysisCost, currencyName, handleAction, resetAnalyzer, open, t 
 }: ProcessingStageProps) => {
   const isLoading = status === 'uploading' || status === 'analyzing';
@@ -49,16 +50,31 @@ export const ProcessingStage = ({
       </div>
 
       <div className="flex flex-col items-center gap-6">
+        {!user && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <p className="text-xs font-black uppercase tracking-widest text-primary">
+              {t('label_virtual_balance') || "Sanal Bakiye"}: {guestPix} Pix
+            </p>
+          </div>
+        )}
+
         {userProfile && (userProfile.pix_balance < analysisCost) && (
           <p className="text-sm text-red-500 font-black uppercase tracking-widest animate-pulse">
             {t('label_insufficient_balance')}
+          </p>
+        )}
+
+        {(guestPix < analysisCost && !user) && (
+          <p className="text-sm text-red-500 font-black uppercase tracking-widest animate-pulse">
+            {t('label_guest_limit_reached') || "Günlük Misafir Limitine Ulaştınız"}
           </p>
         )}
         
         <div className="flex flex-col sm:flex-row justify-center gap-5 w-full max-w-2xl">
           <Button
             onClick={() => handleAction(true)}
-            disabled={isLoading || (!!user && (!userProfile || userProfile.pix_balance < analysisCost))}
+            disabled={isLoading || (!!user ? (!userProfile || userProfile.pix_balance < analysisCost) : (guestPix < analysisCost))}
             className="flex-1 h-16 rounded-[20px] text-lg font-black uppercase tracking-wider group relative overflow-hidden"
           >
             {status === 'analyzing' ? (

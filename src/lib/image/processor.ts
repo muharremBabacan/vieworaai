@@ -48,7 +48,7 @@ export class ImageProcessor {
 
   /**
    * Görselin boyutlarını kontrol eder. 
-   * Eğer en uzun kenar 800px'den küçükse hata döner.
+   * Artık kısıtlayıcı değil; küçük görseller otomatik büyütülecek.
    */
   async validateResolution(): Promise<{ width: number; height: number }> {
     const metadata = await sharp(this.buffer).metadata();
@@ -56,8 +56,10 @@ export class ImageProcessor {
     const height = metadata.height || 0;
     const maxEdge = Math.max(width, height);
 
-    if (maxEdge < 800) {
-      throw new Error(`RESOLUTION_TOO_LOW:${maxEdge}`);
+    console.log(`📏 [processor] Image dimensions: ${width}x${height} (maxEdge: ${maxEdge})`);
+    
+    if (maxEdge < 400) {
+      console.warn('⚠️ [processor] Resolution is very low (<400px), clarity might be poor.');
     }
 
     return { width, height };

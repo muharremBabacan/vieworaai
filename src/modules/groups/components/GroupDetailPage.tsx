@@ -320,7 +320,7 @@ export default function GroupDetailPage() {
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
 
-  const handleModeration = async (submissionId: string, status: 'approved' | 'rejected') => {
+  const handleModeration = async (submissionId: string, status: 'approved' | 'rejected' | 'pending') => {
     if (!isCurrentUserOwner || !firestore || !group) return;
     try {
       const submissionRef = doc(firestore, 'groups', group.id, 'submissions', submissionId);
@@ -333,7 +333,11 @@ export default function GroupDetailPage() {
         await NotificationAPI.triggerModerationEvent(subData.userId, submissionId);
       }
       
-      toast({ title: status === 'approved' ? t('toast_approved_success') : t('toast_rejected_success') });
+      let toastTitle = t('toast_approved_success');
+      if (status === 'rejected') toastTitle = t('toast_rejected_success');
+      if (status === 'pending') toastTitle = t('toast_profile_updated'); // or generic success
+      
+      toast({ title: toastTitle });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
 
@@ -387,7 +391,7 @@ export default function GroupDetailPage() {
   };
 
   const handleToggleAiJury = async () => {
-    if (!isCurrentUserOwner || !groupRef) return;
+    if (!isCurrentUserOwner || !groupRef || !group) return;
     try {
       await updateDoc(groupRef, { isAiJuryEnabled: !group.isAiJuryEnabled });
       toast({ title: t('toast_profile_updated') });
@@ -564,11 +568,19 @@ export default function GroupDetailPage() {
           isTripsLoading={!!isTripsLoading}
           isOwner={isCurrentUserOwner}
           userId={user?.uid || ''}
+          userProfile={userProfile}
           assignments={assignments || []}
           submissions={submissions || []}
           handleUploadSubmission={handleUploadSubmission}
           isUploading={!!isUploading}
           setSelectedSubmission={setSelectedSubmission}
+          canViewGallery={!!canViewGallery}
+          memberProfiles={memberProfiles || []}
+          handleCreateTrip={handleCreateTrip}
+          canManageGroup={!!canManageGroup}
+          handleDeleteGroup={handleDeleteGroup}
+          pendingSubmissions={submissions?.filter(s => s.status === 'pending') || []}
+          onUpdateGalleryPrivacy={handleUpdateGalleryPrivacy}
           onLike={handleLikeSubmission}
           t={t}
           onModeration={handleModeration}
@@ -599,8 +611,8 @@ export default function GroupDetailPage() {
                       <DialogDescription className="text-[10px] uppercase font-black">{new Date(selectedSubmission.submittedAt).toLocaleString('tr')}</DialogDescription>
                     </div>
                   </div>
-                  <Button onClick={() => handleLikeSubmission(selectedSubmission.id)} variant={selectedSubmission.likes?.includes(user?.uid) ? 'default' : 'outline'} className="gap-2">
-                    <Heart className={cn("h-4 w-4", selectedSubmission.likes?.includes(user?.uid) ? "fill-current" : "")} />
+                  <Button onClick={() => handleLikeSubmission(selectedSubmission.id)} variant={(user && selectedSubmission.likes?.includes(user.uid)) ? 'default' : 'outline'} className="gap-2">
+                    <Heart className={cn("h-4 w-4", (user && selectedSubmission.likes?.includes(user.uid)) ? "fill-current" : "")} />
                     {selectedSubmission.likes?.length || 0}
                   </Button>
                 </div>

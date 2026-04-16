@@ -1,71 +1,66 @@
 import * as admin from 'firebase-admin';
-
-/**
- * Firebase Admin SDK Yapılandırması
- * Sunucu tarafı işlemleri (Storage upload, Firestore admin access vb.) için kullanılır.
- */
-
 import * as fs from 'fs';
 import * as path from 'path';
+import { getStorage } from 'firebase-admin/storage';
 
-if (!admin.apps.length) {
+function ensureAdminInitialized() {
+  if (admin.apps.length) return;
+
   try {
     let serviceAccount: any;
+    const serviceAccountPath = path.join(process.cwd(), 'serviceAccount.json');
     
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      console.log('📦 Found FIREBASE_SERVICE_ACCOUNT in environment variables.');
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    } else {
-      // 🛠️ Local Development Fallback
-      const localPath = path.join(process.cwd(), 'serviceAccount.json');
-      if (fs.existsSync(localPath)) {
-        console.log('📂 Found serviceAccount.json file.');
-        serviceAccount = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-      } else {
-        console.error('❌ CRITICAL: No Firebase credentials found (ENV or FILE).');
-        throw new Error('MISSING_FIREBASE_CREDENTIALS');
-      }
+    } else if (fs.existsSync(serviceAccountPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
     }
 
     if (serviceAccount && serviceAccount.private_key) {
-      // 🔑 JWT Signature Hatasını Önlemek İçin: Karakterleri temizle
-      serviceAccount.private_key = serviceAccount.private_key
-        .replace(/\\n/g, '\n')
-        .replace(/\r/g, '')
-        .trim();
+      // 🎯 VERIFIED BUCKET NAME FROM USER SCREENSHOT
+      const bucketName = 'studio-8632782825-fce99.firebasestorage.app';
       
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        storageBucket: 'studio-8632782825-fce99.firebasestorage.app'
+        storageBucket: bucketName
       });
-      console.log('✅ Firebase Admin SDK initialized successfully.');
+      
+      (global as any)._explicitBucketName = bucketName;
+      console.log(`✅ Firebase Admin SDK initialized for: ${serviceAccount.project_id}`);
     } else {
-      console.error('❌ CRITICAL: Service account object is missing private_key.');
-      throw new Error('INVALID_SERVICE_ACCOUNT_FORMAT');
+      throw new Error('MISSING_SERVICE_ACCOUNT');
     }
-  } catch (error: any) {
-    console.error('🔥 Firebase Admin initialization failed:', error.message);
-    (global as any)._adminInitError = error.message;
+  } catch (err: any) {
+    console.error('❌ Firebase Admin Init Error:', err.message);
+    throw err;
   }
 }
 
-// 🛡️ Safe Export: Eğer başlatılamadıysa hata fırlatan yardımcılar kullanıyoruz.
-// Bu sayede "Cannot read properties of null" yerine anlamlı bir hata mesajı alıyoruz.
-const getAdminDb = () => {
-  if (!admin.apps.length) throw new Error('FIREBASE_ADMIN_NOT_INITIALIZED: Admin DB access failed.');
+// 🛡️ Functional Exports: Ensure these are always called to get the initialized instance.
+export function getAdminDb() {
+  ensureAdminInitialized();
   return admin.firestore();
-};
+}
 
-const getAdminStorage = () => {
-  if (!admin.apps.length) throw new Error('FIREBASE_ADMIN_NOT_INITIALIZED: Admin Storage access failed.');
-  return admin.storage();
-};
+export function getAdminStorage() {
+  ensureAdminInitialized();
+  const bucketName = 'studio-8632782825-fce99.firebasestorage.app';
+  return getStorage().bucket(bucketName);
+}
 
-const getAdminAuth = () => {
-  if (!admin.apps.length) throw new Error('FIREBASE_ADMIN_NOT_INITIALIZED: Admin Auth access failed.');
+export function getAdminAuth() {
+  ensureAdminInitialized();
   return admin.auth();
+}
+
+// 🏛️ Legacy Aliases for compatibility with other components
+export const adminDb = {
+  get firestore() { return getAdminDb(); },
+  collection: (path: string) => getAdminDb().collection(path),
+  doc: (path: string) => getAdminDb().doc(path),
 };
 
-export const adminDb = getAdminDb();
-export const adminStorage = getAdminStorage();
-export const adminAuth = getAdminAuth();
+export const adminStorage = {
+  get storage() { return getAdminStorage(); },
+  bucket: (name?: string) => getAdminStorage(),
+};

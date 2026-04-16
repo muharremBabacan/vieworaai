@@ -41,18 +41,16 @@ export interface StandardGroupViewProps {
     setSelectedSubmission: (sub: any) => void;
     canViewGallery: boolean;
     memberProfiles: any[];
-    handleAssignAward: (id: string, award: string) => void;
-    handleRunAiJury: () => void;
-    isJuryRunning: boolean;
-    handleAddJury: (id: string) => void;
     handleCreateTrip: (data: any) => void;
     canManageGroup: boolean;
     handleDeleteGroup: () => void;
     pendingSubmissions: any[];
     onUpdateGalleryPrivacy: (isPublic: boolean) => void;
     onLike: (id: string) => void;
+    onModeration: (id: string, status: 'approved' | 'rejected' | 'pending') => void;
     t: any;
     // Sub-components
+    ModerationManager: any;
     TripCard: any;
     AssignmentUploader: any;
     EventCreator: any;

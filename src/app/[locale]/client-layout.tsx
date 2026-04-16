@@ -24,7 +24,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     '/competitions',
     '/dashboard',
     '/academy',
-    '/luma'
+    '/luma',
+    '/test-ai'
   ].some(p => pathname.startsWith(p));
 
   const isStandalonePage = [
@@ -50,17 +51,26 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         guestId = `GUEST-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         localStorage.setItem('guest_id', guestId);
         
+        // 🎁 GUEST TRIAL: Initialize with 3 Pix
+        localStorage.setItem('guest_pix', '3');
+        
         try {
           await setDoc(doc(firestore, 'guest_sessions', guestId), {
             guestId,
             source: ref || 'direct',
             firstSeen: new Date().toISOString(),
             userAgent: navigator.userAgent,
-            isConverted: false
+            isConverted: false,
+            initialBonus: 3
           });
-          console.debug('[ClientLayout] New guest session tracked:', guestId);
+          console.debug('[ClientLayout] New guest session tracked with bonus:', guestId);
         } catch (e) {
           console.error("Guest tracking error:", e);
+        }
+      } else {
+        // Ensure existing guests who don't have pix yet get their one-time bonus
+        if (!localStorage.getItem('guest_pix') && !localStorage.getItem('guest_last_analysis_at')) {
+          localStorage.setItem('guest_pix', '3');
         }
       }
     };
@@ -83,7 +93,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       const onboarded = userProfile?.onboarded ?? false;
       
       if (!onboarded) {
-        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/verify-email') {
+        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/verify-email' && pathname !== '/test-ai') {
           router.replace('/onboarding');
         }
       } else {

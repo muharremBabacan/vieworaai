@@ -1,0 +1,98 @@
+import OpenAI from 'openai';
+import { zodResponseFormat } from 'openai/helpers/zod';
+import { z } from 'zod';
+import { getAdminStorage } from '@/lib/firebase/admin-init';
+
+// Define the schema using Zod for 100% type safety
+const PhotoAnalysisSchema = z.object({
+  light_score: z.number(),
+  composition_score: z.number(),
+  technical_clarity_score: z.number(),
+  storytelling_score: z.number(),
+  boldness_score: z.number(),
+  tags: z.array(z.string()),
+  summary: z.string()
+});
+
+/**
+ * Perform AI analysis on a photo using OpenAI Vision API.
+ */
+export async function performAiAnalysis(imageUrl: string, photoId: string): Promise<any> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('❌ [AI-LOGIC] OPENAI_API_KEY is missing in production!');
+    throw new Error('OPENAI_API_KEY_MISSING');
+  }
+
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  console.log('🤖 [AI-LOGIC] Starting modern analysis for', photoId);
+
+  // 1. Generate Signed URL for secure access
+  let analysisUrl = imageUrl;
+  try {
+    const bucket = getAdminStorage();
+    const filePath = imageUrl.split(`${bucket.name}/`)[1];
+    const file = bucket.file(filePath);
+    
+    const [url] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 15 * 60 * 1000 // 15 mins
+    });
+    analysisUrl = url;
+    console.log('✅ [AI-LOGIC] Signed URL generated');
+  } catch (e: any) {
+    console.warn('⚠️ [AI-LOGIC] Failed to get signed URL, using direct:', e.message);
+  }
+
+  // 2. OpenAI Request using the STABLE completion API
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { 
+              type: "text", 
+              text: `You are a professional photography coach. Analyze this photo technically.
+              You MUST return a JSON object with strictly these keys and types:
+              - genre (string in Turkish, e.g. 'Doğa / Makro')
+              - scene (string in Turkish, e.g. 'Tulip Yakın Çekim')
+              - dominant_subject (string in Turkish: focus of the photo)
+              - light_score (float 0-10)
+              - composition_score (float 0-10)
+              - technical_clarity_score (float 0-10)
+              - storytelling_score (float 0-10)
+              - boldness_score (float 0-10)
+              - technical_details (object: { focus, light, technical_quality, color, composition }) - provide 1 sentence each IN TURKISH
+              - general_quality (enum: 'Düşük' | 'Orta' | 'İyi' | 'Çok İyi' | 'Profesyonel')
+              - expert_level (enum: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert')
+              - tags (array of strings: 5 relevant tags in Turkish)
+              - short_neutral_analysis (detailed Turkish critique, at least 3 sentences)
+              - quality_note (string in Turkish: optional tip for improvement)
+              
+              IMPORTANT: Every single string value must be in Turkish.
+              Be objective and critical. Provide meaningful professional scores.`
+            },
+            { type: "image_url", image_url: { url: analysisUrl } }
+          ],
+        },
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error('AI_NO_CONTENT_RETURNED');
+    }
+
+    const parsedData = JSON.parse(content);
+    console.log('✅ [AI-LOGIC] Full Professional Analysis parsed successfully');
+    return parsedData;
+    
+  } catch (openaiError: any) {
+    console.error('🔥 [AI-LOGIC] OpenAI API Error:', openaiError.message);
+    throw openaiError;
+  }
+}
+

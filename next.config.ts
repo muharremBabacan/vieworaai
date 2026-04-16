@@ -48,6 +48,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '20mb',
     },
+    middlewareClientMaxBodySize: '20mb',
   },
   serverExternalPackages: ["sharp"]
 };

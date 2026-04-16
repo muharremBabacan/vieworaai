@@ -225,6 +225,8 @@
     "button_upload_only": "Sadece Yükle",
     "toast_already_uploaded": "Bu fotoğraf zaten galerinizde bulunuyor.",
     "loading_profile": "Profil yükleniyor...",
+    "label_virtual_balance": "Sanal Bakiye",
+    "label_guest_limit_reached": "Günlük misafir deneme hakkınız doldu.",
     "strengths_title": "Güçlü Yönler",
     "strength_composition": "Başarılı kompozisyon",
     "strength_lighting": "Etkili ışık kullanımı",

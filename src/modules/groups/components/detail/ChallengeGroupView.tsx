@@ -55,7 +55,7 @@ interface ChallengeGroupViewProps {
     onRunAiJury: () => void;
     isJuryRunning: boolean;
     onUpdateGalleryPrivacy: (isPublic: boolean) => void;
-    onModeration: (id: string, status: 'approved' | 'rejected') => void;
+    onModeration: (id: string, status: 'approved' | 'rejected' | 'pending') => void;
     onWithdraw: (id: string) => void;
     onLike: (id: string) => void;
     onAddJury: (id: string) => void;

@@ -228,6 +228,8 @@ export type Photo = {
   createdAt: string;
   isSubmittedToExhibition?: boolean;
   exhibitionId?: string | null;
+  isSubmittedToCompetition?: boolean;
+  competitionId?: string | null;
   likes?: string[];
   userName?: string;
   userPhotoURL?: string | null;

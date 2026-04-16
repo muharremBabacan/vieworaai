@@ -6,9 +6,13 @@ import { NextResponse, NextRequest } from 'next/server';
 const intlMiddleware = createMiddleware(routing);
 
 export default function middleware(request: NextRequest) {
-  // ⚡️ Skip next-intl for Server Actions (POST + Next-Action header)
-  // to avoid multipart stream disruption and "Unexpected end of form"
-  if (request.method === 'POST' && request.headers.has('next-action')) {
+  // ⚡️ SKIP MIDDLEWARE FOR SERVER ACTIONS
+  // This is critical to prevent "Unexpected end of form" errors.
+  // Next.js Server Actions use POST and have specific headers.
+  if (
+    request.method === 'POST' && 
+    (request.headers.has('next-action') || request.headers.get('content-type')?.includes('multipart/form-data'))
+  ) {
     return NextResponse.next();
   }
   

@@ -1,11 +1,11 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useStorage } from '@/lib/firebase';
 import { doc } from 'firebase/firestore';
 import { useLocale } from 'next-intl';
 import type { User, Photo } from '@/types';
-import { executePhotoAnalysisFlow, type FlowResult } from '../services/photo-flow';
+import { executePhotoAnalysisFlow, type FlowResult, TIER_COSTS } from '../services/photo-flow';
 
 export type AnalyzerStatus = 'idle' | 'uploading' | 'analyzing' | 'done' | 'error';
 
@@ -13,6 +13,7 @@ export function usePhotoAnalyzer() {
   const locale = useLocale();
   const { user } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -27,21 +28,28 @@ export function usePhotoAnalyzer() {
   
   // Guest Handling
   const [guestId, setGuestId] = useState<string | null>(null);
+  const [guestPix, setGuestPix] = useState<number>(0);
   const [guestLastUsed, setGuestLastUsed] = useState<number | null>(null);
   const GUEST_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setGuestId(localStorage.getItem('guest_id'));
+      
+      const pix = localStorage.getItem('guest_pix');
+      setGuestPix(pix ? parseInt(pix, 10) : 0);
+
       const last = localStorage.getItem('guest_last_analysis_at');
       if (last) setGuestLastUsed(parseInt(last, 10));
     }
   }, []);
 
   const guestUsed = useMemo(() => {
+    // Current cooldown logic still exists as fallback, but guestPix is primary
+    if (guestPix > 0) return false;
     if (!guestLastUsed) return false;
     return (Date.now() - guestLastUsed) < GUEST_COOLDOWN;
-  }, [guestLastUsed]);
+  }, [guestLastUsed, guestPix]);
 
   // Clean up preview URL
   useEffect(() => {
@@ -59,24 +67,37 @@ export function usePhotoAnalyzer() {
   }, [preview]);
 
   const handleAction = async (analyze = false): Promise<FlowResult | null> => {
-    if (!file || !firestore) return null;
+    if (!file) return null;
 
     setStatus(analyze ? 'analyzing' : 'uploading');
 
-    const result = await executePhotoAnalysisFlow({
-      file,
-      analyze,
-      user,
-      userProfile: userProfile || null,
-      firestore,
-      locale,
-      guestId,
-      guestUsed,
-      currentTier: userProfile?.tier || 'start'
-    });
+    let result: FlowResult;
+    try {
+      result = await executePhotoAnalysisFlow({
+        file,
+        analyze,
+        user,
+        userProfile: userProfile || null,
+        locale,
+        guestId,
+        guestUsed,
+        guestPix: guestPix,
+        currentTier: userProfile?.tier || 'start'
+      });
+    } catch (e: any) {
+      console.error('🔥 [usePhotoAnalyzer] CRITICAL FLOW ERROR:', e);
+      setStatus('error');
+      return { type: 'error', code: 'UNEXPECTED_ERROR', message: e.message };
+    }
 
     switch (result.type) {
       case 'success':
+        // Update Guest Pix if it was used
+        if (!user && guestPix > 0) {
+          const newPix = Math.max(0, guestPix - (TIER_COSTS[userProfile?.tier || 'start'] || 1));
+          localStorage.setItem('guest_pix', newPix.toString());
+          setGuestPix(newPix);
+        }
         setAnalysisResult(result.data);
         setStatus('done');
         break;
@@ -120,6 +141,8 @@ export function usePhotoAnalyzer() {
     userProfile,
     isProfileLoading,
     guestId,
+    guestPix,
+    setGuestPix,
     setGuestLastUsed,
     getRootProps,
     getInputProps,

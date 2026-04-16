@@ -222,6 +222,8 @@
     "label_insufficient_balance": "Insufficient Balance",
     "button_uploading": "Uploading...",
     "button_upload_only": "Upload Only (Free)",
+    "label_virtual_balance": "Virtual Balance",
+    "label_guest_limit_reached": "Guest trial limit reached for today.",
     "strengths_title": "Strengths",
     "strength_composition": "Successful composition",
     "strength_lighting": "Effective use of light",

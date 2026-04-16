@@ -43,6 +43,7 @@ export default function PhotoAnalyzer() {
     userProfile,
     isProfileLoading,
     guestId,
+    guestPix,
     setGuestLastUsed,
     getRootProps,
     getInputProps,
@@ -129,6 +130,7 @@ export default function PhotoAnalyzer() {
           status={status}
           user={user}
           userProfile={userProfile}
+          guestPix={guestPix}
           analysisCost={analysisCost}
           currencyName={currencyName}
           handleAction={onHandleAction}
