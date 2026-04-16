@@ -1,8 +1,8 @@
-// 🔔 Use Internal Proxy
-const NOTIFICATION_SERVER_URL = '/api/notifications';
+// 🔔 Use Internal Proxy (root-level /api)
+const NOTIFICATION_SERVER_URL = '';
 
 const buildUrl = (path: string) => {
-  return `${NOTIFICATION_SERVER_URL}${path}`;
+  return path;
 };
 
 const safeFetch = async (url: string | null, options: RequestInit) => {
