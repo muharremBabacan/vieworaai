@@ -1,8 +1,5 @@
 # apphosting.yaml
-build:
-  command: 'npm run build'
-run:
-  command: 'npm start'
+# Standard Firebase App Hosting configuration
 runConfig:
   maxInstances: 1
 env:
