@@ -39,13 +39,21 @@ export function initializeFirebase(): {
     }
   });
 
+  let firestore: Firestore;
+  try {
+    firestore = initializeFirestore(firebaseApp, { 
+        experimentalForceLongPolling: true,
+        useFetchStreams: false 
+    });
+  } catch (e) {
+    // If already initialized, fallback to getFirestore
+    firestore = getFirestore(firebaseApp);
+  }
+
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: initializeFirestore(firebaseApp, { 
-        experimentalForceLongPolling: true,
-        useFetchStreams: false 
-    }),
+    firestore,
     storage: getStorage(firebaseApp),
     messaging: null,
   };
