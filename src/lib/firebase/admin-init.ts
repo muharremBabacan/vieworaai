@@ -4,76 +4,92 @@ import * as path from 'path';
 import { getStorage } from 'firebase-admin/storage';
 
 /**
- * 🔑 Reusable helper to get Firebase Admin credentials from Env or File
+ * 🔑 Private Key formatter for production environments (App Hosting, Vercel, etc.)
  */
-export function getServiceAccount() {
-  const envKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT;
-  const serviceAccountPath = path.join(process.cwd(), 'serviceAccount.json');
+function getPrivateKey() {
+  const key = process.env.FIREBASE_PRIVATE_KEY;
+  if (!key) return undefined;
+  // Handle both escaped \n and raw newlines
+  return key.replace(/\\n/g, "\n");
+}
 
-  if (envKey) {
-    try {
-      const isBase64 = !envKey.trim().startsWith('{');
-      const decoded = isBase64 ? Buffer.from(envKey, 'base64').toString('utf8') : envKey;
-      const processed = isBase64 ? decoded : decoded.replace(/\\n/g, '\n');
-      return JSON.parse(processed);
-    } catch (e: any) {
-      console.error('[AdminInit] Environment variable parse error:', e.message);
+/**
+ * 🏗️ Initializes Firebase Admin as a Singleton
+ * Throws MISSING_SERVICE_ACCOUNT if required environment variables are absent in production.
+ */
+export function initAdmin() {
+  if (admin.apps.length > 0) {
+    return admin.app();
+  }
+
+  // --- 1. DETECT CREDENTIALS ---
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = getPrivateKey();
+  const compositeKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT;
+
+  // --- 2. VALIDATE FOR PRODUCTION ---
+  const isProduction = process.env.NODE_ENV === "production";
+  const hasSeparateKeys = projectId && clientEmail && privateKey;
+  const hasCompositeKey = !!compositeKey;
+
+  if (!hasSeparateKeys && !hasCompositeKey) {
+    if (isProduction) {
+      console.error("❌ [AdminInit] CRITICAL: Service account environment variables are missing.");
+      throw new Error("MISSING_SERVICE_ACCOUNT");
+    } else {
+      console.warn("[AdminInit] WARN: No valid credentials found. Skipping initialization (Safe during local Build).");
       return null;
     }
   }
 
-  if (fs.existsSync(serviceAccountPath)) {
-    try {
-       return JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-    } catch (e) {
-       console.error('[AdminInit] serviceAccount.json read error:', e);
-       return null;
+  // --- 3. INITIALIZE ---
+  try {
+    let credential;
+    
+    if (hasSeparateKeys) {
+      console.log(`[AdminInit] Initializing with individual keys for Project: ${projectId}`);
+      credential = admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      });
+    } else {
+      console.log(`[AdminInit] Initializing with composite JSON key...`);
+      const isBase64 = !compositeKey!.trim().startsWith('{');
+      const decoded = isBase64 ? Buffer.from(compositeKey!, 'base64').toString('utf8') : compositeKey!;
+      const processed = decoded.replace(/\\n/g, '\n');
+      credential = admin.credential.cert(JSON.parse(processed));
     }
-  }
 
-  return null;
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-8632782825-fce99.firebasestorage.app';
+    
+    return admin.initializeApp({
+      credential,
+      storageBucket: bucketName
+    });
+
+  } catch (err: any) {
+    console.error("❌ [AdminInit] Firebase Admin Initialization Failed:", err.message);
+    if (isProduction) throw err;
+    return null;
+  }
 }
 
+/** Legacy support (refactored to use initAdmin internally) */
 function ensureAdminInitialized() {
-  if (admin.apps.length) return;
-
-  try {
-    const serviceAccount = getServiceAccount();
-    
-    if (serviceAccount && serviceAccount.private_key) {
-      console.log(`[AdminInit] Initializing Firebase Admin...`);
-      const bucketName = 'studio-8632782825-fce99.firebasestorage.app';
-      
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        storageBucket: bucketName
-      });
-      
-      console.log(`✅ Firebase Admin SDK initialized for: ${serviceAccount.project_id}`);
-    } else {
-      // 🛡️ Build-time safety: Log instead of throw
-      console.warn('[AdminInit] SKIP: No valid credentials found. This is expected during Build Time on App Hosting.');
-      // We don't throw here to allow the build process to continue
-    }
-  } catch (err: any) {
-    console.error('❌ Firebase Admin Init Error:', err.message);
-    // Only re-throw if it's not a missing credential error during build
-    if (process.env.NODE_ENV === 'production' && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-       return; 
-    }
-    throw err;
-  }
+  initAdmin();
 }
 
 // 🛡️ Functional Exports: Ensure these are always called to get the initialized instance.
 export function getAdminDb() {
-  ensureAdminInitialized();
+  initAdmin();
   return admin.firestore();
 }
 
 export function getAdminStorage() {
-  ensureAdminInitialized();
-  const bucketName = 'studio-8632782825-fce99.firebasestorage.app';
+  initAdmin();
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-8632782825-fce99.firebasestorage.app';
   return getStorage().bucket(bucketName);
 }
 

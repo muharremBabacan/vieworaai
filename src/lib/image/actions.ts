@@ -16,19 +16,19 @@ export async function uploadAndProcessImage(
 ): Promise<ActionResponse<ImageDerivatives>> {
   let currentStep = 'PRE-FLIGHT';
   try {
-    console.log('🏁 [actions] uploadAndProcessImage STARTED', { userId, photoId, folder });
+    currentStep = 'ADMIN_INIT';
+    const { initAdmin, getAdminStorage, getAdminDb } = await import('@/lib/firebase/admin-init');
     
-    currentStep = 'DYNAMIC_IMPORT_ADMIN';
-    const { getAdminStorage, getAdminDb } = await import('@/lib/firebase/admin-init');
-    
+    // 🔥 Ensure Admin is initialized before usage
+    initAdmin();
+
     currentStep = 'DYNAMIC_IMPORT_PROCESSOR';
     const { ImageProcessor } = await import('./processor');
     
-    currentStep = 'ADMIN_INIT';
     const bucket = getAdminStorage();
     const adminDb = getAdminDb();
     
-    if (!bucket || !adminDb) throw new Error('Firebase Admin SDK is not initialized.');
+    if (!bucket || !adminDb) throw new Error('ADMIN_NOT_READY: Firebase Admin SDK initialization returned null.');
 
     currentStep = 'FILE_RETRIEVAL';
     const file = formData.get('file');
