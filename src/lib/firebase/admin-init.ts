@@ -4,7 +4,7 @@ import * as path from 'path';
 import { getStorage } from 'firebase-admin/storage';
 
 /**
- * 🔑 Private Key formatter for production environments (App Hosting, Vercel, etc.)
+ * 🔑 Private Key formatter for production environments (App Hosting, Cloud Run, etc.)
  */
 function getPrivateKey() {
   const key = process.env.FIREBASE_PRIVATE_KEY;
