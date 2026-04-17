@@ -8,7 +8,6 @@ export async function GET(request: Request) {
     environment: {
       NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT || 'missing',
       NODE_ENV: process.env.NODE_ENV,
-      Vercel: !!process.env.VERCEL,
       AppHosting: !!process.env.FIREBASE_CONFIG || !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
     },
     secrets: {
@@ -16,7 +15,6 @@ export async function GET(request: Request) {
       HAS_FIREBASE_CLIENT_EMAIL: !!process.env.FIREBASE_CLIENT_EMAIL,
       HAS_FIREBASE_PRIVATE_KEY: !!process.env.FIREBASE_PRIVATE_KEY,
       HAS_COMPOSITE_KEY: !!(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT),
-      HAS_OPENAI_KEY: !!process.env.OPENAI_API_KEY,
     },
     firebaseAdmin: {
       status: 'testing...',
@@ -24,12 +22,16 @@ export async function GET(request: Request) {
   };
 
   try {
-    // Attempt a light read (this triggers initAdmin() internally)
+    const { getAdminDb, getAdminStorage } = await import('@/lib/firebase/admin-init');
     const db = getAdminDb();
+    const bucket = getAdminStorage();
+    
+    // Attempt a light read
     const snapshot = await db.collection('settings').limit(1).get();
     
     results.firebaseAdmin.connectivity = 'OK';
     results.firebaseAdmin.initialized = true;
+    results.firebaseAdmin.bucketName = bucket.name;
     results.firebaseAdmin.documentCount = snapshot.size;
   } catch (err: any) {
     results.firebaseAdmin.connectivity = 'FAILED';

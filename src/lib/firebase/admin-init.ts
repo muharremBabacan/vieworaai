@@ -28,6 +28,8 @@ export function initAdmin() {
   const privateKey = getPrivateKey();
   const compositeKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT;
 
+  console.log(`🔍 [AdminInit] Env Check: PID=${!!projectId}, EMAIL=${!!clientEmail}, KEY=${!!privateKey}, COMPOSITE=${!!compositeKey}`);
+
   // --- 2. VALIDATE FOR PRODUCTION ---
   const isProduction = process.env.NODE_ENV === "production";
   const hasSeparateKeys = projectId && clientEmail && privateKey;
@@ -62,7 +64,7 @@ export function initAdmin() {
       credential = admin.credential.cert(JSON.parse(processed));
     }
 
-    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-8632782825-fce99.firebasestorage.app';
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99'}.firebasestorage.app`;
     
     return admin.initializeApp({
       credential,
@@ -89,7 +91,14 @@ export function getAdminDb() {
 
 export function getAdminStorage() {
   initAdmin();
-  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-8632782825-fce99.firebasestorage.app';
+  
+  // 🎯 BUCKET AUTO-DETECTION STRATEGY
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99';
+  const bucketName = 
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 
+    `${projectId}.appspot.com`; // Usually the safest bet for existing projects
+
+  console.log(`🪣 [AdminInit] Using storage bucket: ${bucketName}`);
   return getStorage().bucket(bucketName);
 }
 

@@ -14,50 +14,57 @@ export async function uploadAndProcessImage(
   photoId: string, 
   folder: 'photos' | 'submissions' | 'entries' | 'academy-practice' | 'exhibitions' = 'photos'
 ): Promise<ActionResponse<ImageDerivatives>> {
-  let currentStep = 'PRE-FLIGHT';
+  let currentStep = '0_START';
   try {
-    currentStep = 'ADMIN_INIT';
+    console.log(`🎬 [upload-flow] 1. START: User=${userId}, Photo=${photoId}, Folder=${folder}`);
+    
+    currentStep = '1_ADMIN_IMPORT';
     const { initAdmin, getAdminStorage, getAdminDb } = await import('@/lib/firebase/admin-init');
     
-    // 🔥 Ensure Admin is initialized before usage
+    currentStep = '2_ADMIN_INIT';
+    console.log('🏗️ [upload-flow] 2. Admin Initialization...');
     initAdmin();
-
-    currentStep = 'DYNAMIC_IMPORT_PROCESSOR';
-    const { ImageProcessor } = await import('./processor');
     
+    currentStep = '3_ADMIN_CLIENTS';
     const bucket = getAdminStorage();
     const adminDb = getAdminDb();
-    
-    if (!bucket || !adminDb) throw new Error('ADMIN_NOT_READY: Firebase Admin SDK initialization returned null.');
+    if (!bucket || !adminDb) throw new Error('ADMIN_CLIENTS_MISSING');
+    console.log(`🪣 [upload-flow] 3. Storage Bucket: ${bucket.name}`);
 
-    currentStep = 'FILE_RETRIEVAL';
+    currentStep = '4_PROCESSOR_IMPORT';
+    const { ImageProcessor } = await import('./processor');
+
+    currentStep = '5_FILE_READ';
     const file = formData.get('file');
-    if (!file || !(file instanceof Blob)) {
-      throw new Error('MISSING_OR_INVALID_FILE');
-    }
+    if (!file || !(file instanceof Blob)) throw new Error('FILE_INVALID');
+    console.log(`📂 [upload-flow] 5. File detected: ${file.name} (${file.size} bytes)`);
     
-    currentStep = 'BUFFER_CREATION';
+    currentStep = '6_BUFFER_CONVERT';
     const buffer = Buffer.from(await file.arrayBuffer());
+    console.log('🧱 [upload-flow] 6. Buffer created');
     
-    currentStep = 'IMAGE_PROCESSING_LOAD';
+    currentStep = '7_PROCESSOR_INIT';
     const processor = new ImageProcessor(buffer);
     
-    currentStep = 'IMAGE_PROCESSING_VALIDATE';
-    await processor.validateResolution().catch(() => {});
-
-    currentStep = 'WATERMARK_LOADING';
+    currentStep = '8_WATERMARK_LOAD';
     const watermarkPath = path.join(process.cwd(), 'public/icon-512.png');
-    await processor.loadWatermark(watermarkPath).catch(() => {});
+    await processor.loadWatermark(watermarkPath).catch(err => {
+      console.warn('⚠️ [upload-flow] 8. Watermark skip:', err.message);
+    });
     
-    currentStep = 'IMAGE_PROCESSING_GENERATE';
+    currentStep = '9_IMAGE_GENERATE';
+    console.log('🖼️ [upload-flow] 9. Generating derivatives...');
     const derivatives = await processor.generateAll();
+    console.log('✅ [upload-flow] 9. Derivatives ready');
     
-    currentStep = 'STORAGE_UPLOAD';
+    currentStep = '10_STORAGE_UPLOAD';
     const imageUrls: Partial<ImageDerivatives> = {};
     const uploadPromises = Object.entries(derivatives).map(async ([type, result]) => {
-      const typedResult = result as any; // Using any here to bypass complex type mapping in short form
+      const typedResult = result as any;
       const filePath = `users/${userId}/${folder}/${photoId}/${type}.${typedResult.format || 'jpg'}`;
       const fileObj = bucket.file(filePath);
+      
+      console.log(`📤 [upload-flow] 10. Uploading: ${filePath}`);
       
       await fileObj.save(typedResult.buffer, {
         contentType: `image/${typedResult.format || 'jpg'}`,
@@ -70,8 +77,9 @@ export async function uploadAndProcessImage(
     });
     
     await Promise.all(uploadPromises);
+    console.log('🎉 [upload-flow] 10. All uploads finished');
     
-    currentStep = 'FINALIZATION';
+    currentStep = '11_FINALIZING';
     imageUrls.original = imageUrls.analysis;
     imageUrls.smallSquare = imageUrls.smallSquare || imageUrls.analysis;
     imageUrls.featureCover = imageUrls.featureCover || imageUrls.analysis;
@@ -84,10 +92,10 @@ export async function uploadAndProcessImage(
     };
 
   } catch (error: any) {
-    console.error(`🔥 [actions] ERROR AT ${currentStep}:`, error.message);
+    console.error(`🔥 [upload-flow] CRASH AT STEP ${currentStep}:`, error.message);
     return { 
       success: false, 
-      error: error.message || 'Unknown server error',
+      error: error.message || 'Server error during upload',
       step: currentStep,
       details: error.stack
     };
