@@ -5,3 +5,7 @@ runConfig:
 env:
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
     secret: APP_ADMIN_KEY
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
+  - variable: NEXT_PUBLIC_ENVIRONMENT
+    value: production
