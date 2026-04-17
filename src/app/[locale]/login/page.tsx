@@ -5,6 +5,8 @@ import { useRouter, Link } from '@/i18n/navigation';
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   type UserCredential,
 } from 'firebase/auth';
@@ -57,8 +59,40 @@ function LoginForm() {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // 🔄 Handle Redirect Result on Mount
+  useEffect(() => {
+    if (!auth || !firestore) return;
+
+    const checkRedirect = async () => {
+      try {
+        setIsRedirecting(true);
+        const result = await getRedirectResult(auth);
+        
+        if (result) {
+          console.log("✅ Redirect Login Success:", result.user.email);
+          const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
+          await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
+          await processAuroRefillAndStats(result.user.uid, profile);
+          router.push('/dashboard');
+        }
+      } catch (error: any) {
+        console.error("❌ Redirect Auth Error:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Giriş Hatası',
+          description: 'Google ile giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.',
+        });
+      } finally {
+        setIsRedirecting(false);
+      }
+    };
+
+    checkRedirect();
+  }, [auth, firestore, router, toast]);
 
   const processAuroRefillAndStats = async (userId: string, existingProfile: UserProfile) => {
     if (!firestore) return;
@@ -97,13 +131,23 @@ function LoginForm() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
-      const result: UserCredential = await signInWithPopup(auth, provider);
-      const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
-      
-      await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
-      await processAuroRefillAndStats(result.user.uid, profile);
-      
-      router.push('/dashboard');
+      // 📱 Mobile/Tablet check (includes iPhone/Safari)
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+      if (isMobile) {
+        console.log("📱 Mobile detected, using Redirect flow");
+        await signInWithRedirect(auth, provider);
+        // Page will redirect, so no need to stop loading
+      } else {
+        console.log("💻 Desktop detected, using Popup flow");
+        const result: UserCredential = await signInWithPopup(auth, provider);
+        const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
+        
+        await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
+        await processAuroRefillAndStats(result.user.uid, profile);
+        
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       console.warn("Google Sign-In Error:", error.code);
       toast({
@@ -111,7 +155,6 @@ function LoginForm() {
         title: 'Giriş Başarısız',
         description: error.code === 'auth/popup-blocked' ? 'Pop-up pencerelere izin verin.' : 'Google ile giriş yapılırken bir hata oluştu.',
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -162,6 +205,18 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
+  if (isRedirecting) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#0A0A0B]">
+        <div className="text-center space-y-4">
+          <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
+            Giriş Yapılıyor...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0A0A0B] p-4 items-center justify-center relative overflow-hidden">

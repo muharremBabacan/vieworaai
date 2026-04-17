@@ -6,9 +6,17 @@ import { NextResponse, NextRequest } from 'next/server';
 const intlMiddleware = createMiddleware(routing);
 
 export default function middleware(request: NextRequest) {
+  // 🔒 CANONICAL DOMAIN REDIRECT (WWW -> NON-WWW)
+  const host = request.headers.get('host');
+  if (host?.startsWith('www.')) {
+    const newHost = host.replace('www.', '');
+    const url = request.nextUrl.clone();
+    url.hostname = newHost;
+    url.port = ''; // Clear port just in case (e.g. localhost testing if someone used www)
+    return NextResponse.redirect(url, 301);
+  }
+
   // ⚡️ SKIP MIDDLEWARE FOR SERVER ACTIONS
-  // This is critical to prevent "Unexpected end of form" errors.
-  // Next.js Server Actions use POST and have specific headers.
   if (
     request.method === 'POST' && 
     (request.headers.has('next-action') || request.headers.get('content-type')?.includes('multipart/form-data'))
