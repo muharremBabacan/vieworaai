@@ -40,9 +40,8 @@ function ensureAdminInitialized() {
   try {
     const serviceAccount = getServiceAccount();
     
-    console.log(`[AdminInit] Initializing Firebase Admin...`);
-
     if (serviceAccount && serviceAccount.private_key) {
+      console.log(`[AdminInit] Initializing Firebase Admin...`);
       const bucketName = 'studio-8632782825-fce99.firebasestorage.app';
       
       admin.initializeApp({
@@ -52,11 +51,16 @@ function ensureAdminInitialized() {
       
       console.log(`✅ Firebase Admin SDK initialized for: ${serviceAccount.project_id}`);
     } else {
-      console.error('[AdminInit] FAILED: No valid credentials found.');
-      throw new Error('MISSING_SERVICE_ACCOUNT');
+      // 🛡️ Build-time safety: Log instead of throw
+      console.warn('[AdminInit] SKIP: No valid credentials found. This is expected during Build Time on App Hosting.');
+      // We don't throw here to allow the build process to continue
     }
   } catch (err: any) {
     console.error('❌ Firebase Admin Init Error:', err.message);
+    // Only re-throw if it's not a missing credential error during build
+    if (process.env.NODE_ENV === 'production' && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+       return; 
+    }
     throw err;
   }
 }

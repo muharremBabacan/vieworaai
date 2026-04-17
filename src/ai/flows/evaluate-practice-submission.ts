@@ -2,9 +2,8 @@
 
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 export type EvaluatePracticeSubmissionInput = {
   photoUrl: string;
@@ -22,6 +21,14 @@ export type EvaluatePracticeSubmissionOutput = {
 export async function evaluatePracticeSubmission(
   input: EvaluatePracticeSubmissionInput
 ): Promise<EvaluatePracticeSubmissionOutput> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping evaluation (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') throw new Error('RUNTIME_CONFIG_ERROR: OPENAI_API_KEY missing');
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
 
   const criteriaText = input.analysisCriteria
     .map((c, i) => `- ${c}`)

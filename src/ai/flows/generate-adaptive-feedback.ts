@@ -2,9 +2,8 @@
 
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 export type AdaptiveInput = {
   language: string;
@@ -23,6 +22,14 @@ export type AdaptiveInput = {
 };
 
 export async function generateAdaptiveFeedback(input: AdaptiveInput) {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping adaptive feedback (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') throw new Error('RUNTIME_CONFIG_ERROR: OPENAI_API_KEY missing');
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
   const prompt = `
 You are Luma, Viewora's visual mentor.
 Use the scene, subject, and tags to understand the image context.

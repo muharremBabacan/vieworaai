@@ -2,9 +2,8 @@
 
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 export type JuryPhotoInput = {
   id: string;
@@ -42,6 +41,14 @@ export type RunAiJuryOutput = {
 export async function runAiJury(
   input: RunAiJuryInput
 ): Promise<RunAiJuryOutput> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping jury (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') throw new Error('RUNTIME_CONFIG_ERROR: OPENAI_API_KEY missing');
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
   
   const langMap: Record<string, string> = {
     tr: "Turkish",

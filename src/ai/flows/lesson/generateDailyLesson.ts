@@ -7,9 +7,8 @@
 import OpenAI from "openai";
 import { generateLessonImage } from '../lesson/generate-academy-lessons';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 export type GenerateDailyLessonInput = {
   level: 'Temel' | 'Orta' | 'İleri';
@@ -18,6 +17,15 @@ export type GenerateDailyLessonInput = {
 };
 
 export async function generateDailyLesson(input: GenerateDailyLessonInput) {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping lesson generation (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') return null;
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
+
   const prompt = `
 Aşağıdaki müfredat için yapılandırılmış bir fotoğrafçılık mini dersi oluştur.
 

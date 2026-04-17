@@ -8,24 +8,38 @@ import { getServiceAccount } from '@/lib/firebase/admin-init';
  * Uses Vertex AI for reasoning and Google AI for specialized tasks like Image generation.
  */
 
-const serviceAccount = getServiceAccount();
+let aiInstance: ReturnType<typeof genkit> | null = null;
 
-let vertexConfig: any = {
-  projectId: 'studio-8632782825-fce99',
-  location: 'us-central1',
-};
+/**
+ * 🤖 Lazy initialization of Genkit.
+ * Prevents side effects and credential validation during Build Time.
+ */
+export function getAi() {
+  if (aiInstance) return aiInstance;
 
-// 🛠️ Securely pass credentials from Env or File using shared logic
-if (serviceAccount) {
-  vertexConfig.googleAuthOptions = {
-    credentials: serviceAccount
+  const serviceAccount = getServiceAccount();
+  
+  const vertexConfig: any = {
+    projectId: 'studio-8632782825-fce99',
+    location: 'us-central1',
   };
-}
 
-export const ai = genkit({
-  plugins: [
-    vertexAI(vertexConfig),
-    googleAI(),
-  ],
-  model: 'vertexai/gemini-2.0-flash-001',
-});
+  // 🛡️ Only add credentials if they exist (expectedly missing during App Hosting build)
+  if (serviceAccount) {
+    vertexConfig.googleAuthOptions = {
+      credentials: serviceAccount
+    };
+  } else {
+    console.warn('[Genkit] Initializing without service account credentials (Build Time Mode).');
+  }
+
+  aiInstance = genkit({
+    plugins: [
+      vertexAI(vertexConfig),
+      googleAI(),
+    ],
+    model: 'vertexai/gemini-2.0-flash-001',
+  });
+
+  return aiInstance;
+}

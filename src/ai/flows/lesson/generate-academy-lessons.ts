@@ -5,14 +5,6 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { firebaseConfig } from "@/lib/firebase/config";
 
-// Initialize Firebase for Server Side
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(firebaseApp);
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
 export type GeneratedAcademyLesson = {
   title: string;
   learningObjective: string;
@@ -23,10 +15,6 @@ export type GeneratedAcademyLesson = {
   imageHint: string;
 };
 
-/**
- * Generates photography lessons focusing on real teaching content.
- * Fetches curriculum rules from Firestore to guide the AI.
- */
 export async function generateAcademyLessons(input: {
   level: string;
   category: string;
@@ -40,6 +28,19 @@ export async function generateAcademyLessons(input: {
     skills?: string[];
   };
 }): Promise<GeneratedAcademyLesson[]> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping lesson generation (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') return [];
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
+
+  // Initialize Firebase locally within the function
+  const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  const db = getFirestore(firebaseApp);
+
   const langMap: Record<string, string> = {
     tr: "Turkish", en: "English", es: "Spanish", fr: "French",
     de: "German", ru: "Russian", ar: "Arabic", zh: "Chinese", ja: "Japanese"
@@ -59,7 +60,7 @@ export async function generateAcademyLessons(input: {
       console.log("[AI] Curriculum rules loaded:", curriculum.rules);
     }
   } catch (err) {
-    console.warn("[AI] Curriculum fetch failed, using defaults:", err);
+    console.warn("[AI] Curriculum fetch failed, using defaults (Typical during Build or if Firestore restricted):", err);
   }
 
   // 2. MAP LEVEL TO PEDAGOGICAL STYLE
@@ -140,6 +141,13 @@ Return ONLY a valid JSON array.
 export async function generateLessonImage(
   userPrompt: string
 ): Promise<{ success: boolean; imageUrl: string }> {
+  if (!process.env.OPENAI_API_KEY) {
+    return { success: false, imageUrl: "/fallback.jpg" };
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
 
   console.log("PROMPT:", userPrompt);
 

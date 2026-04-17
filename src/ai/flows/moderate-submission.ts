@@ -2,9 +2,8 @@
 
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 export type ModerateSubmissionInput = {
   photoUrl: string;
@@ -27,6 +26,22 @@ export type ModerateSubmissionOutput = {
 export async function moderateSubmission(
   input: ModerateSubmissionInput
 ): Promise<ModerateSubmissionOutput> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping moderation (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') {
+      return {
+        safe: true,
+        appropriate: true,
+        should_analyze: false,
+        message: "Runtime configuration error."
+      };
+    }
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
+
   const langMap: Record<string, string> = {
     tr: "Turkish",
     en: "English",

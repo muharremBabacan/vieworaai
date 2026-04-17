@@ -3,11 +3,16 @@
 import { getAdminStorage } from '@/lib/firebase/admin-init';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function testUploadAndAnalyze(formData: FormData) {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY is missing. Skipping analysis (Expected during Build).');
+    if (process.env.NODE_ENV === 'production') return { success: false, error: 'Runtime secret missing' };
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
   console.log('🧪 [TEST-ACTION] Starting simple test...');
   
   try {

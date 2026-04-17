@@ -4,9 +4,8 @@ import OpenAI from 'openai';
 import { adminDb } from "@/lib/firebase/admin-init";
 import { PhotoAnalysis } from "@/types";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 type Tier = "start" | "pro" | "master";
 
@@ -58,6 +57,15 @@ function parseSafeScore(score: any): number {
 export async function generatePhotoAnalysis(
   input: PhotoAnalysisInput
 ): Promise<PhotoAnalysisOutput> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping analysis (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') throw new Error('RUNTIME_CONFIG_ERROR: OPENAI_API_KEY missing');
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
+
   console.log('[AI-DEBUG] Environment Check: OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
   console.log('[AI-DEBUG] Inbound Payload:', JSON.stringify({
     language: input.language,

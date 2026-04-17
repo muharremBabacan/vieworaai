@@ -3,9 +3,8 @@
 import OpenAI from "openai";
 import { PhotoAnalysis } from "@/types";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+
+
 
 export type EvaluateGroupSubmissionInput = {
   photoUrl: string;
@@ -39,6 +38,20 @@ function parseSafeScore(score: any): number {
 export async function evaluateGroupSubmission(
   input: EvaluateGroupSubmissionInput
 ): Promise<EvaluateGroupSubmissionOutput> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('[BuildTime] OPENAI_API_KEY missing - skipping group evaluation (Safe during Build).');
+    if (process.env.NODE_ENV === 'production') {
+      return {
+        analysis: { genre: "", scene: "", dominant_subject: "", light_score: 0, composition_score: 0, technical_clarity_score: 0, storytelling_score: 0, boldness_score: 0, tags: [], short_neutral_analysis: "Runtime configuration error." },
+        evaluation: { isSuccess: false, feedback: "OpenAI API key missing.", score: 0, technicalPoints: [] }
+      };
+    }
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+  });
+
   const langMap: Record<string, string> = {
     tr: "Turkish",
     en: "English",
