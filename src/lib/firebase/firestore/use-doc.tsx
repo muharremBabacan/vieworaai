@@ -50,8 +50,8 @@ export function useDoc<T = any>(
       return;
     }
 
-    // DEBUG: Listener start
-    console.debug(`[useDoc] Starting ${realtime ? 'realtime' : 'one-time'} fetch for:`, docSignature);
+    // SILENT_DEBUG: Only log if explicitly needed
+    // console.debug(`[useDoc] Starting ${realtime ? 'realtime' : 'one-time'} fetch for:`, docSignature);
 
     setIsLoading(true);
     setError(null);
@@ -96,7 +96,7 @@ export function useDoc<T = any>(
 
     return () => {
       if (realtime) {
-        console.debug(`[useDoc] Unsubscribing from:`, docSignature);
+        // console.debug(`[useDoc] Unsubscribing from:`, docSignature);
         unsubscribe();
       }
     };

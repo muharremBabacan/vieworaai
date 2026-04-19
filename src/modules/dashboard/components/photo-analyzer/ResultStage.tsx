@@ -54,7 +54,7 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
             </div>
             
             <div className="space-y-6">
-              {analysisResult.aiFeedback!.technical_details && (
+              {analysisResult.aiFeedback!.technical_details ? (
                 <>
                   <DetailSection label={t('expert_focus_label')} content={analysisResult.aiFeedback!.technical_details.focus} />
                   <DetailSection label={t('expert_light_label')} content={analysisResult.aiFeedback!.technical_details.light} />
@@ -62,14 +62,30 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
                   <DetailSection label={t('expert_composition_label')} content={analysisResult.aiFeedback!.technical_details.composition} />
                   <DetailSection label={t('expert_quality_label')} content={analysisResult.aiFeedback!.technical_details.technical_quality} />
                 </>
+              ) : (
+                <DetailSection label={t('expert_analysis_label')} content={analysisResult.aiFeedback!.short_neutral_analysis} />
               )}
             </div>
 
             <div className="pt-6 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 gap-4">
-              <MetadataBox label={t('detail_genre')} value={analysisResult.aiFeedback!.genre} />
-              <MetadataBox label={t('detail_scene')} value={analysisResult.aiFeedback!.scene} />
-              <MetadataBox label={t('detail_subject')} value={analysisResult.aiFeedback!.dominant_subject} />
+              <MetadataBox label={t('detail_genre')} value={analysisResult.aiFeedback!.genre || 'Genel'} />
+              <MetadataBox label={t('detail_scene')} value={analysisResult.aiFeedback!.scene || 'Bilinmiyor'} />
+              <MetadataBox label={t('detail_subject')} value={analysisResult.aiFeedback!.dominant_subject || 'Konu'} />
             </div>
+
+            {/* 🏷️ Tags Section */}
+            {analysisResult.aiFeedback!.tags && analysisResult.aiFeedback!.tags.length > 0 && (
+              <div className="pt-6 border-t border-white/5 space-y-3">
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('tags_label')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {analysisResult.aiFeedback!.tags.map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="rounded-lg bg-white/5 hover:bg-white/10 border-none font-bold text-[10px] px-3 py-1 lowercase">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </Card>
         </div>
 

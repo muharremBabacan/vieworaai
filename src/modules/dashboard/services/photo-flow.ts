@@ -354,6 +354,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
       photoData.aiFeedback = analysis;
       photoData.analysisTier = currentTier;
+      photoData.tags = analysis.tags || []; // 🏷️ Propagate tags to top-level for gallery visibility
 
       if (user) {
         console.log('[FLOW-DEBUG] STEP 7: Saving to Firestore...');

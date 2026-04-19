@@ -63,8 +63,8 @@ export function useCollection<T = any>(
       return;
     }
 
-    // DEBUG: Listener start
-    console.debug(`[useCollection] Starting ${realtime ? 'realtime' : 'one-time'} fetch for:`, querySignature);
+    // SILENT_DEBUG: Only log if explicitly needed
+    // console.debug(`[useCollection] Starting ${realtime ? 'realtime' : 'one-time'} fetch for:`, querySignature);
 
     setIsLoading(true);
     setError(null);
@@ -104,7 +104,7 @@ export function useCollection<T = any>(
 
     return () => {
       if (realtime) {
-         console.debug(`[useCollection] Unsubscribing from:`, querySignature);
+         // console.debug(`[useCollection] Unsubscribing from:`, querySignature);
          unsubscribe();
       }
     };

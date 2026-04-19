@@ -69,25 +69,28 @@ export async function performAiAnalysis(imageUrl: string, photoId: string, fileP
           content: [
             { 
               type: "text", 
-              text: `You are a professional photography coach. Analyze this photo technically.
+              text: `You are a professional photography coach based in Turkey. Analyze this photo technically and artistically.
               You MUST return a JSON object with strictly these keys and types:
-              - genre (string in Turkish, e.g. 'Doğa / Makro')
-              - scene (string in Turkish, e.g. 'Tulip Yakın Çekim')
-              - dominant_subject (string in Turkish: focus of the photo)
+              - genre (string in Turkish, e.g. 'Sokak Fotoğrafçılığı')
+              - scene (string in Turkish, e.g. 'Gece Pazarı')
+              - dominant_subject (string in Turkish: main focus)
               - light_score (float 0-10)
               - composition_score (float 0-10)
               - technical_clarity_score (float 0-10)
               - storytelling_score (float 0-10)
               - boldness_score (float 0-10)
-              - technical_details (object: { focus, light, technical_quality, color, composition }) - provide 1 sentence each IN TURKISH
+              - technical_details (object: { focus, light, technical_quality, color, composition }) - exactly 1 concise sentence each IN TURKISH
               - general_quality (enum: 'Düşük' | 'Orta' | 'İyi' | 'Çok İyi' | 'Profesyonel')
               - expert_level (enum: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert')
-              - tags (array of strings: 5 relevant tags in Turkish)
-              - short_neutral_analysis (detailed Turkish critique, at least 3 sentences)
-              - quality_note (string in Turkish: optional tip for improvement)
+              - tags (array of strings: exactly 5 relevant tags in Turkish, NO hashtags)
+              - short_neutral_analysis (detailed Turkish critique, exactly 3-4 professional sentences)
+              - quality_note (string in Turkish: constructive tip for improvement)
               
-              IMPORTANT: Every single string value must be in Turkish.
-              Be objective and critical. Provide meaningful professional scores.`
+              CRITICAL: 
+              1. Every string value must be in Turkish.
+              2. Do not include hashtags in the tags array.
+              3. Ensure 'technical_details' object is fully populated.
+              4. Be objective and professional.`
             },
             { type: "image_url", image_url: { url: analysisUrl } }
           ],
