@@ -575,12 +575,22 @@ export default function GalleryPage() {
                           <SelectTrigger className="flex-1 rounded-2xl h-12 bg-white/5 border-white/10 font-bold hover:bg-white/10 transition-colors text-xs overflow-hidden">
                             <SelectValue placeholder={t('dialog_select_competition')} />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-white/10 bg-[#121214] backdrop-blur-3xl">
+                          <SelectContent className="rounded-2xl border-white/10 bg-[#121214] backdrop-blur-3xl shadow-2xl">
                             {competitions?.filter(c => new Date(c.endDate) > new Date()).map(c => (
-                              <SelectItem key={c.id} value={`global-${c.id}`} className="font-medium focus:bg-primary/20">🌍 {c.title}</SelectItem>
+                              <SelectItem key={c.id} value={`global-${c.id}`} className="font-medium focus:bg-primary/20 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Globe className="h-3 w-3 text-primary/60" />
+                                  <span>{c.title}</span>
+                                </div>
+                              </SelectItem>
                             ))}
                             {userGroups?.filter(g => g.purpose === 'challenge' || g.competitionSubject).map(g => (
-                              <SelectItem key={g.id} value={`group-${g.id}`} className="font-medium focus:bg-primary/20">👥 {g.name}</SelectItem>
+                              <SelectItem key={g.id} value={`group-${g.id}`} className="font-medium focus:bg-primary/20 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-3 w-3 text-amber-500/60" />
+                                  <span>{g.name}</span>
+                                </div>
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -603,12 +613,22 @@ export default function GalleryPage() {
                           <SelectTrigger className="flex-1 rounded-2xl h-12 bg-white/5 border-white/10 font-bold text-xs hover:bg-white/10 transition-colors overflow-hidden">
                             <SelectValue placeholder={t('dialog_select_exhibition')} />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-white/10 bg-[#121214] backdrop-blur-3xl">
+                          <SelectContent className="rounded-2xl border-white/10 bg-[#121214] backdrop-blur-3xl shadow-2xl">
                             {exhibitions?.map(exh => (
-                              <SelectItem key={exh.id} value={`global-${exh.id}`} className="font-medium focus:bg-primary/20">Globe: {exh.title}</SelectItem>
+                              <SelectItem key={exh.id} value={`global-${exh.id}`} className="font-medium focus:bg-primary/20 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Globe className="h-3 w-3 text-primary/60" />
+                                  <span>{exh.title}</span>
+                                </div>
+                              </SelectItem>
                             ))}
-                            {userGroups?.filter(g => g.isGalleryPublic).map(g => (
-                              <SelectItem key={g.id} value={`group-${g.id}`} className="font-medium focus:bg-primary/20">Grup: {g.name}</SelectItem>
+                            {userGroups?.map(g => (
+                              <SelectItem key={g.id} value={`group-${g.id}`} className="font-medium focus:bg-primary/20 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-3 w-3 text-indigo-500/60" />
+                                  <span>{g.name}</span>
+                                </div>
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

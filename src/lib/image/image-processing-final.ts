@@ -89,13 +89,26 @@ export async function resizeImage(file: File, maxDimension: number = 1600): Prom
 }
 
 export async function prepareOptimizedFile(file: File, maxDimension: number = 1600): Promise<File> {
-  const dims = await getImageDimensions(file);
-  const longestEdge = Math.max(dims.width, dims.height);
+  const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif') || file.type === 'image/heic';
   
-  // 📉 RELAXED: Reduced from 800 to 200 to support thumbnails/avatars without crashing flow
-  if (longestEdge < 200) {
-    throw new Error('PHOTO_TOO_SMALL');
+  // 🍎 iPhone HEIC Bypass: Browsers can't resize HEIC on client easily, let Server handle it
+  if (isHeic) {
+    console.log('🍎 [photo-flow] HEIC detected, bypassing client-side resize. Server will handle it.');
+    return file;
   }
 
-  return await resizeImage(file, maxDimension);
+  try {
+    const dims = await getImageDimensions(file);
+    const longestEdge = Math.max(dims.width, dims.height);
+    
+    // 📉 RELAXED: Reduced from 800 to 200 to support thumbnails/avatars without crashing flow
+    if (longestEdge < 200) {
+      throw new Error('PHOTO_TOO_SMALL');
+    }
+
+    return await resizeImage(file, maxDimension);
+  } catch (err) {
+    console.warn('⚠️ [photo-flow] Client-side resize failed, falling back to original:', err);
+    return file;
+  }
 }

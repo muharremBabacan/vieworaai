@@ -999,10 +999,10 @@
     "description": "Faster access, better experience, no browser needed",
     "install_button": "Install Now",
     "maybe_later": "Maybe later",
-    "ios_step1": "Tap the share button {icon} below",
-    "ios_step2": "Select {text} {icon}",
+    "ios_step1": "Tap the share button <icon/> below",
+    "ios_step2": "Select <text/> <icon/>",
     "ios_step2_text": "\"Add to Home Screen\"",
-    "ios_step3": "Tap {text} in the top-right",
+    "ios_step3": "Tap <text/> in the top-right",
     "ios_step3_text": "Add"
   }
 }

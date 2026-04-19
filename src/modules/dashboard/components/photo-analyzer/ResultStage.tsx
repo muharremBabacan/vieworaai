@@ -37,13 +37,13 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Side: Photo and Detailed Analysis */}
         <div className="lg:col-span-7 space-y-6">
-          <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/20">
+          <Card className="rounded-[40px] border-border/40 overflow-hidden shadow-2xl bg-black/5 relative aspect-square md:aspect-auto md:min-h-[500px]">
             <VieworaImage
               variants={analysisResult.imageUrls}
               fallbackUrl={analysisResult.imageUrl}
               type="detailView"
               alt="Analiz"
-              containerClassName="min-h-[400px]"
+              containerClassName="absolute inset-0"
             />
           </Card>
 
@@ -83,7 +83,7 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
               </div>
               <div className="space-y-0.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">{t('overall_score')}</p>
-                <div className="text-7xl font-black tracking-tighter text-primary">{getOverallScore(analysisResult).toFixed(1)}</div>
+                <div className="text-7xl font-black tracking-tighter text-primary">{getOverallScore(analysisResult, analysisResult.analysisTier).toFixed(1)}</div>
               </div>
             </div>
 

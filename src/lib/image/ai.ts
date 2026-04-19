@@ -17,7 +17,7 @@ const PhotoAnalysisSchema = z.object({
 /**
  * Perform AI analysis on a photo using OpenAI Vision API.
  */
-export async function performAiAnalysis(imageUrl: string, photoId: string): Promise<any> {
+export async function performAiAnalysis(imageUrl: string, photoId: string, filePath?: string): Promise<any> {
   if (!process.env.OPENAI_API_KEY) {
     console.error('❌ [AI-LOGIC] OPENAI_API_KEY is missing in production!');
     throw new Error('OPENAI_API_KEY_MISSING');
@@ -31,21 +31,36 @@ export async function performAiAnalysis(imageUrl: string, photoId: string): Prom
   let analysisUrl = imageUrl;
   try {
     const bucket = getAdminStorage();
-    const filePath = imageUrl.split(`${bucket.name}/`)[1];
-    const file = bucket.file(filePath);
     
-    const [url] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 15 * 60 * 1000 // 15 mins
-    });
-    analysisUrl = url;
-    console.log('✅ [AI-LOGIC] Signed URL generated');
+    // 🛠️ FIX: Use explicit filePath if provided, otherwise fallback to parsing (robustly)
+    let pathInBucket = filePath;
+    if (!pathInBucket) {
+      // Robust extraction: find /o/ then extract until ?
+      const oIndex = imageUrl.indexOf('/o/');
+      if (oIndex !== -1) {
+        const afterO = imageUrl.substring(oIndex + 3);
+        const queryIndex = afterO.indexOf('?');
+        pathInBucket = decodeURIComponent(queryIndex !== -1 ? afterO.substring(0, queryIndex) : afterO);
+      } else {
+        pathInBucket = imageUrl.split(`${bucket.name}/`)[1];
+      }
+    }
+
+    if (pathInBucket) {
+      const file = bucket.file(pathInBucket);
+      const [url] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 15 * 60 * 1000 // 15 mins
+      });
+      analysisUrl = url;
+      console.log('✅ [AI-LOGIC] Signed URL generated');
+    }
   } catch (e: any) {
     console.warn('⚠️ [AI-LOGIC] Failed to get signed URL, using direct:', e.message);
   }
 
-  // 2. OpenAI Request using the STABLE completion API
   try {
+    const aiCallStart = Date.now();
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
@@ -80,6 +95,9 @@ export async function performAiAnalysis(imageUrl: string, photoId: string): Prom
       ],
       response_format: { type: "json_object" }
     });
+
+    const aiCallDuration = Date.now() - aiCallStart;
+    console.log(`⏱️ [AI-LOGIC] OpenAI API Response received in ${aiCallDuration}ms`);
 
     const content = response.choices[0].message.content;
     if (!content) {

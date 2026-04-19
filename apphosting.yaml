@@ -10,3 +10,9 @@ env:
 
   - variable: NEXT_PUBLIC_ENVIRONMENT
     value: production
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: viewora.ai
+
+  - variable: NEXT_PUBLIC_APP_URL
+    value: https://viewora.ai

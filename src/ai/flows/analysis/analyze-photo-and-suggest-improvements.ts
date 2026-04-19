@@ -88,9 +88,36 @@ export async function generatePhotoAnalysis(
   const fullLanguage = langMap[input.language] || input.language;
 
   const prompt = `
-Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisisin.
-... [PROMPT CONTENT OMITTED FOR BREVITY IN DIFF, PRESERVED IN REAL FILE] ...
-`;
+    You are a professional photography coach and visual quality evaluator. 
+    Analyze the provided photo technically and artistically.
+    Your analysis must be in ${fullLanguage}.
+    
+    You MUST return the results as a valid JSON object with the following structure:
+    {
+      "genre": "Photo genre (e.g., Portrait, Landscape) in ${fullLanguage}",
+      "scene": "Short scene description in ${fullLanguage}",
+      "dominant_subject": "Primary subject of the photo in ${fullLanguage}",
+      "light_score": 0-10 float,
+      "composition_score": 0-10 float,
+      "technical_clarity_score": 0-10 float,
+      "storytelling_score": 0-10 float,
+      "boldness_score": 0-10 float,
+      "technical_details": {
+        "focus": "1 sentence about focus in ${fullLanguage}",
+        "light": "1 sentence about lighting in ${fullLanguage}",
+        "technical_quality": "1 sentence about sharpness/noise in ${fullLanguage}",
+        "color": "1 sentence about color palette in ${fullLanguage}",
+        "composition": "1 sentence about rules or framing in ${fullLanguage}"
+      },
+      "general_quality": "One of: 'Düşük' | 'Orta' | 'İyi' | 'Çok İyi' | 'Profesyonel' (in Turkish ONLY)",
+      "expert_level": "One of: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'",
+      "tags": ["5 relevant tags in " + fullLanguage],
+      "short_neutral_analysis": "Detailed critique, at least 3 sentences in ${fullLanguage}",
+      "quality_note": "Optional tip for improvement in ${fullLanguage}"
+    }
+
+    Be objective, critical, and provide professional depth.
+  `;
 
   try {
     // 🔍 Hard Guards
@@ -135,6 +162,10 @@ Sen profesyonel bir fotoğraf analiz uzmanı ve görsel kalite değerlendiricisi
       temperature: 0.3,
       response_format: { type: "json_object" },
       messages: [
+        {
+          role: "system",
+          content: `You are a professional photography coach. You MUST always output your analysis in a valid JSON format.`
+        },
         {
           role: "user",
           content: [

@@ -30,6 +30,7 @@ const nextConfig = {
       { protocol: "https", hostname: "picsum.photos", pathname: '/**' },
       { protocol: "https", hostname: "api.qrserver.com", pathname: '/**' }
     ],
+    unoptimized: isDev, // 🛠️ FIX: Disable optimization in local dev to prevent Sharp timeouts/500 errors
   },
   async headers() {
     return [

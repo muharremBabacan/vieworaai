@@ -16,16 +16,27 @@ export const normalizeScore = (score: number | undefined | null): number => {
   return score > 1 ? score : score * 10;
 };
 
-export const getOverallScore = (photo: Photo): number => {
+export const getOverallScore = (photo: Photo, tier?: UserTier): number => {
   if (!photo.aiFeedback) return 0;
-  const scores = [
-    normalizeScore(photo.aiFeedback.light_score),
-    normalizeScore(photo.aiFeedback.composition_score),
-    normalizeScore(photo.aiFeedback.technical_clarity_score),
-    normalizeScore(photo.aiFeedback.storytelling_score),
-    normalizeScore(photo.aiFeedback.boldness_score)
-  ].filter(s => s > 0);
-  return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+  
+  // Use provided tier, or fallback to photo's analysis tier, or default to start
+  const currentTier = tier || photo.analysisTier || 'start';
+  
+  const l = normalizeScore(photo.aiFeedback.light_score);
+  const c = normalizeScore(photo.aiFeedback.composition_score);
+  const t = normalizeScore(photo.aiFeedback.technical_clarity_score);
+  const s = normalizeScore(photo.aiFeedback.storytelling_score);
+  const b = normalizeScore(photo.aiFeedback.boldness_score);
+
+  if (currentTier === 'start') {
+    // Start Tier: Only 3 metrics are visible
+    // Weighted: Composition 40%, Light 40%, Technical 20%
+    return (c * 0.4) + (l * 0.4) + (t * 0.2);
+  } else {
+    // Pro/Master Tier: All 5 metrics are visible
+    // Weighted: Composition 30%, Light 25%, Technical 15%, Storytelling 15%, Boldness 15%
+    return (c * 0.3) + (l * 0.25) + (t * 0.15) + (s * 0.15) + (b * 0.15);
+  }
 };
 
 export const updateUserProfileIndex = async (userId: string, newOverallScore: number) => {
@@ -43,7 +54,7 @@ export const updateUserProfileIndex = async (userId: string, newOverallScore: nu
     acc.clarity += normalizeScore(f.technical_clarity_score);
     acc.story += normalizeScore(f.storytelling_score || 0);
     acc.boldness += normalizeScore(f.boldness_score || 0);
-    acc.overall.push(getOverallScore(p));
+    acc.overall.push(getOverallScore(p, p.analysisTier));
     return acc;
   }, { light: 0, composition: 0, clarity: 0, story: 0, boldness: 0, overall: [] as number[] });
 
@@ -84,6 +95,7 @@ export type AnalysisFlowOptions = {
 };
 
 export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Promise<FlowResult> => {
+  const flowStartTime = performance.now();
   const {
     file, analyze, user, userProfile, locale,
     guestId, guestUsed, guestPix, currentTier
@@ -149,13 +161,19 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     lastSuccessfulStep = 'STEP_2_ID_GENERATED';
 
     // 3. Hash & Optimization (Client-side compression to prevent 11MB+ upload hangs)
-    console.log('📍 [photo-flow] STEP 3: Compressing image on client...');
+    const clientOptimStart = Date.now();
+    console.log(`📍 [photo-flow] STEP 3: Compressing image on client (Original: ${(file.size / 1024 / 1024).toFixed(2)} MB)...`);
     const hash = await generateImageHash(file);
-    const optimizedFile = await prepareOptimizedFile(file).catch(err => {
+    
+    // 🚀 Performance: 1200px is the sweet spot for fast uploads + high AI fidelity
+    const optimizedFile = await prepareOptimizedFile(file, 1200).catch(err => {
       console.warn('⚠️ [photo-flow] Compression failed, falling back to raw file:', err.message);
       return file;
     });
+
+    console.log(`✅ [photo-flow] Compression complete. Size: ${(optimizedFile.size / 1024 / 1024).toFixed(2)} MB. Time: ${Date.now() - clientOptimStart}ms`);
     
+    const uploadStart = Date.now();
     console.log('📦 [photo-flow] STEP 3: Optimized size:', (optimizedFile.size / 1024 / 1024).toFixed(2), 'MB');
     lastSuccessfulStep = 'STEP_3C_OPTIMIZATION_OK';
 
@@ -212,7 +230,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
           await batch.commit();
           console.log('✅ [photo-flow] Duplicate analysis saved');
 
-          updateUserProfileIndex(user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo)).catch(e =>
+          updateUserProfileIndex(user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo, currentTier)).catch(e =>
             console.error('⚠️ [photo-flow] Index update error:', e)
           );
 
@@ -273,6 +291,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       try {
         const { analyzePhotoServerAction } = await import('@/lib/image/actions');
         
+        const actionStart = Date.now();
         console.log('🤖 [photo-flow] Calling AI Server Action...');
         const aiData = await analyzePhotoServerAction({
           userId: currentUserId,
@@ -280,6 +299,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
           imageUrl: imageUrls.analysis,
           filePath: storagePath
         });
+        console.log('✅ [photo-flow] AI Server Action Success. Round-trip:', Date.now() - actionStart, 'ms');
 
         console.log('✅ [photo-flow] AI Analysis success');
         analysis = {
@@ -358,25 +378,29 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
           console.error('[FLOW-ERROR] Firestore batch commit failed:', commitErr.message);
           throw commitErr;
         });
-        console.log('[FLOW-DEBUG] Flow Complete. Overall Score:', getOverallScore(photoData));
+        console.log('[FLOW-DEBUG] Flow Complete. Overall Score:', getOverallScore(photoData, currentTier).toFixed(1));
+      }
 
-        if (user) {
-          updateUserProfileIndex(user.uid, getOverallScore(photoData)).catch((indexErr: any) =>
+      if (user) {
+          updateUserProfileIndex(user.uid, getOverallScore(photoData, currentTier)).catch((indexErr: any) =>
             console.error('[FLOW-ERROR] Profile index update failure:', indexErr.message)
           );
-        } else if (guestId && isAnalysisSuccessful) {
-          // 📊 MARKETING TRACKING: Log guest analysis cost ONLY IF SUCCESSFUL
-          const guestLogRef = doc(collection(db, 'guest_analyses'));
-          setDoc(guestLogRef, {
-            guestId,
-            cost: analysisCost,
-            tier: currentTier,
-            photoId: photoId,
-            timestamp: new Date().toISOString()
-          }).catch((logErr: any) => console.error('[MARKETING-LOG] Failed to track guest cost:', logErr.message));
-        }
+        /* 
+          if (guestId && isAnalysisSuccessful) {
+            // 📊 MARKETING TRACKING: Log guest analysis cost ONLY IF SUCCESSFUL
+            const guestLogRef = doc(collection(db, 'guest_analyses'));
+            setDoc(guestLogRef, {
+              guestId,
+              cost: analysisCost,
+              tier: currentTier,
+              photoId: photoId,
+              timestamp: new Date().toISOString()
+            }).catch((logErr: any) => console.error('[MARKETING-LOG] Failed to track guest cost:', logErr.message));
+          } 
+        */
       }
       lastSuccessfulStep = 'STEP_7_COMPLETE';
+      console.log('🎉 [photo-flow] COMPLETE! Total Pipeline Time:', Date.now() - flowStartTime, 'ms');
       return { type: 'success', data: serializeData(photoData) };
     } else {
       if (user) {
@@ -397,43 +421,16 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
   }
   catch (error: any) {
     console.error('🚨 [photo-flow] CRITICAL EXCEPTION CAUGHT');
-
-    console.error('STEP:', lastSuccessfulStep);
-
-    console.error('ERROR DETAILS:', {
-      message: error?.message,
-      code: error?.code,
-      digest: error?.digest,
-      name: error?.name,
-      stack: error?.stack,
-    });
-
-    if (error?.cause) {
-      console.error('CAUSE:', error.cause);
-    }
-
-    console.error('CONTEXT:', {
-      userId: user?.uid || guestId || 'anonymous',
-      analyze,
-      locale,
-      tier: currentTier,
-      fileSize: file?.size,
-      fileType: file?.type,
-      lastStep: lastSuccessfulStep
-    });
-
-    const hasDigest = !!error?.digest;
-
-    const message = hasDigest
-      ? `Server Error (Digest: ${error.digest})`
-      : (error?.message || 'Unknown execution error');
-
-    const code = error?.code || (hasDigest ? 'SERVER_COMPONENT_CRASH' : 'FLOW_CRASH');
+    console.error(`📍 STEP: ${lastSuccessfulStep}`);
+    console.error(`❌ MSG: ${error?.message || 'Unknown Error'}`);
+    
+    if (error?.digest) console.error(`🆔 DIGEST: ${error.digest}`);
+    if (error?.stack) console.error(`📚 STACK: ${error.stack}`);
 
     return {
       type: 'error',
-      code,
-      message: `${message} (at ${lastSuccessfulStep})`
+      code: error?.code || 'FLOW_CRASH',
+      message: `${error?.message || 'Unknown execution error'} (at ${lastSuccessfulStep})`
     };
   }
 

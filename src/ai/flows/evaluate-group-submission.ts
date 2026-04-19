@@ -127,7 +127,7 @@ Analyze the photo:
 
   try {
     const res = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1-mini",
       temperature: 0.4,
       response_format: { type: "json_object" },
       messages: [

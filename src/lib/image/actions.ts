@@ -14,6 +14,7 @@ export async function uploadAndProcessImage(
   photoId: string, 
   folder: 'photos' | 'submissions' | 'entries' | 'academy-practice' | 'exhibitions' = 'photos'
 ): Promise<ActionResponse<ImageDerivatives>> {
+  const actionStartTime = Date.now();
   let currentStep = '0_START';
   try {
     console.log(`🎬 [upload-flow] 1. START: User=${userId}, Photo=${photoId}, Folder=${folder}`);
@@ -41,21 +42,23 @@ export async function uploadAndProcessImage(
     
     currentStep = '6_BUFFER_CONVERT';
     const buffer = Buffer.from(await file.arrayBuffer());
-    console.log('🧱 [upload-flow] 6. Buffer created');
+    console.log(`🧱 [upload-flow] 6. Buffer created. Length: ${buffer.length}`);
     
     currentStep = '7_PROCESSOR_INIT';
     const processor = new ImageProcessor(buffer);
     
     currentStep = '8_WATERMARK_LOAD';
-    const watermarkPath = path.join(process.cwd(), 'public/icon-512.png');
+    const watermarkPath = path.join(process.cwd(), 'public', 'icon-512.png');
+    console.log(`📍 [upload-flow] 8. Loading watermark from: ${watermarkPath}`);
     await processor.loadWatermark(watermarkPath).catch(err => {
-      console.warn('⚠️ [upload-flow] 8. Watermark skip:', err.message);
+      console.warn('⚠️ [upload-flow] 8. Watermark skip (Non-fatal):', err.message);
     });
     
     currentStep = '9_IMAGE_GENERATE';
-    console.log('🖼️ [upload-flow] 9. Generating derivatives...');
+    console.log('🖼️ [upload-flow] 9. Generating derivatives (Sharp)...');
+    const genStart = Date.now();
     const derivatives = await processor.generateAll();
-    console.log('✅ [upload-flow] 9. Derivatives ready');
+    console.log(`✅ [upload-flow] 9. Generated all derivatives in ${Date.now() - genStart}ms`);
     
     currentStep = '10_STORAGE_UPLOAD';
     const imageUrls: Partial<ImageDerivatives> = {};
@@ -72,12 +75,17 @@ export async function uploadAndProcessImage(
         metadata: { cacheControl: 'public, max-age=31536000' }
       });
       
-      await fileObj.makePublic().catch(() => {});
+      await fileObj.makePublic().catch((e) => {
+        console.warn(`⚠️ [upload-flow] 10. makePublic failed for ${filePath}:`, e.message);
+      });
+      
+      // 🔗 Use GCS Direct Public URL (Standard, robust, and best for Next.js Image)
       imageUrls[type as keyof ImageDerivatives] = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
     });
     
+    const uploadStart = Date.now();
     await Promise.all(uploadPromises);
-    console.log('🎉 [upload-flow] 10. All uploads finished');
+    console.log(`🎉 [upload-flow] 10. All uploads finished in ${Date.now() - uploadStart}ms. Total Action Time: ${Date.now() - actionStartTime}ms`);
     
     currentStep = '11_FINALIZING';
     imageUrls.original = imageUrls.analysis;
@@ -105,5 +113,8 @@ export async function uploadAndProcessImage(
 export async function analyzePhotoServerAction(params: { userId: string; photoId: string; imageUrl: string; filePath: string; }) {
   const { performAiAnalysis } = await import('./ai');
   console.log('🤖 [actions] Calling Expert AI analysis with gpt-4.1-mini...');
-  return await performAiAnalysis(params.imageUrl, params.photoId);
+  const aiStart = Date.now();
+  const result = await performAiAnalysis(params.imageUrl, params.photoId, params.filePath);
+  console.log(`✅ [actions] AI Analysis Server Action Round-trip: ${Date.now() - aiStart}ms`);
+  return result;
 }

@@ -14,6 +14,50 @@ function getPrivateKey() {
 }
 
 /**
+ * 🛠️ Extracts service account credentials from environment variables.
+ * Supports both individual keys and composite base64/JSON keys.
+ */
+export function getServiceAccount() {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = getPrivateKey();
+  const compositeKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT;
+
+  if (projectId && clientEmail && privateKey) {
+    return {
+      projectId,
+      clientEmail,
+      privateKey,
+    };
+  }
+
+  if (compositeKey) {
+    try {
+      const isBase64 = !compositeKey.trim().startsWith('{');
+      const decoded = isBase64 ? Buffer.from(compositeKey, 'base64').toString('utf8') : compositeKey;
+      const processed = decoded.replace(/\\n/g, '\n');
+      return JSON.parse(processed);
+    } catch (err) {
+      console.error("[AdminInit] Failed to parse composite service account key:", err);
+    }
+  }
+
+  // 📂 FALLBACK: Read from local serviceAccount.json for local development
+  try {
+    const serviceAccountPath = path.join(process.cwd(), 'serviceAccount.json');
+    if (fs.existsSync(serviceAccountPath)) {
+      console.log("📂 [AdminInit] Using local serviceAccount.json file.");
+      const fileData = fs.readFileSync(serviceAccountPath, 'utf8');
+      return JSON.parse(fileData);
+    }
+  } catch (fileErr: any) {
+    console.warn("[AdminInit] Failed to read serviceAccount.json:", fileErr.message);
+  }
+
+  return null;
+}
+
+/**
  * 🏗️ Initializes Firebase Admin as a Singleton
  * Throws MISSING_SERVICE_ACCOUNT if required environment variables are absent in production.
  */
@@ -22,20 +66,12 @@ export function initAdmin() {
     return admin.app();
   }
 
-  // --- 1. DETECT CREDENTIALS ---
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = getPrivateKey();
-  const compositeKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT;
-
-  console.log(`🔍 [AdminInit] Env Check: PID=${!!projectId}, EMAIL=${!!clientEmail}, KEY=${!!privateKey}, COMPOSITE=${!!compositeKey}`);
-
-  // --- 2. VALIDATE FOR PRODUCTION ---
+  const serviceAccount = getServiceAccount();
   const isProduction = process.env.NODE_ENV === "production";
-  const hasSeparateKeys = projectId && clientEmail && privateKey;
-  const hasCompositeKey = !!compositeKey;
 
-  if (!hasSeparateKeys && !hasCompositeKey) {
+  console.log(`🔍 [AdminInit] Env Check: ServiceAccount=${!!serviceAccount}, Env=${process.env.NODE_ENV}`);
+
+  if (!serviceAccount) {
     if (isProduction) {
       console.error("❌ [AdminInit] CRITICAL: Service account environment variables are missing.");
       throw new Error("MISSING_SERVICE_ACCOUNT");
@@ -45,29 +81,18 @@ export function initAdmin() {
     }
   }
 
-  // --- 3. INITIALIZE ---
   try {
-    let credential;
+    const isProduction = process.env.NODE_ENV === "production";
     
-    if (hasSeparateKeys) {
-      console.log(`[AdminInit] Initializing with individual keys for Project: ${projectId}`);
-      credential = admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      });
-    } else {
-      console.log(`[AdminInit] Initializing with composite JSON key...`);
-      const isBase64 = !compositeKey!.trim().startsWith('{');
-      const decoded = isBase64 ? Buffer.from(compositeKey!, 'base64').toString('utf8') : compositeKey!;
-      const processed = decoded.replace(/\\n/g, '\n');
-      credential = admin.credential.cert(JSON.parse(processed));
-    }
+    // 🎯 Use canonical .firebasestorage.app suffix as recommended in the stabilization guide
+    const bucketNameEnv = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '');
+    const bucketName = bucketNameEnv || `${serviceAccount.project_id || serviceAccount.projectId}.firebasestorage.app`;
+    
+    console.log(`🚀 [AdminInit] Initializing for Project: ${serviceAccount.project_id || serviceAccount.projectId}`);
+    console.log(`🪣 [AdminInit] Using Storage Bucket: ${bucketName}`);
 
-    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99'}.firebasestorage.app`;
-    
     return admin.initializeApp({
-      credential,
+      credential: admin.credential.cert(serviceAccount),
       storageBucket: bucketName
     });
 
@@ -90,16 +115,20 @@ export function getAdminDb() {
 }
 
 export function getAdminStorage() {
-  initAdmin();
+  const app = initAdmin();
+  if (!app) {
+    throw new Error("ADMIN_NOT_INITIALIZED: Cannot access storage without valid admin app.");
+  }
   
-  // 🎯 BUCKET AUTO-DETECTION STRATEGY
-  const projectId = process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99';
-  const bucketName = 
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 
-    `${projectId}.appspot.com`; // Usually the safest bet for existing projects
-
-  console.log(`🪣 [AdminInit] Using storage bucket: ${bucketName}`);
-  return getStorage().bucket(bucketName);
+  // 🎯 BUCKET AUTO-DETECTION STRATEGY (Strictly follows "studio-XXX.firebasestorage.app" format)
+  const serviceAccount = getServiceAccount();
+  const projectId = serviceAccount?.project_id || serviceAccount?.projectId || process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99';
+  
+  const bucketNameEnv = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '');
+  const bucketName = bucketNameEnv || `${projectId}.firebasestorage.app`; 
+  
+  console.log(`🪣 [AdminInit] Providing storage bucket: ${bucketName}`);
+  return getStorage(app).bucket(bucketName);
 }
 
 export function getAdminAuth() {

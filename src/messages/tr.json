@@ -1042,10 +1042,10 @@
     "description": "Daha hızlı erişim, daha iyi deneyim, tarayıcıya gerek yok",
     "install_button": "Şimdi Yükle",
     "maybe_later": "Belki sonra",
-    "ios_step1": "Aşağıdaki paylaş butonuna {icon} dokun",
-    "ios_step2": "{text} {icon} seçeneğini seç",
+    "ios_step1": "Aşağıdaki paylaş butonuna <icon/> dokun",
+    "ios_step2": "<text/> <icon/> seçeneğini seç",
     "ios_step2_text": "\"Ana Ekrana Ekle\"",
-    "ios_step3": "Sağ üstteki {text} seçeneğine dokun",
+    "ios_step3": "Sağ üstteki <text/> seçeneğine dokun",
     "ios_step3_text": "Ekle"
   }
 }

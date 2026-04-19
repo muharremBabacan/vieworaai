@@ -19,7 +19,7 @@ export interface ProcessingResult {
 
 export class ImageProcessor {
   private buffer: Buffer;
-  private rotatedBuffer: Buffer | null = null;
+  private basePipeline: sharp.Sharp | null = null;
   private watermarkBuffer: Buffer | null = null;
 
   constructor(buffer: Buffer) {
@@ -27,97 +27,79 @@ export class ImageProcessor {
   }
 
   /**
-   * Base optimizasyon: Görseli bir kere döndürür ve tampona alır.
-   * Bu sayede her türev için tekrar döndürme işlemi yapılmasına gerek kalmaz.
+   * Base optimizasyon: Görseli bir kere döndürür ve base pipeline oluşturur.
+   * Sharp .clone() kullanarak her türev için tekrar encode/rotate yapmayız.
    */
-  private async getRotatedPipeline() {
-    if (!this.rotatedBuffer) {
-      this.rotatedBuffer = await sharp(this.buffer).rotate().toBuffer();
+  private async getBasePipeline(): Promise<sharp.Sharp> {
+    if (!this.basePipeline) {
+      const start = Date.now();
+      // 🚀 Optimization: Decode once, Rotate once
+      const rotatedBuffer = await sharp(this.buffer).rotate().toBuffer();
+      this.basePipeline = sharp(rotatedBuffer);
+      console.log(`⚡ [processor] Base pipeline prepared (rotation included) in ${Date.now() - start}ms`);
     }
-    return sharp(this.rotatedBuffer);
+    return this.basePipeline.clone();
   }
 
   /**
-   * Watermark olarak kullanılacak logoyu yükler
+   * Watermark logo yükler
    */
   async loadWatermark(watermarkPath: string) {
     if (fs.existsSync(watermarkPath)) {
       this.watermarkBuffer = await fs.promises.readFile(watermarkPath);
+      console.log('✅ [processor] Watermark loaded');
     }
   }
 
   /**
-   * Görselin boyutlarını kontrol eder. 
-   * Artık kısıtlayıcı değil; küçük görseller otomatik büyütülecek.
+   * Görsel boyutlarını kontrol eder
    */
   async validateResolution(): Promise<{ width: number; height: number }> {
-    const metadata = await sharp(this.buffer).metadata();
+    const start = Date.now();
+    const pipeline = await this.getBasePipeline();
+    const metadata = await pipeline.metadata();
     const width = metadata.width || 0;
     const height = metadata.height || 0;
-    const maxEdge = Math.max(width, height);
-
-    console.log(`📏 [processor] Image dimensions: ${width}x${height} (maxEdge: ${maxEdge})`);
     
-    if (maxEdge < 400) {
-      console.warn('⚠️ [processor] Resolution is very low (<400px), clarity might be poor.');
-    }
-
+    console.log(`📏 [processor] Validated: ${width}x${height} in ${Date.now() - start}ms`);
     return { width, height };
   }
 
   /**
-   * Belirli bir türev tipini üretir
+   * Türev üretir
    */
   async generateDerivative(type: DerivativeType): Promise<ProcessingResult> {
-    const pipeline = await this.getRotatedPipeline();
-    const metadata = await pipeline.metadata();
-
+    const pipeline = await this.getBasePipeline();
+    
     switch (type) {
       case 'smallSquare':
         // 320x320, 1:1, Center Crop, WebP
-        return {
-          type,
-          buffer: await pipeline
-            .resize(320, 320, { fit: 'cover', position: 'center' })
-            .webp({ quality: 85 })
-            .toBuffer(),
-          format: 'webp',
-          width: 320,
-          height: 320
-        };
+        const squareBuffer = await pipeline
+          .resize(320, 320, { fit: 'cover', position: 'center' })
+          .webp({ quality: 85 })
+          .toBuffer();
+        return { type, buffer: squareBuffer, format: 'webp', width: 320, height: 320 };
 
       case 'featureCover':
-        // 1280x720, 16:9, Smart/Center Crop, WebP
-        return {
-          type,
-          buffer: await pipeline
-            .resize(1280, 720, { fit: 'cover', position: 'attention' }) // Akıllı crop (attention)
-            .webp({ quality: 85 })
-            .toBuffer(),
-          format: 'webp',
-          width: 1280,
-          height: 720
-        };
+        // 1280x720, 16:9, Attention Crop, WebP
+        const featureBuffer = await pipeline
+          .resize(1280, 720, { fit: 'cover', position: 'attention' })
+          .webp({ quality: 85 })
+          .toBuffer();
+        return { type, buffer: featureBuffer, format: 'webp', width: 1280, height: 720 };
 
       case 'detailView':
-        // Max 1200x1500 Bounding Box, No Hard Crop, WebP
+        // Max 1600x1600 Bounding Box, WebP
         const detailRes = await pipeline
           .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
           .webp({ quality: 90 })
           .toBuffer();
-        
         const detailMeta = await sharp(detailRes).metadata();
-        return {
-          type,
-          buffer: detailRes,
-          format: 'webp',
-          width: detailMeta.width || 1200,
-          height: detailMeta.height || 1500
-        };
+        return { type, buffer: detailRes, format: 'webp', width: detailMeta.width || 1200, height: detailMeta.height || 1500 };
 
       case 'detailViewWatermarked':
-        // Base rotated image for watermarking
-        const baseDetail = await (await this.getRotatedPipeline())
+        // Standard Detail + Watermark
+        const baseDetail = await pipeline
           .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
           .toBuffer();
         
@@ -125,62 +107,36 @@ export class ImageProcessor {
         let finalPipeline = sharp(baseDetail);
         
         if (this.watermarkBuffer) {
-           // Watermark boyutunu görsele göre ayarla (yaklaşık %15 genişlik)
            const wmSize = Math.round((baseMeta.width || 1200) * 0.15);
-           const resizedWm = await sharp(this.watermarkBuffer)
-             .resize(wmSize)
-             .png()
-             .toBuffer();
-
-           finalPipeline = finalPipeline.composite([
-             { 
-               input: resizedWm, 
-               gravity: 'southeast', 
-               blend: 'over'
-             }
-           ]);
+           const resizedWm = await sharp(this.watermarkBuffer).resize(wmSize).png().toBuffer();
+           finalPipeline = finalPipeline.composite([{ input: resizedWm, gravity: 'southeast', blend: 'over' }]);
         }
 
-        return {
-          type,
-          buffer: await finalPipeline.webp({ quality: 90 }).toBuffer(),
-          format: 'webp',
-          width: baseMeta.width || 1200,
-          height: baseMeta.height || 1500
-        };
+        const wmResult = await finalPipeline.webp({ quality: 90 }).toBuffer();
+        return { type, buffer: wmResult, format: 'webp', width: baseMeta.width || 1200, height: baseMeta.height || 1500 };
 
       case 'analysis':
-        // Max Long Edge 1600, JPEG (Quality 85), No Crop
+        // High Res Analysis (JPEG)
         const analysisRes = await pipeline
           .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
           .jpeg({ quality: 85 })
           .toBuffer();
-        
         const analysisMeta = await sharp(analysisRes).metadata();
-        return {
-          type,
-          buffer: analysisRes,
-          format: 'jpeg',
-          width: analysisMeta.width || 1600,
-          height: analysisMeta.height || 1600
-        };
+        return { type, buffer: analysisRes, format: 'jpeg', width: analysisMeta.width || 1600, height: analysisMeta.height || 1600 };
 
       default:
-        throw new Error(`Bilinmeyen türev tipi: ${type}`);
+        throw new Error(`Bilinmeyen türev: ${type}`);
     }
   }
 
-  /**
-   * Tüm türevleri SEQUENTIAL olarak üretir (Memory Safety)
-   */
   async generateAll(): Promise<Record<DerivativeType, ProcessingResult>> {
     const types: DerivativeType[] = ['smallSquare', 'featureCover', 'detailView', 'detailViewWatermarked', 'analysis'];
     const results: any = {};
-    
     for (const type of types) {
+      const start = Date.now();
       results[type] = await this.generateDerivative(type);
+      console.log(`  - ${type} generated in ${Date.now() - start}ms`);
     }
-    
     return results;
   }
 }

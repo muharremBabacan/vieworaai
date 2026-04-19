@@ -38,7 +38,7 @@ export function VieworaImage({
 
   // 2. Boyutlandırma ve Ratio (Tailwind)
   const ratioClasses = {
-    smallSquare: 'object-cover',
+    smallSquare: 'object-contain',
     featureCover: 'object-contain',
     detailView: 'object-contain',
     detailViewWatermarked: 'object-contain',
@@ -60,7 +60,7 @@ export function VieworaImage({
     <div className={cn("relative overflow-hidden w-full h-full bg-black/5", containerClassName)}>
       {/* 🔮 Blurred Background Layer (Glassmorphism effect for non-square ratios) */}
       {type !== 'original' && (
-        <div className="absolute inset-0 scale-125 blur-3xl opacity-30 pointer-events-none select-none">
+        <div className="absolute inset-0 scale-150 blur-3xl opacity-50 pointer-events-none select-none">
           <Image
             src={src}
             alt=""

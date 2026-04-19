@@ -96,7 +96,7 @@ IDs of images provided below: ${input.photos.map(p => p.id).join(", ")}
   // Helper to run a single completion
   const singleRun = async () => {
     const res = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1-mini",
       temperature: 0.3, // Lower temperature for more consistent JSON
       response_format: { type: "json_object" },
       messages: [

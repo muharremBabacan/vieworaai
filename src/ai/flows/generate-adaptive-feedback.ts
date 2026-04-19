@@ -64,7 +64,7 @@ Return ONLY valid JSON:
 
   try {
     const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-mini",
       temperature: 0.6,
       messages: [{ role: "user", content: prompt }],
     });

@@ -1,8 +1,8 @@
 import { initializeFirebase } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { GeneratedLesson } from '@/ai/flows/generateLessons';
+import { GeneratedAcademyLesson } from '@/ai/flows/lesson/generate-academy-lessons';
 
-export async function saveLessons(lessons: GeneratedLesson[]) {
+export async function saveLessons(lessons: GeneratedAcademyLesson[]) {
 
   const { firestore } = initializeFirebase();
 
