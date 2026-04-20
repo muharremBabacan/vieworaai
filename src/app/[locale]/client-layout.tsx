@@ -79,11 +79,33 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     handleGuestTracking();
   }, [user, firestore]);
 
+  // 🛡️ Auth Patience Logic for PWAs
+  const [isSettling, setIsSettling] = useState(false);
+  
+  useEffect(() => {
+    // If we find a pending login flag, we give the app some "patience" to pick up the result
+    const hasPendingLogin = typeof window !== 'undefined' && localStorage.getItem('pending_login') === 'true';
+    const isStandalone = typeof window !== 'undefined' && (
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (navigator as any).standalone
+    );
+
+    if (hasPendingLogin || isStandalone) {
+      console.log("🛡️ [ClientLayout] Auth Patience enabled. Waiting for session stabilization...");
+      setIsSettling(true);
+      const timer = setTimeout(() => setIsSettling(false), 2500); // 2.5s window
+      return () => clearTimeout(timer);
+    }
+  }, [pathname]);
+
   // Navigation Logic
   useEffect(() => {
-    if (isUserLoading || (user && isProfileLoading)) return;
+    if (isUserLoading || (user && isProfileLoading) || isSettling) return;
 
     if (user) {
+      // Clear flag once we are definitely logged in
+      if (typeof window !== 'undefined') localStorage.removeItem('pending_login');
+      
       if (!user.emailVerified) {
         if (pathname !== '/verify-email' && pathname !== '/login' && pathname !== '/signup') {
           router.replace('/verify-email');
@@ -107,14 +129,18 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         router.replace('/login');
       }
     }
-  // isStandalonePage ve isPublicPage deps'lere eklendi. Firestore signature'dan ayrıldı.
-  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage, isPublicPage]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage, isPublicPage, isSettling]);
 
   // Global Loader for critical states
-  if (isUserLoading || (user && isProfileLoading && !userProfile)) {
+  if (isUserLoading || (user && isProfileLoading && !userProfile) || isSettling) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        {isSettling && (
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
+            Oturum Doğrulanıyor...
+          </p>
+        )}
       </div>
     );
   }

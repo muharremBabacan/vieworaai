@@ -8,6 +8,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signInWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
   type UserCredential,
 } from 'firebase/auth';
 import { doc, updateDoc, collection, query, where, getDocs, writeBatch, increment } from 'firebase/firestore';
@@ -74,6 +76,7 @@ function LoginForm() {
         
         if (result) {
           console.log("✅ Redirect Login Success:", result.user.email);
+          localStorage.removeItem('pending_login'); // Clear flag on success
           const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
           await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
           await processAuroRefillAndStats(result.user.uid, profile);
@@ -140,6 +143,12 @@ function LoginForm() {
                        window.innerWidth <= 768;
 
       console.log(`[Auth] Sign-in context: Standalone=${isStandalone}, Mobile=${isMobile}`);
+
+      // 🔐 Enforce Local Persistence (Crucial for PWAs)
+      await setPersistence(auth, browserLocalPersistence);
+      
+      // 🚩 Set pending flag so Layout knows to wait
+      localStorage.setItem('pending_login', 'true');
 
       // 🚀 Adaptive Flow: 
       // PWAs (Standalone) prefer popups because redirects often lose app context/session.
