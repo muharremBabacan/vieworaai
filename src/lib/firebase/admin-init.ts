@@ -33,10 +33,17 @@ export function getServiceAccount() {
 
   if (compositeKey) {
     try {
+      // 🛡️ Pre-parsing cleanup: Remove potential invisible control characters or bad escape sequences
       const isBase64 = !compositeKey.trim().startsWith('{');
       const decoded = isBase64 ? Buffer.from(compositeKey, 'base64').toString('utf8') : compositeKey;
-      const processed = decoded.replace(/\\n/g, '\n');
-      return JSON.parse(processed);
+      
+      // Handle the common "Bad control character" error by sanitizing raw newlines in string literals
+      // while keeping escaped \n for the private key
+      const sanitized = decoded
+        .trim()
+        .replace(/[\u0000-\u001F]+/g, (match) => match === '\n' || match === '\r' ? ' ' : ''); // Replace raw newlines with space to prevent JSON break
+
+      return JSON.parse(sanitized);
     } catch (err) {
       console.error("[AdminInit] Failed to parse composite service account key:", err);
     }
