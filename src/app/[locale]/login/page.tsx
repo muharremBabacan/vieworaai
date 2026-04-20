@@ -131,29 +131,49 @@ function LoginForm() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
-      // 📱 Mobile/Tablet check (includes iPhone/Safari)
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+      // 📱 Detection logic
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                          (navigator as any).standalone || 
+                          document.referrer.includes('android-app://');
+                          
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                       window.innerWidth <= 768;
 
-      if (isMobile) {
-        console.log("📱 Mobile detected, using Redirect flow");
-        await signInWithRedirect(auth, provider);
-        // Page will redirect, so no need to stop loading
-      } else {
-        console.log("💻 Desktop detected, using Popup flow");
+      console.log(`[Auth] Sign-in context: Standalone=${isStandalone}, Mobile=${isMobile}`);
+
+      // 🚀 Adaptive Flow: 
+      // PWAs (Standalone) prefer popups because redirects often lose app context/session.
+      // Standard mobile browsers prefer redirects because popups are frequently blocked.
+      if (isStandalone) {
+        console.log("🚀 Standalone App detected, using Popup flow for stability");
         const result: UserCredential = await signInWithPopup(auth, provider);
         const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
-        
         await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
         await processAuroRefillAndStats(result.user.uid, profile);
-        
+        router.push('/dashboard');
+      } else if (isMobile) {
+        console.log("📱 Mobile Browser detected, using Redirect flow");
+        await signInWithRedirect(auth, provider);
+      } else {
+        console.log("💻 Desktop Browser detected, using Popup flow");
+        const result: UserCredential = await signInWithPopup(auth, provider);
+        const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
+        await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
+        await processAuroRefillAndStats(result.user.uid, profile);
         router.push('/dashboard');
       }
     } catch (error: any) {
-      console.warn("Google Sign-In Error:", error.code);
+      console.warn("Google Sign-In Error:", error.code, error.message);
+      
+      let errorMessage = 'Google ile giriş yapılırken bir hata oluştu.';
+      if (error.code === 'auth/popup-blocked') errorMessage = 'Giriş penceresi engellendi. Lütfen tarayıcı ayarlarından pop-up pencerelere izin verin.';
+      if (error.code === 'auth/popup-closed-by-user') errorMessage = 'Giriş penceresi kapatıldı.';
+      if (error.code === 'auth/cancelled-popup-request') errorMessage = 'Önceki giriş isteği iptal edildi.';
+
       toast({
         variant: 'destructive',
         title: 'Giriş Başarısız',
-        description: error.code === 'auth/popup-blocked' ? 'Pop-up pencerelere izin verin.' : 'Google ile giriş yapılırken bir hata oluştu.',
+        description: errorMessage,
       });
       setIsLoading(false);
     }
