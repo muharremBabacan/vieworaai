@@ -24,7 +24,7 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
       <header className="flex justify-between items-center">
         <div className="space-y-1">
           <Badge variant="outline" className="px-3 h-6 border-primary/30 text-primary font-black uppercase tracking-widest text-[9px] rounded-full">{t('analysis_report_badge')}</Badge>
-          <h1 className="text-4xl font-black tracking-tighter uppercase">{t('analysis_report_title')}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter uppercase">{t('analysis_report_title')}</h1>
           {!user && guestId && (
               <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60">
                 Sanal Vizyon: <span className="text-primary">{guestId}</span>
@@ -47,7 +47,7 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
             />
           </Card>
 
-          <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-8">
+          <Card className="p-5 md:p-8 rounded-[32px] border-border/40 bg-card/50 space-y-8">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-primary/10 text-primary"><SearchCode size={20} /></div>
               <h3 className="text-lg font-black uppercase tracking-tight">{t('expert_analysis_title')}</h3>
@@ -67,7 +67,7 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
               )}
             </div>
 
-            <div className="pt-6 border-t border-white/5 grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="pt-6 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <MetadataBox label={t('detail_genre')} value={analysisResult.aiFeedback!.genre || 'Genel'} />
               <MetadataBox label={t('detail_scene')} value={analysisResult.aiFeedback!.scene || 'Bilinmiyor'} />
               <MetadataBox label={t('detail_subject')} value={analysisResult.aiFeedback!.dominant_subject || 'Konu'} />
@@ -91,7 +91,7 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
 
         {/* Right Side: Scores and Insights */}
         <div className="lg:col-span-5 space-y-6">
-          <Card className="p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
+          <Card className="p-5 md:p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col items-center text-center space-y-4 mb-10">
               <div className="flex gap-2">
                 <Badge className="bg-primary/20 text-primary border-none font-black text-[9px] uppercase tracking-widest">{analysisResult.aiFeedback!.general_quality}</Badge>
@@ -119,7 +119,7 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
             </div>
           )}
 
-          <Card className="p-8 rounded-[32px] border-border/40 bg-card/50 space-y-4">
+          <Card className="p-5 md:p-8 rounded-[32px] border-border/40 bg-card/50 space-y-4">
             <div className="flex items-center gap-2">
               <Lightbulb size={18} className="text-amber-400" />
               <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('luma_note_title')}</h4>

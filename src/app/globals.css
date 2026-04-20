@@ -115,4 +115,12 @@
   .animate-slide-up {
     animation: slide-up 0.8s ease-out forwards;
   }
+
+  /* Safe Area Utilities (iPhone) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
 }

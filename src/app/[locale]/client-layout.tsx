@@ -122,10 +122,18 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const showBottomNav = (user || isPublicPage) && !['/', '/login', '/signup', '/onboarding'].includes(pathname);
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-background">
       {showHeader && <AppHeader />}
-      <main className={`flex-1 ${showHeader ? 'py-8 pb-24' : ''}`}>
-        {children}
+      <main className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide",
+          showHeader ? "pt-0" : ""
+      )}>
+        <div className={cn(
+            "container mx-auto px-4 py-8 pb-32",
+            !showHeader && "pt-12"
+        )}>
+            {children}
+        </div>
       </main>
       {showBottomNav && <BottomNav />}
     </div>
