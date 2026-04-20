@@ -79,36 +79,48 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     handleGuestTracking();
   }, [user, firestore]);
 
-  // 🛡️ Auth Patience Logic for PWAs (Aggressive v3.8.5)
+  // 🛡️ Auth Patience Logic for PWAs (Safe v3.8.7)
   const [isSettling, setIsSettling] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    setHasMounted(true);
+  }, []);
 
-    const hasPendingLogin = localStorage.getItem('pending_login') === 'true';
-    const isInAppBrowser = /GSA\/|Instagram|FBAN|FBIOS|Line|MicroMessenger|Messenger/i.test(navigator.userAgent);
-    
-    const isStandalone = 
-      window.matchMedia('(display-mode: standalone)').matches || 
-      (navigator as any).standalone ||
-      (/iPhone|iPad|iPod/.test(navigator.userAgent) && (window as any).navigator.standalone === true) ||
-      isInAppBrowser;
+  useEffect(() => {
+    if (!hasMounted || typeof window === 'undefined') return;
 
-    // Trigger patience on ANY login page visit if restricted environment, or if we explicitly pending
-    if (hasPendingLogin || (isStandalone && pathname === '/login')) {
-      console.log("🛡️ [ClientLayout] Aggressive Auth Patience enabled (4.5s) for v3.8.6.");
-      setIsSettling(true);
-      const timer = setTimeout(() => setIsSettling(false), 4500); // 4.5s window for slow GSA/PWA containers
-      return () => clearTimeout(timer);
+    try {
+      const hasPendingLogin = localStorage.getItem('pending_login') === 'true';
+      const userAgent = navigator.userAgent || '';
+      const isInAppBrowser = /GSA\/|Instagram|FBAN|FBIOS|Line|MicroMessenger|Messenger/i.test(userAgent);
+      
+      const isStandalone = 
+        window.matchMedia('(display-mode: standalone)').matches || 
+        (navigator as any).standalone ||
+        (/iPhone|iPad|iPod/.test(userAgent) && (window as any).navigator.standalone === true) ||
+        isInAppBrowser;
+
+      // Trigger patience on ANY login page visit if restricted environment, or if we explicitly pending
+      if (hasPendingLogin || (isStandalone && pathname === '/login')) {
+        console.log("🛡️ [ClientLayout] Aggressive Auth Patience (4.5s) Secure v3.8.7.");
+        setIsSettling(true);
+        const timer = setTimeout(() => setIsSettling(false), 4500);
+        return () => clearTimeout(timer);
+      }
+    } catch (error) {
+      console.warn("[ClientLayout] Auth patience check failed safely:", error);
     }
-  }, [pathname]);
+  }, [pathname, hasMounted]);
 
   // Navigation Logic
   useEffect(() => {
-    if (isUserLoading || (user && isProfileLoading) || isSettling) return;
+    if (!hasMounted || isUserLoading || (user && isProfileLoading) || isSettling) return;
 
     if (user) {
-      if (typeof window !== 'undefined') localStorage.removeItem('pending_login');
+      try {
+        localStorage.removeItem('pending_login');
+      } catch (e) {}
       
       if (!user.emailVerified) {
         if (pathname !== '/verify-email' && pathname !== '/login' && pathname !== '/signup') {

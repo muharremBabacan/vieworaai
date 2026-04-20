@@ -344,7 +344,7 @@ function LoginForm() {
 
         <div className="text-center pt-4">
           <p className="text-[8px] font-black tracking-widest text-muted-foreground/20 uppercase">
-            Build v3.8.6 • Stable
+            Build v3.8.7 • Stable
           </p>
         </div>
       </div>

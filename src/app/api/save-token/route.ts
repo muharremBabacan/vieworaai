@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
  * This handles CORS and keeps the external server URL private in the backend.
  */
 export async function POST(request: Request) {
-  const SERVER_URL = process.env.NOTIFICATION_SERVER_URL || 'http://localhost:3001';
+  const SERVER_URL = process.env.NOTIFICATION_SERVER_URL || 'https://localhost:3001';
   
   try {
     const body = await request.json();
