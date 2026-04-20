@@ -134,27 +134,30 @@ function LoginForm() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
-      // 📱 Detection logic
+      // 📱 Detection logic (PWA + In-App Browsers v3.8.6)
+      const isInAppBrowser = /GSA\/|Instagram|FBAN|FBIOS|Line|MicroMessenger|Messenger/i.test(navigator.userAgent);
+      
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
                           (navigator as any).standalone || 
-                          document.referrer.includes('android-app://');
+                          document.referrer.includes('android-app://') ||
+                          isInAppBrowser;
                           
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                        window.innerWidth <= 768;
 
-      console.log(`[Auth] Sign-in context: Standalone=${isStandalone}, Mobile=${isMobile}`);
+      console.log(`[Auth] Context: Standalone=${isStandalone}, In-App=${isInAppBrowser}, Mobile=${isMobile}`);
 
-      // 🔐 Enforce Local Persistence (Crucial for PWAs)
+      // 🔐 Enforce Local Persistence (Crucial for PWAs/In-App)
       await setPersistence(auth, browserLocalPersistence);
       
       // 🚩 Set pending flag so Layout knows to wait
       localStorage.setItem('pending_login', 'true');
 
       // 🚀 Adaptive Flow: 
-      // PWAs (Standalone) prefer popups because redirects often lose app context/session.
+      // PWAs & In-App Browsers (GSA, FB, IG) must use popups because redirects lose app context/session.
       // Standard mobile browsers prefer redirects because popups are frequently blocked.
       if (isStandalone) {
-        console.log("🚀 Standalone App detected, using Popup flow for stability");
+        console.log("🚀 Restricted Environment (PWA/In-App) detected, using Popup flow");
         const result: UserCredential = await signInWithPopup(auth, provider);
         const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
         await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
@@ -341,7 +344,7 @@ function LoginForm() {
 
         <div className="text-center pt-4">
           <p className="text-[8px] font-black tracking-widest text-muted-foreground/20 uppercase">
-            Build v3.8.5 • Stable
+            Build v3.8.6 • Stable
           </p>
         </div>
       </div>

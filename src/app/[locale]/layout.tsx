@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'Analyze, learn, and showcase your photography with AI-powered coaching.',
   icons: {
     icon: '/favicon.ico',
-    apple: '/icon-512.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 

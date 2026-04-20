@@ -86,16 +86,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
 
     const hasPendingLogin = localStorage.getItem('pending_login') === 'true';
+    const isInAppBrowser = /GSA\/|Instagram|FBAN|FBIOS|Line|MicroMessenger|Messenger/i.test(navigator.userAgent);
+    
     const isStandalone = 
       window.matchMedia('(display-mode: standalone)').matches || 
       (navigator as any).standalone ||
-      /iPhone|iPad|iPod/.test(navigator.userAgent) && (window as any).navigator.standalone === true;
+      (/iPhone|iPad|iPod/.test(navigator.userAgent) && (window as any).navigator.standalone === true) ||
+      isInAppBrowser;
 
-    // Trigger patience on ANY login page visit if standalone, or if we explicitly pending
+    // Trigger patience on ANY login page visit if restricted environment, or if we explicitly pending
     if (hasPendingLogin || (isStandalone && pathname === '/login')) {
-      console.log("🛡️ [ClientLayout] Aggressive Auth Patience enabled (4s).");
+      console.log("🛡️ [ClientLayout] Aggressive Auth Patience enabled (4.5s) for v3.8.6.");
       setIsSettling(true);
-      const timer = setTimeout(() => setIsSettling(false), 4000); // 4s window for slow PWA containers
+      const timer = setTimeout(() => setIsSettling(false), 4500); // 4.5s window for slow GSA/PWA containers
       return () => clearTimeout(timer);
     }
   }, [pathname]);
