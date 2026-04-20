@@ -2,13 +2,6 @@ runConfig:
   maxInstances: 1
 
 env:
-  # 🔑 Secrets (Must be created in Google Cloud Secret Manager)
-  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-    secret: APP_ADMIN_KEY
-
-  - variable: OPENAI_API_KEY
-    secret: OPENAI_API_KEY
-
   # 🌐 Environment Configurations
   - variable: NEXT_PUBLIC_ENVIRONMENT
     value: production
