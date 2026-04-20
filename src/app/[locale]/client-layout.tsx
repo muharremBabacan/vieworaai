@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import type { User } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
