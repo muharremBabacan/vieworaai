@@ -338,6 +338,12 @@ function LoginForm() {
           <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">Gizlilik Politikası</Link>
           ’nı kabul etmiş olursunuz.
         </p>
+
+        <div className="text-center pt-4">
+          <p className="text-[8px] font-black tracking-widest text-muted-foreground/20 uppercase">
+            Build v3.8.5 • Stable
+          </p>
+        </div>
       </div>
     </div>
   );

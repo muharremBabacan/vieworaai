@@ -79,21 +79,23 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     handleGuestTracking();
   }, [user, firestore]);
 
-  // 🛡️ Auth Patience Logic for PWAs
+  // 🛡️ Auth Patience Logic for PWAs (Aggressive v3.8.5)
   const [isSettling, setIsSettling] = useState(false);
   
   useEffect(() => {
-    // If we find a pending login flag, we give the app some "patience" to pick up the result
-    const hasPendingLogin = typeof window !== 'undefined' && localStorage.getItem('pending_login') === 'true';
-    const isStandalone = typeof window !== 'undefined' && (
-      window.matchMedia('(display-mode: standalone)').matches || 
-      (navigator as any).standalone
-    );
+    if (typeof window === 'undefined') return;
 
-    if (hasPendingLogin || isStandalone) {
-      console.log("🛡️ [ClientLayout] Auth Patience enabled. Waiting for session stabilization...");
+    const hasPendingLogin = localStorage.getItem('pending_login') === 'true';
+    const isStandalone = 
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (navigator as any).standalone ||
+      /iPhone|iPad|iPod/.test(navigator.userAgent) && (window as any).navigator.standalone === true;
+
+    // Trigger patience on ANY login page visit if standalone, or if we explicitly pending
+    if (hasPendingLogin || (isStandalone && pathname === '/login')) {
+      console.log("🛡️ [ClientLayout] Aggressive Auth Patience enabled (4s).");
       setIsSettling(true);
-      const timer = setTimeout(() => setIsSettling(false), 2500); // 2.5s window
+      const timer = setTimeout(() => setIsSettling(false), 4000); // 4s window for slow PWA containers
       return () => clearTimeout(timer);
     }
   }, [pathname]);
@@ -103,7 +105,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (isUserLoading || (user && isProfileLoading) || isSettling) return;
 
     if (user) {
-      // Clear flag once we are definitely logged in
       if (typeof window !== 'undefined') localStorage.removeItem('pending_login');
       
       if (!user.emailVerified) {
