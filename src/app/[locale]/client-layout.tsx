@@ -26,8 +26,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     '/dashboard',
     '/academy',
     '/luma',
-    '/test-ai'
-  ].some(p => pathname.startsWith(p));
+    '/test-ai',
+    '/public'
+  ].some(p => pathname.startsWith(p) || pathname === p);
 
   const isStandalonePage = [
     '/', 
@@ -36,6 +37,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     '/verify-email', 
     '/terms', 
     '/privacy',
+    '/onboarding',
+    '/dashboard', // Add dashboard here to prevent immediate redirect while settling
     ... (isPublicPage ? [pathname] : [])
   ].includes(pathname);
   
@@ -101,11 +104,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         (/iPhone|iPad|iPod/.test(userAgent) && (window as any).navigator.standalone === true) ||
         isInAppBrowser;
 
-      // Trigger patience on ANY login page visit if restricted environment, or if we explicitly pending
-      if (hasPendingLogin || (isStandalone && pathname === '/login')) {
-        console.log("🛡️ [ClientLayout] Aggressive Auth Patience (4.5s) Secure v3.8.7.");
+      // 🛡️ Trigger patience on ANY page in restricted environment during initial mount
+      // or if we explicitly have a pending login flag.
+      if (hasPendingLogin || isStandalone) {
+        console.log(`🛡️ [ClientLayout] Aggressive Auth Patience (5s) for ${pathname}.`);
         setIsSettling(true);
-        const timer = setTimeout(() => setIsSettling(false), 4500);
+        const timer = setTimeout(() => {
+          setIsSettling(false);
+          // Safety: remove pending flag after patience expires
+          localStorage.removeItem('pending_login');
+        }, 5000);
         return () => clearTimeout(timer);
       }
     } catch (error) {

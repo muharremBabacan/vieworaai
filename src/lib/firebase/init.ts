@@ -18,8 +18,7 @@ if (typeof window !== 'undefined') {
   // Guarded Firestore Init
   try {
     db = initializeFirestore(firebaseApp, { 
-        experimentalForceLongPolling: true,
-        useFetchStreams: false 
+        experimentalForceLongPolling: true
     });
   } catch (e) {
     db = getFirestore(firebaseApp);
