@@ -88,48 +88,11 @@ function LoginForm() {
     }
   };
 
-  // 🔥 Catch Redirect Result (CRITICAL for Mobile/PWA)
+  // Note: Redirect result is now handled by /auth/callback for better PWA reliability
   useEffect(() => {
-    if (!auth || !firestore) return;
-
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("📥 Redirect login detected, processing session...");
-          setIsRedirecting(true);
-
-          // 🏷️ GET ID TOKEN
-          const idToken = await result.user.getIdToken();
-          
-          // 🔐 CREATE SESSION COOKIE
-          const sessionRes = await fetch("/api/session/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken }),
-          });
-
-          if (!sessionRes.ok) throw new Error("Session creation failed");
-
-          const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
-          await updateDoc(doc(firestore, 'users', result.user.uid), { 
-            lastLoginAt: new Date().toISOString(),
-            emailVerified: true 
-          });
-          await processAuroRefillAndStats(result.user.uid, profile);
-
-          router.push('/dashboard');
-        }
-      } catch (error: any) {
-        console.error("Redirect Result Error:", error);
-        toast({ variant: 'destructive', title: 'Giriş Hatası', description: error.message });
-      } finally {
-        setIsRedirecting(false);
-      }
-    };
-
-    handleRedirectResult();
-  }, [auth, firestore, router, toast]);
+    // We can keep a simple check here just in case, or leave it to the callback page
+    // For now, we follow the "Separate Page" advice.
+  }, []);
 
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
