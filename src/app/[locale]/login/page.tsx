@@ -8,6 +8,7 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signInWithEmailAndPassword,
+  sendEmailVerification,
   setPersistence,
   browserLocalPersistence,
   type UserCredential,
@@ -160,7 +161,10 @@ function LoginForm() {
         console.log("🚀 Restricted Environment (PWA/In-App) detected, using Popup flow");
         const result: UserCredential = await signInWithPopup(auth, provider);
         const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
-        await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
+        await updateDoc(doc(firestore, 'users', result.user.uid), { 
+          lastLoginAt: new Date().toISOString(),
+          emailVerified: true // Google users are pre-verified
+        });
         await processAuroRefillAndStats(result.user.uid, profile);
         router.push('/dashboard');
       } else if (isMobile) {
@@ -200,10 +204,11 @@ function LoginForm() {
       const result = await signInWithEmailAndPassword(auth, email, password);
       
       if (!result.user.emailVerified) {
+        await sendEmailVerification(result.user);
         toast({
           variant: 'destructive',
           title: 'E-posta Doğrulanmamış',
-          description: 'Lütfen e-posta adresinizi doğrulamadan giriş yapamazsınız.',
+          description: 'E-posta adresiniz henüz doğrulanmamış. Size yeni bir doğrulama maili gönderdik. Lütfen kutunuzu kontrol edin.',
         });
         await auth.signOut();
         setIsLoading(false);
@@ -211,7 +216,10 @@ function LoginForm() {
       }
 
       const profile = await AuthService.ensureUserDoc(firestore, result.user);
-      await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
+      await updateDoc(doc(firestore, 'users', result.user.uid), { 
+        lastLoginAt: new Date().toISOString(),
+        emailVerified: true
+      });
       await processAuroRefillAndStats(result.user.uid, profile);
       
       router.push('/dashboard');

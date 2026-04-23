@@ -33,8 +33,7 @@ export const AuthService = {
         photoURL: firebaseUser.photoURL || null,
         phone: '',
         instagram: '',
-        auro_balance: 20,
-        pix_balance: 0, // 🆕 Added for PIX system
+        pix_balance: 20,
         current_xp: 0,
         level_name: 'Neuner',
         tier: 'start',
@@ -44,6 +43,7 @@ export const AuthService = {
         total_competitions_count: 0,
         weekly_free_refill_date: now,
         onboarded: false,
+        emailVerified: firebaseUser.emailVerified,
         daily_streak: 1,
         last_active_date: now.split('T')[0],
         completed_modules: [],

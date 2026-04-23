@@ -92,7 +92,7 @@ export default function AdminPanel() {
 
   const { data: appConfig } = useDoc<AppSettings>(configRef, { realtime: false });
   const { data: logs } = useCollection<AnalysisLog>(logsQuery, { realtime: false });
-  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery, { realtime: false });
+  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery, { realtime: true });
   const { data: dbPackages } = useCollection<PixPackage>(packagesQuery, { realtime: false });
   const { data: pendingPurchases } = useCollection<PixPurchase>(purchasesQuery, { realtime: false });
   const { data: allGroups } = useCollection<Group>(allGroupsQuery, { realtime: false });
@@ -128,9 +128,21 @@ export default function AdminPanel() {
 
   const filteredUsers = useMemo(() => {
     if (!users) return [];
-    if (!userSearch) return users;
+
+    // Filter out Demo Users and users containing "Kul" in their names
+    let result = users.filter(u => {
+      const name = u.name?.toLowerCase() || '';
+      const isDemo = name.includes('demo user');
+      const isKul = name.includes('kul');
+      return !isDemo && !isKul; // We want to see unverified users now
+    });
+
+    // Sort alphabetically by name (Turkish locale aware)
+    result.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+
+    if (!userSearch) return result;
     const term = userSearch.toLowerCase();
-    return users.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
+    return result.filter(u => u.name?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
   }, [users, userSearch]);
 
   // Conditional rendering AFTER all hooks to maintain stable order
@@ -241,7 +253,7 @@ export default function AdminPanel() {
   return (
     <div className="container mx-auto px-4 pb-24 pt-10 animate-in fade-in duration-700">
       <header className="mb-16 text-center space-y-2">
-        <h1 className="text-7xl font-black tracking-tighter uppercase leading-none">{isUsersLoading ? '...' : users?.length || 0} {t("visionary")}</h1>
+        <h1 className="text-7xl font-black tracking-tighter uppercase leading-none">{isUsersLoading ? '...' : filteredUsers?.length || 0} {t("visionary")}</h1>
         <p className="text-sm font-black text-primary uppercase tracking-[0.4em] opacity-70">{t('admin_panel')}</p>
       </header>
 
@@ -336,13 +348,21 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>{t('level_rank')}</TableHead><TableHead>PIX</TableHead><TableHead>{t('photo_analysis')} (F/L)</TableHead><TableHead className="text-right px-8">{t('action')}</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead className="px-8">Vizyoner</TableHead><TableHead>{t('level_rank')}</TableHead><TableHead>Onay</TableHead><TableHead>PIX</TableHead><TableHead>{t('photo_analysis')} (F/L)</TableHead><TableHead className="text-right px-8">{t('action')}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {filteredUsers.map(u => (
                     <TableRow key={u.id} className="group hover:bg-muted/30 transition-colors">
                       <TableCell className="px-8 py-5"><div className="flex flex-col"><span className="font-black text-base">{u.name}</span><span className="text-[10px] text-muted-foreground uppercase font-bold">{u.email}</span></div></TableCell>
                       <TableCell><Badge variant="outline" className="text-[10px] font-black uppercase border-primary/20 text-primary">{u.level_name}</Badge></TableCell>
-                      <TableCell className="font-black text-foreground">{u.pix_balance || u.Pix_balance || u.auro_balance || 0}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={cn(
+                          "text-[9px] font-black uppercase",
+                          u.emailVerified === true ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        )}>
+                          {u.emailVerified === true ? "ONAYLI" : "ONAY BEKLİYOR"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-black text-foreground">{u.pix_balance || 0}</TableCell>
                       <TableCell><div className="flex gap-2 text-[10px] font-bold uppercase"><span className="text-blue-400">F: {u.total_analyses_count || 0}</span><span className="text-purple-400">L: {u.total_mentor_analyses_count || 0}</span></div></TableCell>
                       <TableCell className="text-right px-8"><Button onClick={() => setEditingUser(u)} variant="ghost" size="sm" className="rounded-lg hover:bg-primary/10 hover:text-primary"><Edit3 className="h-4 w-4 mr-2" /> {t('manage')}</Button></TableCell>
                     </TableRow>
@@ -473,6 +493,7 @@ export default function AdminPanel() {
 
 function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit: User | null, isOpen: boolean, onClose: () => void, onUpdate: (userId: string, values: any) => Promise<void> }) {
   const t = useTranslations('MasterAdmin');
+  const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   
   const form = useForm({
@@ -501,18 +522,22 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
   }, [userToEdit, form]);
 
   const onSubmit = async (values: any) => {
-    if (!userToEdit) return;
+    const userId = userToEdit?.id || (userToEdit as any)?.uid;
+    if (!userId) {
+      toast({ variant: "destructive", title: "User ID not found" });
+      return;
+    }
+    
     setIsUpdating(true);
     try {
-      await onUpdate(userToEdit.id, {
-        ...values,
-        Pix_balance: values.pix_balance // Sync for backward compatibility on update
-      });
+      await onUpdate(userId, values);
     } catch (e) {
-      console.error(e);
+      console.error("[UserEdit] Update error:", e);
+      toast({ variant: "destructive", title: "Update failed" });
+    } finally {
+      setIsUpdating(false);
+      onClose();
     }
-    setIsUpdating(false);
-    onClose();
   };
 
   return (
