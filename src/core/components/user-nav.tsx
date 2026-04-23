@@ -59,7 +59,7 @@ export function UserNav() {
   const isLoading = isUserLoading || (authUser && isProfileLoading);
   const isLoggedOut = !authUser || !userProfile;
 
-  const pixBalance = (userProfile?.pix_balance ?? userProfile?.Pix_balance ?? 0);
+  const pixBalance = (userProfile?.pix_balance || 0) + (userProfile?.auro_balance || 0);
   const isAdmin = userProfile?.email === 'admin@viewora.ai' || authUser?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';
   const streak = userProfile?.daily_streak || 1;
   const exhibitionCount = userProfile?.total_exhibitions_count || 0;

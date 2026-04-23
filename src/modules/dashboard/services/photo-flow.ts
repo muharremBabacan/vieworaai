@@ -146,7 +146,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
         return { type: 'marketing_required' };
       }
     } else {
-      const currentBalance = userProfile?.pix_balance || 0;
+      const currentBalance = (userProfile?.pix_balance || 0) + (userProfile?.auro_balance || 0);
       if (analyze && currentBalance < analysisCost) {
         console.warn('⚠️ [photo-flow] Insufficient balance');
         return { type: 'error', code: 'INSUFFICIENT_BALANCE' };

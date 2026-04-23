@@ -145,5 +145,10 @@ service cloud.firestore {
       allow get: if true;
       allow write: if false; // Only allowed via Server Actions (Admin SDK)
     }
+
+    match /guest_sessions/{guestId} {
+      allow get, create: if true;
+      allow update: if false; // Prevention from modification after creation
+    }
   }
 }
