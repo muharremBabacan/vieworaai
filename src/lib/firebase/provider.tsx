@@ -13,6 +13,7 @@ interface FirebaseProviderProps {
   firestore: Firestore;
   auth: Auth;
   storage: FirebaseStorage;
+  sessionUser?: any;
 }
 
 interface UserAuthState {
@@ -56,10 +57,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firestore,
   auth,
   storage,
+  sessionUser
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
-    isUserLoading: true,
+    user: sessionUser as unknown as User | null,
+    isUserLoading: !sessionUser,
     userError: null,
   });
 

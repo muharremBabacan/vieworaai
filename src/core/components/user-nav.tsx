@@ -19,6 +19,7 @@ import type { User as UserProfile } from '@/types';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Link, useRouter } from '@/i18n/navigation';
 import { NotificationCenter } from '@/core/components/notification-popover';
+import { AuthService } from '@/lib/auth/auth-service';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTranslations } from 'next-intl';
@@ -50,6 +51,7 @@ export function UserNav() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      await AuthService.logout(); // 🚪 Clear session cookie
       router.push('/login');
     } catch (error) {
       console.error('Sign out failed', error);

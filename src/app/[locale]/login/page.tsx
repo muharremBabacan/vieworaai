@@ -154,30 +154,32 @@ function LoginForm() {
       // 🚩 Set pending flag so Layout knows to wait
       localStorage.setItem('pending_login', 'true');
 
-      // 🚀 Adaptive Flow: 
-      // PWAs & In-App Browsers (GSA, FB, IG) must use popups because redirects lose app context/session.
-      // Standard mobile browsers prefer redirects because popups are frequently blocked.
-      if (isStandalone) {
-        console.log("🚀 Restricted Environment (PWA/In-App) detected, using Popup flow");
-        const result: UserCredential = await signInWithPopup(auth, provider);
-        const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
-        await updateDoc(doc(firestore, 'users', result.user.uid), { 
-          lastLoginAt: new Date().toISOString(),
-          emailVerified: true // Google users are pre-verified
-        });
-        await processAuroRefillAndStats(result.user.uid, profile);
-        router.push('/dashboard');
-      } else if (isMobile) {
-        console.log("📱 Mobile Browser detected, using Redirect flow");
-        await signInWithRedirect(auth, provider);
-      } else {
-        console.log("💻 Desktop Browser detected, using Popup flow");
-        const result: UserCredential = await signInWithPopup(auth, provider);
-        const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
-        await updateDoc(doc(firestore, 'users', result.user.uid), { lastLoginAt: new Date().toISOString() });
-        await processAuroRefillAndStats(result.user.uid, profile);
-        router.push('/dashboard');
-      }
+      // 🚀 UNIFIED FLOW: Use signInWithPopup for ALL platforms (Mobile, PWA, Desktop)
+      // This combined with our Session Cookie API avoids redirect loops and session loss.
+      console.log("🚀 Initiating Popup login flow...");
+      const result: UserCredential = await signInWithPopup(auth, provider);
+      
+      // 🏷️ GET ID TOKEN
+      const idToken = await result.user.getIdToken();
+      
+      // 🔐 CREATE SESSION COOKIE
+      const sessionRes = await fetch("/api/session/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionRes.ok) throw new Error("Session creation failed");
+
+      const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
+      await updateDoc(doc(firestore, 'users', result.user.uid), { 
+        lastLoginAt: new Date().toISOString(),
+        emailVerified: true // Google users are pre-verified
+      });
+      await processAuroRefillAndStats(result.user.uid, profile);
+
+      // Successfully logged in and session cookie set
+      router.push('/dashboard');
     } catch (error: any) {
       console.warn("Google Sign-In Error:", error.code, error.message);
       
@@ -216,6 +218,19 @@ function LoginForm() {
       }
 
       const profile = await AuthService.ensureUserDoc(firestore, result.user);
+      
+      // 🏷️ GET ID TOKEN
+      const idToken = await result.user.getIdToken();
+      
+      // 🔐 CREATE SESSION COOKIE
+      const sessionRes = await fetch("/api/session/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionRes.ok) throw new Error("Session creation failed");
+
       await updateDoc(doc(firestore, 'users', result.user.uid), { 
         lastLoginAt: new Date().toISOString(),
         emailVerified: true

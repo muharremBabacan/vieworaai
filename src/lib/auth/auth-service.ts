@@ -12,6 +12,8 @@ import {
   setDoc 
 } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
+import { cookies } from 'next/headers';
+import { getAdminAuth } from '@/lib/firebase/admin-init';
 
 /**
  * Service to handle Viewora specific authentication flows.
@@ -80,5 +82,36 @@ export const AuthService = {
     }
     
     return userSnap.data() as UserProfile;
+  },
+
+  /**
+   * 🕵️ Gets the user identity from the server-side session cookie.
+   * Use this in layouts, page components (Server Components), or middleware.
+   */
+  async getUserFromSession() {
+    try {
+      const cookieStore = await cookies();
+      const session = cookieStore.get("session")?.value;
+      if (!session) return null;
+
+      const adminAuth = getAdminAuth();
+      const decodedClaims = await adminAuth.verifySessionCookie(session, true);
+      return decodedClaims;
+    } catch (error) {
+      console.error("[AuthService] Session verification failed:", error);
+      return null;
+    }
+  },
+
+  /**
+   * 🚪 Clear session cookie on logout.
+   */
+  async logout() {
+    try {
+      await fetch("/api/session/login", { method: "DELETE" });
+      console.log("👋 [AuthService] Session cleared.");
+    } catch (error) {
+      console.error("[AuthService] Logout error:", error);
+    }
   }
 };

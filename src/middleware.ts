@@ -6,13 +6,16 @@ import { NextResponse, NextRequest } from 'next/server';
 const intlMiddleware = createMiddleware(routing);
 
 export default function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const session = request.cookies.get("session")?.value;
+
   // 🔒 CANONICAL DOMAIN REDIRECT (WWW -> NON-WWW)
   const host = request.headers.get('host');
   if (host?.startsWith('www.')) {
     const newHost = host.replace('www.', '');
     const url = request.nextUrl.clone();
     url.hostname = newHost;
-    url.port = ''; // Clear port just in case (e.g. localhost testing if someone used www)
+    url.port = ''; 
     return NextResponse.redirect(url, 301);
   }
 
@@ -22,6 +25,23 @@ export default function middleware(request: NextRequest) {
     (request.headers.has('next-action') || request.headers.get('content-type')?.includes('multipart/form-data'))
   ) {
     return NextResponse.next();
+  }
+
+  // 🛡️ PROTECTED ROUTES LOGIC
+  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
+  const isProtectedPage = pathname.includes('/dashboard') || pathname.includes('/admin') || pathname.includes('/profile') || pathname.includes('/onboarding');
+
+  // If on a protected page without a session -> Redirect to Login
+  if (isProtectedPage && !session) {
+    const loginUrl = new URL('/login', request.url);
+    // Keep the current locale if possible (simplified here)
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // If on an auth page WITH a session -> Redirect to Dashboard
+  if (isAuthPage && session) {
+    const dashboardUrl = new URL('/dashboard', request.url);
+    return NextResponse.redirect(dashboardUrl);
   }
   
   return intlMiddleware(request);

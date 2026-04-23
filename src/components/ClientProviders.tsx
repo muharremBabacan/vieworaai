@@ -12,9 +12,9 @@ import React from 'react';
  * A Client Component wrapper for all providers.
  * This resolves the issue of having client-side logic directly in the server-side RootLayout.
  */
-export function ClientProviders({ children }: { children: React.ReactNode }) {
+export function ClientProviders({ children, sessionUser }: { children: React.ReactNode, sessionUser: any }) {
   return (
-    <FirebaseClientProvider>
+    <FirebaseClientProvider sessionUser={sessionUser}>
       <PushProvider>
         <AppConfigProvider>
           <ClientLayout>{children}</ClientLayout>

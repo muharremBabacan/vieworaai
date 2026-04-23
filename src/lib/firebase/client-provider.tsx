@@ -6,9 +6,10 @@ import { initializeFirebase } from './init'; // Döngüsel bağımlılığı ön
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
+  sessionUser?: any;
 }
 
-export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
+export function FirebaseClientProvider({ children, sessionUser }: FirebaseClientProviderProps) {
   const firebaseServices = useMemo(() => {
     // İstemci tarafında Firebase'i bir kez başlatır.
     return initializeFirebase();
@@ -20,6 +21,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       auth={firebaseServices.auth!}
       firestore={firebaseServices.firestore!}
       storage={firebaseServices.storage!}
+      sessionUser={sessionUser}
     >
       {children}
     </FirebaseProvider>
