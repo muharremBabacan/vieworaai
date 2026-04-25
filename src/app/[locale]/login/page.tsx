@@ -61,6 +61,56 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // 🛡️ PWA & Standalone Detection (Improved)
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const checkStandalone = () => {
+      const standalone = 
+        window.matchMedia('(display-mode: standalone)').matches || 
+        (typeof window !== 'undefined' && (window.navigator as any).standalone) ||
+        document.referrer.includes('android-app://');
+      setIsStandalone(!!standalone);
+    };
+    checkStandalone();
+  }, []);
+
+  // 🛰️ HANDLE REDIRECT RESULT (Critical for PWA/Mobile)
+  useEffect(() => {
+    const checkRedirect = async () => {
+      if (!auth || !firestore) return;
+      
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("📥 [Login] Redirect result captured:", result.user.email);
+          setIsLoading(true);
+          
+          // Use centralized post-login logic
+          const profile = await AuthService.handlePostLogin(firestore, result.user, 'google');
+          
+          toast({ title: 'Giriş Başarılı', description: 'Geri döndüğün için mutluyuz!' });
+          
+          // Check onboarding status
+          if (profile && !profile.onboarded) {
+            router.push('/onboarding');
+          } else {
+            router.push('/dashboard');
+          }
+        }
+      } catch (error: any) {
+        console.error("❌ [Login] Redirect Result Error:", error);
+        if (error.code !== 'auth/popup-closed-by-user') {
+          toast({ variant: 'destructive', title: 'Hata', description: 'Giriş tamamlanamadı (Redirect Error).' });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkRedirect();
+  }, [auth, firestore, router, toast]);
+
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
     setIsLoading(true);
@@ -68,7 +118,6 @@ function LoginForm() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       console.log(`[Auth] Hybrid Flow: Standalone=${isStandalone}, Mobile=${isMobile}`);
