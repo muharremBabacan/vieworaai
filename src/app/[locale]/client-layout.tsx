@@ -104,9 +104,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         (/iPhone|iPad|iPod/.test(userAgent) && (window as any).navigator.standalone === true) ||
         isInAppBrowser;
 
-      // 🛡️ Trigger patience on ANY page in restricted environment during initial mount
-      // or if we explicitly have a pending login flag.
-      if (hasPendingLogin || isStandalone) {
+      // 🛡️ Trigger patience on PROTECTED pages in standalone mode to prevent premature login redirects
+      const isPublicAuthPage = ['/', '/login', '/signup', '/verify-email'].includes(pathname);
+
+      if ((hasPendingLogin || isStandalone) && !isPublicAuthPage) {
         console.log(`🛡️ [ClientLayout] Aggressive Auth Patience (5s) for ${pathname}.`);
         setIsSettling(true);
         const timer = setTimeout(() => {

@@ -161,6 +161,7 @@ function SignupForm() {
                   <Input 
                     type="password" 
                     placeholder="Şifre" 
+                    autoComplete="new-password"
                     value={password} 
                     onChange={e => setPassword(e.target.value)} 
                     className="h-14 pl-12 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 focus:ring-primary/20 transition-all text-xs" 
@@ -172,6 +173,7 @@ function SignupForm() {
                   <Input 
                     type="password" 
                     placeholder="Tekrar" 
+                    autoComplete="new-password"
                     value={confirmPassword} 
                     onChange={e => setConfirmPassword(e.target.value)} 
                     className="h-14 pl-12 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 focus:ring-primary/20 transition-all text-xs" 
