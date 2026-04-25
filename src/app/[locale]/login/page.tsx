@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, Link } from '@/i18n/navigation'; 
 import {
   GoogleAuthProvider,
