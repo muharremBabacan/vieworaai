@@ -35,7 +35,8 @@ export default function AuthCallback() {
           await AuthService.handlePostLogin(firestore, result.user, 'google');
 
           setStatus('Yönlendiriliyorsunuz...');
-          window.location.href = "/dashboard"; // Full reload for safety
+          const currentLocale = window.location.pathname.split('/')[1] || 'tr';
+          window.location.href = `/${currentLocale}/dashboard`; // Use locale-specific path
         } else {
           // No result found, redirect back to login
           console.log("📥 [AuthCallback] No result found, returning to login.");

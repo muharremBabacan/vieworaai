@@ -28,8 +28,8 @@ export async function POST(req: Request) {
     cookieStore.set("session", sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
-      secure: true, // SameSite "none" requires Secure
-      sameSite: "none", // 🔥 Required for some cross-site auth flows
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax", // Standard for same-domain auth
       path: "/",
     });
 
