@@ -25,12 +25,16 @@ export async function POST(req: Request) {
 
     // 3. Set the cookie securely
     const cookieStore = await cookies();
+    const host = req.headers.get("host") || "";
+    const domain = host.includes("viewora.ai") ? "viewora.ai" : undefined;
+
     cookieStore.set("session", sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax", // Standard for same-domain auth
+      sameSite: "lax",
       path: "/",
+      domain: domain, // 🔥 Ensures cookie works across www and non-www
     });
 
     console.log("✅ [SessionAPI] Session cookie created successfully.");

@@ -19,7 +19,7 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
-  // ⚡️ SKIP MIDDLEWARE FOR SERVER ACTIONS
+  // ⚡️ SKIP MIDDLEWARE FOR SERVER ACTIONS & STATIC ASSETS
   if (
     request.method === 'POST' && 
     (request.headers.has('next-action') || request.headers.get('content-type')?.includes('multipart/form-data'))
@@ -29,17 +29,22 @@ export default function middleware(request: NextRequest) {
 
   // 🛡️ PROTECTED ROUTES LOGIC
   const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
-  const isProtectedPage = pathname.includes('/dashboard') || pathname.includes('/admin') || pathname.includes('/profile') || pathname.includes('/onboarding');
+  const isProtectedPage = pathname.includes('/dashboard') || 
+                          pathname.includes('/admin') || 
+                          pathname.includes('/profile') || 
+                          pathname.includes('/onboarding') ||
+                          pathname.includes('/academy');
 
   // If on a protected page without a session -> Redirect to Login
   if (isProtectedPage && !session) {
+    console.log(`[Middleware] 🔒 Protected path detected (${pathname}), no session found. Redirecting to login.`);
     const loginUrl = new URL('/login', request.url);
-    // Keep the current locale if possible (simplified here)
     return NextResponse.redirect(loginUrl);
   }
 
   // If on an auth page WITH a session -> Redirect to Dashboard
   if (isAuthPage && session) {
+    console.log(`[Middleware] ✅ Session found on auth page. Redirecting to dashboard.`);
     const dashboardUrl = new URL('/dashboard', request.url);
     return NextResponse.redirect(dashboardUrl);
   }
