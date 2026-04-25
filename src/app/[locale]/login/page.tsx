@@ -122,8 +122,13 @@ function LoginForm() {
       toast({ title: 'Giriş Başarılı', description: 'Dashboard\'a yönlendiriliyorsunuz.' });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Email Sign-In Error:", error);
-      toast({ variant: 'destructive', title: 'Giriş Hatası', description: 'E-posta veya şifre hatalı.' });
+      console.error("Email Sign-In Error:", error.code, error.message);
+      let errorMessage = 'E-posta veya şifre hatalı.';
+      
+      if (error.code === 'auth/user-disabled') errorMessage = 'Bu hesap devre dışı bırakılmış.';
+      if (error.code === 'auth/too-many-requests') errorMessage = 'Çok fazla hatalı deneme. Lütfen biraz bekleyin.';
+      
+      toast({ variant: 'destructive', title: 'Giriş Hatası', description: errorMessage });
       setIsLoading(false);
     }
   };
