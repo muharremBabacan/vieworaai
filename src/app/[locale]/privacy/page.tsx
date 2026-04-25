@@ -55,24 +55,38 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">3. Veri Güvenliği ve Saklama</h2>
+          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">3. Google Kullanıcı Verileri ve Sınırlı Kullanım</h2>
           <p>
-            Verileriniz, Google Cloud ve Firebase üzerindeki güvenli sunucularda saklanmaktadır. Fotoğraflarınız, siz silene kadar veya hesabınızı kapatana kadar "Private" (Gizli) statüsünde korunur. 
-            Ancak, "Sergi" (Exhibition) veya "Yarışma" gibi bir topluluk alanına kendi rızanızla gönderdiğiniz fotoğraflar diğer kullanıcılar tarafından görülebilir.
+            Viewora'nın Google API'lerinden alınan bilgileri kullanımı ve başka bir uygulamaya aktarımı, 
+            <a href="https://developers.google.com/terms/api-services-user-data-policy#limited-use-requirements" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google API Hizmetleri Kullanıcı Verileri Politikası</a>'na (Sınırlı Kullanım gereksinimleri dahil) uygundur.
           </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Google verileriniz (e-posta, ad-soyad) asla reklam amaçlı kullanılmaz ve üçüncü taraf veri havuzlarına satılmaz.</li>
+            <li>Bu veriler sadece Viewora üzerinde oturum açmanız ve size özel bir profil oluşturulması için kullanılır.</li>
+          </ul>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">4. Haklarınız</h2>
+          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">4. Veri Saklama ve Silme (Hakkınızda Bilgi Silme)</h2>
           <p>
-            KVKK ve GDPR uyarınca, verilerinize erişme, düzeltme, silme veya taşınmasını talep etme hakkına sahipsiniz. 
-            Hesabınızı dilediğiniz zaman "Ayarlar" sekmesinden silebilir veya tüm verilerinizin silinmesi için bizimle iletişime geçebilirsiniz.
+            Verileriniz, hesabınız aktif olduğu sürece güvenle saklanır. Verilerinizin silinmesini şu yollarla talep edebilirsiniz:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Otomatik Silme:</strong> Profil ayarlarınızdan "Hesabımı Sil" seçeneğini kullanarak tüm kişisel verilerinizi anında sistemden silebilirsiniz.</li>
+            <li><strong>Manuel Talep:</strong> Silme talebinizi e-posta yoluyla iletebilirsiniz. Talebiniz 30 gün içinde işleme alınır.</li>
+          </ul>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">5. Çocukların Gizliliği</h2>
+          <p>
+            Viewora, 13 yaşın altındaki çocuklardan bilerek kişisel bilgi toplamaz. Eğer 13 yaşından küçük bir çocuğun bize bilgi verdiğini fark ederseniz, lütfen iletişime geçin.
           </p>
         </section>
 
         <section className="space-y-4 bg-muted/30 p-6 rounded-[32px] border border-border/40">
           <h2 className="text-xl font-black uppercase tracking-tight">İletişim</h2>
-          <p>Bu politika hakkında sorularınız için bize şu adresten ulaşabilirsiniz:</p>
+          <p>Bu politika veya veri silme talepleriniz için bize ulaşın:</p>
           <p className="font-black text-primary">babacan.muharrem@gmail.com</p>
         </section>
       </div>

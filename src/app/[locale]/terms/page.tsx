@@ -66,9 +66,17 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">5. Sorumluluk Sınırı</h2>
+          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">5. Hesap Feshi (Termination)</h2>
           <p>
-            Viewora ve Yapay Zeka Koçu Luma, sunulan grafik ve analizlerin %100 doğruluğunu garanti etmez. 
+            Platform kurallarına uymayan, etik dışı içerik paylaşan veya sistem güvenliğini tehdit eden kullanıcıların hesapları, 
+            Viewora tarafından önceden bildirim yapılmaksızın askıya alınabilir veya kalıcı olarak kapatılabilir.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-black uppercase tracking-tight border-b border-border/40 pb-2">6. Yapay Zeka (AI) Çıktıları ve Sorumluluk Sınırı</h2>
+          <p>
+            Viewora ve Yapay Zeka Koçu Luma tarafından sunulan grafik ve analizlerin %100 doğruluğu garanti edilmez. 
             Analiz sonuçlarından doğabilecek sanatsal veya ticari kararlardan platform sorumlu tutulamaz.
           </p>
         </section>
