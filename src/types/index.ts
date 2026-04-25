@@ -164,12 +164,14 @@ export type User = {
   test_balance_reset?: boolean;
   daily_streak?: number;
   last_active_date?: string;
+  last_auro_refill_date?: string;
   completed_modules: string[];
   interests: string[];
   onboarded: boolean;
   onboarding_results?: OnboardingResults;
   groups?: string[];
   createdAt?: string;
+  emailVerified?: boolean;
   lastLoginAt?: string;
   lastNotificationsViewedAt?: string;
   communication_style?: 'soft' | 'balanced' | 'technical';

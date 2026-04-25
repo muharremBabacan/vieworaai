@@ -29,29 +29,13 @@ export default function AuthCallback() {
 
         if (result?.user) {
           console.log("✅ [AuthCallback] Success:", result.user.email);
-          setStatus('Oturum oluşturuluyor...');
+          setStatus('Oturum senkronize ediliyor...');
 
-          // 🏷️ GET ID TOKEN
-          const idToken = await result.user.getIdToken();
-          
-          // 🔐 CREATE SESSION COOKIE
-          const sessionRes = await fetch("/api/session/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken }),
-          });
-
-          if (!sessionRes.ok) throw new Error("Oturum açılamadı (Server Error)");
-
-          // Finalize user doc
-          const profile = await AuthService.ensureUserDoc(firestore, result.user, undefined, 'google');
-          await updateDoc(doc(firestore, 'users', result.user.uid), { 
-            lastLoginAt: new Date().toISOString(),
-            emailVerified: true 
-          });
+          // 🚀 Centralized Post-Login Logic
+          await AuthService.handlePostLogin(firestore, result.user, 'google');
 
           setStatus('Yönlendiriliyorsunuz...');
-          window.location.href = "/dashboard"; // Use full reload for safety
+          window.location.href = "/dashboard"; // Full reload for safety
         } else {
           // No result found, redirect back to login
           console.log("📥 [AuthCallback] No result found, returning to login.");

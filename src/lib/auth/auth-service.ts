@@ -9,7 +9,10 @@ import {
   Firestore, 
   doc, 
   getDoc, 
-  setDoc 
+  setDoc,
+  updateDoc,
+  writeBatch,
+  increment
 } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 
@@ -80,6 +83,54 @@ export const AuthService = {
     }
     
     return userSnap.data() as UserProfile;
+  },
+
+  /**
+   * 🚀 CENTRALIZED POST-LOGIN LOGIC
+   * Handles session creation, profile sync, and daily rewards.
+   */
+  async handlePostLogin(firestore: Firestore, firebaseUser: FirebaseUser, provider: 'google' | 'email' = 'email') {
+    try {
+      // 1. Get ID Token
+      const idToken = await firebaseUser.getIdToken();
+      
+      // 2. Create Server Session
+      const sessionRes = await fetch("/api/session/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionRes.ok) throw new Error("Oturum açılamadı (Session Error)");
+
+      // 3. Ensure/Sync User Doc
+      const profile = await this.ensureUserDoc(firestore, firebaseUser, undefined, provider);
+      
+      // 4. Daily Refill & Stats Update
+      const today = new Date().toISOString().split('T')[0];
+      const lastRefill = profile.last_auro_refill_date;
+      const batch = writeBatch(firestore);
+      const userRef = doc(firestore, 'users', firebaseUser.uid);
+
+      const updateData: any = {
+        lastLoginAt: new Date().toISOString(),
+        emailVerified: true
+      };
+
+      if (lastRefill !== today) {
+        updateData.pix_balance = increment(3); // Daily gift
+        updateData.last_auro_refill_date = today;
+        updateData.daily_streak = (profile.daily_streak || 0) + 1;
+      }
+
+      await updateDoc(userRef, updateData);
+      
+      console.log("✅ [AuthService] Post-login sync complete.");
+      return profile;
+    } catch (error) {
+      console.error("❌ [AuthService] handlePostLogin error:", error);
+      throw error;
+    }
   },
 
   /**
