@@ -58,8 +58,8 @@ export function UserNav() {
     }
   };
 
-  const isLoading = isUserLoading || (authUser && isProfileLoading);
-  const isLoggedOut = !authUser || !userProfile;
+  const isLoading = isUserLoading || (authUser && isProfileLoading && !userProfile);
+  const isLoggedOut = !authUser; // 🔥 If we have a session, we are NOT logged out.
 
   const pixBalance = (userProfile?.pix_balance || userProfile?.Pix_balance || 0);
   const isAdmin = userProfile?.email === 'admin@viewora.ai' || authUser?.uid === '01DT86bQwWUVmrewnEb8c6bd8H43';

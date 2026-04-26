@@ -74,7 +74,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        // Only overwrite if we found a real firebase user OR if we don't have a session user
+        if (firebaseUser || !sessionUser) {
+          setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        } else {
+          // Keep sessionUser until background sign-in completes
+          setUserAuthState(prev => ({ ...prev, isUserLoading: false }));
+        }
       },
       (error) => {
         setUserAuthState({ user: null, isUserLoading: false, userError: error });

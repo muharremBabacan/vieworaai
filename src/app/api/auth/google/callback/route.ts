@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
+  
+  const cookieHeader = req.headers.get("cookie") || "";
+  const savedState = cookieHeader.split("; ").find(c => c.startsWith("oauth_state="))?.split("=")[1];
 
-  if (!code) {
-    return NextResponse.redirect(new URL("/login?error=no_code", req.url));
+  if (!code || state !== savedState) {
+    return NextResponse.redirect(new URL("/login?error=invalid_state", req.url));
   }
 
   try {
-    // 1. Exchange code for tokens
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    // ⚡️ STEP 1: Single Token Exchange
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -23,93 +26,63 @@ export async function GET(req: Request) {
       }),
     });
 
-    const tokenData = await tokenResponse.json();
-    
-    if (!tokenData.access_token) {
-        console.error("❌ Google Token Exchange Failed:", tokenData);
-        return NextResponse.redirect(new URL("/login?error=token_exchange_failed", req.url));
-    }
+    const data = await tokenRes.json();
+    if (!data.id_token) throw new Error("No id_token");
 
-    // 2. Fetch User Profile from Google
-    const profileResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    
-    const profile = await profileResponse.json();
+    // ⚡️ STEP 2: Fast Local Parse
+    const payload = JSON.parse(Buffer.from(data.id_token.split(".")[1], "base64").toString());
+    const email = payload.email;
 
-    // 3. 🔥 GET REAL FIREBASE UID (Sync with existing account)
-    const { getAdminDb, getAdminAuth } = await import("@/lib/firebase/admin-init");
-    const db = getAdminDb();
+    // ⚡️ STEP 3: Sync with CORRECT Firebase UID (Fast Admin Call)
+    const { getAdminAuth } = await import("@/lib/firebase/admin-init");
     const adminAuth = getAdminAuth();
     
-    let firebaseUser;
+    let uid;
     try {
-      // Check if user already exists in Firebase Auth by email
-      firebaseUser = await adminAuth.getUserByEmail(profile.email);
-      console.log("✅ Existing Firebase user found:", firebaseUser.uid);
+      // Find existing user (Admin account)
+      const existingUser = await adminAuth.getUserByEmail(email);
+      uid = existingUser.uid;
+      console.log("✅ Linked to existing UID:", uid);
     } catch (e) {
-      // If not, create a new Firebase user
-      console.log("🆕 Creating new Firebase user for:", profile.email);
-      firebaseUser = await adminAuth.createUser({
-        email: profile.email,
+      // Create new if not exists
+      const newUser = await adminAuth.createUser({
+        email,
         emailVerified: true,
-        displayName: profile.name,
-        photoURL: profile.picture,
+        displayName: payload.name,
+        photoURL: payload.picture
       });
+      uid = newUser.uid;
     }
 
-    const uid = firebaseUser.uid;
-
-    // 4. Ensure User document exists in Firestore with the CORRECT UID
-    const userRef = db.collection("users").doc(uid);
-    const userSnap = await userRef.get();
-
-    if (!userSnap.exists) {
-      console.log("🆕 Initializing user document for UID:", uid);
-      const now = new Date().toISOString();
-      const newUser = {
-        id: uid,
-        email: profile.email,
-        name: profile.name || "İsimsiz Sanatçı",
-        photoURL: profile.picture || null,
-        auro_balance: 0,
-        pix_balance: 20, 
-        current_xp: 0,
-        level_name: 'Neuner',
-        tier: 'start',
-        total_analyses_count: 0,
-        emailVerified: true,
-        onboarded: false,
-        createdAt: now,
-        provider: 'google',
-        lastLoginAt: now
-      };
-      await userRef.set(newUser);
-      
-      await db.collection("public_profiles").doc(uid).set({
-        id: uid,
-        name: newUser.name,
-        email: newUser.email,
-        photoURL: newUser.photoURL,
-        level_name: 'Neuner'
-      });
-    } else {
-      // Update existing document (keeps admin status and balances!)
-      await userRef.update({ 
-        lastLoginAt: new Date().toISOString(),
-        emailVerified: true
-      });
-    }
-
-    // 5. Generate Custom Token with the CORRECT UID
+    // ⚡️ STEP 4: Generate Custom Token for Background Sign-in
     const customToken = await adminAuth.createCustomToken(uid);
 
-    // 6. Redirect to Frontend Callback
-    const currentLocale = req.url.split('/')[3] || 'tr';
-    return NextResponse.redirect(new URL(`/${currentLocale}/auth/callback?token=${customToken}`, req.url));
+    const sessionData = {
+      uid,
+      email,
+      name: payload.name,
+      picture: payload.picture,
+      customToken,
+      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7),
+    };
 
+    const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString("base64");
+    
+    const currentLocale = req.url.split('/')[3] || 'tr';
+    const res = NextResponse.redirect(new URL(`/${currentLocale}/dashboard`, req.url));
+    
+    res.cookies.set("session", sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    res.cookies.delete("oauth_state");
+    return res;
   } catch (error) {
-    console.error("❌ OAuth Callback Error:", error);
-    return NextResponse.redirect(new URL("/login?error=auth_failed", req.url));
+    console.error("🚀 Final Auth Fix Failure:", error);
+    return NextResponse.redirect(new URL("/login?error=auth_error", req.url));
   }
 }

@@ -127,9 +127,32 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (!hasMounted || isUserLoading || (user && isProfileLoading) || isSettling) return;
 
     if (user) {
-      try {
-        localStorage.removeItem('pending_login');
-      } catch (e) {}
+      // 🔥 Background Processing (Async)
+      (async () => {
+        try {
+          localStorage.removeItem('pending_login');
+          
+          // Background Firebase Sign-in
+          const firebaseModule = await import('@/lib/firebase');
+          const authModule = await import('firebase/auth');
+          
+          const authInstance = firebaseModule.auth;
+          const customToken = (user as any).customToken;
+          
+          if (authInstance && customToken && !authInstance.currentUser) {
+             console.log("⚡️ [ClientLayout] Silent Background Sign-in starting...");
+             await authModule.signInWithCustomToken(authInstance, customToken);
+             console.log("✅ [ClientLayout] Silent Background Sign-in complete.");
+          }
+
+          // Ultra-fast Background Sync
+          fetch('/api/auth/sync', { 
+            method: 'POST', 
+            body: JSON.stringify(user),
+            keepalive: true 
+          }).catch(() => {});
+        } catch (e) {}
+      })();
       
       // Check if user is verified either via Firebase Auth or our Firestore Profile (for Google Users)
       const isVerified = user.emailVerified || userProfile?.emailVerified === true;
