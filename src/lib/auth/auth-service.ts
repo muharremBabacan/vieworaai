@@ -28,6 +28,7 @@ export const AuthService = {
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
+      console.log("🆕 [AuthService] User doc not found, creating locally...");
       const now = new Date().toISOString();
       const newUser: UserProfile = {
         id: firebaseUser.uid,
@@ -36,6 +37,7 @@ export const AuthService = {
         photoURL: firebaseUser.photoURL || null,
         phone: '',
         instagram: '',
+        auro_balance: 0,
         pix_balance: 20,
         current_xp: 0,
         level_name: 'Neuner',
@@ -82,6 +84,7 @@ export const AuthService = {
       return newUser;
     }
     
+    console.log("ℹ️ [AuthService] User doc already exists (synced by Cloud Function or previous login).");
     return userSnap.data() as UserProfile;
   },
 

@@ -1,8 +1,85 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const functions = require("firebase-functions/v1"); // Explicitly use V1 for Auth triggers
 const admin = require("firebase-admin");
 const OpenAI = require("openai");
 
 admin.initializeApp();
+
+/**
+ * 🛰️ ON USER CREATED (Safety Net)
+ * This function runs automatically when a new user is created in Firebase Auth.
+ * It ensures the Firestore document is created even if the client-side PWA crashes.
+ */
+exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
+  const uid = user.uid;
+  const db = admin.firestore();
+  
+  const userRef = db.collection("users").doc(uid);
+  const userSnap = await userRef.get();
+
+  if (!userSnap.exists) {
+    console.log(`🆕 [onUserCreated] Initializing profile for ${uid}`);
+    const now = new Date().toISOString();
+    const today = now.split('T')[0];
+    
+    const provider = user.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email';
+    
+    const newUser = {
+      id: uid,
+      email: user.email || "",
+      name: user.displayName?.split(' ')[0] || "İsimsiz Sanatçı",
+      photoURL: user.photoURL || null,
+      phone: '',
+      instagram: '',
+      auro_balance: 0,
+      pix_balance: 20, // Start balance
+      current_xp: 0,
+      level_name: 'Neuner',
+      tier: 'start',
+      total_analyses_count: 0,
+      total_mentor_analyses_count: 0,
+      total_exhibitions_count: 0,
+      total_competitions_count: 0,
+      weekly_free_refill_date: now,
+      onboarded: false,
+      emailVerified: user.emailVerified || false,
+      daily_streak: 1,
+      last_active_date: today,
+      last_auro_refill_date: today,
+      completed_modules: [],
+      interests: [],
+      createdAt: now,
+      provider: provider
+    };
+
+    // 1. Create Main User Doc
+    await userRef.set(newUser);
+
+    // 2. Create Public Profile
+    await db.collection("public_profiles").doc(uid).set({
+      id: uid,
+      name: newUser.name,
+      email: newUser.email,
+      photoURL: newUser.photoURL,
+      level_name: 'Neuner',
+      phone: '',
+      instagram: ''
+    });
+
+    // 3. Create Welcome Notification
+    await userRef.collection("notifications").doc("welcome").set({
+      id: 'welcome',
+      title: "Vizyon Analizi Bekliyor",
+      message: "Luma seni tanımak istiyor. Lütfen anketi doldurun.",
+      type: 'system',
+      createdAt: now
+    });
+
+    console.log(`✅ [onUserCreated] Profile sync complete for ${uid}`);
+  } else {
+    console.log(`ℹ️ [onUserCreated] Profile already exists for ${uid}, skipping.`);
+  }
+});
 
 exports.analyzePhoto = onRequest(
   { cors: true, secrets: ["OPENAI_API_KEY"] },
