@@ -28,12 +28,12 @@ export default function middleware(request: NextRequest) {
   }
 
   // 🛡️ PROTECTED ROUTES LOGIC
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup');
-  const isProtectedPage = pathname.includes('/dashboard') || 
+  const isAuthPage = (pathname.includes('/login') || pathname.includes('/signup')) && !pathname.includes('/auth/callback');
+  const isProtectedPage = (pathname.includes('/dashboard') || 
                           pathname.includes('/admin') || 
                           pathname.includes('/profile') || 
                           pathname.includes('/onboarding') ||
-                          pathname.includes('/academy');
+                          pathname.includes('/academy')) && !pathname.includes('/auth/callback');
 
   // If on a protected page without a session -> Redirect to Login
   if (isProtectedPage && !session) {

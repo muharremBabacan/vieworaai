@@ -3,10 +3,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, Link } from '@/i18n/navigation'; 
 import {
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signInWithEmailAndPassword,
   sendEmailVerification,
   setPersistence,
@@ -76,79 +72,13 @@ function LoginForm() {
     checkStandalone();
   }, []);
 
-  // 🛰️ HANDLE REDIRECT RESULT (Critical for PWA/Mobile)
-  useEffect(() => {
-    const checkRedirect = async () => {
-      if (!auth || !firestore) return;
-      
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          console.log("📥 [Login] Redirect result captured:", result.user.email);
-          setIsLoading(true);
-          
-          // Use centralized post-login logic
-          const profile = await AuthService.handlePostLogin(firestore, result.user, 'google');
-          
-          toast({ title: 'Giriş Başarılı', description: 'Geri döndüğün için mutluyuz!' });
-          
-          // Check onboarding status
-          if (profile && !profile.onboarded) {
-            router.push('/onboarding');
-          } else {
-            router.push('/dashboard');
-          }
-        }
-      } catch (error: any) {
-        console.error("❌ [Login] Redirect Result Error:", error);
-        if (error.code !== 'auth/popup-closed-by-user') {
-          toast({ variant: 'destructive', title: 'Hata', description: 'Giriş tamamlanamadı (Redirect Error).' });
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkRedirect();
-  }, [auth, firestore, router, toast]);
+  // 🛰️ HANDLE REDIRECT RESULT (Removed as we use backend OAuth now)
 
   const handleGoogleSignIn = async () => {
-    if (!auth || !firestore) return;
     setIsLoading(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-      console.log(`[Auth] Hybrid Flow: Standalone=${isStandalone}, Mobile=${isMobile}`);
-
-      // 🔐 Enforce Local Persistence
-      await setPersistence(auth, browserLocalPersistence);
-
-      // 🚀 REDIRECT for Mobile/PWA
-      if (isStandalone || isMobile) {
-        console.log("📱 Mobile/PWA detected, using Redirect...");
-        await signInWithRedirect(auth, provider);
-        return; 
-      }
-
-      // 💻 POPUP for Desktop
-      console.log("💻 Desktop detected, using Popup...");
-      const result = await signInWithPopup(auth, provider);
-      
-      // 🛰️ Centralized Post-Login Logic
-      await AuthService.handlePostLogin(firestore, result.user, 'google');
-
-      toast({ title: 'Giriş Başarılı', description: 'Geri döndüğün için mutluyuz!' });
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error("Google Sign-In Error:", error);
-      let errorMessage = 'Google ile giriş yapılırken bir hata oluştu.';
-      if (error.code === 'auth/popup-blocked') errorMessage = 'Giriş penceresi engellendi. Pop-up ayarlarına izin verin.';
-      toast({ variant: 'destructive', title: 'Giriş Başarısız', description: errorMessage });
-      setIsLoading(false);
-    }
+    // 🚀 NEW BACKEND DRIVEN OAUTH
+    // No Firebase SDK, no popups, works in PWA standalone
+    window.location.href = "/api/auth/google";
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {

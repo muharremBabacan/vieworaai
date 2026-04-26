@@ -1,72 +1,82 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from '@/i18n/navigation';
-import { getRedirectResult } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useSearchParams } from 'next/navigation';
+import { signInWithCustomToken } from 'firebase/auth';
 import { useFirebase } from '@/lib/firebase';
 import { AuthService } from '@/lib/auth/auth-service';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 
-/**
- * 🛰️ Auth Callback Page
- * This page handles the result of a signInWithRedirect operation.
- * It's safer to use a dedicated callback page for PWAs and Mobile browsers.
- */
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const { auth, firestore } = useFirebase();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [status, setStatus] = useState('Girişiniz tamamlanıyor...');
+  const [status, setStatus] = useState('Oturumunuz doğrulanıyor...');
 
   useEffect(() => {
     if (!auth || !firestore) return;
 
-    const handleResult = async () => {
+    const handleCustomToken = async () => {
+      const token = searchParams.get('token');
+      
+      if (!token) {
+        console.log("📥 [AuthCallback] No token found, returning to login.");
+        router.replace('/login');
+        return;
+      }
+
       try {
-        const result = await getRedirectResult(auth);
+        setStatus('Güvenli giriş yapılıyor...');
+        // 1. 🔥 Silent Sign-in with Custom Token
+        const result = await signInWithCustomToken(auth, token);
+        
+        console.log("✅ [AuthCallback] Custom token sign-in success:", result.user.email);
+        setStatus('Profiliniz senkronize ediliyor...');
 
-        if (result?.user) {
-          console.log("✅ [AuthCallback] Success:", result.user.email);
-          setStatus('Oturum senkronize ediliyor...');
+        // 2. 🚀 Centralized Post-Login Logic (Sessions, daily rewards, etc.)
+        await AuthService.handlePostLogin(firestore, result.user, 'google');
 
-          // 🚀 Centralized Post-Login Logic
-          await AuthService.handlePostLogin(firestore, result.user, 'google');
-
-          setStatus('Yönlendiriliyorsunuz...');
-          const currentLocale = window.location.pathname.split('/')[1] || 'tr';
-          window.location.href = `/${currentLocale}/dashboard`; // Use locale-specific path
-        } else {
-          // No result found, redirect back to login
-          console.log("📥 [AuthCallback] No result found, returning to login.");
-          router.replace('/login');
-        }
+        setStatus('Yönlendiriliyorsunuz...');
+        router.push('/dashboard');
       } catch (error: any) {
         console.error("❌ [AuthCallback] Error:", error);
         toast({
           variant: 'destructive',
           title: 'Giriş Hatası',
-          description: error.message || 'Oturum açılırken bir sorun oluştu.',
+          description: 'Oturum açılırken bir sorun oluştu (Token Error).',
         });
         router.replace('/login');
       }
     };
 
-    handleResult();
-  }, [auth, firestore, router, toast]);
+    handleCustomToken();
+  }, [auth, firestore, router, searchParams, toast]);
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-[#0A0A0B] text-white">
       <div className="space-y-6 text-center">
-        <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+        <div className="relative">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-2xl bg-primary/20 animate-pulse" />
+        </div>
         <div className="space-y-2">
           <h2 className="text-xl font-black uppercase tracking-tighter">{status}</h2>
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            Lütfen pencereyi kapatmayın
+          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em] animate-pulse">
+            Güvenli Bağlantı Kuruluyor
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={<div className="bg-[#0A0A0B] h-screen w-full" />}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

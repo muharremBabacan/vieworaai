@@ -85,7 +85,7 @@ export function UserNav() {
           )}
           <Button 
             variant="outline" 
-            onClick={() => router.push('/login')}
+            onClick={() => window.location.href = '/api/auth/google'}
             className="rounded-xl font-black uppercase tracking-widest text-[10px] h-9 px-5 border-primary/20 hover:bg-primary/5 transition-all"
           >
             {tFallback('login')}

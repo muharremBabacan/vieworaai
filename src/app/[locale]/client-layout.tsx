@@ -131,7 +131,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('pending_login');
       } catch (e) {}
       
-      if (!user.emailVerified) {
+      // Check if user is verified either via Firebase Auth or our Firestore Profile (for Google Users)
+      const isVerified = user.emailVerified || userProfile?.emailVerified === true;
+
+      if (!isVerified) {
         if (pathname !== '/verify-email' && pathname !== '/login' && pathname !== '/signup') {
           router.replace('/verify-email');
         }

@@ -16,10 +16,11 @@ export const AuthServer = {
       if (!session) return null;
 
       const adminAuth = getAdminAuth();
+      // Only accept real Firebase Session Cookies
       const decodedClaims = await adminAuth.verifySessionCookie(session, true);
       return decodedClaims;
     } catch (error) {
-      console.error("[AuthServer] Session verification failed:", error);
+      // If verification fails, the user is not authenticated
       return null;
     }
   }
