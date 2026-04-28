@@ -95,8 +95,9 @@ export async function GET(req: Request) {
     console.log(`🚀 [BACKEND] Google Callback Finished in: ${backendDuration.toFixed(2)}ms`);
     
     return res;
-  } catch (error) {
+  } catch (error: any) {
     console.error("🚀 Final Auth Fix Failure:", error);
-    return NextResponse.redirect(new URL("/login?error=auth_error", baseUrl));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.redirect(new URL(`/login?error=auth_error&details=${encodeURIComponent(errorMessage)}`, baseUrl));
   }
 }
