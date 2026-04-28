@@ -1,4 +1,3 @@
-
 'use client';
 
 import PhotoAnalyzer from './photo-analyzer/PhotoAnalyzer';

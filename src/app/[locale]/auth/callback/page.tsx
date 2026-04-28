@@ -39,16 +39,14 @@ function AuthCallbackContent() {
         // 2. 🚀 Centralized Post-Login Logic (Sessions, daily rewards, etc.)
         await AuthService.handlePostLogin(firestore, result.user, 'google');
 
-        setStatus('Yönlendiriliyorsunuz...');
-        router.push('/dashboard');
+        setStatus('Giriş başarılı!');
       } catch (error: any) {
         console.error("❌ [AuthCallback] Error:", error);
         toast({
           variant: 'destructive',
           title: 'Giriş Hatası',
-          description: 'Oturum açılırken bir sorun oluştu (Token Error).',
+          description: 'Oturum açılırken bir sorun oluştu.',
         });
-        router.replace('/login');
       }
     };
 

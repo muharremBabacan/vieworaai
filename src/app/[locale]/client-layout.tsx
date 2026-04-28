@@ -1,203 +1,96 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { AppHeader } from '@/core/components/app-header';
 import { BottomNav } from '@/core/components/bottom-nav';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { usePathname, useRouter } from '@/i18n/navigation';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
-import type { User } from '@/types';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useUser } from '@/lib/firebase/client-provider';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-export function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  
-  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-
-  // Determine if it's a public page where guests are allowed
-  const isPublicPage = [
-    '/explore',
-    '/competitions',
-    '/dashboard',
-    '/academy',
-    '/luma',
-    '/test-ai',
-    '/public'
-  ].some(p => pathname.startsWith(p) || pathname === p);
-
-  const isStandalonePage = [
-    '/', 
-    '/login',
-    '/signup', 
-    '/verify-email', 
-    '/terms', 
-    '/privacy',
-    '/onboarding',
-    '/dashboard', // Add dashboard here to prevent immediate redirect while settling
-    ... (isPublicPage ? [pathname] : [])
-  ].includes(pathname);
-  
-  // 🚀 GUEST TRACKING & PUBLIC ACCESS (İyileştirilmiş: Navigation döngüsünden ayrıldı)
-  useEffect(() => {
-    if (user || !firestore) return;
-
-    const handleGuestTracking = async () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      const ref = searchParams.get('ref');
-      
-      let guestId = localStorage.getItem('guest_id');
-      if (!guestId) {
-        guestId = `GUEST-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-        localStorage.setItem('guest_id', guestId);
-        
-        // 🎁 GUEST TRIAL: Initialize with 3 Pix
-        localStorage.setItem('guest_pix', '3');
-        
-        try {
-          await setDoc(doc(firestore, 'guest_sessions', guestId), {
-            guestId,
-            source: ref || 'direct',
-            firstSeen: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            isConverted: false,
-            initialBonus: 3
-          });
-          console.debug('[ClientLayout] New guest session tracked with bonus:', guestId);
-        } catch (e) {
-          console.error("Guest tracking error:", e);
-        }
-      } else {
-        // Ensure existing guests who don't have pix yet get their one-time bonus
-        if (!localStorage.getItem('guest_pix') && !localStorage.getItem('guest_last_analysis_at')) {
-          localStorage.setItem('guest_pix', '3');
-        }
-      }
-    };
-
-    handleGuestTracking();
-  }, [user, firestore]);
-
-  // 🛡️ Auth Patience Logic for PWAs (Safe v3.8.7)
-  const [isSettling, setIsSettling] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
-  
+  const { user, profile, authReady, isProfileLoading, firestore, sessionUser } = useUser();
+
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
+  // 🏗️ MASTER AUTH GATE
   useEffect(() => {
-    if (!hasMounted || typeof window === 'undefined') return;
+    if (!authReady || isProfileLoading || !hasMounted) return;
 
-    try {
-      const hasPendingLogin = localStorage.getItem('pending_login') === 'true';
-      const userAgent = navigator.userAgent || '';
-      const isInAppBrowser = /GSA\/|Instagram|FBAN|FBIOS|Line|MicroMessenger|Messenger/i.test(userAgent);
-      
-      const isStandalone = 
-        window.matchMedia('(display-mode: standalone)').matches || 
-        (navigator as any).standalone ||
-        (/iPhone|iPad|iPod/.test(userAgent) && (window as any).navigator.standalone === true) ||
-        isInAppBrowser;
-
-      // 🛡️ Trigger patience on PROTECTED pages in standalone mode to prevent premature login redirects
-      const isPublicAuthPage = ['/', '/login', '/signup', '/verify-email'].includes(pathname);
-
-      if ((hasPendingLogin || isStandalone) && !isPublicAuthPage) {
-        console.log(`🛡️ [ClientLayout] Aggressive Auth Patience (5s) for ${pathname}.`);
-        setIsSettling(true);
-        const timer = setTimeout(() => {
-          setIsSettling(false);
-          // Safety: remove pending flag after patience expires
-          localStorage.removeItem('pending_login');
-        }, 5000);
-        return () => clearTimeout(timer);
-      }
-    } catch (error) {
-      console.warn("[ClientLayout] Auth patience check failed safely:", error);
-    }
-  }, [pathname, hasMounted]);
-
-  // Navigation Logic
-  useEffect(() => {
-    if (!hasMounted || isUserLoading || (user && isProfileLoading) || isSettling) return;
-
-    if (user) {
-      // 🔥 Background Processing (Async)
-      (async () => {
-        try {
-          localStorage.removeItem('pending_login');
-          
-          // Background Firebase Sign-in
-          const firebaseModule = await import('@/lib/firebase');
-          const authModule = await import('firebase/auth');
-          
-          const authInstance = firebaseModule.auth;
-          const customToken = (user as any).customToken;
-          
-          if (authInstance && customToken && !authInstance.currentUser) {
-             console.log("⚡️ [ClientLayout] Silent Background Sign-in starting...");
-             await authModule.signInWithCustomToken(authInstance, customToken);
-             console.log("✅ [ClientLayout] Silent Background Sign-in complete.");
-          }
-
-          // Ultra-fast Background Sync
-          fetch('/api/auth/sync', { 
-            method: 'POST', 
-            body: JSON.stringify(user),
-            keepalive: true 
-          }).catch(() => {});
-        } catch (e) {}
-      })();
-      
-      // Check if user is verified either via Firebase Auth or our Firestore Profile (for Google Users)
-      const isVerified = user.emailVerified || userProfile?.emailVerified === true;
-
-      if (!isVerified) {
-        if (pathname !== '/verify-email' && pathname !== '/login' && pathname !== '/signup') {
-          router.replace('/verify-email');
-        }
-        return;
-      }
-
-      const onboarded = userProfile?.onboarded ?? false;
-      
-      if (!onboarded) {
-        if (pathname !== '/onboarding' && pathname !== '/terms' && pathname !== '/privacy' && pathname !== '/verify-email' && pathname !== '/test-ai') {
-          router.replace('/onboarding');
-        }
-      } else {
-        if (pathname === '/' || pathname === '/login' || pathname === '/onboarding' || pathname === '/signup' || pathname === '/verify-email') {
-          router.replace('/dashboard');
-        }
-      }
-    } else {
-      if (!isStandalonePage && !isPublicPage) {
+    // 1. GUEST MODE
+    if (!user) {
+      const isPrivateRoute = ['/dashboard', '/onboarding'].some(p => pathname.includes(p));
+      if (isPrivateRoute) {
+        console.log("🛡️ [AuthGate] Guest on private route. Redirecting to /login");
         router.replace('/login');
       }
+      return;
     }
-  }, [user, userProfile, isUserLoading, isProfileLoading, pathname, router, isStandalonePage, isPublicPage, isSettling]);
 
-  // Global Loader for critical states
-  if (isUserLoading || (user && isProfileLoading && !userProfile) || isSettling) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        {isSettling && (
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
-            Oturum Doğrulanıyor...
-          </p>
-        )}
-      </div>
-    );
+    // 2. PROFILE SYNC (If user exists but no doc yet)
+    if (!profile) {
+      const userRef = doc(firestore, 'users', user.uid);
+      getDoc(userRef).then(async (snap) => {
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            uid: user.uid,
+            email: user.email,
+            onboarded: false,
+            createdAt: new Date().toISOString()
+          });
+        }
+      });
+      return;
+    }
+
+    // 3. NAVIGATION LOGIC (Single Source of Truth)
+    const isOnboardingPage = pathname.includes('/onboarding');
+    const isAuthPage = ['/login', '/signup'].some(p => pathname.includes(p));
+    const isOnboarded = profile.onboarded === true;
+
+    if (!isOnboarded) {
+      if (!isOnboardingPage) {
+        console.log("🛡️ [AuthGate] Not onboarded. Forcing /onboarding");
+        router.replace('/onboarding');
+      }
+    } else {
+      if (isOnboardingPage || isAuthPage) {
+        console.log("🛡️ [AuthGate] Already onboarded. Redirecting to /dashboard");
+        router.replace('/dashboard');
+      }
+    }
+  }, [authReady, isProfileLoading, hasMounted, user, profile, pathname, router, firestore]);
+
+  // 🏗️ RENDER STATE CONTROL
+  if (!hasMounted || !authReady) {
+    return <FullscreenLoader label="Sistem Hazırlanıyor..." />;
   }
 
-  const showHeader = (user || isPublicPage) && !['/', '/login', '/signup'].includes(pathname);
-  const showBottomNav = (user || isPublicPage) && !['/', '/login', '/signup', '/onboarding'].includes(pathname);
+  // If logged in, wait for profile to decide
+  if (user && !profile) {
+    return <FullscreenLoader label="Profil Senkronize Ediliyor..." />;
+  }
+
+  // Final rendering logic
+  const isLanding = pathname === '/' || pathname === '/tr' || pathname === '/en';
+  const isEssentialAuthPage = ['/login', '/signup', '/onboarding'].some(p => pathname.includes(p));
+  
+  if (isEssentialAuthPage) {
+    // If onboarded user tries to hit auth/onboarding pages, block the flicker while redirecting
+    if (profile?.onboarded === true) {
+      return <FullscreenLoader label="Dashboard'a Aktarılıyorsunuz..." />;
+    }
+    return <div className="fixed inset-0 bg-background overflow-y-auto">{children}</div>;
+  }
+
+  const showHeader = !isLanding;
+  const showBottomNav = !isLanding;
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-background">
@@ -214,6 +107,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       {showBottomNav && <BottomNav />}
+    </div>
+  );
+}
+
+function FullscreenLoader({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0A0A0B]">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
+        {label}
+      </p>
     </div>
   );
 }

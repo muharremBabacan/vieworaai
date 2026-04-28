@@ -11,7 +11,7 @@ export type AnalyzerStatus = 'idle' | 'uploading' | 'analyzing' | 'done' | 'erro
 
 export function usePhotoAnalyzer() {
   const locale = useLocale();
-  const { user } = useUser();
+  const { user, auth } = useUser(); // 🛡️ Get auth object to check currentUser
   const firestore = useFirestore();
   const storage = useStorage();
 
@@ -21,19 +21,27 @@ export function usePhotoAnalyzer() {
   const [analysisResult, setAnalysisResult] = useState<Photo | null>(null);
   
   const userDocRef = useMemoFirebase(
-    () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
-    [user, firestore]
+    () => {
+      // 🛡️ MÜHÜR: Sadece istemci tarafında auth gerçekse veriye dokun
+      if (user && firestore && auth?.currentUser?.uid === user.uid) {
+        return doc(firestore, 'users', user.uid);
+      }
+      return null;
+    },
+    [user, firestore, auth?.currentUser]
   );
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
   
-  // Guest Handling
+  const [guestAnalysisCount, setGuestAnalysisCount] = useState<number>(0);
   const [guestId, setGuestId] = useState<string | null>(null);
   const [guestPix, setGuestPix] = useState<number>(0);
   const [guestLastUsed, setGuestLastUsed] = useState<number | null>(null);
-  const GUEST_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const count = localStorage.getItem('guest_analysis_count');
+      setGuestAnalysisCount(count ? parseInt(count, 10) : 0);
+      
       setGuestId(localStorage.getItem('guest_id'));
       
       const pix = localStorage.getItem('guest_pix');
@@ -44,12 +52,14 @@ export function usePhotoAnalyzer() {
     }
   }, []);
 
-  const guestUsed = useMemo(() => {
-    // Current cooldown logic still exists as fallback, but guestPix is primary
-    if (guestPix > 0) return false;
+  const GUEST_COOLDOWN = 7 * 24 * 60 * 60 * 1000; // 7 Days in ms
+
+  const guestLimitReached = useMemo(() => {
+    if (user) return false;
     if (!guestLastUsed) return false;
-    return (Date.now() - guestLastUsed) < GUEST_COOLDOWN;
-  }, [guestLastUsed, guestPix]);
+    const timeSinceLast = Date.now() - guestLastUsed;
+    return timeSinceLast < GUEST_COOLDOWN;
+  }, [user, guestLastUsed]);
 
   // Clean up preview URL
   useEffect(() => {
@@ -69,6 +79,11 @@ export function usePhotoAnalyzer() {
   const handleAction = async (analyze = false): Promise<FlowResult | null> => {
     if (!file) return null;
 
+    // 🛡️ GUEST LIMIT CHECK
+    if (!user && analyze && guestLimitReached) {
+      return { type: 'error', code: 'GUEST_LIMIT_REACHED', message: 'Guest limit reached' };
+    }
+
     setStatus(analyze ? 'analyzing' : 'uploading');
 
     let result: FlowResult;
@@ -80,7 +95,7 @@ export function usePhotoAnalyzer() {
         userProfile: userProfile || null,
         locale,
         guestId,
-        guestUsed,
+        guestUsed: guestLimitReached,
         guestPix: guestPix,
         currentTier: userProfile?.tier || 'start'
       });
@@ -92,11 +107,11 @@ export function usePhotoAnalyzer() {
 
     switch (result.type) {
       case 'success':
-        // Update Guest Pix if it was used
-        if (!user && guestPix > 0) {
-          const newPix = Math.max(0, guestPix - (TIER_COSTS[userProfile?.tier || 'start'] || 1));
-          localStorage.setItem('guest_pix', newPix.toString());
-          setGuestPix(newPix);
+        // Set Guest Last Used Timestamp
+        if (!user && analyze) {
+          const now = Date.now();
+          localStorage.setItem('guest_last_analysis_at', now.toString());
+          setGuestLastUsed(now);
         }
         setAnalysisResult(result.data);
         setStatus('done');

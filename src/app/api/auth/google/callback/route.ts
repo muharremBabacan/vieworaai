@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
+  const backendStart = performance.now();
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
@@ -68,7 +69,11 @@ export async function GET(req: Request) {
 
     const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString("base64");
     
-    const currentLocale = req.url.split('/')[3] || 'tr';
+    // 🌍 Correct Locale Detection (Don't use segments from /api/...)
+    const cookieStore = req.headers.get("cookie") || "";
+    const localeCookie = cookieStore.split("; ").find(c => c.startsWith("NEXT_LOCALE="))?.split("=")[1];
+    const currentLocale = localeCookie || "tr";
+
     const res = NextResponse.redirect(new URL(`/${currentLocale}/dashboard`, req.url));
     
     res.cookies.set("session", sessionToken, {
@@ -80,6 +85,10 @@ export async function GET(req: Request) {
     });
 
     res.cookies.delete("oauth_state");
+    
+    const backendDuration = performance.now() - backendStart;
+    console.log(`🚀 [BACKEND] Google Callback Finished in: ${backendDuration.toFixed(2)}ms`);
+    
     return res;
   } catch (error) {
     console.error("🚀 Final Auth Fix Failure:", error);

@@ -86,8 +86,6 @@ export default function PhotoAnalyzer() {
           break;
         }
         if (result.code === 'GUEST_LIMIT_REACHED') {
-          localStorage.setItem('guest_last_analysis_at', Date.now().toString());
-          setGuestLastUsed(Date.now());
           setModal('marketing');
           break;
         }

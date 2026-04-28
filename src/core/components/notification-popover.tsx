@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase/client-provider';
+import { useCollection } from '@/lib/firebase';
 import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy, updateDoc, getDoc } from 'firebase/firestore';
 import type { GroupInvite, GlobalNotification, User } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useToast } from '@/shared/hooks/use-toast';
-import { useDoc } from '@/lib/firebase';
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 

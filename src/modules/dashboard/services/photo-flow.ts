@@ -137,6 +137,21 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
     // 1. Initial Checks & Context
     console.log('📍 [photo-flow] STEP 1: Context validation...', { guestPix, analysisCost });
+    // 🎁 WEEKLY FREE GIFT LOGIC for Members with 0 Pix
+    let isFreeGiftEligible = false;
+    const GUEST_COOLDOWN = 7 * 24 * 60 * 60 * 1000;
+
+    if (user) {
+      const currentBalance = userProfile?.pix_balance || 0;
+      const lastFreeAt = userProfile?.last_free_analysis_at ? new Date(userProfile.last_free_analysis_at).getTime() : 0;
+      const isCooldownOver = (Date.now() - lastFreeAt) > GUEST_COOLDOWN;
+
+      if (currentBalance === 0 && isCooldownOver) {
+        console.log('🎁 [photo-flow] User is eligible for Weekly Free Gift!');
+        isFreeGiftEligible = true;
+      }
+    }
+
     if (!user) {
       if (!analyze) return { type: 'upload_only' };
       
@@ -146,9 +161,9 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
         return { type: 'marketing_required' };
       }
     } else {
-      const currentBalance = userProfile?.pix_balance || userProfile?.Pix_balance || 0;
-      if (analyze && currentBalance < analysisCost) {
-        console.warn('⚠️ [photo-flow] Insufficient balance');
+      const currentBalance = userProfile?.pix_balance || 0;
+      if (analyze && currentBalance < analysisCost && !isFreeGiftEligible) {
+        console.warn('⚠️ [photo-flow] Insufficient balance and no free gift available');
         return { type: 'error', code: 'INSUFFICIENT_BALANCE' };
       }
     }
@@ -366,11 +381,19 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
         
         // 💰 CONDITIONAL BILLING: Only deduct Pix if analysis was successful
         if (isAnalysisSuccessful) {
-          batch.update(userRef, {
-            pix_balance: increment(-analysisCost),
-            total_analyses_count: increment(1)
-          });
-          console.log('💸 [photo-flow] Pix deducted for successful analysis.');
+          if (isFreeGiftEligible) {
+            batch.update(userRef, {
+              last_free_analysis_at: new Date().toISOString(),
+              total_analyses_count: increment(1)
+            });
+            console.log('🎁 [photo-flow] Weekly Free Gift consumed.');
+          } else {
+            batch.update(userRef, {
+              pix_balance: increment(-analysisCost),
+              total_analyses_count: increment(1)
+            });
+            console.log('💸 [photo-flow] Pix deducted for successful analysis.');
+          }
         } else {
           console.log('🛡️ [photo-flow] Analysis failed/fallback used. No Pix deducted.');
         }

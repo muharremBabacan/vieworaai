@@ -12,7 +12,8 @@ import {
   setDoc,
   updateDoc,
   writeBatch,
-  increment
+  increment,
+  runTransaction
 } from 'firebase/firestore';
 import type { User as UserProfile } from '@/types';
 
@@ -24,11 +25,31 @@ export const AuthService = {
    * Checks if user exists in Firestore and creates if not.
    */
   async ensureUserDoc(firestore: Firestore, firebaseUser: FirebaseUser, name?: string, provider: 'google' | 'email' = 'email') {
-    const userRef = doc(firestore, 'users', firebaseUser.uid);
-    const userSnap = await getDoc(userRef);
+    if (!firestore || !firebaseUser) return;
 
-    if (!userSnap.exists()) {
-      console.log("🆕 [AuthService] User doc not found, creating locally...");
+    const userRef = doc(firestore, 'users', firebaseUser.uid);
+    
+    // ⚡️ LIGHTWEIGHT CHECK FIRST
+    const docSnap = await getDoc(userRef);
+    if (docSnap.exists()) {
+      console.debug("✅ [AuthService] User doc exists. Skipping creation.");
+      return docSnap.data() as UserProfile;
+    }
+
+    const publicRef = doc(firestore, 'public_profiles', firebaseUser.uid);
+    const notifRef = doc(firestore, 'users', firebaseUser.uid, 'notifications', 'welcome');
+
+    return await runTransaction(firestore, async (transaction) => {
+      const userSnap = await transaction.get(userRef);
+
+      if (userSnap.exists()) {
+        console.log("ℹ️ [AuthService] User already exists. Syncing...");
+        const existingData = userSnap.data() as UserProfile;
+        transaction.update(userRef, { lastLoginAt: new Date().toISOString() });
+        return existingData;
+      }
+
+      console.log("🆕 [AuthService] Creating NEW atomic user document...");
       const now = new Date().toISOString();
       const newUser: UserProfile = {
         id: firebaseUser.uid,
@@ -48,44 +69,35 @@ export const AuthService = {
         total_competitions_count: 0,
         weekly_free_refill_date: now,
         onboarded: false,
-        emailVerified: firebaseUser.emailVerified,
+        emailVerified: firebaseUser.emailVerified || false,
         daily_streak: 1,
         last_active_date: now.split('T')[0],
         completed_modules: [],
         interests: [],
         createdAt: now,
+        updatedAt: now, // 🔥 Added per requirement
         provider: provider
       };
-      
-      // ÖZEL PROFİL
-      await setDoc(userRef, newUser);
-      
-      // KAMUYA AÇIK PROFİL (GEZİLER İÇİN)
-      await setDoc(doc(firestore, 'public_profiles', firebaseUser.uid), { 
+
+      transaction.set(userRef, newUser);
+      transaction.set(publicRef, { 
         id: firebaseUser.uid, 
         name: newUser.name, 
         email: newUser.email, 
         photoURL: newUser.photoURL, 
         level_name: 'Neuner',
-        phone: '',
-        instagram: ''
+        updatedAt: now
       });
-      
-      // Başlangıç bildirimi
-      const notifRef = doc(firestore, 'users', firebaseUser.uid, 'notifications', 'welcome');
-      await setDoc(notifRef, { 
+      transaction.set(notifRef, { 
         id: 'welcome', 
         title: "Vizyon Analizi Bekliyor", 
         message: "Luma seni tanımak istiyor. Lütfen anketi doldurun.", 
         type: 'system', 
         createdAt: now 
       });
-      
+
       return newUser;
-    }
-    
-    console.log("ℹ️ [AuthService] User doc already exists (synced by Cloud Function or previous login).");
-    return userSnap.data() as UserProfile;
+    });
   },
 
   /**

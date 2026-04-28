@@ -30,3 +30,11 @@ env:
 
   - variable: NEXT_PUBLIC_APP_URL
     value: https://viewora.ai
+
+  # 🔐 Google OAuth Config (Required for backend-driven auth)
+  - variable: GOOGLE_CLIENT_ID
+    value: HIDDEN_DUE_TO_GITHUB_PUSH_PROTECTION
+  - variable: GOOGLE_CLIENT_SECRET
+    value: HIDDEN_DUE_TO_GITHUB_PUSH_PROTECTION
+  - variable: GOOGLE_REDIRECT_URI
+    value: https://viewora.ai/api/auth/google/callback

@@ -8,9 +8,16 @@ export async function GET() {
   const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    console.error("❌ Missing GOOGLE_CLIENT_ID or GOOGLE_REDIRECT_URI");
+    console.error("❌ Google OAuth Config Missing:", {
+      hasClientId: !!clientId,
+      hasRedirectUri: !!redirectUri,
+      env: process.env.NODE_ENV
+    });
     return NextResponse.json(
-      { error: "OAuth config missing" },
+      { 
+        error: "OAuth config missing", 
+        details: `Missing: ${!clientId ? 'GOOGLE_CLIENT_ID ' : ''}${!redirectUri ? 'GOOGLE_REDIRECT_URI' : ''}`.trim()
+      },
       { status: 500 }
     );
   }
@@ -28,7 +35,7 @@ export async function GET() {
       "https://www.googleapis.com/auth/userinfo.email",
     ].join(" "),
     access_type: "offline",
-    prompt: "consent",
+    prompt: "select_account",
     state,
   };
 

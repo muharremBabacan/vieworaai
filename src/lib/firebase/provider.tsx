@@ -59,6 +59,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   storage,
   sessionUser
 }) => {
+  const [authReady, setAuthReady] = useState(false);
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: sessionUser as unknown as User | null,
     isUserLoading: !sessionUser,
@@ -67,23 +68,32 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   useEffect(() => {
     if (!auth) {
+      setAuthReady(true);
       setUserAuthState({ user: null, isUserLoading: false, userError: null });
       return;
     }
 
+    const authStart = Date.now();
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        // Only overwrite if we found a real firebase user OR if we don't have a session user
-        if (firebaseUser || !sessionUser) {
-          setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-        } else {
-          // Keep sessionUser until background sign-in completes
-          setUserAuthState(prev => ({ ...prev, isUserLoading: false }));
+        // 🛡️ STICKY SESSION LOGIC
+        if (!firebaseUser && sessionUser) {
+           setUserAuthState({ user: sessionUser as any, isUserLoading: false, userError: null });
+           setAuthReady(true);
+           const duration = Date.now() - authStart;
+           console.log(`⏱️ AUTH_READY: ${duration}ms`);
+           return;
         }
+
+        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        setAuthReady(true);
+        const duration = Date.now() - authStart;
+        console.log(`⏱️ AUTH_READY: ${duration}ms`);
       },
       (error) => {
         setUserAuthState({ user: null, isUserLoading: false, userError: error });
+        setAuthReady(true);
       }
     );
     return () => unsubscribe();
@@ -98,10 +108,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth: servicesAvailable ? auth : null,
       storage: servicesAvailable ? storage : null,
       user: userAuthState.user,
-      isUserLoading: userAuthState.isUserLoading,
+      isUserLoading: !authReady, // Use authReady for more accurate loading
       userError: userAuthState.userError,
     };
-  }, [firebaseApp, firestore, auth, storage, userAuthState]);
+  }, [firebaseApp, firestore, auth, storage, userAuthState, authReady]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>

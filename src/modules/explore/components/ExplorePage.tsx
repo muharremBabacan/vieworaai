@@ -105,50 +105,103 @@ export default function ExplorePage() {
 
   const isLevelEligibleForAI = (userProfile?.current_xp || 0) >= 101;
 
+    const [isAdWatching, setIsAdWatching] = useState(false);
+    const [adProgress, setAdProgress] = useState(0);
+
+    const adsData = [
+      { id: 'canon', title: 'Canon R5 Mark II', desc: 'Sınırları Zorlayan Performans', brand: 'Canon', image: 'https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?q=80&w=2070&auto=format&fit=crop' },
+      { id: 'adobe', title: 'Lightroom Pro', desc: 'Renklerin Gücünü Keşfet', brand: 'Adobe', image: 'https://images.unsplash.com/photo-1626908013943-df94de54984c?q=80&w=2073&auto=format&fit=crop' },
+      { id: 'nikon', title: 'Nikon Z9', desc: 'Vahşi Yaşamın İzinde', brand: 'Nikon', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=2076&auto=format&fit=crop' }
+    ];
+
+    const currentAd = useMemo(() => adsData[Math.floor(Math.random() * adsData.length)], []);
+
+    const handleWatchAd = async () => {
+      if (!user || !firestore) return;
+      
+      // Check daily limit (Mock check for now)
+      const lastAdDate = localStorage.getItem('last_ad_watch_date');
+      const today = new Date().toDateString();
+      const watchCount = parseInt(localStorage.getItem('ad_watch_count') || '0', 10);
+
+      if (lastAdDate === today && watchCount >= 3) {
+        alert("Günlük reklam limitine ulaştın! Yarın tekrar gel.");
+        return;
+      }
+
+      setIsAdWatching(true);
+      setAdProgress(0);
+
+      // Simulate 10s ad watching
+      const interval = setInterval(() => {
+        setAdProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 1;
+        });
+      }, 100);
+
+      setTimeout(async () => {
+        clearInterval(interval);
+        try {
+          const userRef = doc(firestore, 'users', user.uid);
+          await updateDoc(userRef, {
+            pix_balance: (userProfile?.pix_balance || 0) + 1
+          });
+          
+          // Update limit
+          if (lastAdDate !== today) {
+            localStorage.setItem('last_ad_watch_date', today);
+            localStorage.setItem('ad_watch_count', '1');
+          } else {
+            localStorage.setItem('ad_watch_count', (watchCount + 1).toString());
+          }
+
+          setIsAdWatching(false);
+          setAdProgress(0);
+          alert("Tebrikler! 1 Pix Kazandın.");
+        } catch (err) {
+          console.error(err);
+          setIsAdWatching(false);
+        }
+      }, 10000);
+    };
+
     const hubCategories = [
       {
         id: 'exhibitions',
-        title: t('category_exhibitions'),
-        desc: t('category_exhibitions_desc'),
-        features: t('category_exhibitions_features').split(','),
-        button: t('category_exhibitions_button'),
+        title: 'Sergiler',
+        desc: 'Profesyonel ve küratörlü fotoğraf galerileri.',
+        features: ['Küratörlü Seçkiler', 'Yüksek Çözünürlük', 'Sanatçı Odaklı'],
+        button: 'SERGİLERİ GEZ',
         image: "https://images.unsplash.com/photo-1554941068-a252680d25d9?q=80&w=2070&auto=format&fit=crop",
         borderColor: "hover:border-primary/30",
-        btnColor: "bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/30",
+        btnColor: "bg-primary shadow-lg shadow-primary/20",
         onClick: () => setView('exhibitions')
       },
       {
         id: 'competitions',
-        title: t('category_competitions'),
-        desc: t('category_competitions_desc'),
-        features: t('category_competitions_features').split(','),
-        button: t('category_competitions_button'),
+        title: 'Yarışmalar',
+        desc: 'Yeteneklerini göster, büyük ödülleri kazan.',
+        features: ['Ödüllü Yarışmalar', 'Halk Oylaması', 'AI Skorlama'],
+        button: 'KATIL VE KAZAN',
         image: "/competition-fallback.png",
         borderColor: "hover:border-blue-400/30",
-        btnColor: "bg-blue-600 shadow-lg shadow-blue-600/20 hover:bg-blue-700",
+        btnColor: "bg-blue-600 shadow-lg shadow-blue-600/20",
         onClick: () => router.push('/competitions')
       },
       {
         id: 'groups',
-        title: t('category_groups'),
-        desc: t('category_groups_desc'),
-        features: t('category_groups_features').split(','),
-        button: t('category_groups_button'),
+        title: 'Topluluk Grupları',
+        desc: 'Fotoğraf topluluklarının gizli hazineleri.',
+        features: ['Kolektif Üretim', 'Üye Galerileri', 'Grup Etkinlikleri'],
+        button: 'GRUPLARI KEŞFET',
         image: "https://images.unsplash.com/photo-1543269664-56d93c1b41a6?q=80&w=2070&auto=format&fit=crop",
         borderColor: "hover:border-green-400/30",
-        btnColor: "bg-green-600 shadow-lg shadow-green-600/20 hover:bg-green-700",
+        btnColor: "bg-green-600 shadow-lg shadow-green-600/20",
         onClick: () => router.push('/groups')
-      },
-      {
-        id: 'featured',
-        title: t('category_featured'),
-        desc: t('category_featured_desc'),
-        features: t('category_featured_features').split(','),
-        button: t('category_featured_button'),
-        image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?q=80&w=1974&auto=format&fit=crop",
-        borderColor: "hover:border-yellow-400/30",
-        btnColor: "bg-yellow-600 shadow-lg shadow-yellow-600/20 hover:bg-yellow-700",
-        onClick: () => setView('featured')
       }
     ];
 
@@ -165,7 +218,7 @@ export default function ExplorePage() {
             <p className={cn(typography.subtitle, "opacity-70 text-sm md:text-base")}>{t('description')}</p>
           </header>
   
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hubCategories.map((cat) => (
               <Card 
                 key={cat.id} 
@@ -215,6 +268,80 @@ export default function ExplorePage() {
               </Card>
             ))}
           </div>
+          
+          {/* 🎥 REWARDED ADS SECTION */}
+          <div className="mt-16 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h2 className="text-xl font-black uppercase tracking-tighter">Haftalık Fırsatlar</h2>
+                <p className="text-xs opacity-60 font-bold uppercase tracking-widest">İzle ve Pix Kazan</p>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-none font-black uppercase text-[10px]">SPONSORLU</Badge>
+            </div>
+            
+            <Card className="rounded-[40px] overflow-hidden border-primary/20 bg-primary/5 group relative">
+              <div className="flex flex-col md:flex-row items-center">
+                <div className="relative h-64 md:h-80 w-full md:w-1/2 overflow-hidden">
+                   <VieworaImage 
+                    variants={null}
+                    fallbackUrl={currentAd.image}
+                    type="featureCover"
+                    alt={currentAd.title}
+                    containerClassName="w-full h-full transition-transform duration-1000 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-primary/5" />
+                </div>
+                <div className="p-8 md:p-12 flex-1 space-y-6 text-center md:text-left">
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{currentAd.brand}</p>
+                    <h3 className="text-3xl md:text-5xl font-black uppercase leading-tight tracking-tighter">{currentAd.title}</h3>
+                    <p className="text-sm md:text-base font-medium opacity-70 leading-relaxed">{currentAd.desc}</p>
+                  </div>
+                  <Button 
+                    onClick={handleWatchAd} 
+                    disabled={isAdWatching}
+                    className="rounded-full px-8 h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
+                  >
+                    REKLAMI İZLE (+1 PIX)
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* 📺 AD WATCHING OVERLAY */}
+          {isAdWatching && (
+            <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+               <div className="max-w-md w-full space-y-8">
+                 <div className="relative aspect-video rounded-[32px] overflow-hidden border border-white/10 shadow-2xl">
+                    <VieworaImage 
+                      variants={null}
+                      fallbackUrl={currentAd.image}
+                      type="featureCover"
+                      alt="Reklam İzleniyor"
+                      containerClassName="w-full h-full"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                       <div className="relative h-20 w-20 flex items-center justify-center">
+                          <div className="absolute inset-0 border-4 border-white/20 rounded-full" />
+                          <div 
+                            className="absolute inset-0 border-4 border-primary rounded-full transition-all duration-100" 
+                            style={{ clipPath: `inset(0 0 0 0 round 50%)`, strokeDasharray: 251, strokeDashoffset: 251 - (251 * adProgress / 100) }} 
+                          />
+                          <span className="text-white font-black text-xl">{Math.ceil((100 - adProgress) / 10)}</span>
+                       </div>
+                    </div>
+                 </div>
+                 <div className="space-y-4">
+                    <h2 className="text-2xl font-black uppercase tracking-tight text-white">{currentAd.title}</h2>
+                    <p className="text-sm text-white/60 font-medium tracking-wide">Reklam tamamlandığında 1 Pix hesabına eklenecek...</p>
+                 </div>
+                 <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                    <div className="bg-primary h-full transition-all duration-100" style={{ width: `${adProgress}%` }} />
+                 </div>
+               </div>
+            </div>
+          )}
         </>
       ) : (
         <>

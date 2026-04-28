@@ -9,12 +9,6 @@ import { Loader2 } from 'lucide-react';
  * Now it redirects to /login to ensure UI consistency and single-entry auth.
  */
 export default function PageContent() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/login');
-  }, [router]);
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Loader2 className="h-12 w-12 animate-spin text-primary" />

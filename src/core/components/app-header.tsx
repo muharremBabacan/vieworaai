@@ -30,6 +30,7 @@ export function AppHeader() {
       <div className="container mx-auto flex h-16 items-center">
         <HeaderLogo />
         <div className="flex flex-1 items-center justify-end space-x-4">
+
           <UserNav />
         </div>
       </div>

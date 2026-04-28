@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useFirestore } from '@/lib/firebase/client-provider';
 import { doc, updateDoc } from 'firebase/firestore';
-import type { User, OnboardingResults, UserProfileIndex } from '@/types';
+import type { OnboardingResults } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -32,16 +32,12 @@ type Question = {
 export default function OnboardingPage() {
   const t = useTranslations('OnboardingPage');
   const router = useRouter();
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user, firestore } = useUser();
   const { toast } = useToast();
   
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<OnboardingResults>>({});
-  const [isSaving, setIsCreating] = useState(false);
-
-  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
+  const [isSaving, setIsSaving] = useState(false);
 
   const questions: Question[] = [
     {
@@ -95,8 +91,6 @@ export default function OnboardingPage() {
     }
   ];
 
-  const isLoading = isProfileLoading;
-
   const handleSelect = (questionId: keyof OnboardingResults, optionId: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
     if (step < questions.length - 1) setTimeout(() => setStep(s => s + 1), 300);
@@ -104,63 +98,33 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     if (!user || !firestore || isSaving) return;
-    setIsCreating(true);
-
-    const results = answers as OnboardingResults;
-    
-    const initialProfileIndex: UserProfileIndex = {
-      dominant_style: results.interest,
-      strengths: results.approach === 'casual' ? [] : [results.approach],
-      weaknesses: [],
-      dominant_technical_level: results.technical_level,
-      trend: { direction: 'stagnant', percentage: 0 },
-      consistency_gap: 0,
-      profile_index_score: results.technical_level === 'advanced' ? 70 : results.technical_level === 'intermediate' ? 50 : 30,
-      technical: {
-        composition: results.approach === 'composition' ? 6 : 4,
-        light: results.approach === 'lighting' ? 6 : 4,
-        technical_clarity: results.technical_level === 'advanced' ? 7 : results.technical_level === 'intermediate' ? 5 : 3,
-        boldness: 4,
-        storytelling: 4
-      },
-      activity_signals: {
-        learning_score: 0,
-        competition_score: 0,
-        exhibition_score: 0,
-        group_activity_score: 0
-      },
-      communication_profile: {
-        tone: results.motivation === 'professional' ? 'direct' : 'supportive',
-        explanation_depth: results.technical_level === 'beginner' ? 'medium' : 'high',
-        challenge_level: results.technical_level === 'advanced' ? 4 : 2
-      }
-    };
+    setIsSaving(true);
 
     try {
-      await updateDoc(doc(firestore, 'users', user.uid), {
+      const userRef = doc(firestore, 'users', user.uid);
+      await setDoc(userRef, {
         onboarded: true,
-        onboarding_results: results,
-        profile_index: initialProfileIndex,
-        interests: [results.interest]
-      });
+        onboarding_results: answers,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
+      console.log("✅ [Onboarding] Progress saved. Redirecting to dashboard...");
       toast({ title: t('toast_success_title'), description: t('toast_success_desc') });
-      router.push('/dashboard');
-    } catch (e) {
+      
+      // Nuclear Redirect
+      setTimeout(() => {
+        window.location.href = window.location.origin + '/dashboard';
+      }, 500);
+    } catch (e: any) {
+      console.error("Onboarding finish error:", e);
+      window.alert("Kayıt Hatası: " + e.message);
       toast({ variant: 'destructive', title: t('toast_error_title'), description: t('toast_error_desc') });
-      setIsCreating(false);
+      setIsSaving(false);
     }
   };
 
   const currentQuestion = questions[step];
   const progress = ((step + 1) / questions.length) * 100;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin h-10 w-10 text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-6 pt-12 md:pt-20 animate-in fade-in duration-700">
@@ -209,6 +173,18 @@ export default function OnboardingPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 🛠️ DEBUG SKIP (Only on localhost) */}
+        {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
+          <div className="text-center mt-8">
+            <button 
+              onClick={() => window.location.href = '/dashboard'}
+              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 hover:text-primary transition-colors"
+            >
+              [ DEBUG: SKIP ONBOARDING ]
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -17,95 +17,61 @@ function getPrivateKey() {
  * 🛠️ Extracts service account credentials from environment variables.
  * Supports both individual keys and composite base64/JSON keys.
  */
+let cachedServiceAccount: any = null;
+
 export function getServiceAccount() {
+  if (cachedServiceAccount) return cachedServiceAccount;
+
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = getPrivateKey();
   const compositeKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT || process.env.APP_ADMIN_KEY;
 
   if (projectId && clientEmail && privateKey) {
-    return {
-      projectId,
-      clientEmail,
-      privateKey,
-    };
+    cachedServiceAccount = { projectId, clientEmail, privateKey };
+    return cachedServiceAccount;
   }
 
   if (compositeKey) {
     try {
-      // 🛡️ Pre-parsing cleanup: Remove potential invisible control characters or bad escape sequences
       const isBase64 = !compositeKey.trim().startsWith('{');
       const decoded = isBase64 ? Buffer.from(compositeKey, 'base64').toString('utf8') : compositeKey;
-      
-      // Handle the common "Bad control character" error by sanitizing raw newlines in string literals
-      // while keeping escaped \n for the private key
-      const sanitized = decoded
-        .trim()
-        .replace(/[\u0000-\u001F]+/g, (match) => match === '\n' || match === '\r' ? ' ' : ''); // Replace raw newlines with space to prevent JSON break
-
-      return JSON.parse(sanitized);
+      const sanitized = decoded.trim().replace(/[\u0000-\u001F]+/g, (match) => match === '\n' || match === '\r' ? ' ' : '');
+      cachedServiceAccount = JSON.parse(sanitized);
+      return cachedServiceAccount;
     } catch (err) {
-      console.error("[AdminInit] Failed to parse composite service account key:", err);
+      console.error("[AdminInit] Failed to parse composite key:", err);
     }
   }
 
-  // 📂 FALLBACK: Read from local serviceAccount.json for local development
+  // 📂 FALLBACK (Only for Local Dev)
   try {
     const serviceAccountPath = path.join(process.cwd(), 'serviceAccount.json');
     if (fs.existsSync(serviceAccountPath)) {
-      console.log("📂 [AdminInit] Using local serviceAccount.json file.");
-      const fileData = fs.readFileSync(serviceAccountPath, 'utf8');
-      return JSON.parse(fileData);
+      cachedServiceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+      return cachedServiceAccount;
     }
-  } catch (fileErr: any) {
-    console.warn("[AdminInit] Failed to read serviceAccount.json:", fileErr.message);
-  }
+  } catch (e) {}
 
   return null;
 }
 
-/**
- * 🏗️ Initializes Firebase Admin as a Singleton
- * Throws MISSING_SERVICE_ACCOUNT if required environment variables are absent in production.
- */
 export function initAdmin() {
-  if (admin.apps.length > 0) {
-    return admin.app();
-  }
+  if (admin.apps.length > 0) return admin.app();
 
   const serviceAccount = getServiceAccount();
-  const isProduction = process.env.NODE_ENV === "production";
-
-  console.log(`🔍 [AdminInit] Env Check: ServiceAccount=${!!serviceAccount}, Env=${process.env.NODE_ENV}`);
-
-  if (!serviceAccount) {
-    if (isProduction) {
-      console.error("❌ [AdminInit] CRITICAL: Service account environment variables are missing.");
-      throw new Error("MISSING_SERVICE_ACCOUNT");
-    } else {
-      console.warn("[AdminInit] WARN: No valid credentials found. Skipping initialization (Safe during local Build).");
-      return null;
-    }
-  }
+  if (!serviceAccount) return null;
 
   try {
-    const isProduction = process.env.NODE_ENV === "production";
+    const projectId = serviceAccount.project_id || serviceAccount.projectId;
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '') || `${projectId}.firebasestorage.app`;
     
-    // 🎯 Use canonical .firebasestorage.app suffix as recommended in the stabilization guide
-    const bucketNameEnv = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '');
-    const bucketName = bucketNameEnv || `${serviceAccount.project_id || serviceAccount.projectId}.firebasestorage.app`;
-    
-    console.log(`🚀 [AdminInit] Initializing for Project: ${serviceAccount.project_id || serviceAccount.projectId}`);
-    console.log(`🪣 [AdminInit] Using Storage Bucket: ${bucketName}`);
-
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       storageBucket: bucketName
     });
-
   } catch (err: any) {
-    console.error("❌ [AdminInit] Firebase Admin Initialization Failed:", err.message);
-    if (isProduction) throw err;
+    console.error("❌ [AdminInit] Failed:", err.message);
     return null;
   }
 }

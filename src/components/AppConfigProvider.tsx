@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { useFirestore, useDoc } from '@/lib/firebase';
+import { useMemoFirebase } from '@/lib/firebase/client-provider';
 import { doc } from 'firebase/firestore';
 import type { AppSettings } from '@/types';
 

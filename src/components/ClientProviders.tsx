@@ -2,7 +2,7 @@
 
 import { FirebaseClientProvider } from '@/lib/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { ClientLayout } from '@/app/[locale]/client-layout';
+import ClientLayout from '@/app/[locale]/client-layout';
 import { AppConfigProvider } from '@/components/AppConfigProvider';
 import { PushProvider } from '@/components/providers/PushProvider';
 import React from 'react';

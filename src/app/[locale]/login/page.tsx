@@ -22,6 +22,25 @@ import { AuthService } from '@/lib/auth/auth-service';
  * ✨ MilkyWayEffect - Refined for a more premium look
  */
 function MilkyWayEffect() {
+  const [mounted, setMounted] = useState(false);
+  const [stars, setStars] = useState<{width: string, height: string, top: string, left: string, delay: string, duration: string}[]>([]);
+
+  useEffect(() => {
+    setMounted(true);
+    // Generate stars only once on the client
+    const newStars = Array.from({ length: 50 }).map(() => ({
+      width: Math.random() * 2 + 'px',
+      height: Math.random() * 2 + 'px',
+      top: Math.random() * 100 + '%',
+      left: Math.random() * 100 + '%',
+      delay: Math.random() * 5 + 's',
+      duration: (3 + Math.random() * 4) + 's'
+    }));
+    setStars(newStars);
+  }, []);
+
+  if (!mounted) return null; // 🛡️ Prevent SSR hydration mismatch
+
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       <div className="absolute inset-0 bg-[#0A0A0B]" />
@@ -30,17 +49,17 @@ function MilkyWayEffect() {
       
       {/* Tiny Stars */}
       <div className="absolute inset-0 opacity-30">
-        {Array.from({ length: 50 }).map((_, i) => (
+        {stars.map((star, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-white animate-twinkle"
             style={{
-              width: Math.random() * 2 + 'px',
-              height: Math.random() * 2 + 'px',
-              top: Math.random() * 100 + '%',
-              left: Math.random() * 100 + '%',
-              animationDelay: Math.random() * 5 + 's',
-              animationDuration: (3 + Math.random() * 4) + 's'
+              width: star.width,
+              height: star.height,
+              top: star.top,
+              left: star.left,
+              animationDelay: star.delay,
+              animationDuration: star.duration
             }}
           />
         ))}
@@ -78,6 +97,9 @@ function LoginForm() {
     setIsLoading(true);
     // 🚀 NEW BACKEND DRIVEN OAUTH
     // No Firebase SDK, no popups, works in PWA standalone
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('login_flow_start', Date.now().toString());
+    }
     window.location.href = "/api/auth/google";
   };
 
@@ -98,9 +120,7 @@ function LoginForm() {
 
       // 🛰️ Centralized Post-Login Logic
       await AuthService.handlePostLogin(firestore, result.user, 'email');
-
-      toast({ title: 'Giriş Başarılı', description: 'Dashboard\'a yönlendiriliyorsunuz.' });
-      router.push('/dashboard');
+      console.log("✅ [Login] Auth successful. Waiting for AuthGate...");
     } catch (error: any) {
       console.error("Email Sign-In Error:", error.code, error.message);
       let errorMessage = 'E-posta veya şifre hatalı.';

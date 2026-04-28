@@ -18,6 +18,24 @@ import { ToastAction } from '@/components/ui/toast';
  * ✨ MilkyWayEffect - Matching the premium login style
  */
 function MilkyWayEffect() {
+  const [mounted, setMounted] = useState(false);
+  const [stars, setStars] = useState<{width: string, height: string, top: string, left: string, delay: string, duration: string}[]>([]);
+
+  useEffect(() => {
+    setMounted(true);
+    const newStars = Array.from({ length: 40 }).map(() => ({
+      width: Math.random() * 2 + 'px',
+      height: Math.random() * 2 + 'px',
+      top: Math.random() * 100 + '%',
+      left: Math.random() * 100 + '%',
+      delay: Math.random() * 5 + 's',
+      duration: (3 + Math.random() * 4) + 's'
+    }));
+    setStars(newStars);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       <div className="absolute inset-0 bg-[#0A0A0B]" />
@@ -26,17 +44,17 @@ function MilkyWayEffect() {
       
       {/* Tiny Stars */}
       <div className="absolute inset-0 opacity-30">
-        {Array.from({ length: 40 }).map((_, i) => (
+        {stars.map((star, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-white animate-twinkle"
             style={{
-              width: Math.random() * 2 + 'px',
-              height: Math.random() * 2 + 'px',
-              top: Math.random() * 100 + '%',
-              left: Math.random() * 100 + '%',
-              animationDelay: Math.random() * 5 + 's',
-              animationDuration: (3 + Math.random() * 4) + 's'
+              width: star.width,
+              height: star.height,
+              top: star.top,
+              left: star.left,
+              animationDelay: star.delay,
+              animationDuration: star.duration
             }}
           />
         ))}

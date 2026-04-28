@@ -32,9 +32,9 @@ export async function POST(req: Request) {
       maxAge: expiresIn,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
-      domain: domain, // 🔥 Ensures cookie works across www and non-www
+      domain: domain, 
     });
 
     console.log("✅ [SessionAPI] Session cookie created successfully.");

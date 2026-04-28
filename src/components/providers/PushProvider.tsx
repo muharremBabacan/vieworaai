@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useCallback, useState } fr
 import { getMessaging, onMessage, getToken } from 'firebase/messaging';
 import { getMessagingInstance } from '@/lib/firebase-msg';
 import { NotificationAPI } from '@/lib/api/notification-api';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase/client-provider';
 import { useToast } from '@/shared/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import { User as UserProfile } from '@/types';
@@ -26,14 +26,20 @@ export const usePush = () => {
 };
 
 export const PushProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useUser();
+  // Fetch user profile to check notifications_enabled preference
+  const { user, auth } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [hasDismissed, setHasDismissed] = useState(false);
 
-  // Fetch user profile to check notifications_enabled preference
-  const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
+  // 🛡️ ATOMIC FIRESTORE REF - PushProvider must also wait for rehydration
+  const userDocRef = useMemoFirebase(() => {
+    if (user && firestore && auth?.currentUser?.uid === user.uid) {
+      return doc(firestore, 'users', user.uid);
+    }
+    return null;
+  }, [user, firestore, auth?.currentUser]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
