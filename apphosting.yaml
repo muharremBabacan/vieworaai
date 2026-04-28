@@ -11,7 +11,7 @@ env:
     value: AIzaSyCIyLeBksCYIYDkUdq522hlMnvSKBq3VZw
 
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: viewora.ai
+    value: studio-8632782825-fce99.firebaseapp.com
 
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
     value: studio-8632782825-fce99
