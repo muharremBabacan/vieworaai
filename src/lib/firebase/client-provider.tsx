@@ -4,9 +4,11 @@ import { createContext, useContext, useEffect, useState, useMemo, DependencyList
 import {
   onAuthStateChanged,
   getAuth,
+  signInWithCustomToken,
   Auth,
   User as FirebaseUser
 } from 'firebase/auth';
+import { useSession } from "next-auth/react";
 import {
   getFirestore,
   Firestore,
@@ -17,6 +19,7 @@ import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { app } from './init';
 import { useDoc } from './firestore/use-doc';
 import { useCollection } from './firestore/use-collection';
+import { AuthService } from '@/lib/auth/auth-service';
 import type { User as UserProfile } from '@/types';
 
 interface AuthContextType {
@@ -40,11 +43,12 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
   const [authReady, setAuthReady] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
-  // 🔑 Auth is handled via backend OAuth + /auth/callback page + signInWithCustomToken
-  // No getRedirectResult needed (signInWithRedirect not used with App Hosting)
+  // 🔑 Auth is handled via NextAuth
 
 
-  // 🔑 STEP 2: Real-time Auth State Listener
+  // 🔑 STEP 2: Real-time Auth State Listener & NextAuth Sync
+  const { data: session } = useSession();
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -61,8 +65,19 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
       }
     });
 
+    // Sync NextAuth -> Firebase
+    if (session?.firebaseToken && !user) {
+      console.log("🔄 [Auth] Syncing NextAuth to Firebase...");
+      signInWithCustomToken(auth, (session as any).firebaseToken)
+        .then((result) => {
+          // After Firebase sign-in, ensure profile and daily rewards are updated
+          return AuthService.handlePostLogin(firestore, result.user, 'google');
+        })
+        .catch(console.error);
+    }
+
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, session, user]);
 
   // 🔑 STEP 3: Firestore Profile Watcher (only runs when we have a user)
   useEffect(() => {
