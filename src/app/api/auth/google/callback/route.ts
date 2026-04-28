@@ -9,8 +9,10 @@ export async function GET(req: Request) {
   const cookieHeader = req.headers.get("cookie") || "";
   const savedState = cookieHeader.split("; ").find(c => c.startsWith("oauth_state="))?.split("=")[1];
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+
   if (!code || state !== savedState) {
-    return NextResponse.redirect(new URL("/login?error=invalid_state", req.url));
+    return NextResponse.redirect(new URL("/login?error=invalid_state", baseUrl));
   }
 
   try {
@@ -28,7 +30,10 @@ export async function GET(req: Request) {
     });
 
     const data = await tokenRes.json();
-    if (!data.id_token) throw new Error("No id_token");
+    if (!data.id_token) {
+      console.error("Token Exchange Error Response:", data);
+      throw new Error(`Token Exchange Failed: ${data.error_description || data.error || 'No id_token'}`);
+    }
 
     // ⚡️ STEP 2: Fast Local Parse
     const payload = JSON.parse(Buffer.from(data.id_token.split(".")[1], "base64").toString());
@@ -74,7 +79,7 @@ export async function GET(req: Request) {
     const localeCookie = cookieStore.split("; ").find(c => c.startsWith("NEXT_LOCALE="))?.split("=")[1];
     const currentLocale = localeCookie || "tr";
 
-    const res = NextResponse.redirect(new URL(`/${currentLocale}/dashboard`, req.url));
+    const res = NextResponse.redirect(new URL(`/${currentLocale}/dashboard`, baseUrl));
     
     res.cookies.set("session", sessionToken, {
       httpOnly: true,
@@ -92,6 +97,6 @@ export async function GET(req: Request) {
     return res;
   } catch (error) {
     console.error("🚀 Final Auth Fix Failure:", error);
-    return NextResponse.redirect(new URL("/login?error=auth_error", req.url));
+    return NextResponse.redirect(new URL("/login?error=auth_error", baseUrl));
   }
 }
