@@ -13,7 +13,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
-  const { user, profile, authReady, isProfileLoading, firestore, sessionUser } = useUser();
+  const { user, profile, authReady, isProfileLoading, firestore } = useUser();
 
   useEffect(() => {
     setHasMounted(true);

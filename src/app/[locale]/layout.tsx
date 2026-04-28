@@ -6,7 +6,7 @@ import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { Metadata, Viewport } from 'next';
-import { AuthServer } from '@/lib/auth/auth-server';
+
 
 export const metadata: Metadata = {
   title: 'Viewora | Global AI Photography Platform',
@@ -36,7 +36,7 @@ export default async function LocaleLayout({
 }: LayoutProps) {
   const { locale } = await params;
   const messages = await getMessages();
-  const sessionUser = await AuthServer.getUserFromSession(); // 🕵️ Server-side auth check
+
 
   return (
     <>
@@ -54,7 +54,7 @@ export default async function LocaleLayout({
       </Script>
 
       <NextIntlClientProvider messages={messages} locale={locale}>
-        <ClientProviders sessionUser={sessionUser}>
+        <ClientProviders>
           {children}
           <InstallPrompt />
         </ClientProviders>

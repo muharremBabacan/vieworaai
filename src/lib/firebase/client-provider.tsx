@@ -1,15 +1,15 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useMemo, DependencyList } from 'react';
-import { 
-  onAuthStateChanged, 
-  getAuth, 
+import {
+  onAuthStateChanged,
+  getAuth,
+  getRedirectResult,
   Auth,
-  signInWithCustomToken,
   User as FirebaseUser
 } from 'firebase/auth';
-import { 
-  getFirestore, 
+import {
+  getFirestore,
   Firestore,
   doc,
   onSnapshot
@@ -19,83 +19,94 @@ import { app } from './init';
 import { useDoc } from './firestore/use-doc';
 import { useCollection } from './firestore/use-collection';
 import type { User as UserProfile } from '@/types';
+import { AuthService } from '@/lib/auth/auth-service';
 
 interface AuthContextType {
   user: FirebaseUser | null;
   profile: UserProfile | null;
   authReady: boolean;
   isProfileLoading: boolean;
+  isUserLoading: boolean; // alias for !authReady, kept for backward compat
   auth: Auth;
   firestore: Firestore;
-  sessionUser: any;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function FirebaseClientProvider({ children, sessionUser }: { children: React.ReactNode, sessionUser: any }) {
+export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
   const auth = useMemo(() => getAuth(app), []);
   const firestore = useMemo(() => getFirestore(app), []);
 
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [isProfileLoading, setIsProfileLoading] = useState(!!sessionUser);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
 
+  // 🔑 STEP 1: Handle Google Redirect Result
+  // This runs once on page load after returning from Google's login page
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          console.log('✅ [Auth] Redirect result captured. User:', result.user.uid);
+          // Trigger post-login sync (create/update Firestore doc + server session cookie)
+          try {
+            await AuthService.handlePostLogin(firestore, result.user, 'google');
+            console.log('✅ [Auth] Post-login sync completed for redirect user.');
+          } catch (err) {
+            console.error('❌ [Auth] Post-login sync failed:', err);
+          }
+        } else {
+          console.log('ℹ️ [Auth] No redirect result (normal page load or non-redirect flow).');
+        }
+      })
+      .catch((err) => {
+        console.error('❌ [Auth] getRedirectResult error:', err.code, err.message);
+      });
+  }, [auth, firestore]);
 
+  // 🔑 STEP 2: Real-time Auth State Listener
   useEffect(() => {
-    // 🛡️ AUTH WATCHER
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log("🔑 [Auth] State Changed:", firebaseUser ? `User: ${firebaseUser.uid}` : "No User");
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        console.log('🔑 [Auth] State Changed: USER:', firebaseUser.uid);
+      } else {
+        console.log('🔑 [Auth] State Changed: No User');
+      }
       setUser(firebaseUser);
       setAuthReady(true);
-      
+
       if (!firebaseUser) {
         setProfile(null);
         setIsProfileLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => unsubscribe();
   }, [auth]);
 
+  // 🔑 STEP 3: Firestore Profile Watcher (only runs when we have a user)
   useEffect(() => {
-    // 🔑 SESSION SYNC: If server has a token but client doesn't know the user yet
-    if (sessionUser?.customToken && !user && authReady) {
-      console.log("🔑 [Auth] Client-side Sync starting with Custom Token...");
-      signInWithCustomToken(auth, sessionUser.customToken)
-        .then(() => console.log("🔑 [Auth] Client-side Sync SUCCESS!"))
-        .catch(err => console.error("🔑 [Auth] Client-side Sync ERROR:", err));
-    }
-  }, [sessionUser, user, auth, authReady]);
-
-  useEffect(() => {
-    // 📄 PROFILE WATCHER
     if (!user) return;
 
     setIsProfileLoading(true);
-    console.log("📡 [Firestore] Starting Profile Watch for:", user.uid);
-    console.log("📡 [Firestore] Starting Profile Watch for UID:", user.uid);
+    console.log('📡 [Firestore] Starting Profile Watch for UID:', user.uid);
 
     const unsubscribeProfile = onSnapshot(doc(firestore, 'users', user.uid), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as UserProfile;
-        console.log("📡 [Firestore] DATA RECEIVED:", { 
-          targetUid: user.uid, 
+        console.log('📡 [Firestore] Profile received:', {
+          uid: user.uid,
           onboarded: data.onboarded,
-          hasResults: !!data.onboarding_results 
         });
         setProfile(data);
       } else {
-        console.warn("📡 [Firestore] NO DOCUMENT FOUND for UID:", user.uid);
+        console.warn('📡 [Firestore] No user document found for UID:', user.uid);
         setProfile(null);
       }
       setIsProfileLoading(false);
     }, (error) => {
-      console.error("🔥 [Firestore] Profile Watch ERROR:", error);
+      console.error('🔥 [Firestore] Profile Watch ERROR:', error);
       setIsProfileLoading(false);
     });
 
@@ -107,17 +118,14 @@ export function FirebaseClientProvider({ children, sessionUser }: { children: Re
     profile,
     authReady,
     isProfileLoading,
+    isUserLoading: !authReady,
     auth,
     firestore,
-    sessionUser
   };
-
-
 
   return (
     <AuthContext.Provider value={value}>
       {children}
-
     </AuthContext.Provider>
   );
 }
@@ -143,13 +151,13 @@ export const useProfile = () => {
 
 export const useFirebase = () => {
   const { auth, firestore, user, authReady } = useUser();
-  return { 
-    auth, 
-    firestore, 
-    storage: getStorage(app), 
-    firebaseApp: app, 
-    user, 
-    isUserLoading: !authReady 
+  return {
+    auth,
+    firestore,
+    storage: getStorage(app),
+    firebaseApp: app,
+    user,
+    isUserLoading: !authReady
   };
 };
 

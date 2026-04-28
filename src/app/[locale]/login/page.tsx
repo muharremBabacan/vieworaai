@@ -94,13 +94,21 @@ function LoginForm() {
   // 🛰️ HANDLE REDIRECT RESULT (Removed as we use backend OAuth now)
 
   const handleGoogleSignIn = async () => {
+    if (isLoading) return;
     setIsLoading(true);
-    // 🚀 NEW BACKEND DRIVEN OAUTH
-    // No Firebase SDK, no popups, works in PWA standalone
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('login_flow_start', Date.now().toString());
+    try {
+      const { signInWithRedirect, GoogleAuthProvider } = await import('firebase/auth');
+      const provider = new GoogleAuthProvider();
+      provider.addScope('email');
+      provider.addScope('profile');
+      // Force account selection (same UX as before)
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await signInWithRedirect(auth, provider);
+      // Note: page will redirect to Google - code below this won't run
+    } catch (error: any) {
+      console.error('❌ [Login] signInWithRedirect error:', error);
+      setIsLoading(false);
     }
-    window.location.href = "/api/auth/google";
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {

@@ -7,14 +7,12 @@ import { AppConfigProvider } from '@/components/AppConfigProvider';
 import { PushProvider } from '@/components/providers/PushProvider';
 import React from 'react';
 
-
 /**
  * A Client Component wrapper for all providers.
- * This resolves the issue of having client-side logic directly in the server-side RootLayout.
  */
-export function ClientProviders({ children, sessionUser }: { children: React.ReactNode, sessionUser: any }) {
+export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
-    <FirebaseClientProvider sessionUser={sessionUser}>
+    <FirebaseClientProvider>
       <PushProvider>
         <AppConfigProvider>
           <ClientLayout>{children}</ClientLayout>
