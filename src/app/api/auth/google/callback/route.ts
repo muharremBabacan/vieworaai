@@ -97,7 +97,7 @@ export async function GET(req: Request) {
     return res;
   } catch (error: any) {
     console.error("🚀 Final Auth Fix Failure:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return NextResponse.redirect(new URL(`/login?error=auth_error&details=${encodeURIComponent(errorMessage)}`, baseUrl));
+    const errMsg = encodeURIComponent(error?.message || "Unknown error");
+    return NextResponse.redirect(new URL(`/login?error=auth_error&details=${errMsg}`, baseUrl));
   }
 }
