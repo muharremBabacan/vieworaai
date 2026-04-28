@@ -79,8 +79,9 @@ export async function GET(req: Request) {
     const localeCookie = cookieStore.split("; ").find(c => c.startsWith("NEXT_LOCALE="))?.split("=")[1];
     const currentLocale = localeCookie || "tr";
 
-    const res = NextResponse.redirect(new URL(`/${currentLocale}/dashboard`, baseUrl));
+    const res = NextResponse.redirect(new URL(`/${currentLocale}/auth/callback?token=${encodeURIComponent(customToken)}`, baseUrl));
     
+    // Session cookie is kept as a backup for server-side checks
     res.cookies.set("session", sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

@@ -96,19 +96,9 @@ function LoginForm() {
   const handleGoogleSignIn = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    try {
-      const { signInWithRedirect, GoogleAuthProvider } = await import('firebase/auth');
-      const provider = new GoogleAuthProvider();
-      provider.addScope('email');
-      provider.addScope('profile');
-      // Force account selection (same UX as before)
-      provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithRedirect(auth, provider);
-      // Note: page will redirect to Google - code below this won't run
-    } catch (error: any) {
-      console.error('❌ [Login] signInWithRedirect error:', error);
-      setIsLoading(false);
-    }
+    // Backend OAuth flow - works on all platforms including PWA/iOS
+    // signInWithRedirect doesn't work on Firebase App Hosting (no /__/auth/handler)
+    window.location.href = "/api/auth/google";
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {

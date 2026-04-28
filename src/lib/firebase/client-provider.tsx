@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useState, useMemo, DependencyList
 import {
   onAuthStateChanged,
   getAuth,
-  getRedirectResult,
   Auth,
   User as FirebaseUser
 } from 'firebase/auth';
@@ -19,7 +18,6 @@ import { app } from './init';
 import { useDoc } from './firestore/use-doc';
 import { useCollection } from './firestore/use-collection';
 import type { User as UserProfile } from '@/types';
-import { AuthService } from '@/lib/auth/auth-service';
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -42,28 +40,9 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
   const [authReady, setAuthReady] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
-  // 🔑 STEP 1: Handle Google Redirect Result
-  // This runs once on page load after returning from Google's login page
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          console.log('✅ [Auth] Redirect result captured. User:', result.user.uid);
-          // Trigger post-login sync (create/update Firestore doc + server session cookie)
-          try {
-            await AuthService.handlePostLogin(firestore, result.user, 'google');
-            console.log('✅ [Auth] Post-login sync completed for redirect user.');
-          } catch (err) {
-            console.error('❌ [Auth] Post-login sync failed:', err);
-          }
-        } else {
-          console.log('ℹ️ [Auth] No redirect result (normal page load or non-redirect flow).');
-        }
-      })
-      .catch((err) => {
-        console.error('❌ [Auth] getRedirectResult error:', err.code, err.message);
-      });
-  }, [auth, firestore]);
+  // 🔑 Auth is handled via backend OAuth + /auth/callback page + signInWithCustomToken
+  // No getRedirectResult needed (signInWithRedirect not used with App Hosting)
+
 
   // 🔑 STEP 2: Real-time Auth State Listener
   useEffect(() => {
