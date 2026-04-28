@@ -1,5 +1,6 @@
 'use client';
 
+import { SessionProvider } from "next-auth/react";
 import { FirebaseClientProvider } from '@/lib/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
 import ClientLayout from '@/app/[locale]/client-layout';
@@ -12,13 +13,15 @@ import React from 'react';
  */
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
-    <FirebaseClientProvider>
-      <PushProvider>
-        <AppConfigProvider>
-          <ClientLayout>{children}</ClientLayout>
-          <Toaster />
-        </AppConfigProvider>
-      </PushProvider>
-    </FirebaseClientProvider>
+    <SessionProvider>
+      <FirebaseClientProvider>
+        <PushProvider>
+          <AppConfigProvider>
+            <ClientLayout>{children}</ClientLayout>
+            <Toaster />
+          </AppConfigProvider>
+        </PushProvider>
+      </FirebaseClientProvider>
+    </SessionProvider>
   );
 }

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/shared/hooks/use-toast';
+import { signIn } from "next-auth/react";
 import { Loader2, Mail, Lock, ArrowRight, Chrome } from 'lucide-react';
 import Logo from '@/core/components/logo';
 import { AuthService } from '@/lib/auth/auth-service';
@@ -96,9 +97,7 @@ function LoginForm() {
   const handleGoogleSignIn = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    // Backend OAuth flow - works on all platforms including PWA/iOS
-    // signInWithRedirect doesn't work on Firebase App Hosting (no /__/auth/handler)
-    window.location.href = "/api/auth/google";
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
