@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
@@ -47,8 +49,10 @@ export async function GET() {
   // 🍪 state cookie
   res.cookies.set("oauth_state", state, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 10, // 10 minutes
   });
 
   return res;
