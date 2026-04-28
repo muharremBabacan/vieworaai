@@ -60,16 +60,24 @@ export function initAdmin() {
   if (admin.apps.length > 0) return admin.app();
 
   const serviceAccount = getServiceAccount();
-  if (!serviceAccount) return null;
 
   try {
-    const projectId = serviceAccount.project_id || serviceAccount.projectId;
+    const projectId = serviceAccount?.project_id || serviceAccount?.projectId || process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99';
     const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '') || `${projectId}.firebasestorage.app`;
     
-    return admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: bucketName
-    });
+    if (serviceAccount) {
+      return admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket: bucketName
+      });
+    } else {
+      // 🚀 Use Application Default Credentials for App Hosting / Cloud Run
+      return admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        projectId: projectId,
+        storageBucket: bucketName
+      });
+    }
   } catch (err: any) {
     console.error("❌ [AdminInit] Failed:", err.message);
     return null;
