@@ -32,9 +32,10 @@ env:
     value: https://viewora.ai
 
   # 🔐 Google OAuth Config (Required for backend-driven auth)
+  # Firebase App Hosting will fetch these from Google Cloud Secret Manager
   - variable: GOOGLE_CLIENT_ID
-    value: HIDDEN_DUE_TO_GITHUB_PUSH_PROTECTION
+    value: 1093513393552-rtb4jl6eivv7j60vnc5e2af02u93a6ta.apps.googleusercontent.com
   - variable: GOOGLE_CLIENT_SECRET
-    value: HIDDEN_DUE_TO_GITHUB_PUSH_PROTECTION
+    secret: google-oauth-client-secret
   - variable: GOOGLE_REDIRECT_URI
     value: https://viewora.ai/api/auth/google/callback
