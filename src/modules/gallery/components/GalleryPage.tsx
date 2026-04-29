@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers, Trophy, Users, Heart, ShieldCheck, Flag } from 'lucide-react';
+import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers, Trophy, Users, Heart, ShieldCheck, Flag, Filter, LayoutGrid, List, MoreVertical, Calendar, User, Clock, Download, ExternalLink, ChevronRight } from 'lucide-react';
 import { VieworaImage } from '@/core/components/viewora-image';
 import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -487,7 +487,14 @@ export default function GalleryPage() {
             <div className="flex-1 min-h-0 flex flex-col p-6 md:p-10 pb-20 space-y-8 overflow-y-auto overflow-x-hidden no-scrollbar">
               <DialogHeader className="space-y-2">
                 <DialogTitle className="text-2xl md:text-3xl font-black uppercase tracking-tight flex flex-wrap items-center justify-between gap-4">
-                  <span className="truncate max-w-[70%]">{t('dialog_details_title')}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="truncate max-w-[200px] md:max-w-[300px]">{t('dialog_details_title')}</span>
+                    {userProfile?.level_name && (
+                      <span className="text-[10px] text-primary font-black uppercase tracking-widest flex items-center gap-1">
+                        <Trophy className="h-2.5 w-2.5" /> {userProfile.level_name}
+                      </span>
+                    )}
+                  </div>
                   {selectedPhoto.aiFeedback && (
                     <Badge className="bg-primary/10 text-primary border-none px-4 h-8 rounded-full text-[11px] font-black shrink-0">
                       <Star className="h-3.5 w-3.5 mr-1.5 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}
@@ -502,12 +509,21 @@ export default function GalleryPage() {
               {selectedPhoto.aiFeedback ? (
                 <div className="space-y-6">
                   <div className="p-6 rounded-[24px] bg-primary/5 border border-primary/20 space-y-4 shadow-inner">
-                    <h4 className={cn(typography.eyebrow, "text-primary")}>{t('dialog_luma_report_title')}</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className={cn(typography.eyebrow, "text-primary")}>{t('dialog_luma_report_title')}</h4>
+                      <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter opacity-60 border-primary/20 text-primary px-2 h-5">
+                        {selectedPhoto.analysisTier || 'start'} Tier
+                      </Badge>
+                    </div>
                     <div className="space-y-3">
                       {[
                         { label: tr('light'), score: normalizeScore(selectedPhoto.aiFeedback.light_score) },
                         { label: tr('composition'), score: normalizeScore(selectedPhoto.aiFeedback.composition_score) },
-                        { label: tr('technical'), score: normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) }
+                        { label: tr('technical'), score: normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) },
+                        ...(selectedPhoto.analysisTier !== 'start' ? [
+                          { label: tr('storytelling'), score: normalizeScore(selectedPhoto.aiFeedback.storytelling_score) },
+                          { label: tr('boldness'), score: normalizeScore(selectedPhoto.aiFeedback.boldness_score) }
+                        ] : [])
                       ].map(item => (
                         <div key={item.label} className="space-y-1">
                           <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight"><span>{item.label}</span><span>{item.score.toFixed(1)}</span></div>

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Camera, Star, Heart, Lock, Loader2, Award } from 'lucide-react';
+import { ArrowLeft, Camera, Star, Heart, Lock, Loader2, Award, Search, Trophy } from 'lucide-react';
 import { useRouter } from '@/navigation';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -418,17 +418,46 @@ export default function ExplorePage() {
             </div>
             <div className="flex-1 md:w-2/5 flex flex-col p-6 md:p-8 space-y-6 overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>{t('dialog_title')}<Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black"><Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}</Badge></DialogTitle>
+                <DialogTitle className={cn(typography.cardTitle, "text-2xl font-black flex items-center justify-between")}>
+                  <div className="flex flex-col gap-1">
+                    <span>{t('dialog_title')}</span>
+                    {selectedPhoto.userId === uid && userProfile?.level_name && (
+                      <span className="text-[10px] text-primary font-black uppercase tracking-widest flex items-center gap-1">
+                        <Trophy className="h-2.5 w-2.5" /> {userProfile.level_name}
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 h-7 rounded-full text-[10px] font-black">
+                    <Star className="h-3 w-3 mr-1 fill-current" /> {getOverallScore(selectedPhoto).toFixed(1)}
+                  </Badge>
+                </DialogTitle>
                 <DialogDescription className="font-bold uppercase">{t('dialog_artist_label')}: @{selectedPhoto.userName || 'Sanatçı'}</DialogDescription>
               </DialogHeader>
               <div className="space-y-6">
                 {isLevelEligibleForAI && selectedPhoto?.aiFeedback ? (
                   <>
                     <Card className="p-6 border-primary/20 bg-primary/5 rounded-[24px] space-y-4">
-                      <h4 className={cn(typography.eyebrow, "text-primary")}>{t('luma_analysis_title')}</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className={cn(typography.eyebrow, "text-primary")}>{t('luma_analysis_title')}</h4>
+                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter opacity-60 border-primary/20 text-primary px-2 h-5">
+                          {selectedPhoto.analysisTier || 'start'} Tier
+                        </Badge>
+                      </div>
                       <div className="space-y-3">
-                        <div className="space-y-1"><div className="flex justify-between text-[10px] font-bold"><span>{tr('light')}</span><span>{normalizeScore(selectedPhoto.aiFeedback.light_score).toFixed(1)}</span></div><Progress value={normalizeScore(selectedPhoto.aiFeedback.light_score) * 10} className="h-1" /></div>
-                        <div className="space-y-1"><div className="flex justify-between text-[10px] font-bold"><span>{tr('composition')}</span><span>{normalizeScore(selectedPhoto.aiFeedback.composition_score).toFixed(1)}</span></div><Progress value={normalizeScore(selectedPhoto.aiFeedback.composition_score) * 10} className="h-1" /></div>
+                        {[
+                          { label: tr('light'), score: normalizeScore(selectedPhoto.aiFeedback.light_score) },
+                          { label: tr('composition'), score: normalizeScore(selectedPhoto.aiFeedback.composition_score) },
+                          { label: tr('technical'), score: normalizeScore(selectedPhoto.aiFeedback.technical_clarity_score) },
+                          ...(selectedPhoto.analysisTier !== 'start' ? [
+                            { label: tr('storytelling'), score: normalizeScore(selectedPhoto.aiFeedback.storytelling_score) },
+                            { label: tr('boldness'), score: normalizeScore(selectedPhoto.aiFeedback.boldness_score) }
+                          ] : [])
+                        ].map(item => (
+                          <div key={item.label} className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-bold"><span>{item.label}</span><span>{item.score.toFixed(1)}</span></div>
+                            <Progress value={item.score * 10} className="h-1" />
+                          </div>
+                        ))}
                       </div>
                     </Card>
                     <p className="text-sm italic font-medium leading-relaxed bg-muted/30 p-4 rounded-xl">"{selectedPhoto.aiFeedback.short_neutral_analysis}"</p>

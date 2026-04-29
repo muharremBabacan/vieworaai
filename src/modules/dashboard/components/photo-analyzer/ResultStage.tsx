@@ -1,8 +1,7 @@
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { RefreshCw, SearchCode, AlertTriangle, Lightbulb } from 'lucide-react';
+import { RefreshCw, SearchCode, AlertTriangle, Lightbulb, Trophy } from 'lucide-react';
 import { VieworaImage } from '@/core/components/viewora-image';
 import { RatingBar } from './ui-utils';
 import { normalizeScore, getOverallScore } from '../../services/photo-flow';
@@ -93,9 +92,16 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
         <div className="lg:col-span-5 space-y-6">
           <Card className="p-5 md:p-8 rounded-[40px] border-primary/20 bg-primary/5 shadow-xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col items-center text-center space-y-4 mb-10">
-              <div className="flex gap-2">
-                <Badge className="bg-primary/20 text-primary border-none font-black text-[9px] uppercase tracking-widest">{analysisResult.aiFeedback!.general_quality}</Badge>
-                <Badge variant="outline" className="border-primary/30 text-primary font-black text-[9px] uppercase tracking-widest">{analysisResult.aiFeedback!.expert_level}</Badge>
+              <div className="flex flex-col items-center gap-2">
+                {userProfile?.level_name && (
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                    <Trophy className="h-3 w-3" /> {userProfile.level_name}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Badge className="bg-primary/20 text-primary border-none font-black text-[9px] uppercase tracking-widest">{analysisResult.aiFeedback!.general_quality}</Badge>
+                  <Badge variant="outline" className="border-primary/30 text-primary font-black text-[9px] uppercase tracking-widest">{analysisResult.aiFeedback!.expert_level}</Badge>
+                </div>
               </div>
               <div className="space-y-0.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">{t('overall_score')}</p>
@@ -103,12 +109,24 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
               </div>
             </div>
 
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-primary/60">Luma Report</h4>
+              <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter opacity-60 border-primary/20 text-primary px-2 h-5">
+                {analysisResult.analysisTier || 'start'} Tier
+              </Badge>
+            </div>
             <div className="space-y-6">
-              <RatingBar label={tr('light')} score={normalizeScore(analysisResult.aiFeedback!.light_score)} />
-              <RatingBar label={tr('composition')} score={normalizeScore(analysisResult.aiFeedback!.composition_score)} />
-              <RatingBar label={tr('technical')} score={normalizeScore(analysisResult.aiFeedback!.technical_clarity_score)} />
-              <RatingBar label={tr('storytelling')} score={normalizeScore(analysisResult.aiFeedback!.storytelling_score)} isLocked={analysisResult.analysisTier === 'start'} />
-              <RatingBar label={tr('boldness')} score={normalizeScore(analysisResult.aiFeedback!.boldness_score)} isLocked={analysisResult.analysisTier === 'start'} />
+              {[
+                { label: tr('light'), score: normalizeScore(analysisResult.aiFeedback!.light_score) },
+                { label: tr('composition'), score: normalizeScore(analysisResult.aiFeedback!.composition_score) },
+                { label: tr('technical'), score: normalizeScore(analysisResult.aiFeedback!.technical_clarity_score) },
+                ...(analysisResult.analysisTier !== 'start' ? [
+                  { label: tr('storytelling'), score: normalizeScore(analysisResult.aiFeedback!.storytelling_score) },
+                  { label: tr('boldness'), score: normalizeScore(analysisResult.aiFeedback!.boldness_score) }
+                ] : [])
+              ].map(item => (
+                <RatingBar key={item.label} label={item.label} score={item.score} />
+              ))}
             </div>
           </Card>
 
