@@ -38,18 +38,24 @@ export default function InstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      // Tarayıcı yüklemeye hazır olduğunda pop-up'ı göster
+      setIsVisible(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // 5. UX: 3-5 saniye sonra göster
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 4000);
+    // 5. UX: Yalnızca iOS (Safari) için zamanlayıcı ile göster
+    // Çünkü iOS 'beforeinstallprompt' desteklemez, manuel rehber gösterilir.
+    let timer: NodeJS.Timeout;
+    if (isIphone && isSafari) {
+      timer = setTimeout(() => {
+        setIsVisible(true);
+      }, 4000);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
     };
   }, []);
 
