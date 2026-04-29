@@ -28,7 +28,8 @@ export const authOptions: NextAuthOptions = {
             });
           }
           
-          token.firebaseToken = await adminAuth.createCustomToken(firebaseUser.uid);
+          console.log("🔥 JWT CALLBACK WORKING");
+          // token.firebaseToken = await adminAuth.createCustomToken(firebaseUser.uid);
           token.firebaseUid = firebaseUser.uid;
           
           console.log(`✅ [NextAuth-JWT] Sync OK for: ${targetEmail}, UID: ${token.firebaseUid}`);
