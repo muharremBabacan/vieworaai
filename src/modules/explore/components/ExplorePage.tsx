@@ -18,21 +18,23 @@ import { typography } from "@/lib/design/typography";
 import { useTranslations } from 'next-intl';
 import { VieworaImage } from '@/core/components/viewora-image';
 
-const normalizeScore = (score: number | undefined | null): number => {
-    if (score === undefined || score === null || !isFinite(score)) return 0;
-    return score > 1 ? score : score * 10;
-};
+import { normalizeScore } from '@/modules/dashboard/services/photo-flow';
 
 const getOverallScore = (photo: Photo): number => {
-    if (!photo.aiFeedback) return 0;
-    const scores = [
-        normalizeScore(photo.aiFeedback.light_score),
-        normalizeScore(photo.aiFeedback.composition_score),
-        normalizeScore(photo.aiFeedback.storytelling_score),
-        normalizeScore(photo.aiFeedback.technical_clarity_score),
-        normalizeScore(photo.aiFeedback.boldness_score)
-    ].filter(s => s > 0);
-    return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+  if (!photo.aiFeedback) return 0;
+  
+  const currentTier = photo.analysisTier || 'start';
+  const l = normalizeScore(photo.aiFeedback.light_score);
+  const c = normalizeScore(photo.aiFeedback.composition_score);
+  const t = normalizeScore(photo.aiFeedback.technical_clarity_score);
+  const s = normalizeScore(photo.aiFeedback.storytelling_score);
+  const b = normalizeScore(photo.aiFeedback.boldness_score);
+
+  if (currentTier === 'start') {
+    return (l + c + t) / 3;
+  } else {
+    return (l + c + t + s + b) / 5;
+  }
 };
 
 export default function ExplorePage() {

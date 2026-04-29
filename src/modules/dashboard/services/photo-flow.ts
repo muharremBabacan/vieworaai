@@ -19,9 +19,7 @@ export const normalizeScore = (score: number | undefined | null): number => {
 export const getOverallScore = (photo: Photo, tier?: UserTier): number => {
   if (!photo.aiFeedback) return 0;
   
-  // Use provided tier, or fallback to photo's analysis tier, or default to start
   const currentTier = tier || photo.analysisTier || 'start';
-  
   const l = normalizeScore(photo.aiFeedback.light_score);
   const c = normalizeScore(photo.aiFeedback.composition_score);
   const t = normalizeScore(photo.aiFeedback.technical_clarity_score);
@@ -29,13 +27,11 @@ export const getOverallScore = (photo: Photo, tier?: UserTier): number => {
   const b = normalizeScore(photo.aiFeedback.boldness_score);
 
   if (currentTier === 'start') {
-    // Start Tier: Only 3 metrics are visible
-    // Weighted: Composition 40%, Light 40%, Technical 20%
-    return (c * 0.4) + (l * 0.4) + (t * 0.2);
+    // 3 Kriterin basit ortalaması (Görünür olanlar)
+    return (l + c + t) / 3;
   } else {
-    // Pro/Master Tier: All 5 metrics are visible
-    // Weighted: Composition 30%, Light 25%, Technical 15%, Storytelling 15%, Boldness 15%
-    return (c * 0.3) + (l * 0.25) + (t * 0.15) + (s * 0.15) + (b * 0.15);
+    // 5 Kriterin basit ortalaması (Görünür olanlar)
+    return (l + c + t + s + b) / 5;
   }
 };
 
@@ -98,7 +94,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
   const flowStartTime = performance.now();
   const {
     file, analyze, user, userProfile, locale,
-    uid, guestPix, currentTier
+    uid, guestId, guestPix, currentTier
   } = options;
   
   // 🛡️ HARD GUARD: No execution on server

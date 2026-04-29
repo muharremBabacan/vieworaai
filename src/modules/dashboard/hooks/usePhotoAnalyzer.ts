@@ -95,6 +95,7 @@ export function usePhotoAnalyzer() {
         userProfile: userProfile || null,
         locale,
         uid,
+        guestId,
         guestPix: guestPix,
         currentTier: userProfile?.tier || 'start'
       });
