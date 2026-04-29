@@ -169,10 +169,11 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
       )}>
         <div className="aspect-[4/3] relative overflow-hidden">
           <VieworaImage 
-            url={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)}
+            variants={lesson.imageUrl ? [lesson.imageUrl] : []}
             fallbackUrl={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)}
             type="featureCover"
             alt={lesson.title}
+            containerClassName="w-full h-full"
             className="transition-transform duration-700 group-hover:scale-105"
           />
           {isCompleted && (

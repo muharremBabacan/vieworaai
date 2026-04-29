@@ -180,9 +180,9 @@ export default function LumaMentorPage() {
       };
 
       const batch = writeBatch(firestore);
-      const feedbackRef = doc(collection(firestore, 'users', uid, 'strategic_feedbacks'));
+      const feedbackRef = doc(collection(firestore, 'users', userProfile.id, 'strategic_feedbacks'));
       const logRef = doc(collection(firestore, 'analysis_logs'));
-      const userRef = doc(firestore, 'users', uid);
+      const userRef = doc(firestore, 'users', userProfile.id);
 
       batch.set(feedbackRef, { ...feedbackData, id: feedbackRef.id });
       batch.update(userRef, {
