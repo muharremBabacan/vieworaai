@@ -20,17 +20,19 @@ export const getOverallScore = (photo: Photo, tier?: UserTier): number => {
   if (!photo.aiFeedback) return 0;
   
   const currentTier = tier || photo.analysisTier || 'start';
-  const l = normalizeScore(photo.aiFeedback.light_score);
-  const c = normalizeScore(photo.aiFeedback.composition_score);
-  const t = normalizeScore(photo.aiFeedback.technical_clarity_score);
-  const s = normalizeScore(photo.aiFeedback.storytelling_score);
-  const b = normalizeScore(photo.aiFeedback.boldness_score);
+  
+  // Her bir metriği önce 1 ondalık basamağa yuvarlıyoruz (UI'da görünen değerler)
+  const l = Math.round(normalizeScore(photo.aiFeedback.light_score) * 10) / 10;
+  const c = Math.round(normalizeScore(photo.aiFeedback.composition_score) * 10) / 10;
+  const t = Math.round(normalizeScore(photo.aiFeedback.technical_clarity_score) * 10) / 10;
+  const s = Math.round(normalizeScore(photo.aiFeedback.storytelling_score) * 10) / 10;
+  const b = Math.round(normalizeScore(photo.aiFeedback.boldness_score) * 10) / 10;
 
   if (currentTier === 'start') {
-    // 3 Kriterin basit ortalaması (Görünür olanlar)
+    // Görünür 3 kriterin basit ortalaması
     return (l + c + t) / 3;
   } else {
-    // 5 Kriterin basit ortalaması (Görünür olanlar)
+    // Görünür 5 kriterin basit ortalaması
     return (l + c + t + s + b) / 5;
   }
 };

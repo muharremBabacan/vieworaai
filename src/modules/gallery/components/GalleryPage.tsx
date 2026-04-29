@@ -7,7 +7,7 @@ import { collection, query, where, doc, writeBatch, increment, orderBy, deleteDo
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { useToast } from '@/shared/hooks/use-toast';
 import type { Photo, User, Exhibition, Competition, Group, GroupAssignment } from '@/types';
-import { normalizeScore } from '@/modules/dashboard/services/photo-flow';
+import { normalizeScore, getOverallScore } from '@/modules/dashboard/services/photo-flow';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -40,22 +40,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   macro: ['makro', 'macro', 'close-up', 'detay', 'çiçek', 'flower', 'böcek', 'insect', 'yaprak', 'leaf'],
 };
 
-const getOverallScore = (photo: Photo): number => {
-  if (!photo.aiFeedback) return 0;
-  
-  const currentTier = photo.analysisTier || 'start';
-  const l = normalizeScore(photo.aiFeedback.light_score);
-  const c = normalizeScore(photo.aiFeedback.composition_score);
-  const t = normalizeScore(photo.aiFeedback.technical_clarity_score);
-  const s = normalizeScore(photo.aiFeedback.storytelling_score);
-  const b = normalizeScore(photo.aiFeedback.boldness_score);
-
-  if (currentTier === 'start') {
-    return (l + c + t) / 3;
-  } else {
-    return (l + c + t + s + b) / 5;
-  }
-};
+// using getOverallScore from photo-flow.ts
 
 export default function GalleryPage() {
   const t = useTranslations('GalleryPage');

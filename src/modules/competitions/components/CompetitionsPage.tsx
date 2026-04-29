@@ -23,24 +23,8 @@ import { VieworaImage } from '@/core/components/viewora-image';
 
 const COMPETITION_JOIN_COST = 5;
 
-import { normalizeScore } from '@/modules/dashboard/services/photo-flow';
-
-const getOverallScore = (photo: Photo): number => {
-  if (!photo.aiFeedback) return 0;
-  
-  const currentTier = photo.analysisTier || 'start';
-  const l = normalizeScore(photo.aiFeedback.light_score);
-  const c = normalizeScore(photo.aiFeedback.composition_score);
-  const t = normalizeScore(photo.aiFeedback.technical_clarity_score);
-  const s = normalizeScore(photo.aiFeedback.storytelling_score);
-  const b = normalizeScore(photo.aiFeedback.boldness_score);
-
-  if (currentTier === 'start') {
-    return (l + c + t) / 3;
-  } else {
-    return (l + c + t + s + b) / 5;
-  }
-};
+import { normalizeScore, getOverallScore } from '@/modules/dashboard/services/photo-flow';
+// using centralized getOverallScore
 
 const getCompetitionStatus = (startDate: string, endDate: string) => {
     const now = new Date();
