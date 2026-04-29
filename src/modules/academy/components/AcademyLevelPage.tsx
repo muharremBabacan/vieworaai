@@ -36,7 +36,7 @@ const getDeterminsticPlaceholder = (id: string) => {
 
 function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFeedbackReady: (result: any) => void }) {
     const t = useTranslations('AcademyLevelPage');
-    const { user } = useUser();
+    const { user, uid } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
     const [file, setFile] = useState<File | null>(null);
@@ -57,7 +57,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] } });
 
     const handleGetFeedback = async () => {
-        if (!file || !user || !firestore) return;
+        if (!file || !uid || !firestore) return;
 
         setIsUploading(true);
         toast({ title: t('toast_analysis_start_title'), description: t('toast_analysis_start_description') });
@@ -71,7 +71,7 @@ function PracticeSubmission({ lesson, onFeedbackReady }: { lesson: Lesson, onFee
             formData.append('file', optimizedFile);
             
             // 🔄 Server Action ile Türevleri Üret ve Yükle
-            const imageUrlsResponse = await uploadAndProcessImage(formData, user.uid, photoId, 'academy-practice');
+            const imageUrlsResponse = await uploadAndProcessImage(formData, uid, photoId, 'academy-practice');
             
             if (!imageUrlsResponse.success) {
                 throw new Error(imageUrlsResponse.error || 'Upload failed');
@@ -239,7 +239,7 @@ export default function AcademyLevelPage() {
     const params = useParams();
     const router = useRouter();
     const firestore = useFirestore();
-    const { user } = useUser();
+    const { user, uid, isFirebaseReady, profile: userProfile, isProfileLoading } = useUser();
     const { toast } = useToast();
     const { currencyName } = useAppConfig();
 
@@ -248,19 +248,16 @@ export default function AcademyLevelPage() {
     
     // ALL HOOKS CALLED AT TOP
     const lessonsQuery = useMemoFirebase(() => 
-        (firestore && levelFormatted) ? query(collection(firestore, 'academy_lessons'), where('level', '==', levelFormatted), orderBy('createdAt', 'desc')) : null,
-        [firestore, levelFormatted]
+        (firestore && levelFormatted && isFirebaseReady) ? query(collection(firestore, 'academy_lessons'), where('level', '==', levelFormatted), orderBy('createdAt', 'desc')) : null,
+        [firestore, levelFormatted, isFirebaseReady]
     );
     const { data: lessons, isLoading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
 
     const userProgressQuery = useMemoFirebase(() =>
-      (user && firestore) ? collection(firestore, 'users', user.uid, 'lessonProgress') : null,
-      [user, firestore]
+      (uid && firestore && isFirebaseReady) ? collection(firestore, 'users', uid, 'lessonProgress') : null,
+      [uid, firestore, isFirebaseReady]
     );
-    const { data: progressData } = useCollection<{ lessonId: string; isCompleted: boolean }>(userProgressQuery);
-
-    const userProfileQuery = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userProfileQuery);
+    const { data: progressData } = useCollection<{ lessonId: string; isCompleted: boolean }>(userProgressQuery, { requireAuth: true });
 
     const completedLessonIds = useMemo(() => {
         if (!progressData) return new Set();
@@ -280,11 +277,11 @@ export default function AcademyLevelPage() {
     const lessonsInCategoryCount = lessons?.length || 0;
 
     const handleCompleteLesson = useCallback(async (lessonId: string) => {
-        if (!user || !firestore || !userProfile) return;
+        if (!uid || !firestore || !userProfile) return;
 
         const batch = writeBatch(firestore);
-        const progressRef = doc(firestore, 'users', user.uid, 'lessonProgress', lessonId);
-        const userRef = doc(firestore, 'users', user.uid);
+        const progressRef = doc(firestore, 'users', uid, 'lessonProgress', lessonId);
+        const userRef = doc(firestore, 'users', uid);
         
         const xpGain = 10;
         const pixGain = 1;

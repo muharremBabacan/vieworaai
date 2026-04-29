@@ -40,6 +40,7 @@ export const getOverallScore = (photo: Photo, tier?: UserTier): number => {
 };
 
 export const updateUserProfileIndex = async (userId: string, newOverallScore: number) => {
+  if (!userId) return;
   const photosRef = collection(db, 'users', userId, 'photos');
   const q = query(photosRef, where('aiFeedback', '!=', null), orderBy('createdAt', 'desc'), limit(12));
   const snap = await getDocs(q);
@@ -88,17 +89,16 @@ export type AnalysisFlowOptions = {
   user: any;
   userProfile: User | null;
   locale: string;
-  guestId: string | null;
-  guestUsed: boolean;
   guestPix: number;
   currentTier: UserTier;
+  uid: string | null;
 };
 
 export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Promise<FlowResult> => {
   const flowStartTime = performance.now();
   const {
     file, analyze, user, userProfile, locale,
-    guestId, guestUsed, guestPix, currentTier
+    uid, guestPix, currentTier
   } = options;
   
   // 🛡️ HARD GUARD: No execution on server
@@ -114,7 +114,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
   console.log('🚀 [photo-flow] STARTING NUCLEAR FLOW', {
     analyze,
-    userId: user?.uid || 'guest',
+    userId: uid || 'guest',
     guestId,
     locale,
     tier: currentTier,
@@ -171,7 +171,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
     // 2. Photo ID generation
     const photoId = doc(collection(db, 'photos')).id;
-    const currentUserId = user?.uid || guestId || 'anonymous';
+    const currentUserId = uid || 'anonymous';
     console.log('📦 [photo-flow] STEP 2: Photo ID:', photoId, 'User:', currentUserId);
     lastSuccessfulStep = 'STEP_2_ID_GENERATED';
 
@@ -194,9 +194,14 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
     // 4. Duplicate Check
     if (user) {
-      console.log('🔍 [photo-flow] STEP 4: Checking for duplicates in user library...');
+      console.log('🔍 [photo-flow] STEP 4: Checking for duplicates...', { uid });
+      
+      if (!uid) {
+        throw new Error('USER_ID_MISSING_IN_FLOW');
+      }
+
       const q = query(
-        collection(db, 'users', user.uid, 'photos'),
+        collection(db, 'users', uid, 'photos'),
         where('imageHash', '==', hash)
       );
       const dupSnap = await getDocs(q);
@@ -230,14 +235,13 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
             style_analysis: 'Sistem stabilizasyonu için mock data kullanıldı.'
           };
 
-          const batch = writeBatch(db);
           batch.update(dupSnap.docs[0].ref, {
             aiFeedback: analysis,
             tags: analysis.tags || [],
             analysisTier: currentTier
           });
 
-          batch.update(doc(db, 'users', user.uid), {
+          batch.update(doc(db, 'users', uid), {
             pix_balance: increment(-analysisCost),
             total_analyses_count: increment(1)
           });
@@ -245,7 +249,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
           await batch.commit();
           console.log('✅ [photo-flow] Duplicate analysis saved');
 
-          updateUserProfileIndex(user.uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo, currentTier)).catch(e =>
+          updateUserProfileIndex(uid, getOverallScore({ ...existingPhoto, aiFeedback: analysis } as Photo, currentTier)).catch(e =>
             console.error('⚠️ [photo-flow] Index update error:', e)
           );
 
@@ -371,10 +375,10 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       photoData.analysisTier = currentTier;
       photoData.tags = analysis.tags || []; // 🏷️ Propagate tags to top-level for gallery visibility
 
-      if (user) {
-        console.log('[FLOW-DEBUG] STEP 7: Saving to Firestore...');
-        const photoDocRef = doc(collection(db, 'users', user.uid, 'photos'), photoId);
-        const userRef = doc(db, 'users', user.uid);
+      if (uid) {
+        console.log('[FLOW-DEBUG] STEP 7: Saving to Firestore...', { uid });
+        const photoDocRef = doc(collection(db, 'users', uid, 'photos'), photoId);
+        const userRef = doc(db, 'users', uid);
         const batch = writeBatch(db);
 
         batch.set(photoDocRef, photoData);
@@ -405,8 +409,8 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
         console.log('[FLOW-DEBUG] Flow Complete. Overall Score:', getOverallScore(photoData, currentTier).toFixed(1));
       }
 
-      if (user) {
-          updateUserProfileIndex(user.uid, getOverallScore(photoData, currentTier)).catch((indexErr: any) =>
+      if (uid) {
+          updateUserProfileIndex(uid, getOverallScore(photoData, currentTier)).catch((indexErr: any) =>
             console.error('[FLOW-ERROR] Profile index update failure:', indexErr.message)
           );
         /* 
@@ -427,12 +431,12 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
       console.log('🎉 [photo-flow] COMPLETE! Total Pipeline Time:', Date.now() - flowStartTime, 'ms');
       return { type: 'success', data: serializeData(photoData) };
     } else {
-      if (user) {
+      if (uid) {
         console.log('[FLOW-DEBUG] STEP 6: Saving upload-only entry...');
-        const photoDocRef = doc(collection(db, 'users', user.uid, 'photos'), photoId);
+        const photoDocRef = doc(collection(db, 'users', uid, 'photos'), photoId);
         const batch = writeBatch(db);
         batch.set(photoDocRef, photoData);
-        batch.update(doc(db, 'users', user.uid), { current_xp: increment(5) });
+        batch.update(doc(db, 'users', uid), { current_xp: increment(5) });
         await batch.commit().catch(e => {
           console.error('[FLOW-ERROR] Upload-only commit failed:', e.message);
           throw e;
@@ -447,6 +451,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
     console.error('🚨 [photo-flow] CRITICAL EXCEPTION CAUGHT');
     console.error(`📍 STEP: ${lastSuccessfulStep}`);
     console.error(`❌ MSG: ${error?.message || 'Unknown Error'}`);
+    console.error(`🛠️ FULL ERROR:`, error);
     
     if (error?.digest) console.error(`🆔 DIGEST: ${error.digest}`);
     if (error?.stack) console.error(`📚 STACK: ${error.stack}`);

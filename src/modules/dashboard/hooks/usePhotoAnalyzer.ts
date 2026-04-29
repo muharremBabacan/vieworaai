@@ -11,7 +11,7 @@ export type AnalyzerStatus = 'idle' | 'uploading' | 'analyzing' | 'done' | 'erro
 
 export function usePhotoAnalyzer() {
   const locale = useLocale();
-  const { user, auth } = useUser(); // 🛡️ Get auth object to check currentUser
+  const { user, uid, auth } = useUser(); // 🛡️ Get auth and consistent uid
   const firestore = useFirestore();
   const storage = useStorage();
 
@@ -23,12 +23,12 @@ export function usePhotoAnalyzer() {
   const userDocRef = useMemoFirebase(
     () => {
       // 🛡️ MÜHÜR: Sadece istemci tarafında auth gerçekse veriye dokun
-      if (user && firestore && auth?.currentUser?.uid === user.uid) {
-        return doc(firestore, 'users', user.uid);
+      if (uid && firestore && auth?.currentUser?.uid === uid) {
+        return doc(firestore, 'users', uid);
       }
       return null;
     },
-    [user, firestore, auth?.currentUser]
+    [uid, firestore, auth?.currentUser]
   );
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
   
@@ -94,8 +94,7 @@ export function usePhotoAnalyzer() {
         user,
         userProfile: userProfile || null,
         locale,
-        guestId,
-        guestUsed: guestLimitReached,
+        uid,
         guestPix: guestPix,
         currentTier: userProfile?.tier || 'start'
       });

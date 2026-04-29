@@ -87,7 +87,7 @@ function FeedbackDisplay({ analysis }: { analysis: StoredStrategicFeedback }) {
 
 export default function LumaMentorPage() {
   const t = useTranslations('LumaMentorPage');
-  const { user } = useUser();
+  const { user, uid, isFirebaseReady, profile: userProfile, isProfileLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -95,28 +95,25 @@ export default function LumaMentorPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<StoredStrategicFeedback | null>(null);
 
-  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-
   const historyQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!uid || !firestore || !isFirebaseReady) return null;
     return query(
-      collection(firestore, 'users', user.uid, 'strategic_feedbacks'),
+      collection(firestore, 'users', uid, 'strategic_feedbacks'),
       orderBy('createdAt', 'desc'),
       limit(10)
     );
-  }, [user, firestore]);
-  const { data: history, isLoading: isHistoryLoading } = useCollection<StoredStrategicFeedback>(historyQuery);
+  }, [uid, firestore, isFirebaseReady]);
+  const { data: history, isLoading: isHistoryLoading } = useCollection<StoredStrategicFeedback>(historyQuery, { requireAuth: true });
 
   const photosQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!uid || !firestore || !isFirebaseReady) return null;
     return query(
-      collection(firestore, 'users', user.uid, 'photos'),
+      collection(firestore, 'users', uid, 'photos'),
       orderBy('createdAt', 'desc'),
       limit(20)
     );
-  }, [user, firestore]);
-  const { data: photos } = useCollection<Photo>(photosQuery);
+  }, [uid, firestore, isFirebaseReady]);
+  const { data: photos } = useCollection<Photo>(photosQuery, { requireAuth: true });
 
   const hasAccessToAnalysis = canAccess(userProfile, "mentorAnalysis");
   const currentTier = userProfile?.tier || 'start';
@@ -137,8 +134,8 @@ export default function LumaMentorPage() {
     if (userProfile.pix_balance < strategicCost) {
       toast({
         variant: 'destructive',
-        title: t('toast_insufficient_auro', { currency: currencyName }),
-        description: t('toast_insufficient_auro_desc', { cost: strategicCost, currency: currencyName }),
+        title: t('toast_insufficient_Pix', { currency: currencyName }),
+        description: t('toast_insufficient_Pix_desc', { cost: strategicCost, currency: currencyName }),
         action: (
           <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>
             Pix Yükle
@@ -183,9 +180,9 @@ export default function LumaMentorPage() {
       };
 
       const batch = writeBatch(firestore);
-      const feedbackRef = doc(collection(firestore, 'users', user.uid, 'strategic_feedbacks'));
+      const feedbackRef = doc(collection(firestore, 'users', uid, 'strategic_feedbacks'));
       const logRef = doc(collection(firestore, 'analysis_logs'));
-      const userRef = doc(firestore, 'users', user.uid);
+      const userRef = doc(firestore, 'users', uid);
 
       batch.set(feedbackRef, { ...feedbackData, id: feedbackRef.id });
       batch.update(userRef, {
@@ -195,7 +192,7 @@ export default function LumaMentorPage() {
 
       batch.set(logRef, {
         id: logRef.id,
-        userId: user.uid,
+        userId: uid,
         userName: userProfile.name || 'Sanatçı',
         type: 'mentor',
         pixSpent: strategicCost,

@@ -10,6 +10,7 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { serializeData, deepCompare } from '@/lib/utils';
+import { useUser } from '@/lib/firebase/client-provider';
 
 type WithId<T> = T & { id: string };
 
@@ -21,13 +22,15 @@ export interface UseDocResult<T> {
 
 interface UseDocOptions {
   realtime?: boolean;
+  requireAuth?: boolean;
 }
 
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
   options: UseDocOptions = {}
 ): UseDocResult<T> {
-  const { realtime = true } = options;
+  const { realtime = true, requireAuth = false } = options;
+  const { isFirebaseReady } = useUser();
 
   const [data, setData] = useState<WithId<T> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -42,15 +45,13 @@ export function useDoc<T = any>(
   useEffect(() => {
     let unsubscribe: () => void = () => {};
 
-    if (!memoizedDocRef) {
-      if (data !== null) setData(null);
-      setError(null);
-      setIsLoading(false);
+    if (!memoizedDocRef || (requireAuth && !isFirebaseReady)) {
+      if (data !== null) {
+        setData(null);
+        setIsLoading(false);
+      }
       return;
     }
-
-    // SILENT_DEBUG: Only log if explicitly needed
-    // console.debug(`[useDoc] Starting ${realtime ? 'realtime' : 'one-time'} fetch for:`, docSignature);
 
     setIsLoading(true);
     setError(null);
@@ -74,7 +75,10 @@ export function useDoc<T = any>(
     };
 
     const handleError = (err: FirestoreError) => {
-      console.error('Firestore useDoc error:', err);
+      // Permission errors are common during auth transitions, keep them silent unless persistent
+      if (err?.code !== 'permission-denied') {
+        console.error('Firestore useDoc error:', err);
+      }
       setError(err);
       setData(null);
       setIsLoading(false);
@@ -87,14 +91,11 @@ export function useDoc<T = any>(
     }
 
     return () => {
-      if (realtime) {
-        // console.debug(`[useDoc] Unsubscribing from:`, docSignature);
-        unsubscribe();
-      }
+      if (realtime) unsubscribe();
     };
 
   // docSignature kullanarak referans değişimlerinden kaynaklanan loop'u önlüyoruz
-  }, [docSignature, realtime]);
+  }, [docSignature, realtime, requireAuth, isFirebaseReady]);
 
   return {
     data,

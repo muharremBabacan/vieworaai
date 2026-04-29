@@ -982,7 +982,13 @@
     "list_exhibitions": "Platform Exhibitions",
     "competitions": "Competitions",
     "exhibitions": "Exhibitions",
-    "mentor_analysis": "Mentor Analysis"
+    "mentor_analysis": "Mentor Analysis",
+    "button_freeze_user": "Freeze User",
+    "button_unfreeze_user": "Unfreeze User",
+    "button_delete_user": "Delete User",
+    "status_suspended": "SUSPENDED",
+    "status_active": "ACTIVE",
+    "suspend_description": "Restricts account access"
   },
   "SettingsPage": {
     "notification_settings_title": "Notification Settings",

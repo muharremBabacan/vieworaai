@@ -5,7 +5,7 @@ import { NotificationAPI } from '@/lib/api/notification-api';
 import { useUser } from '@/lib/firebase';
 
 export function useNotificationSetup() {
-  const { user } = useUser();
+  const { user, uid } = useUser();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSettingUp, setIsSettingUp] = useState(false);
 
@@ -16,7 +16,7 @@ export function useNotificationSetup() {
   }, []);
 
   const requestPermission = async () => {
-    if (!user || typeof window === 'undefined' || isSettingUp) return;
+    if (!uid || typeof window === 'undefined' || isSettingUp) return;
     
     setIsSettingUp(true);
     try {
@@ -42,7 +42,7 @@ export function useNotificationSetup() {
         
         if (token) {
           console.log('[Notifications] Token retrieved:', token);
-          await NotificationAPI.saveToken(user.uid, token);
+          await NotificationAPI.saveToken(uid, token);
         }
       }
     } catch (error) {

@@ -163,7 +163,7 @@ export default function GroupDetailPage() {
   const { groupId, locale } = useParams();
   const t = useTranslations('GroupDetailPage');
   const router = useRouter();
-  const { user } = useUser();
+  const { user, uid, isFirebaseReady, profile: userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -173,26 +173,23 @@ export default function GroupDetailPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<GroupSubmission | null>(null);
 
   // 🪝 ALL HOOKS AT TOP
-  const groupRef = useMemoFirebase(() => (firestore && groupId) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId]);
-  const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef);
-
-  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userDocRef);
+  const groupRef = useMemoFirebase(() => (firestore && groupId && isFirebaseReady) ? doc(firestore, 'groups', groupId as string) : null, [firestore, groupId, isFirebaseReady]);
+  const { data: group, isLoading: isGroupLoading } = useDoc<Group>(groupRef, { requireAuth: true });
 
   const profilesQuery = useMemoFirebase(() => {
-    if (!firestore || !group?.memberIds || group.memberIds.length === 0) return null;
+    if (!firestore || !isFirebaseReady || !group?.memberIds || group.memberIds.length === 0) return null;
     return query(collection(firestore, 'public_profiles'), where(documentId(), 'in', group.memberIds));
-  }, [firestore, group?.memberIds]);
-  const { data: memberProfiles } = useCollection<PublicUserProfile>(profilesQuery);
+  }, [firestore, isFirebaseReady, group?.memberIds]);
+  const { data: memberProfiles } = useCollection<PublicUserProfile>(profilesQuery, { requireAuth: true });
 
-  const assignmentsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'assignments'), orderBy('createdAt', 'desc')) : null, [firestore, groupId]);
-  const { data: assignments } = useCollection<GroupAssignment>(assignmentsQuery);
+  const assignmentsQuery = useMemoFirebase(() => (firestore && groupId && isFirebaseReady) ? query(collection(firestore, 'groups', groupId as string, 'assignments'), orderBy('createdAt', 'desc')) : null, [firestore, groupId, isFirebaseReady]);
+  const { data: assignments } = useCollection<GroupAssignment>(assignmentsQuery, { requireAuth: true });
 
-  const submissionsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'submissions'), orderBy('submittedAt', 'desc')) : null, [firestore, groupId]);
-  const { data: submissions } = useCollection<GroupSubmission>(submissionsQuery);
+  const submissionsQuery = useMemoFirebase(() => (firestore && groupId && isFirebaseReady) ? query(collection(firestore, 'groups', groupId as string, 'submissions'), orderBy('submittedAt', 'desc')) : null, [firestore, groupId, isFirebaseReady]);
+  const { data: submissions } = useCollection<GroupSubmission>(submissionsQuery, { requireAuth: true });
 
-  const tripsQuery = useMemoFirebase(() => (firestore && groupId) ? query(collection(firestore, 'groups', groupId as string, 'trips'), orderBy('created_at', 'desc')) : null, [firestore, groupId]);
-  const { data: trips, isLoading: isTripsLoading } = useCollection<Trip>(tripsQuery);
+  const tripsQuery = useMemoFirebase(() => (firestore && groupId && isFirebaseReady) ? query(collection(firestore, 'groups', groupId as string, 'trips'), orderBy('created_at', 'desc')) : null, [firestore, groupId, isFirebaseReady]);
+  const { data: trips, isLoading: isTripsLoading } = useCollection<Trip>(tripsQuery, { requireAuth: true });
 
   useEffect(() => {
     if (group?.purpose === 'walk' && activeTab === 'assignments') {
@@ -204,12 +201,12 @@ export default function GroupDetailPage() {
     if (!user) return false;
     const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
     const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
-    return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
-  }, [user]);
+    return adminEmails.includes(user.email || '') || adminUids.includes(uid);
+  }, [user, uid]);
 
-  const isCurrentUserOwner = group?.ownerId === user?.uid;
-  const isCurrentUserJury = group?.juryIds?.includes(user?.uid || '');
-  const isMember = group?.memberIds.includes(user?.uid || '');
+  const isCurrentUserOwner = group?.ownerId === uid;
+  const isCurrentUserJury = group?.juryIds?.includes(uid || '');
+  const isMember = group?.memberIds.includes(uid || '');
   const canViewGallery = isMember || group?.isGalleryPublic;
   const canManageGroup = isCurrentUserOwner || isCurrentUserAdmin;
 
@@ -222,7 +219,7 @@ export default function GroupDetailPage() {
       const photoId = crypto.randomUUID();
       const formData = new FormData();
       formData.append('file', optimizedFile);
-      const imageUrlsResponse = await uploadAndProcessImage(formData, user.uid, photoId, 'submissions');
+      const imageUrlsResponse = await uploadAndProcessImage(formData, uid, photoId, 'submissions');
       
       if (!imageUrlsResponse.success) {
         throw new Error(imageUrlsResponse.error || 'Upload failed');
@@ -269,7 +266,7 @@ export default function GroupDetailPage() {
         id: submissionRef.id, 
         groupId: group.id, 
         assignmentId: assignment.id, 
-        userId: user.uid, 
+        userId: uid, 
         userName: userProfile?.name || t('anonymous_artist'), 
         userPhotoURL: userProfile?.photoURL || null, 
         photoUrl: imageUrls.analysis,
@@ -298,10 +295,10 @@ export default function GroupDetailPage() {
       
       const subData = subSnap.data() as GroupSubmission;
       const reviews = subData.juryReviews || [];
-      const existingIdx = reviews.findIndex(r => r.userId === user.uid);
+      const existingIdx = reviews.findIndex(r => r.userId === uid);
       
       const newReview = {
-        userId: user.uid,
+        userId: uid,
         userName: userProfile?.name || t('anonymous_artist'),
         score: review.score,
         feedback: review.feedback,
@@ -370,9 +367,9 @@ export default function GroupDetailPage() {
       const subSnap = await getDoc(submissionRef);
       if (!subSnap.exists()) return;
       const subData = subSnap.data() as GroupSubmission;
-      const isLiked = subData.likes?.includes(user.uid);
+      const isLiked = subData.likes?.includes(uid);
       await updateDoc(submissionRef, {
-        likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+        likes: isLiked ? arrayRemove(uid) : arrayUnion(uid)
       });
       toast({ title: isLiked ? t('toast_unlike_success') : t('toast_like_success'), duration: 2000 });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
@@ -440,7 +437,7 @@ export default function GroupDetailPage() {
     if (!user || !firestore || !group) return;
     try {
       const tripRef = doc(collection(firestore, 'groups', group.id, 'trips'));
-      await setDoc(tripRef, { ...tripData, id: tripRef.id, groupId: group.id, mentorId: user.uid, status: 'planned', created_at: new Date().toISOString() });
+      await setDoc(tripRef, { ...tripData, id: tripRef.id, groupId: group.id, mentorId: uid, status: 'planned', created_at: new Date().toISOString() });
       toast({ title: t('toast_trip_publish_success') });
     } catch (e) { toast({ variant: 'destructive', title: t('toast_error') }); }
   };
@@ -573,7 +570,7 @@ export default function GroupDetailPage() {
           trips={trips || []}
           isTripsLoading={!!isTripsLoading}
           isOwner={isCurrentUserOwner}
-          userId={user?.uid || ''}
+          userId={uid || ''}
           userProfile={userProfile}
           assignments={assignments || []}
           submissions={submissions || []}
@@ -617,8 +614,8 @@ export default function GroupDetailPage() {
                       <DialogDescription className="text-[10px] uppercase font-black">{new Date(selectedSubmission.submittedAt).toLocaleString('tr')}</DialogDescription>
                     </div>
                   </div>
-                  <Button onClick={() => handleLikeSubmission(selectedSubmission.id)} variant={(user && selectedSubmission.likes?.includes(user.uid)) ? 'default' : 'outline'} className="gap-2">
-                    <Heart className={cn("h-4 w-4", (user && selectedSubmission.likes?.includes(user.uid)) ? "fill-current" : "")} />
+                  <Button onClick={() => handleLikeSubmission(selectedSubmission.id)} variant={(uid && selectedSubmission.likes?.includes(uid)) ? 'default' : 'outline'} className="gap-2">
+                    <Heart className={cn("h-4 w-4", (uid && selectedSubmission.likes?.includes(uid)) ? "fill-current" : "")} />
                     {selectedSubmission.likes?.length || 0}
                   </Button>
                 </div>

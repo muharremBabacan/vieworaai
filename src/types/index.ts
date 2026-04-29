@@ -180,6 +180,7 @@ export type User = {
   profile_index?: UserProfileIndex;
   notifications_enabled?: boolean;
   provider: 'google' | 'email';
+  isSuspended?: boolean;
 };
 
 export type PublicUserProfile = {

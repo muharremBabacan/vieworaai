@@ -39,25 +39,22 @@ export default function ExplorePage() {
   const t = useTranslations('ExplorePage');
   const tr = useTranslations('Ratings');
   const router = useRouter();
-  const { user } = useUser();
+  const { user, uid, isFirebaseReady, profile: userProfile } = useUser();
   const firestore = useFirestore();
 
   const [view, setView] = useState<'hub' | 'exhibitions' | 'exhibition-detail' | 'featured'>('hub');
   const [selectedExhibition, setSelectedExhibition] = useState<Exhibition | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
-  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userDocRef);
-
   const exhibitionsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? query(collection(firestore, 'exhibitions'), where('isActive', '==', true), orderBy('createdAt', 'desc')) : null,
+    [firestore, isFirebaseReady]
   );
   const { data: platformExhibitions, isLoading: isPlatformExLoading } = useCollection<Exhibition>(exhibitionsQuery);
 
   const publicGroupsQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'groups'), where('isGalleryPublic', '==', true), orderBy('createdAt', 'desc'), limit(10)) : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? query(collection(firestore, 'groups'), where('isGalleryPublic', '==', true), orderBy('createdAt', 'desc'), limit(10)) : null,
+    [firestore, isFirebaseReady]
   );
   const { data: publicGroups, isLoading: isGroupsLoading } = useCollection<Group>(publicGroupsQuery);
 
@@ -78,7 +75,7 @@ export default function ExplorePage() {
   const isExLoading = isPlatformExLoading || isGroupsLoading;
 
   const photosQuery = useMemoFirebase(() => {
-    if (!firestore || view === 'hub') return null;
+    if (!firestore || !isFirebaseReady || view === 'hub') return null;
     if (view === 'exhibition-detail' && selectedExhibition) {
         return query(collection(firestore, 'public_photos'), where('exhibitionId', '==', selectedExhibition.id), orderBy('createdAt', 'desc'));
     }
@@ -86,7 +83,7 @@ export default function ExplorePage() {
         return query(collection(firestore, 'public_photos'), orderBy('createdAt', 'desc'), limit(40));
     }
     return null;
-  }, [firestore, selectedExhibition, view]);
+  }, [firestore, isFirebaseReady, selectedExhibition, view]);
   const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
 
   const handleToggleLike = async (photo: Photo, e: React.MouseEvent) => {
@@ -97,9 +94,9 @@ export default function ExplorePage() {
     }
     if (!firestore) return;
     const photoRef = doc(firestore, 'public_photos', photo.id);
-    const isLiked = photo.likes?.includes(user.uid);
+    const isLiked = photo.likes?.includes(uid);
     try {
-      await updateDoc(photoRef, { likes: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
+      await updateDoc(photoRef, { likes: isLiked ? arrayRemove(uid) : arrayUnion(uid) });
     } catch (err) { console.error(err); }
   };
 
@@ -146,7 +143,7 @@ export default function ExplorePage() {
       setTimeout(async () => {
         clearInterval(interval);
         try {
-          const userRef = doc(firestore, 'users', user.uid);
+          const userRef = doc(firestore, 'users', uid);
           await updateDoc(userRef, {
             pix_balance: (userProfile?.pix_balance || 0) + 1
           });
@@ -391,7 +388,7 @@ export default function ExplorePage() {
           ) : (photos && photos.length > 0) ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {photos.map((photo) => {
-                const isLiked = photo.likes?.includes(user?.uid || '');
+                const isLiked = photo.likes?.includes(uid || '');
                 return (
                   <Card key={photo.id} className="group relative aspect-square rounded-[40px] overflow-hidden cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
                     <VieworaImage 

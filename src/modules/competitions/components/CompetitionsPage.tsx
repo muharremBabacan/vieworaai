@@ -319,14 +319,14 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
 export default function CompetitionsPage() {
     const t = useTranslations('CompetitionsPage');
     const firestore = useFirestore();
-    const { user } = useUser();
+    const { user, uid } = useUser();
     const router = useRouter();
     const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isEntriesOpen, setIsEntriesOpen] = useState(false);
     const [competitionForEntries, setCompetitionForEntries] = useState<Competition | null>(null);
     
-    const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+    const userDocRef = useMemoFirebase(() => uid ? doc(firestore, 'users', uid) : null, [uid, firestore]);
     const { data: userProfile } = useDoc<User>(userDocRef);
     
     const competitionsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null, [firestore]);

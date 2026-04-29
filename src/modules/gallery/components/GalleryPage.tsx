@@ -62,7 +62,7 @@ export default function GalleryPage() {
   const tApp = useTranslations('AppLayout');
   const tr = useTranslations('Ratings');
   const locale = useLocale();
-  const { user } = useUser();
+  const { user, uid, isFirebaseReady, profile: userProfile, isProfileLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -75,14 +75,13 @@ export default function GalleryPage() {
   const [targetExhibitionId, setTargetExhibitionId] = useState<string>('');
   const [targetCompetitionId, setTargetCompetitionId] = useState<string>('');
 
-  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
   const photosQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!uid || !firestore || !isFirebaseReady) return null;
     return query(
-      collection(firestore, 'users', user.uid, 'photos'),
+      collection(firestore, 'users', uid, 'photos'),
       orderBy('createdAt', 'desc')
     );
-  }, [user, firestore]);
+  }, [uid, firestore, isFirebaseReady]);
   const exhibitionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'exhibitions'), where('isActive', '==', true));
@@ -92,15 +91,14 @@ export default function GalleryPage() {
     return query(collection(firestore, 'competitions'), orderBy('endDate', 'desc'));
   }, [firestore]);
   const userGroupsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid));
-  }, [firestore, user]);
+    if (!firestore || !uid || !isFirebaseReady) return null;
+    return query(collection(firestore, 'groups'), where('memberIds', 'array-contains', uid));
+  }, [firestore, uid, isFirebaseReady]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
-  const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery);
+  const { data: photos, isLoading: isPhotosLoading } = useCollection<Photo>(photosQuery, { requireAuth: true });
   const { data: exhibitions } = useCollection<Exhibition>(exhibitionsQuery);
   const { data: competitions } = useCollection<Competition>(competitionsQuery);
-  const { data: userGroups } = useCollection<Group>(userGroupsQuery);
+  const { data: userGroups } = useCollection<Group>(userGroupsQuery, { requireAuth: true });
 
   const STATUS_FILTERS = [
     { id: 'all', label: t('filter_all'), icon: Layers },
@@ -156,12 +154,12 @@ export default function GalleryPage() {
     try {
       const storage = getStorage();
       const batch = writeBatch(firestore);
-      const userPhotoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      const userPhotoRef = doc(firestore, 'users', uid, 'photos', photo.id);
       
       batch.delete(userPhotoRef);
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
-        batch.update(doc(firestore, 'users', user.uid), { total_exhibitions_count: increment(-1) });
+        batch.update(doc(firestore, 'users', uid), { total_exhibitions_count: increment(-1) });
       }
       
       await batch.commit();
@@ -186,7 +184,7 @@ export default function GalleryPage() {
     const compId = targetCompetitionId.replace('global-', '').replace('group-', '');
     
     if (isGlobal && userProfile.pix_balance < 5) {
-      toast({ variant: 'destructive', title: tDashboard('toast_insufficient_auro_title') });
+      toast({ variant: 'destructive', title: tDashboard('toast_insufficient_Pix_title') });
       router.push('/pricing');
       return;
     }
@@ -194,7 +192,7 @@ export default function GalleryPage() {
     setIsProcessing(true);
     try {
       const batch = writeBatch(firestore);
-      const userRef = doc(firestore, 'users', user.uid);
+      const userRef = doc(firestore, 'users', uid);
       
       if (isGlobal) {
 
@@ -202,7 +200,7 @@ export default function GalleryPage() {
         batch.set(entryRef, {
           id: entryRef.id,
           competitionId: compId,
-          userId: user.uid,
+          userId: uid,
           userName: userProfile.name || 'Sanatçı',
           photoUrl: photo.imageUrl,
           imageUrls: photo.imageUrls,
@@ -224,7 +222,7 @@ export default function GalleryPage() {
           id: submissionRef.id,
           groupId: compId,
           assignmentId: 'gallery_submission',
-          userId: user.uid,
+          userId: uid,
           userName: userProfile.name || 'Sanatçı',
           userPhotoURL: userProfile.photoURL || null,
           photoUrl: photo.imageUrl,
@@ -244,7 +242,7 @@ export default function GalleryPage() {
         batch.update(userRef, { total_competitions_count: increment(1) });
       }
       
-      const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+      const photoRef = doc(firestore, 'users', uid, 'photos', photo.id);
       batch.update(photoRef, { isSubmittedToCompetition: true, competitionId: compId });
 
       await batch.commit();
@@ -267,21 +265,21 @@ export default function GalleryPage() {
     try {
       const batch = writeBatch(firestore);
       if (isGlobal) {
-        const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
+        const photoRef = doc(firestore, 'users', uid, 'photos', photo.id);
         const publicPhotoRef = doc(firestore, 'public_photos', photo.id);
         
         batch.set(publicPhotoRef, {
           ...photo,
           id: photo.id,
           exhibitionId: exhId,
-          userId: user.uid,
+          userId: uid,
           userName: userProfile.name || 'Sanatçı',
           userPhotoURL: userProfile.photoURL || null,
           likes: [],
           createdAt: new Date().toISOString()
         });
         batch.update(photoRef, { isSubmittedToExhibition: true, exhibitionId: exhId });
-        batch.update(doc(firestore, 'users', user.uid), { 
+        batch.update(doc(firestore, 'users', uid), { 
           pix_balance: increment(-1), 
           total_exhibitions_count: increment(1)
         });
@@ -291,7 +289,7 @@ export default function GalleryPage() {
           id: submissionRef.id,
           groupId: exhId,
           assignmentId: 'exhibition_submission',
-          userId: user.uid,
+          userId: uid,
           userName: userProfile.name || 'Sanatçı',
           userPhotoURL: userProfile.photoURL || null,
           photoUrl: photo.imageUrl,
@@ -322,7 +320,7 @@ export default function GalleryPage() {
     const analysisCost = TIER_COSTS[currentTier] || 1;
 
     if (userProfile.pix_balance < analysisCost) {
-      toast({ variant: 'destructive', title: tDashboard('toast_insufficient_auro_title') });
+      toast({ variant: 'destructive', title: tDashboard('toast_insufficient_Pix_title') });
       router.push('/pricing');
       return;
     }
@@ -338,8 +336,8 @@ export default function GalleryPage() {
       });
 
       const batch = writeBatch(firestore);
-      const photoRef = doc(firestore, 'users', user.uid, 'photos', photo.id);
-      const userRef = doc(firestore, 'users', user.uid);
+      const photoRef = doc(firestore, 'users', uid, 'photos', photo.id);
+      const userRef = doc(firestore, 'users', uid);
 
       const updatedPhotoData = {
         ...photo,
@@ -472,7 +470,7 @@ export default function GalleryPage() {
 
                 {/* HUD: Bottom Likes */}
                 <div className="absolute bottom-5 right-5 z-20 flex items-center gap-1.5 px-3 h-8 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                   <Heart size={12} className={cn(user && photo.likes?.includes(user.uid) ? "fill-red-500 text-red-500" : "text-white")} />
+                   <Heart size={12} className={cn(uid && photo.likes?.includes(uid) ? "fill-red-500 text-red-500" : "text-white")} />
                    <span className="text-[10px] font-black">{photo.likes?.length || 0}</span>
                 </div>
               </Card>

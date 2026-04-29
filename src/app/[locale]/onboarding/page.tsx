@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useUser, useFirestore } from '@/lib/firebase/client-provider';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import type { OnboardingResults } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,7 +32,7 @@ type Question = {
 export default function OnboardingPage() {
   const t = useTranslations('OnboardingPage');
   const router = useRouter();
-  const { user, firestore } = useUser();
+  const { user, uid, firestore } = useUser();
   const { toast } = useToast();
   
   const [step, setStep] = useState(0);
@@ -97,11 +97,11 @@ export default function OnboardingPage() {
   };
 
   const handleFinish = async () => {
-    if (!user || !firestore || isSaving) return;
+    if (!uid || !firestore || isSaving) return;
     setIsSaving(true);
 
     try {
-      const userRef = doc(firestore, 'users', user.uid);
+      const userRef = doc(firestore, 'users', uid);
       await setDoc(userRef, {
         onboarded: true,
         onboarding_results: answers,

@@ -38,7 +38,7 @@ const PURPOSE_CONFIG: Record<GroupPurpose, { labelKey: string; icon: any; color:
 
 export default function GroupsPage() {
   const t = useTranslations('GroupsPage');
-  const { user, isUserLoading } = useUser();
+  const { user, uid, isUserLoading, isFirebaseReady, profile: userProfile } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -54,19 +54,16 @@ export default function GroupsPage() {
   }, []);
 
   const groupsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', user.uid)) : null,
-    [user, firestore]
+    () => (uid && isFirebaseReady) ? query(collection(firestore, 'groups'), where('memberIds', 'array-contains', uid)) : null,
+    [uid, isFirebaseReady, firestore]
   );
-  const { data: memberGroups, isLoading: isGroupsLoading } = useCollection<Group>(groupsQuery);
+  const { data: memberGroups, isLoading: isGroupsLoading } = useCollection<Group>(groupsQuery, { requireAuth: true });
 
   const ownedGroupsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'groups'), where('ownerId', '==', user.uid)) : null,
-    [user, firestore]
+    () => (uid && isFirebaseReady) ? query(collection(firestore, 'groups'), where('ownerId', '==', uid)) : null,
+    [uid, isFirebaseReady, firestore]
   );
-  const { data: ownedGroups, isLoading: isOwnedLoading } = useCollection<Group>(ownedGroupsQuery);
-  
-  const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<User>(userDocRef);
+  const { data: ownedGroups, isLoading: isOwnedLoading } = useCollection<Group>(ownedGroupsQuery, { requireAuth: true });
 
   const createFormSchema = z.object({
     name: z.string().min(3, t('form_error_name_min')).max(50, t('form_error_name_max')),
@@ -119,8 +116,8 @@ export default function GroupsPage() {
         description: values.description || '',
         purpose: values.purpose,
         organizerType: values.organizerType,
-        ownerId: user.uid,
-        memberIds: [user.uid],
+        ownerId: uid,
+        memberIds: [uid],
         createdAt: new Date().toISOString(),
         joinCode: String(Math.floor(100000 + Math.random() * 900000)),
         maxMembers: getGroupLimits(userProfile?.level_name).maxMembers,
@@ -135,11 +132,11 @@ export default function GroupsPage() {
       const docRef = await addDoc(collection(firestore, 'groups'), newGroup);
       await updateDoc(docRef, { id: docRef.id });
       
-      const publicRef = doc(firestore, 'public_profiles', user.uid);
+      const publicRef = doc(firestore, 'public_profiles', uid);
       const publicSnap = await getDoc(publicRef);
       if (!publicSnap.exists()) {
           await setDoc(publicRef, {
-              id: user.uid,
+              id: uid,
               name: userProfile?.name || user.displayName || t('anonymous_artist'),
               email: user.email,
               photoURL: userProfile?.photoURL || user.photoURL || null,
@@ -174,7 +171,7 @@ export default function GroupsPage() {
           const groupData = groupDoc.data() as Group;
           const groupId = groupDoc.id;
           
-          if (groupData.memberIds.includes(user.uid)) {
+          if (groupData.memberIds.includes(uid)) {
               toast({ title: t('toast_join_already_member_title'), description: t('toast_join_already_member_description', { name: groupData.name }) });
               setIsJoinDialogOpen(false);
               router.push(`/groups/${groupId}`);
@@ -187,17 +184,17 @@ export default function GroupsPage() {
           }
 
           await updateDoc(doc(firestore, "groups", groupId), {
-              memberIds: arrayUnion(user.uid)
+              memberIds: arrayUnion(uid)
           });
 
-          const publicRef = doc(firestore, 'public_profiles', user.uid);
+          const publicRef = doc(firestore, 'public_profiles', uid);
           const publicSnap = await getDoc(publicRef);
           if (!publicSnap.exists()) {
-              const userSnap = await getDoc(doc(firestore, 'users', user.uid));
+              const userSnap = await getDoc(doc(firestore, 'users', uid));
               if (userSnap.exists()) {
                   const userData = userSnap.data() as User;
                   await setDoc(publicRef, {
-                      id: user.uid,
+                      id: uid,
                       name: userData.name,
                       email: userData.email,
                       photoURL: userData.photoURL || null,
@@ -447,7 +444,7 @@ export default function GroupsPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {memberGroups.map(group => {
                   const purpose = PURPOSE_CONFIG[group.purpose || 'study'];
-                  const isOwner = group.ownerId === user?.uid;
+                  const isOwner = group.ownerId === uid;
                   return (
                     <Card key={group.id} className="relative flex flex-col group overflow-hidden border-border/40 bg-[#121214]/60 backdrop-blur-xl rounded-[32px] transition-all hover:border-primary/20 hover:shadow-2xl active:scale-[0.99] border shadow-xl">
                         {isOwner && (

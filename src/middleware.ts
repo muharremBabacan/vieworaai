@@ -20,9 +20,9 @@ export default function middleware(request: NextRequest) {
 
   // 2. 🌍 CANONICAL DOMAIN REDIRECT (WWW -> NON-WWW)
   const host = request.headers.get('host');
-  if (host?.startsWith('www.')) {
+  if (host?.startsWith('www.viewora.ai')) {
     const url = request.nextUrl.clone();
-    url.hostname = host.replace('www.', '');
+    url.hostname = 'viewora.ai';
     url.port = ''; 
     return NextResponse.redirect(url, 301);
   }
@@ -34,11 +34,6 @@ export default function middleware(request: NextRequest) {
   const isAuthPage = authPaths.some(p => pathname.includes(p));
   const isProtectedPage = protectedPaths.some(p => pathname.includes(p));
 
-  // 🔓 DEV MODE: ALL DOORS OPEN
-  // Redirect logic disabled to unblock development
-  
-  return intlMiddleware(request);
-  
   return intlMiddleware(request);
 }
 

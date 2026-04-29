@@ -51,7 +51,7 @@ export function GroupInvitesPopover() {
        
        try {
          batch.update(inviteRef, { status: 'accepted' });
-         batch.update(groupRef, { memberIds: arrayUnion(user.uid) });
+         batch.update(groupRef, { memberIds: arrayUnion(uid) });
          
          await batch.commit();
 

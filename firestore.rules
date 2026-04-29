@@ -7,17 +7,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isNotSuspended() {
+      return isSignedIn() && (
+        isAdmin() || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuspended != true
+      );
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
     
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'admin@viewora.ai' ||
-        request.auth.token.email == 'babacan.muharrem@gmail.com' ||
-        request.auth.uid == '01DT86bQwWUVmrewnEb8c6bd8H43' ||
+        request.auth.uid == '01DT86bQwWUVrewnEb8c6bd8H43' ||
         request.auth.uid == 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1' ||
-        request.auth.token.admin == true
+        request.auth.token.get('email', '') == 'admin@viewora.ai' ||
+        request.auth.token.get('email', '') == 'babacan.muharrem@gmail.com' ||
+        request.auth.token.get('admin', false) == true
       );
     }
 
@@ -27,28 +34,34 @@ service cloud.firestore {
     }
 
     match /pix_purchases/{purchaseId} {
-      allow list: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      allow list: if isAdmin() || (isNotSuspended() && resource.data.user_id == request.auth.uid);
       allow get: if isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid);
-      allow create: if isSignedIn();
+      allow create: if isNotSuspended();
       allow update, delete: if isAdmin();
     }
 
     match /users/{userId} {
-      allow get, list: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin() || (isOwner(userId) && (resource == null || resource.data.isSuspended != true));
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if isAdmin() || (isOwner(userId) && resource.data.isSuspended != true);
+      allow delete: if isAdmin();
       
       match /photos/{photoId} {
-        allow get, list, write: if isOwner(userId) || isAdmin();
+        allow get: if isOwner(userId) || isAdmin();
+        allow list, write: if isAdmin() || (isOwner(userId) && isNotSuspended());
       }
       match /lessonProgress/{lessonId} {
-        allow get, list, write: if isOwner(userId) || isAdmin();
+        allow get: if isOwner(userId) || isAdmin();
+        allow list, write: if isAdmin() || (isOwner(userId) && isNotSuspended());
       }
       match /strategic_feedbacks/{feedbackId} {
-        allow get, list, write: if isOwner(userId) || isAdmin();
+        allow get: if isOwner(userId) || isAdmin();
+        allow list, write: if isAdmin() || (isOwner(userId) && isNotSuspended());
       }
       match /notifications/{notifId} {
-        allow get, list, write: if isOwner(userId) || isAdmin();
+        allow get: if isOwner(userId) || isAdmin();
+        allow list, write: if isAdmin() || (isOwner(userId) && isNotSuspended());
       }
     }
     
@@ -59,33 +72,34 @@ service cloud.firestore {
     
     match /public_photos/{photoId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isNotSuspended();
+      allow update, delete: if isNotSuspended() && (resource.data.userId == request.auth.uid || isAdmin());
     }
     
     match /groups/{groupId} {
       allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create: if isNotSuspended();
+      allow update: if isNotSuspended() && (resource.data.ownerId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
 
       match /assignments/{assignmentId} {
         allow get, list: if isSignedIn();
-        allow write: if isAdmin() || (get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+        allow write: if isAdmin() || (isNotSuspended() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
       }
 
       match /submissions/{submissionId} {
         allow get, list: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+        allow create: if isNotSuspended();
+        allow update, delete: if isAdmin() || (isNotSuspended() && resource.data.userId == request.auth.uid);
       }
 
       match /trips/{tripId} {
         allow get, list: if isSignedIn();
-        allow create, update: if isSignedIn();
+        allow create, update: if isNotSuspended();
         
         match /participants/{userId} {
           allow get, list: if isSignedIn();
-          allow create, update: if isSignedIn() && request.auth.uid == userId;
+          allow create, update: if isNotSuspended() && request.auth.uid == userId;
         }
       }
     }
@@ -96,9 +110,9 @@ service cloud.firestore {
     }
 
     match /analysis_logs/{logId} {
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isNotSuspended() && resource.data.userId == request.auth.uid);
       allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn();
+      allow create: if isNotSuspended();
     }
 
     match /public_profiles/{userId} {
@@ -128,8 +142,8 @@ service cloud.firestore {
     
     match /group_invites/{inviteId} {
       allow get, list: if isSignedIn() && (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (resource.data.toUserId == request.auth.uid || isAdmin());
+      allow create: if isNotSuspended();
+      allow update: if (isNotSuspended() && resource.data.toUserId == request.auth.uid) || isAdmin();
     }
     
     match /competitions/{compId} {
@@ -137,8 +151,8 @@ service cloud.firestore {
       
       match /entries/{entryId} {
         allow get, list: if true;
-        allow create: if isSignedIn();
-        allow update: if isSignedIn();
+        allow create: if isNotSuspended();
+        allow update: if isNotSuspended() && (resource.data.userId == request.auth.uid || isAdmin());
       }
     }
     match /guest_usage/{guestId} {

@@ -138,7 +138,7 @@ const PixBalance = ({ userProfile, router }: { userProfile: User, router: any })
         <CardHeader className="p-8 pb-4">
           <CardTitle className="flex items-center gap-3 text-xl font-black tracking-tight">
               <Gem className="h-6 w-6 text-cyan-400" />
-              {t('auro_balance_title')}
+              {t('Pix_balance_title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8 pt-0">
@@ -148,7 +148,7 @@ const PixBalance = ({ userProfile, router }: { userProfile: User, router: any })
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400">{currencyName} {t('current_balance')}</p>
             </div>
             <Button onClick={() => router.push('/pricing')} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-              {t('button_buy_auro')}
+              {t('button_buy_Pix')}
             </Button>
           </div>
         </CardContent>
@@ -158,12 +158,9 @@ const PixBalance = ({ userProfile, router }: { userProfile: User, router: any })
 
 export default function ProfilePage() {
   const t = useTranslations('ProfilePage');
-  const { user, isUserLoading } = useUser();
+  const { user, uid, isUserLoading, isFirebaseReady, profile: userProfile, isProfileLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-
-  const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   if (isUserLoading || isProfileLoading) {
     return (

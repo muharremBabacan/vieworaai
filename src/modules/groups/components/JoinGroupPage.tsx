@@ -16,12 +16,12 @@ export default function JoinGroupPage() {
     const { groupId } = useParams();
     const t = useTranslations('JoinGroupPage');
     const router = useRouter();
-    const { user, isUserLoading } = useUser();
+    const { user, uid, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
 
     useEffect(() => {
-        if (isUserLoading || !firestore || !user) return;
+        if (isUserLoading || !firestore || !uid) return;
 
         const joinGroup = async () => {
             const groupRef = doc(firestore, 'groups', groupId as string);
@@ -36,27 +36,27 @@ export default function JoinGroupPage() {
                 const groupData = groupSnap.data() as Group;
                 
                 // 1. Üyelik kontrolü ve ekleme
-                if (!groupData.memberIds.includes(user.uid)) {
+                if (!groupData.memberIds.includes(uid)) {
                     if (groupData.memberIds.length >= groupData.maxMembers) {
                          toast({ variant: 'destructive', title: t('toast_error_title'), description: t('status_error_failed_join') });
                          router.push('/groups');
                          return;
                     }
                     await updateDoc(groupRef, {
-                        memberIds: arrayUnion(user.uid)
+                        memberIds: arrayUnion(uid)
                     });
                 }
 
                 // 2. public_profiles varlığını kontrol et ve oluştur
-                const publicProfileRef = doc(firestore, 'public_profiles', user.uid);
+                const publicProfileRef = doc(firestore, 'public_profiles', uid);
                 const publicProfileSnap = await getDoc(publicProfileRef);
 
                 if (!publicProfileSnap.exists()) {
-                    const userSnap = await getDoc(doc(firestore, 'users', user.uid));
+                    const userSnap = await getDoc(doc(firestore, 'users', uid));
                     if (userSnap.exists()) {
                         const userData = userSnap.data() as User;
                         await setDoc(publicProfileRef, {
-                            id: user.uid,
+                            id: uid,
                             name: userData.name,
                             email: userData.email,
                             photoURL: userData.photoURL || null,

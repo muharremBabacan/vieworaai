@@ -45,6 +45,7 @@ const userEditSchema = z.object({
   total_mentor_analyses_count: z.coerce.number().min(0),
   total_exhibitions_count: z.coerce.number().min(0),
   total_competitions_count: z.coerce.number().min(0),
+  isSuspended: z.boolean().optional(),
 });
 
 export default function AdminPanel() {
@@ -52,7 +53,7 @@ export default function AdminPanel() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, uid, isFirebaseReady } = useUser();
   const { currencyName: currentCurrency } = useAppConfig();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,37 +67,37 @@ export default function AdminPanel() {
   // Unconditional Hooks at top
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'config') : null), [firestore]);
   const logsQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? query(collection(firestore, 'analysis_logs'), orderBy('timestamp', 'desc')) : null,
+    [firestore, isFirebaseReady]
   );
   const usersQuery = useMemoFirebase(() =>
-    firestore ? collection(firestore, 'users') : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? collection(firestore, 'users') : null,
+    [firestore, isFirebaseReady]
   );
   const packagesQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'pix_packages'), orderBy('order', 'asc')) : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? query(collection(firestore, 'pix_packages'), orderBy('order', 'asc')) : null,
+    [firestore, isFirebaseReady]
   );
   const purchasesQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'pix_purchases'), where('status', '==', 'pending'), orderBy('created_at', 'desc')) : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? query(collection(firestore, 'pix_purchases'), where('status', '==', 'pending'), orderBy('created_at', 'desc')) : null,
+    [firestore, isFirebaseReady]
   );
   const allGroupsQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'groups'), orderBy('createdAt', 'desc')) : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? query(collection(firestore, 'groups'), orderBy('createdAt', 'desc')) : null,
+    [firestore, isFirebaseReady]
   );
   const allExhibitionsQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'exhibitions'), orderBy('createdAt', 'desc')) : null,
-    [firestore]
+    (firestore && isFirebaseReady) ? query(collection(firestore, 'exhibitions'), orderBy('createdAt', 'desc')) : null,
+    [firestore, isFirebaseReady]
   );
 
   const { data: appConfig } = useDoc<AppSettings>(configRef, { realtime: false });
-  const { data: logs } = useCollection<AnalysisLog>(logsQuery, { realtime: false });
-  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery, { realtime: true });
-  const { data: dbPackages } = useCollection<PixPackage>(packagesQuery, { realtime: false });
-  const { data: pendingPurchases } = useCollection<PixPurchase>(purchasesQuery, { realtime: false });
-  const { data: allGroups } = useCollection<Group>(allGroupsQuery, { realtime: false });
-  const { data: allExhibitions } = useCollection<Exhibition>(allExhibitionsQuery, { realtime: false });
+  const { data: logs } = useCollection<AnalysisLog>(logsQuery, { realtime: false, requireAuth: true });
+  const { data: users, isLoading: isUsersLoading } = useCollection<User>(usersQuery, { realtime: true, requireAuth: true });
+  const { data: dbPackages } = useCollection<PixPackage>(packagesQuery, { realtime: false, requireAuth: true });
+  const { data: pendingPurchases } = useCollection<PixPurchase>(purchasesQuery, { realtime: false, requireAuth: true });
+  const { data: allGroups } = useCollection<Group>(allGroupsQuery, { realtime: false, requireAuth: true });
+  const { data: allExhibitions } = useCollection<Exhibition>(allExhibitionsQuery, { realtime: false, requireAuth: true });
 
   const configForm = useForm({
     resolver: zodResolver(configSchema),
@@ -111,7 +112,7 @@ export default function AdminPanel() {
     if (!user) return false;
     const adminEmails = ['admin@viewora.ai', 'babacan.muharrem@gmail.com'];
     const adminUids = ['01DT86bQwWUVmrewnEb8c6bd8H43', 'BLxfoAPsRyOMTkrKD9EoLtt47Fo1'];
-    return adminEmails.includes(user.email || '') || adminUids.includes(user.uid);
+    return adminEmails.includes(user.email || '') || adminUids.includes(uid);
   }, [user]);
 
   const metrics = useMemo(() => {
@@ -170,7 +171,7 @@ export default function AdminPanel() {
       batch.update(purchaseRef, {
         status: 'approved',
         approved_at: new Date().toISOString(),
-        approved_by: user.uid
+        approved_by: uid
       });
 
       batch.update(userRef, {
@@ -248,6 +249,21 @@ export default function AdminPanel() {
         await deleteDoc(doc(firestore, 'groups', groupId));
         toast({ title: "Grup Silindi" });
     } catch (e) { toast({ variant: 'destructive', title: "Hata" }); }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!firestore || isSubmitting) return;
+    if (!confirm("Bu kullanıcıyı tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) return;
+    
+    setIsSubmitting(true);
+    try {
+        await deleteDoc(doc(firestore, 'users', userId));
+        toast({ title: "Kullanıcı Silindi" });
+        setEditingUser(null);
+    } catch (e: any) { 
+        console.error("User deletion error:", e);
+        toast({ variant: 'destructive', title: "Kullanıcı silinirken hata oluştu" }); 
+    } finally { setIsSubmitting(false); }
   };
 
   return (
@@ -463,7 +479,13 @@ export default function AdminPanel() {
         </TabsContent>
       </Tabs>
 
-      <UserEditDialog userToEdit={editingUser} isOpen={!!editingUser} onClose={() => setEditingUser(null)} onUpdate={async (id, v) => { if(firestore) await updateDoc(doc(firestore, 'users', id), v); toast({title: t("toast_user_updated")}); }} />
+      <UserEditDialog 
+        userToEdit={editingUser} 
+        isOpen={!!editingUser} 
+        onClose={() => setEditingUser(null)} 
+        onUpdate={async (id, v) => { if(firestore) await updateDoc(doc(firestore, 'users', id), v); toast({title: t("toast_user_updated")}); }} 
+        onDelete={handleDeleteUser}
+      />
 
       <Dialog open={!!notifyingOwnerId} onOpenChange={(o) => !o && setNotifyingOwnerId(null)}>
         <DialogContent className="max-w-md rounded-[32px]">
@@ -491,7 +513,13 @@ export default function AdminPanel() {
   );
 }
 
-function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit: User | null, isOpen: boolean, onClose: () => void, onUpdate: (userId: string, values: any) => Promise<void> }) {
+function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate, onDelete }: { 
+  userToEdit: User | null, 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onUpdate: (userId: string, values: any) => Promise<void>,
+  onDelete: (userId: string) => Promise<void>
+}) {
   const t = useTranslations('MasterAdmin');
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -505,6 +533,7 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
       total_mentor_analyses_count: userToEdit?.total_mentor_analyses_count || 0,
       total_exhibitions_count: userToEdit?.total_exhibitions_count || 0,
       total_competitions_count: userToEdit?.total_competitions_count || 0,
+      isSuspended: userToEdit?.isSuspended || false,
     }
   });
 
@@ -517,6 +546,7 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
         total_mentor_analyses_count: userToEdit.total_mentor_analyses_count || 0,
         total_exhibitions_count: userToEdit.total_exhibitions_count || 0,
         total_competitions_count: userToEdit.total_competitions_count || 0,
+        isSuspended: userToEdit.isSuspended || false,
       });
     }
   }, [userToEdit, form]);
@@ -636,8 +666,48 @@ function UserEditDialog({ userToEdit, isOpen, onClose, onUpdate }: { userToEdit:
                 )}
               />
             </div>
+            <div className="pt-4 space-y-4">
+              <FormField
+                control={form.control}
+                name="isSuspended"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/20">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-sm font-black uppercase tracking-tight">{t('button_freeze_user')}</FormLabel>
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase">{t('suspend_description')}</p>
+                    </div>
+                    <FormControl>
+                      <Button 
+                        type="button" 
+                        variant={field.value ? "destructive" : "outline"} 
+                        size="sm"
+                        className="rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                        onClick={() => field.onChange(!field.value)}
+                      >
+                        {field.value ? t('status_suspended') : t('status_active')}
+                      </Button>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <div className="pt-2 border-t border-border/40">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10 font-black uppercase tracking-widest text-xs h-12 rounded-2xl"
+                  onClick={() => {
+                    const userId = userToEdit?.id || (userToEdit as any)?.uid;
+                    if(userId) onDelete(userId);
+                  }}
+                >
+                  {t('button_delete_user')}
+                </Button>
+              </div>
+            </div>
+
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isUpdating} className="w-full h-12 rounded-2xl font-black uppercase">
+              <Button type="submit" disabled={isUpdating} className="w-full h-12 rounded-2xl font-black uppercase shadow-xl">
                 {isUpdating ? <Loader2 className="animate-spin h-4 w-4" /> : t('save_changes')}
               </Button>
             </DialogFooter>

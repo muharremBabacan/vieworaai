@@ -1035,7 +1035,13 @@
     "list_exhibitions": "Platform Sergileri",
     "mentor_analysis": "Mentor Analizi",
     "exhibitions": "Sergiler",
-    "competitions": "Yarışmalar"
+    "competitions": "Yarışmalar",
+    "button_freeze_user": "Kullanıcıyı Dondur",
+    "button_unfreeze_user": "Kullanıcıyı Çöz",
+    "button_delete_user": "Kullanıcıyı Sil",
+    "status_suspended": "DONDURULDU",
+    "status_active": "AKTİF",
+    "suspend_description": "Hesaba erişimi kısıtlar"
   },
 
   "PWA": {

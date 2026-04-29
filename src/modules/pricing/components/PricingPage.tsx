@@ -14,11 +14,11 @@ import { cn } from '@/lib/utils';
 import type { User } from '@/types';
 
 export default function PricingPage() {
-  const { user } = useUser();
+  const { user, uid } = useUser();
   const firestore = useFirestore();
   const { currencyName } = useAppConfig();
   
-  const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const userRef = useMemoFirebase(() => (uid && firestore) ? doc(firestore, 'users', uid) : null, [uid, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userRef);
 
   if (isProfileLoading) {

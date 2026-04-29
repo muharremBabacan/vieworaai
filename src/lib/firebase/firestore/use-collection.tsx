@@ -29,7 +29,7 @@ export function useCollection<T = any>(
 } {
 
   const { requireAuth = false, realtime = true } = options;
-  const { user } = useUser();
+  const { user, isFirebaseReady } = useUser();
 
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -37,18 +37,24 @@ export function useCollection<T = any>(
 
   // Loop Protection: Query Signature
   // Firestore objects change references on every query() call.
-  // We extract internal query structure to ensure stable listeners.
   const querySignature = useMemo(() => {
     if (!queryObj) return null;
     try {
-      // For Firestore v9 SDK, _query contains the path and filters
-      const q = (queryObj as any)._query;
+      // Try to get internal query info for stabilization
+      const q = (queryObj as any)._query || (queryObj as any).query;
       if (q) {
-        return `${q.path?.toString() || ''}|${JSON.stringify(q.filters || [])}|${JSON.stringify(q.explicitOrderBy || [])}`;
+        // Path + Filters + Orders + Limit
+        const parts = [
+          q.path?.toString() || '',
+          JSON.stringify(q.filters || []),
+          JSON.stringify(q.explicitOrderBy || []),
+          q.limit || 'no-limit'
+        ];
+        return parts.join('|');
       }
-      return (queryObj as any).toString(); 
+      // Fallback for document references or other structures
+      return (queryObj as any).path || (queryObj as any).toString(); 
     } catch (e) {
-      // If we can't signature it, we MUST NOT use Math.random() as it kills performance
       return 'static-query-fallback'; 
     }
   }, [queryObj]);
@@ -56,14 +62,13 @@ export function useCollection<T = any>(
   useEffect(() => {
     let unsubscribe: () => void = () => {};
 
-    if (!queryObj || (requireAuth && !user?.uid)) {
-      if (data !== null) setData(null);
-      setIsLoading(false);
+    if (!queryObj || (requireAuth && !isFirebaseReady)) {
+      if (data !== null) {
+        setData(null);
+        setIsLoading(false);
+      }
       return;
     }
-
-    // SILENT_DEBUG: Only log if explicitly needed
-    // console.debug(`[useCollection] Starting ${realtime ? 'realtime' : 'one-time'} fetch for:`, querySignature);
 
     setIsLoading(true);
     setError(null);
@@ -83,7 +88,10 @@ export function useCollection<T = any>(
     };
 
     const handleError = (err: FirestoreError | any) => {
-      console.error('Firestore useCollection error:', err);
+      // Permission errors are common during auth transitions, keep them silent unless persistent
+      if (err?.code !== 'permission-denied') {
+        console.error('Firestore useCollection error:', err);
+      }
       setError(err instanceof Error ? err : new Error(err?.message || 'Firestore connection error'));
       setIsLoading(false);
     };
@@ -95,14 +103,10 @@ export function useCollection<T = any>(
     }
 
     return () => {
-      if (realtime) {
-         // console.debug(`[useCollection] Unsubscribing from:`, querySignature);
-         unsubscribe();
-      }
+      if (realtime) unsubscribe();
     };
 
-  // querySignature sayesinde queryObj referansı değişse bile listeleyici bozulmaz
-  }, [querySignature, requireAuth, user?.uid, realtime]);
+  }, [querySignature, requireAuth, isFirebaseReady, realtime]);
 
   return { data, isLoading, error };
 }

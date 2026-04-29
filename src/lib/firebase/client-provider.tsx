@@ -12,6 +12,8 @@ import { signInWithCustomToken, Auth } from 'firebase/auth';
 import { app, auth as firebaseAuth } from './init';
 import { useSession } from "next-auth/react";
 import type { User as UserProfile } from '@/types';
+import { Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface AuthContextType {
   user: any | null; // NextAuth user
@@ -22,6 +24,8 @@ interface AuthContextType {
   firestore: Firestore;
   auth: Auth;
   uid: string | null;
+  isSuspended: boolean;
+  isFirebaseReady: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -32,49 +36,46 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
 
   const authReady = status !== "loading";
   const user = session?.user || null;
   
-  // 🔑 UID from NextAuth Session (Injected on server)
+  // 🔑 UID from NextAuth Session
   const uid = (session as any)?.uid || null;
 
-  // 🛰️ FIREBASE AUTH BRIDGE (KESİN ÇÖZÜM)
+  // 🛰️ FIREBASE AUTH BRIDGE
+  // 🛰️ FIREBASE AUTH BRIDGE
   useEffect(() => {
     const run = async () => {
       const firebaseToken = (session as any)?.firebaseToken;
-
       if (status !== "authenticated" || !firebaseToken) return;
-
-      // 🔥 EN KRİTİK KONTROL
       if (firebaseAuth.currentUser) {
-        console.log("⛔ [AuthBridge] Firebase zaten login:", firebaseAuth.currentUser.uid);
+        setIsFirebaseReady(true);
         return;
       }
-
       try {
-        console.log("🔥 [AuthBridge] Firebase login başlıyor...");
         await signInWithCustomToken(firebaseAuth, firebaseToken);
-        console.log("✅ [AuthBridge] Firebase login OK");
+        setIsFirebaseReady(true);
       } catch (err: any) {
-        console.error("❌ [AuthBridge] Sync failed:", err.code, err.message);
+        console.error("❌ [AuthBridge] Sync failed:", err.code);
+        setIsFirebaseReady(false);
       }
     };
-
     run();
   }, [session?.firebaseToken, status]);
 
-  // 🔑 Sync Profile from Firestore using UID
+  // 🔑 Global Profile Listener (Stable Manual Implementation)
   useEffect(() => {
-    if (status !== "authenticated" || !uid) {
+    if (!uid || !firestore || !isFirebaseReady) {
       setProfile(null);
       setIsProfileLoading(false);
       return;
     }
 
     setIsProfileLoading(true);
-    
-    const unsubscribeProfile = onSnapshot(doc(firestore, 'users', uid), (docSnap) => {
+
+    const unsubscribe = onSnapshot(doc(firestore, 'users', uid), (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
       } else {
@@ -82,27 +83,59 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
       }
       setIsProfileLoading(false);
     }, (error) => {
-      console.error('🔥 [Firestore] Profile Watch ERROR:', error);
+      if (error.code !== 'permission-denied') {
+        console.error('🔥 [Firestore] Profile Watch ERROR:', error);
+      }
       setIsProfileLoading(false);
     });
 
-    return () => unsubscribeProfile();
-  }, [status, firestore, uid]);
+    return () => {
+      unsubscribe();
+    };
+  }, [uid, firestore, isFirebaseReady]);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     profile,
     authReady,
     isProfileLoading,
-    isUserLoading: !authReady,
+    isUserLoading: !authReady || (status === 'authenticated' && !isFirebaseReady),
     firestore,
     auth: firebaseAuth,
     uid,
-  };
+    isSuspended: profile?.isSuspended || false,
+    isFirebaseReady,
+  }), [user, authReady, profile, isProfileLoading, isFirebaseReady, status, uid, firestore]);
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {profile?.isSuspended ? (
+        <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+          <div className="max-w-md space-y-6">
+            <div className="h-20 w-20 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mx-auto mb-6">
+              <Shield size={40} />
+            </div>
+            <h1 className="text-4xl font-black tracking-tighter uppercase leading-tight">
+              HESABINIZ DONDURULDU
+            </h1>
+            <p className="text-muted-foreground font-medium">
+              Hesabınız bir kural ihlali veya güvenlik incelemesi nedeniyle dondurulmuştur. Sorularınız için destek ekibiyle iletişime geçebilirsiniz.
+            </p>
+            <div className="pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                   // Force logout
+                   window.location.href = '/api/auth/signout';
+                }}
+                className="rounded-2xl h-12 px-8 font-black uppercase tracking-widest border-border/60"
+              >
+                Çıkış Yap
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }
@@ -123,7 +156,7 @@ export const useProfile = () => {
 };
 
 export const useFirebase = () => {
-  const { firestore, user, authReady, uid, auth } = useUser();
+  const { firestore, user, authReady, uid, auth, isFirebaseReady } = useUser();
   return {
     firestore,
     storage: getStorage(app),
@@ -131,7 +164,8 @@ export const useFirebase = () => {
     user,
     uid,
     auth,
-    isUserLoading: !authReady
+    isUserLoading: !authReady || !isFirebaseReady,
+    isFirebaseReady
   };
 };
 

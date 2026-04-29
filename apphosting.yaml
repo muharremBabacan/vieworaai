@@ -38,4 +38,4 @@ env:
   - variable: GOOGLE_CLIENT_SECRET
     secret: google-oauth-client-secret
   - variable: GOOGLE_REDIRECT_URI
-    value: https://viewora.ai/api/auth/google/callback
+    value: https://viewora.ai/api/auth/callback/google

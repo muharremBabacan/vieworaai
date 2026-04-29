@@ -15,10 +15,10 @@ import { useTranslations } from 'next-intl';
 
 export default function AcademyHubPage() {
   const t = useTranslations('AcademyPage');
-  const { user } = useUser();
+  const { user, uid } = useUser();
   const firestore = useFirestore();
 
-  const userDocRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const userDocRef = useMemoFirebase(() => (uid && firestore) ? doc(firestore, 'users', uid) : null, [uid, firestore]);
   const { data: userProfile } = useDoc<User>(userDocRef);
 
   const academyLevels = [
