@@ -57,21 +57,27 @@ export function getServiceAccount() {
 }
 
 export function initAdmin() {
-  if (admin.apps.length > 0) return admin.app();
+  if (admin.apps.length > 0) {
+    const existingApp = admin.app();
+    console.log(`📡 [AdminInit] Using existing app: ${existingApp.options.projectId}`);
+    return existingApp;
+  }
 
   const serviceAccount = getServiceAccount();
+  const projectId = serviceAccount?.project_id || serviceAccount?.projectId || process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99';
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '') || `${projectId}.firebasestorage.app`;
+
+  console.log(`🔐 [AdminInit] Initializing Admin SDK for Project: ${projectId}`);
 
   try {
-    const projectId = serviceAccount?.project_id || serviceAccount?.projectId || process.env.FIREBASE_PROJECT_ID || 'studio-8632782825-fce99';
-    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace('gs://', '') || `${projectId}.firebasestorage.app`;
-    
     if (serviceAccount) {
       return admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
+        projectId: projectId, // 🔑 Force explicit project ID match
         storageBucket: bucketName
       });
     } else {
-      // 🚀 Use Application Default Credentials for App Hosting / Cloud Run
+      console.warn("⚠️ [AdminInit] No service account found. Using Application Default Credentials.");
       return admin.initializeApp({
         credential: admin.credential.applicationDefault(),
         projectId: projectId,
@@ -79,7 +85,7 @@ export function initAdmin() {
       });
     }
   } catch (err: any) {
-    console.error("❌ [AdminInit] Failed:", err.message);
+    console.error("❌ [AdminInit] Initialization Failed:", err.message);
     return null;
   }
 }

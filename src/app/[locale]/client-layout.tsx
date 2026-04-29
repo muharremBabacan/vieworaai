@@ -7,13 +7,18 @@ import { AppHeader } from '@/core/components/app-header';
 import { BottomNav } from '@/core/components/bottom-nav';
 import { Loader2 } from 'lucide-react';
 import { useUser } from '@/lib/firebase/client-provider';
+import { useSession } from 'next-auth/react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
-  const { user, profile, authReady, isProfileLoading, firestore } = useUser();
+  const { profile, isProfileLoading, firestore, uid } = useUser();
+  const { data: session, status } = useSession();
+
+  const user = session?.user;
+  const authReady = status !== "loading";
 
   useEffect(() => {
     setHasMounted(true);
@@ -34,12 +39,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
 
     // 2. PROFILE SYNC (If user exists but no doc yet)
-    if (!profile) {
-      const userRef = doc(firestore, 'users', user.uid);
+    if (!profile && uid) {
+      const userRef = doc(firestore, 'users', uid);
       getDoc(userRef).then(async (snap) => {
         if (!snap.exists()) {
           await setDoc(userRef, {
-            uid: user.uid,
+            uid: uid,
             email: user.email,
             onboarded: false,
             createdAt: new Date().toISOString()
@@ -52,7 +57,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     // 3. NAVIGATION LOGIC (Single Source of Truth)
     const isOnboardingPage = pathname.includes('/onboarding');
     const isAuthPage = ['/login', '/signup'].some(p => pathname.includes(p));
-    const isOnboarded = profile.onboarded === true;
+    const isOnboarded = profile?.onboarded === true;
 
     if (!isOnboarded) {
       if (!isOnboardingPage) {

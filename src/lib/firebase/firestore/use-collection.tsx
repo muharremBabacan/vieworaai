@@ -9,8 +9,7 @@ import {
   Query,
   QuerySnapshot,
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { useUser } from '@/lib/firebase/provider';
+import { useUser } from '@/lib/firebase/client-provider';
 import { serializeData, deepCompare } from '@/lib/utils';
 
 export type WithId<T> = T & { id: string };
@@ -84,13 +83,6 @@ export function useCollection<T = any>(
     };
 
     const handleError = (err: FirestoreError | any) => {
-      const auth = getAuth();
-      if (err?.code === 'permission-denied' && !auth.currentUser) {
-        setData(null);
-        setIsLoading(false);
-        return;
-      }
-
       console.error('Firestore useCollection error:', err);
       setError(err instanceof Error ? err : new Error(err?.message || 'Firestore connection error'));
       setIsLoading(false);

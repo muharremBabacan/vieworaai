@@ -37,21 +37,26 @@ export default async function LocaleLayout({
   const { locale } = await params;
   const messages = await getMessages();
 
+  const ENABLE_ANALYTICS = process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true';
 
   return (
     <>
-      <Script
-        src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
-        strategy="afterInteractive"
-      />
-      <Script id="google-ads-tag" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'AW-18013553802');
-        `}
-      </Script>
+      {ENABLE_ANALYTICS && (
+        <>
+          <Script
+            src="https://www.googletagmanager.com/gtag/js?id=AW-18013553802"
+            strategy="afterInteractive"
+          />
+          <Script id="google-ads-tag" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'AW-18013553802');
+            `}
+          </Script>
+        </>
+      )}
 
       <NextIntlClientProvider messages={messages} locale={locale}>
         <ClientProviders>

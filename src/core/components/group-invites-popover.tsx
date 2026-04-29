@@ -14,22 +14,22 @@ import { tr } from 'date-fns/locale';
 import { useToast } from '@/shared/hooks/use-toast';
 
 export function GroupInvitesPopover() {
-  const { user } = useUser();
+  const { user, uid } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   const invitesQuery = useMemoFirebase(() => {
-    if (!user || !firestore) {
+    if (!uid || !firestore) {
       return null;
     }
     return query(
         collection(firestore, 'group_invites'),
-        where('toUserId', '==', user.uid),
+        where('toUserId', '==', uid),
         where('status', '==', 'pending')
     );
-  }, [user, firestore]);
+  }, [uid, firestore]);
 
   const { data: invitesData } = useCollection<GroupInvite>(invitesQuery);
 

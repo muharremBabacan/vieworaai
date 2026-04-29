@@ -13,8 +13,8 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { LogOut, Settings, Shield, User as UserIcon, Flame, Coins, Trophy, Globe, Gem } from 'lucide-react';
-import { useUser, useAuth } from '@/lib/firebase/client-provider';
-import { signOut } from 'firebase/auth';
+import { useUser } from '@/lib/firebase/client-provider';
+import { signOut as nextAuthSignOut } from "next-auth/react";
 import { Link } from '@/i18n/navigation';
 import { AuthService } from '@/lib/auth/auth-service';
 import { NotificationCenter } from '@/core/components/notification-popover';
@@ -27,7 +27,6 @@ export function UserNav() {
   const tApp = useTranslations('AppLayout');
   const tFallback = useTranslations('UserNavFallback');
   const { user: authUser, profile: userProfile, authReady, isProfileLoading } = useUser();
-  const auth = useAuth();
   const { currencyName } = useAppConfig();
   const [guestId, setGuestId] = useState<string | null>(null);
 
@@ -39,12 +38,7 @@ export function UserNav() {
 
   const handleSignOut = async () => {
     try {
-      // 1. Sunucu oturumunu temizle (Cookie)
-      await AuthService.logout();
-      // 2. Firebase Auth'tan çık
-      await signOut(auth);
-      // 3. Yönlendir
-      window.location.href = '/login';
+      await nextAuthSignOut({ callbackUrl: "/login" });
     } catch (error) {
       console.error('Logout error:', error);
     }

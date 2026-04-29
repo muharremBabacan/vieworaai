@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { User, UserTier } from '@/types';
 import { levels } from '@/lib/gamification';
@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { signOut, updateProfile } from 'firebase/auth';
+import { signOut as nextAuthSignOut } from "next-auth/react";
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useTranslations } from 'next-intl';
@@ -43,7 +43,7 @@ const LANGUAGE_OPTIONS = [
 
 import { Switch } from '@/components/ui/switch';
 
-const NotificationSettings = ({ t, user, firestore, notificationsEnabled }: { t: any, user: any, firestore: any, notificationsEnabled: boolean }) => {
+const NotificationSettings = ({ t, user, uid, firestore, notificationsEnabled }: { t: any, user: any, uid: string | null, firestore: any, notificationsEnabled: boolean }) => {
   const { permission, requestPermission } = usePush();
   const [isPending, setIsPending] = useState(false);
 
@@ -52,7 +52,8 @@ const NotificationSettings = ({ t, user, firestore, notificationsEnabled }: { t:
     setIsPending(true);
     try {
       // 1. Update Firestore
-      await updateDoc(doc(firestore, 'users', user.uid), { 
+      if (!uid) return;
+      await updateDoc(doc(firestore, 'users', uid!), { 
         notifications_enabled: checked 
       });
 
@@ -111,15 +112,14 @@ export default function SettingsPage() {
   const t = useTranslations('SettingsPage');
   const tApp = useTranslations('AppLayout');
   const tNav = useTranslations('UserNav');
-  const { user } = useUser();
+  const { user, uid } = useUser();
   const firestore = useFirestore();
-  const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
   const { currencyName } = useAppConfig();
 
-  const userDocRef = useMemoFirebase(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
+  const userDocRef = useMemoFirebase(() => (user && uid ? doc(firestore, 'users', uid) : null), [user, uid, firestore]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<User>(userDocRef);
 
   const [nickname, setNickname] = useState('');
@@ -138,16 +138,15 @@ export default function SettingsPage() {
   }, [userProfile]);
 
   const handleUpdateProfile = async () => {
-    if (!user || !firestore || isUpdating) return;
+    if (!user || !firestore || isUpdating || !uid) return;
     setIsUpdating(true);
     try {
-      const userRef = doc(firestore, 'users', user.uid);
-      const publicRef = doc(firestore, 'public_profiles', user.uid);
+      const userRef = doc(firestore, 'users', uid!);
+      const publicRef = doc(firestore, 'public_profiles', uid!);
       
       await Promise.all([
         updateDoc(userRef, { name: nickname, phone, instagram }),
         updateDoc(publicRef, { name: nickname, phone, instagram }),
-        updateProfile(user, { displayName: nickname })
       ]);
       toast({ title: t("toast_profile_updated") });
     } catch (error) {
@@ -161,8 +160,9 @@ export default function SettingsPage() {
     if (!user || !firestore) return;
     setLanguage(newLocale);
     try {
+      if (!uid) return;
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-      await updateDoc(doc(firestore, 'users', user.uid), { language: newLocale });
+      await updateDoc(doc(firestore, 'users', uid!), { language: newLocale });
       router.replace(pathname, { locale: newLocale });
     } catch (e) {
       console.error(e);
@@ -170,14 +170,13 @@ export default function SettingsPage() {
   };
 
   const handleSelectPreset = async (url: string) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !uid) return;
     try {
-      const userRef = doc(firestore, 'users', user.uid);
-      const publicRef = doc(firestore, 'public_profiles', user.uid);
+      const userRef = doc(firestore, 'users', uid!);
+      const publicRef = doc(firestore, 'public_profiles', uid!);
       await Promise.all([
         updateDoc(userRef, { photoURL: url }),
         updateDoc(publicRef, { photoURL: url }),
-        updateProfile(user, { photoURL: url })
       ]);
       toast({ title: t("toast_avatar_updated") });
     } catch (error) {
@@ -186,8 +185,7 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
-    router.push('/login');
+    await nextAuthSignOut({ callbackUrl: "/login" });
   };
 
   if (isProfileLoading) return <div className="container mx-auto max-w-2xl p-4 py-10"><Skeleton className="h-64 w-full rounded-[32px]" /></div>;
@@ -297,11 +295,12 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {isDevUser && <DeveloperTools userProfile={userProfile} user={user} firestore={firestore} toast={toast} />}
+      {isDevUser && <DeveloperTools userProfile={userProfile} user={user} uid={uid} firestore={firestore} toast={toast} />}
 
       <NotificationSettings 
         t={t} 
         user={user} 
+        uid={uid}
         firestore={firestore} 
         notificationsEnabled={userProfile?.notifications_enabled ?? false} 
       />
@@ -320,22 +319,21 @@ export default function SettingsPage() {
   );
 }
 
-const DeveloperTools = ({ userProfile, user, firestore, toast }: { userProfile: User, user: any, firestore: any, toast: any }) => {
+const DeveloperTools = ({ userProfile, user, uid, firestore, toast }: { userProfile: User, user: any, uid: string | null, firestore: any, toast: any }) => {
   const t = useTranslations('SettingsPage');
   const handleLevelChange = async (newLevelName: string) => {
-    if (!user || !firestore) return;
     const newLevel = levels.find(l => l.name === newLevelName);
-    if (!newLevel) return;
+    if (!newLevel || !uid) return;
     try {
-      await updateDoc(doc(firestore, 'users', user.uid), { level_name: newLevel.name, current_xp: newLevel.minXp });
+      await updateDoc(doc(firestore, 'users', uid!), { level_name: newLevel.name, current_xp: newLevel.minXp });
       toast({ title: t('toast_level_updated') });
     } catch (e) { console.error(e); }
   };
 
   const handleTierChange = async (newTier: UserTier) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || !uid) return;
     try {
-      await updateDoc(doc(firestore, 'users', user.uid), { tier: newTier });
+      await updateDoc(doc(firestore, 'users', uid!), { tier: newTier });
       toast({ title: `${t('toast_tier_updated')}: ${newTier.toUpperCase()}` });
     } catch (e) { console.error(e); }
   };

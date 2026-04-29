@@ -9,7 +9,6 @@ import {
   FirestoreError,
   DocumentSnapshot,
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { serializeData, deepCompare } from '@/lib/utils';
 
 type WithId<T> = T & { id: string };
@@ -75,13 +74,6 @@ export function useDoc<T = any>(
     };
 
     const handleError = (err: FirestoreError) => {
-      const auth = getAuth();
-      if (err.code === 'permission-denied' && !auth.currentUser) {
-        setData(null);
-        setIsLoading(false);
-        return;
-      }
-
       console.error('Firestore useDoc error:', err);
       setError(err);
       setData(null);

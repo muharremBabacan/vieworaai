@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase/client-provider';
-import { useCollection } from '@/lib/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/lib/firebase';
 import { collection, doc, query, where, arrayUnion, writeBatch, limit, orderBy, updateDoc, getDoc } from 'firebase/firestore';
 import type { GroupInvite, GlobalNotification, User } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
@@ -17,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 
 export function NotificationCenter() {
-  const { user } = useUser();
+  const { user, uid } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
@@ -25,18 +24,18 @@ export function NotificationCenter() {
   const { currencyName } = useAppConfig();
 
   // User profile for level-based filtering and read status
-  const userRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+  const userRef = useMemoFirebase(() => (uid && firestore) ? doc(firestore, 'users', uid) : null, [uid, firestore]);
   const { data: userProfile } = useDoc<User>(userRef);
 
   // Group Invites Query
   const invitesQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!uid || !firestore) return null;
     return query(
         collection(firestore, 'group_invites'),
-        where('toUserId', '==', user.uid),
+        where('toUserId', '==', uid),
         where('status', '==', 'pending')
     );
-  }, [user, firestore]);
+  }, [uid, firestore]);
 
   const { data: invitesData, error: invitesError } = useCollection<GroupInvite>(invitesQuery);
 
@@ -54,13 +53,13 @@ export function NotificationCenter() {
 
   // Personal Notifications Query
   const personalNotifsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!uid || !firestore) return null;
     return query(
-      collection(firestore, 'users', user.uid, 'notifications'),
+      collection(firestore, 'users', uid, 'notifications'),
       orderBy('createdAt', 'desc'),
       limit(5)
     );
-  }, [user, firestore]);
+  }, [uid, firestore]);
 
   const { data: personalNotifsData } = useCollection<any>(personalNotifsQuery);
 
@@ -97,9 +96,9 @@ export function NotificationCenter() {
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    if (open && user && firestore) {
+    if (open && uid && firestore) {
       // Mark as viewed to clear the badge
-      updateDoc(doc(firestore, 'users', user.uid), {
+      updateDoc(doc(firestore, 'users', uid), {
         lastNotificationsViewedAt: new Date().toISOString()
       }).catch(err => console.error("Failed to update notification viewed timestamp", err));
     }
@@ -115,16 +114,16 @@ export function NotificationCenter() {
        const groupRef = doc(firestore, 'groups', invite.groupId);
        try {
          batch.update(inviteRef, { status: 'accepted' });
-         batch.update(groupRef, { memberIds: arrayUnion(user.uid) });
+         batch.update(groupRef, { memberIds: arrayUnion(uid) });
          
-         const publicRef = doc(firestore, 'public_profiles', user.uid);
+         const publicRef = doc(firestore, 'public_profiles', uid);
          const publicSnap = await getDoc(publicRef);
          if (!publicSnap.exists()) {
-             const userSnap = await getDoc(doc(firestore, 'users', user.uid));
+             const userSnap = await getDoc(doc(firestore, 'users', uid));
              if (userSnap.exists()) {
                  const userData = userSnap.data() as User;
                  batch.set(publicRef, {
-                     id: user.uid,
+                     id: uid,
                      name: userData.name,
                      email: userData.email,
                      photoURL: userData.photoURL || null,

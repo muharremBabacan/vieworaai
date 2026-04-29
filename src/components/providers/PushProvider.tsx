@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useCallback, useState } fr
 import { getMessaging, onMessage, getToken } from 'firebase/messaging';
 import { getMessagingInstance } from '@/lib/firebase-msg';
 import { NotificationAPI } from '@/lib/api/notification-api';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase/client-provider';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/lib/firebase';
 import { useToast } from '@/shared/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import { User as UserProfile } from '@/types';
@@ -27,19 +27,23 @@ export const usePush = () => {
 
 export const PushProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch user profile to check notifications_enabled preference
-  const { user, auth } = useUser();
+  const { user, uid } = useUser(); // 🔑 Extracted consistent uid
   const firestore = useFirestore();
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [hasDismissed, setHasDismissed] = useState(false);
+  
+  // 🛡️ INITIALIZATION GUARD
+  const initializedRef = React.useRef(false);
 
-  // 🛡️ ATOMIC FIRESTORE REF - PushProvider must also wait for rehydration
+  // 🛡️ ATOMIC FIRESTORE REF
   const userDocRef = useMemoFirebase(() => {
-    if (user && firestore && auth?.currentUser?.uid === user.uid) {
-      return doc(firestore, 'users', user.uid);
+    if (uid && firestore) {
+      return doc(firestore, 'users', uid);
     }
     return null;
-  }, [user, firestore, auth?.currentUser]);
+  }, [uid, firestore]);
+  
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
@@ -61,22 +65,31 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (result === 'granted') {
       console.log('[PushProvider] Permission granted manually!');
-      await setupFCM();
+      await setupFCM(true); // Force run on manual request
     }
   };
 
   const isNotificationsEnabled = userProfile?.notifications_enabled;
 
-  const setupFCM = useCallback(async () => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !user) return;
+  const setupFCM = useCallback(async (force = false) => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !uid) return;
     
+    // 🛡️ Guard: Only run once per session unless forced
+    if (initializedRef.current && !force) {
+        console.log('[PushProvider] Already initialized. Skipping repeat.');
+        return;
+    }
+
     // Check if user has explicitly disabled notifications in their profile
-    if ((userProfile?.notifications_enabled as any) === false) {
+    if (userProfile && (userProfile?.notifications_enabled as any) === false) {
       console.log('[PushProvider] Notifications are disabled in user profile. Skipping FCM setup.');
       return;
     }
 
     try {
+      console.log('[PushProvider] Starting FCM Setup flow...');
+      initializedRef.current = true; // Mark as started
+
       // Update state
       setPermission(Notification.permission);
 
@@ -103,7 +116,7 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (currentToken) {
         console.log('[PushProvider] Token identified. Syncing with Server...');
-        await NotificationAPI.saveToken(user.uid, currentToken);
+        await NotificationAPI.saveToken(uid, currentToken);
         
         // Subscribe to relevant topics
         console.log('[PushProvider] Subscribing to topics...');
@@ -148,15 +161,17 @@ export const PushProvider = ({ children }: { children: React.ReactNode }) => {
 
     } catch (error) {
       console.error('[PushProvider] Setup failed:', error);
+      initializedRef.current = false; // Reset on failure to allow retry
     }
-  }, [user, isNotificationsEnabled, toast]); // Now depends on primitive flag instead of whole object
+  }, [uid, userProfile, toast]); // Now depends on profile state to ensure correct context
 
   useEffect(() => {
-    if (user) {
+    if (uid && userProfile) {
+      console.log('🔁 [PushProvider] Effect triggered for UID:', uid);
       setPermission(Notification.permission);
       setupFCM();
     }
-  }, [user, setupFCM]);
+  }, [uid, userProfile, setupFCM]);
 
   return (
     <PushContext.Provider value={{ permission, requestPermission, setupFCM, dismissPrompt, hasDismissed }}>

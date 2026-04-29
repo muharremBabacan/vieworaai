@@ -5,8 +5,6 @@ import { useRouter, Link } from '@/i18n/navigation';
 import {
   signInWithEmailAndPassword,
   sendEmailVerification,
-  setPersistence,
-  browserLocalPersistence,
 } from 'firebase/auth';
 import { useFirebase } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';

@@ -1,74 +1,62 @@
 import { firebaseConfig } from '@/lib/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, setPersistence, indexedDBLocalPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, Firestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
+import { getAuth, Auth, indexedDBLocalPersistence, setPersistence } from 'firebase/auth';
 
 // Singleton instances
 let firebaseApp: FirebaseApp;
-let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
-
-// Track if persistence has been initialized
-let persistenceReady: Promise<void> | null = null;
+let auth: Auth;
 
 if (typeof window !== 'undefined') {
+  console.log("🌐 [FirebaseInit] CLIENT PROJECT:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  
   firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(firebaseApp);
 
-  // Guarded Firestore Init
+  // 🛡️ AUTH INITIALIZATION (MANDATORY FOR PWA/iOS)
+  auth = getAuth(firebaseApp);
+  // Set persistence to indexedDB for reliable cross-session survival
+  setPersistence(auth, indexedDBLocalPersistence).catch(err => {
+    console.error("❌ [FirebaseInit] Persistence error:", err);
+  });
+
+  // Firestore (long polling iOS/PWA için)
   try {
     db = initializeFirestore(firebaseApp, {
-      experimentalForceLongPolling: true
+      experimentalForceLongPolling: true,
     });
-  } catch (e) {
+  } catch {
     db = getFirestore(firebaseApp);
   }
 
   storage = getStorage(firebaseApp);
-
-  // 🔑 CRITICAL: Set IndexedDB persistence for PWA + iOS Safari
-  // This must be done before any auth calls
-  persistenceReady = setPersistence(auth, indexedDBLocalPersistence)
-    .then(() => {
-      console.log('✅ [Firebase] IndexedDB persistence set successfully.');
-    })
-    .catch((err) => {
-      // Fallback to in-memory if IndexedDB not available (very rare)
-      console.warn('⚠️ [Firebase] IndexedDB not available, falling back to in-memory:', err.code);
-      return setPersistence(auth, inMemoryPersistence);
-    });
 }
 
 /**
- * Returns a promise that resolves when Firebase Auth persistence is ready.
- * Always await this before making any auth calls.
- */
-export async function waitForPersistence(): Promise<void> {
-  if (persistenceReady) await persistenceReady;
-}
-
-/**
- * Backward compatibility for Provider-based usage
+ * Firebase init (Auth dahil)
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
-    return { firebaseApp: null, auth: null, firestore: null, storage: null, messaging: null };
+    return { firebaseApp: null, firestore: null, storage: null, messaging: null, auth: null };
   }
 
   return {
     firebaseApp,
-    auth,
     firestore: db,
     storage,
+    auth,
     messaging: null,
   };
 }
 
-export { firebaseApp as app, auth, db, storage };
+export { firebaseApp as app, db, storage, auth };
 
+/**
+ * Messaging (opsiyonel)
+ */
 export async function getMessagingService(app: FirebaseApp): Promise<Messaging | null> {
   if (typeof window === 'undefined') return null;
   const supported = await isSupported();
