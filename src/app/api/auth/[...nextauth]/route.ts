@@ -42,10 +42,12 @@ const handler = NextAuth({
     async session({ session, token }) {
       if (token.firebaseUid) {
         (session as any).uid = token.firebaseUid;
+
         if (session.user) {
           (session.user as any).id = token.firebaseUid;
         }
       }
+
       return session;
     },
   },
