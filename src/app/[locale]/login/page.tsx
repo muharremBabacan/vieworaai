@@ -180,15 +180,24 @@ function LoginForm() {
     }
 
     setIsLoading(true);
-    
     try {
       const provider = new GoogleAuthProvider();
-      // On Desktop/Mobile Browser, use Redirect or Popup based on preference
-      // We will stick to Redirect for consistency as it's safer for Mobile
-      await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        await AuthService.handlePostLogin(firestore, result.user, 'google');
+        console.log("✅ [GoogleAuth] Popup success.");
+        toast({ title: 'Başarılı', description: 'Google ile giriş yapıldı.' });
+        // ClientLayout will handle the redirect to dashboard
+      }
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
-      toast({ variant: 'destructive', title: 'Hata', description: 'Google ile giriş başarısız oldu.' });
+      // Fallback to Redirect if Popup is blocked or fails
+      if (error.code === 'auth/popup-blocked') {
+        toast({ title: 'Uyarı', description: 'Giriş penceresi engellendi, yönlendiriliyorsunuz...' });
+        await signInWithRedirect(auth, provider);
+      } else {
+        toast({ variant: 'destructive', title: 'Hata', description: 'Google ile giriş başarısız oldu.' });
+      }
     } finally {
       setIsLoading(false);
     }
