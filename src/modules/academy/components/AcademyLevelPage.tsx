@@ -255,7 +255,7 @@ export default function AcademyLevelPage() {
     const { data: lessons, isLoading: lessonsLoading } = useCollection<Lesson>(lessonsQuery);
 
     const userProgressQuery = useMemoFirebase(() =>
-      (uid && firestore && isFirebaseReady) ? collection(firestore, 'users', uid, 'lessonProgress') : null,
+      (uid && !uid.includes('@') && firestore && isFirebaseReady) ? collection(firestore, 'users', uid, 'lessonProgress') : null,
       [uid, firestore, isFirebaseReady]
     );
     const { data: progressData } = useCollection<{ lessonId: string; isCompleted: boolean }>(userProgressQuery, { requireAuth: true });

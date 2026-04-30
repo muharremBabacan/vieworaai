@@ -46,11 +46,19 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
     return () => unsubscribe();
   }, []);
 
-  const uid = user?.uid || null;
+  // 🛡️ UID SANITIZATION (Prevent Email-as-UID leaks)
+  const uid = useMemo(() => {
+    const rawUid = user?.uid || null;
+    if (rawUid && (rawUid.includes('@') || rawUid.includes('.'))) {
+      console.warn('⚠️ [Auth] Detected Email as UID. Sanitizing to null.');
+      return null;
+    }
+    return rawUid;
+  }, [user]);
 
   // 🔑 Global Profile Listener (Stable Manual Implementation)
   useEffect(() => {
-    if (!uid || !firestore || !isFirebaseReady) {
+    if (!(uid && !uid.includes('@') && firestore && isFirebaseReady)) {
       setProfile(null);
       setIsProfileLoading(false);
       return;
