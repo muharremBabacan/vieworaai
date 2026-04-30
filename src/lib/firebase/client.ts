@@ -1,4 +1,4 @@
-import { app, db, storage, auth } from './init';
+import { app, db, storage, auth, analytics } from './init';
 
 // 🔥 Centralized exports from init.ts to prevent duplicate initialization
-export { app, db, storage, auth };
+export { app, db, storage, auth, analytics };

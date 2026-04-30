@@ -4,17 +4,24 @@ import { getFirestore, Firestore, initializeFirestore } from 'firebase/firestore
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
 import { getAuth, Auth, indexedDBLocalPersistence, setPersistence } from 'firebase/auth';
+import { getAnalytics, Analytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 
 // Singleton instances
 let firebaseApp: FirebaseApp;
 let db: Firestore;
 let storage: FirebaseStorage;
 let auth: Auth;
+let analytics: Analytics | null = null;
 
 if (typeof window !== 'undefined') {
   console.log("🌐 [FirebaseInit] CLIENT PROJECT:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
   
   firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+  // Analytics
+  isAnalyticsSupported().then(yes => {
+    if (yes) analytics = getAnalytics(firebaseApp);
+  });
 
   // 🛡️ AUTH INITIALIZATION (MANDATORY FOR PWA/iOS)
   auth = getAuth(firebaseApp);
@@ -52,7 +59,7 @@ export function initializeFirebase() {
   };
 }
 
-export { firebaseApp as app, db, storage, auth };
+export { firebaseApp as app, db, storage, auth, analytics };
 
 /**
  * Messaging (opsiyonel)

@@ -113,7 +113,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           showHeader ? "pt-0" : ""
       )}>
         <div className={cn(
-            "container mx-auto px-4 py-8 pb-32",
+            "container mx-auto px-4 py-8 pb-[calc(10rem+env(safe-area-inset-bottom))]",
             !showHeader && "pt-12"
         )}>
             {children}

@@ -7,7 +7,8 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 import { useFirebase } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -92,9 +93,29 @@ function LoginForm() {
     checkStandalone();
   }, []);
 
-  // 🛰️ HANDLE MAGIC LINK CALLBACK
+  // 🛰️ HANDLE REDIRECT & MAGIC LINK CALLBACK
   useEffect(() => {
-    if (!auth || !firestore || isStandalone) return; // Prevent weird PWA double executions if needed
+    if (!auth || !firestore) return;
+
+    // Handle Google Redirect Result
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          setIsLoading(true);
+          await AuthService.handlePostLogin(firestore, result.user, 'google');
+          console.log("✅ [GoogleAuth] Redirect success.");
+          toast({ title: 'Başarılı', description: 'Google ile giriş yapıldı.' });
+        }
+      } catch (error: any) {
+        console.error("Google Redirect Error:", error);
+        toast({ variant: 'destructive', title: 'Hata', description: 'Giriş işlemi tamamlanamadı.' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    handleRedirectResult();
 
     if (isSignInWithEmailLink(auth, window.location.href)) {
       let savedEmail = window.localStorage.getItem('emailForSignIn');
@@ -154,11 +175,8 @@ function LoginForm() {
     
     try {
       const provider = new GoogleAuthProvider();
-      // Optional: Add scopes if needed
-      // provider.addScope('profile');
-      // provider.addScope('email');
-      
-      const result = await signInWithPopup(auth, provider);
+      // Use Redirect for better mobile/PWA compatibility
+      await signInWithRedirect(auth, provider);
       
       // Sync profile & handle post-login
       await AuthService.handlePostLogin(firestore, result.user, 'google');

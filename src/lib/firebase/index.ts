@@ -4,7 +4,7 @@
  */
 
 // 1. App Initialization
-export { app, db, storage, getMessagingService, initializeFirebase } from './init';
+export { app, db, storage, analytics, getMessagingService, initializeFirebase } from './init';
 
 // 2. Auth & Profile Hooks (ClientProvider)
 export { 
