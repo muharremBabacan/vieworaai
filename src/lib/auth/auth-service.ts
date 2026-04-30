@@ -24,7 +24,7 @@ export const AuthService = {
   /**
    * Checks if user exists in Firestore and creates if not.
    */
-  async ensureUserDoc(firestore: Firestore, firebaseUser: FirebaseUser, name?: string, provider: 'google' | 'email' = 'email') {
+  async ensureUserDoc(firestore: Firestore, firebaseUser: FirebaseUser, name?: string, provider: 'google' | 'email' | 'emailLink' = 'email') {
     if (!firestore || !firebaseUser) return;
 
     const userRef = doc(firestore, 'users', firebaseUser.uid);
@@ -104,7 +104,7 @@ export const AuthService = {
    * 🚀 CENTRALIZED POST-LOGIN LOGIC
    * Handles session creation, profile sync, and daily rewards.
    */
-  async handlePostLogin(firestore: Firestore, firebaseUser: FirebaseUser, provider: 'google' | 'email' = 'email') {
+  async handlePostLogin(firestore: Firestore, firebaseUser: FirebaseUser, provider: 'google' | 'email' | 'emailLink' = 'email') {
     try {
       // 1. Ensure/Sync User Doc in Firestore
       const profile = await this.ensureUserDoc(firestore, firebaseUser, undefined, provider);
