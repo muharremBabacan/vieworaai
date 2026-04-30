@@ -24,7 +24,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (!authReady || isProfileLoading || !hasMounted) return;
 
     const isPrivateRoute = ['/dashboard', '/profile', '/academy', '/admin'].some(p => pathname.includes(p));
-    const isAuthPage = ['/login', '/signup'].some(p => pathname.includes(p));
+    const isAuthPage = ['/login', '/signup', '/login-web'].some(p => pathname.includes(p));
     const isOnboardingPage = pathname.includes('/onboarding');
 
     // 1. GUEST MODE (Not Logged In)
@@ -51,13 +51,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
     // 2. LOGGED IN BUT NO PROFILE DOC YET
     if (!profile && uid) {
-      const userRef = doc(firestore, 'users', uid);
-      getDoc(userRef).then(async (snap) => {
-        if (!snap.exists()) {
-          // If no profile, we just wait for AuthService to create it.
-          // Don't auto-create here to avoid race conditions with AuthService.
-        }
-      });
       return;
     }
 
@@ -92,7 +85,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // Final rendering logic
   const isLanding = pathname === '/' || pathname === '/tr' || pathname === '/en';
-  const isEssentialAuthPage = ['/login', '/signup', '/onboarding'].some(p => pathname.includes(p));
+  const isEssentialAuthPage = ['/login', '/signup', '/onboarding', '/login-web'].some(p => pathname.includes(p));
   
   if (isEssentialAuthPage) {
     // If onboarded user tries to hit auth/onboarding pages, block the flicker while redirecting

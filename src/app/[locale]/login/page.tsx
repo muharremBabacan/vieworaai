@@ -175,10 +175,7 @@ function LoginForm() {
     // 🛡️ PWA STANDALONE PROTECTION
     if (isStandalone) {
       console.log("📱 [PWA] Redirecting to browser for safe login...");
-      // For PWA, we redirect to the web-specific login page in a way that encourages browser opening
-      // or simply use redirect as standard if we believe it can work
-      const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      window.location.href = window.location.origin + '/login-web';
       return;
     }
 
