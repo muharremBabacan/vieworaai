@@ -169,7 +169,6 @@ function LessonItem({ lesson, isCompleted, onComplete }: { lesson: Lesson; isCom
       )}>
         <div className="aspect-[4/3] relative overflow-hidden">
           <VieworaImage 
-            variants={lesson.imageUrl ? [lesson.imageUrl] : []}
             fallbackUrl={lesson.imageUrl || getDeterminsticPlaceholder(lesson.id)}
             type="featureCover"
             alt={lesson.title}
@@ -307,7 +306,7 @@ export default function AcademyLevelPage() {
             await updateDoc(userRef, { level_name: newLevel.name });
             toast({ title: t('toast_level_up_title'), description: t('toast_level_up_description', { level: newLevel.name }) });
         }
-    }, [user, firestore, userProfile, toast, t]);
+    }, [firestore, userProfile, toast, t, uid, user]);
 
     if (isProfileLoading) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;

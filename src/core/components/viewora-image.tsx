@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 export type DerivativeType = keyof ImageDerivatives;
 
 interface VieworaImageProps extends Omit<ImageProps, 'src'> {
-  variants: ImageDerivatives | undefined | null;
+  variants?: ImageDerivatives | null;
   fallbackUrl?: string;
   type: DerivativeType;
   containerClassName?: string;

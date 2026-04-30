@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers, Trophy, Users, Heart, ShieldCheck, Flag, Filter, LayoutGrid, List, MoreVertical, Calendar, User, Clock, Download, ExternalLink, ChevronRight } from 'lucide-react';
+import { Sparkles, Trash2, Star, Globe, X, Camera, Lightbulb, Loader2, Search, Layers, Trophy, Users, Heart, ShieldCheck, Flag, Filter, LayoutGrid, List, MoreVertical, Calendar, User as UserIcon, Clock, Download, ExternalLink, ChevronRight } from 'lucide-react';
 import { VieworaImage } from '@/core/components/viewora-image';
 import { useRouter } from '@/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -140,12 +140,12 @@ export default function GalleryPage() {
     try {
       const storage = getStorage();
       const batch = writeBatch(firestore);
-      const userPhotoRef = doc(firestore, 'users', uid, 'photos', photo.id);
+      const userPhotoRef = doc(firestore, 'users', uid!, 'photos', photo.id);
       
       batch.delete(userPhotoRef);
       if (photo.isSubmittedToExhibition) {
         batch.delete(doc(firestore, 'public_photos', photo.id));
-        batch.update(doc(firestore, 'users', uid), { total_exhibitions_count: increment(-1) });
+        batch.update(doc(firestore, 'users', uid!), { total_exhibitions_count: increment(-1) });
       }
       
       await batch.commit();
@@ -178,7 +178,7 @@ export default function GalleryPage() {
     setIsProcessing(true);
     try {
       const batch = writeBatch(firestore);
-      const userRef = doc(firestore, 'users', uid);
+      const userRef = doc(firestore, 'users', uid!);
       
       if (isGlobal) {
 
@@ -228,7 +228,7 @@ export default function GalleryPage() {
         batch.update(userRef, { total_competitions_count: increment(1) });
       }
       
-      const photoRef = doc(firestore, 'users', uid, 'photos', photo.id);
+      const photoRef = doc(firestore, 'users', uid!, 'photos', photo.id);
       batch.update(photoRef, { isSubmittedToCompetition: true, competitionId: compId });
 
       await batch.commit();
@@ -251,7 +251,7 @@ export default function GalleryPage() {
     try {
       const batch = writeBatch(firestore);
       if (isGlobal) {
-        const photoRef = doc(firestore, 'users', uid, 'photos', photo.id);
+        const photoRef = doc(firestore, 'users', uid!, 'photos', photo.id);
         const publicPhotoRef = doc(firestore, 'public_photos', photo.id);
         
         batch.set(publicPhotoRef, {
@@ -265,7 +265,7 @@ export default function GalleryPage() {
           createdAt: new Date().toISOString()
         });
         batch.update(photoRef, { isSubmittedToExhibition: true, exhibitionId: exhId });
-        batch.update(doc(firestore, 'users', uid), { 
+        batch.update(doc(firestore, 'users', uid!), { 
           pix_balance: increment(-1), 
           total_exhibitions_count: increment(1)
         });
@@ -322,8 +322,8 @@ export default function GalleryPage() {
       });
 
       const batch = writeBatch(firestore);
-      const photoRef = doc(firestore, 'users', uid, 'photos', photo.id);
-      const userRef = doc(firestore, 'users', uid);
+      const photoRef = doc(firestore, 'users', uid!, 'photos', photo.id);
+      const userRef = doc(firestore, 'users', uid!);
 
       const updatedPhotoData = {
         ...photo,

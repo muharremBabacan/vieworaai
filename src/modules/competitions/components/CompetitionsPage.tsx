@@ -177,6 +177,7 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
     const firestore = useFirestore();
+    const router = useRouter();
     const { currencyName } = useAppConfig();
 
     const userPhotosQuery = useMemoFirebase(() => (userProfile && firestore) ? query(collection(firestore, 'users', userProfile.id, 'photos')) : null, [userProfile, firestore]);

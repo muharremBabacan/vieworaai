@@ -80,9 +80,9 @@ export default function ExplorePage() {
     }
     if (!firestore) return;
     const photoRef = doc(firestore, 'public_photos', photo.id);
-    const isLiked = photo.likes?.includes(uid);
+    const isLiked = photo.likes?.includes(uid!);
     try {
-      await updateDoc(photoRef, { likes: isLiked ? arrayRemove(uid) : arrayUnion(uid) });
+      await updateDoc(photoRef, { likes: isLiked ? arrayRemove(uid!) : arrayUnion(uid!) });
     } catch (err) { console.error(err); }
   };
 
@@ -129,7 +129,7 @@ export default function ExplorePage() {
       setTimeout(async () => {
         clearInterval(interval);
         try {
-          const userRef = doc(firestore, 'users', uid);
+          const userRef = doc(firestore, 'users', uid!);
           await updateDoc(userRef, {
             pix_balance: (userProfile?.pix_balance || 0) + 1
           });
@@ -213,7 +213,6 @@ export default function ExplorePage() {
               >
                 <div className="relative h-48 w-full shrink-0 overflow-hidden">
                   <VieworaImage 
-                    variants={null}
                     fallbackUrl={cat.image}
                     type="featureCover"
                     alt={cat.title}
@@ -266,7 +265,6 @@ export default function ExplorePage() {
               <div className="flex flex-col md:flex-row items-center">
                 <div className="relative h-64 md:h-80 w-full md:w-1/2 overflow-hidden">
                    <VieworaImage 
-                    variants={null}
                     fallbackUrl={currentAd.image}
                     type="featureCover"
                     alt={currentAd.title}
@@ -298,7 +296,6 @@ export default function ExplorePage() {
                <div className="max-w-md w-full space-y-8">
                  <div className="relative aspect-video rounded-[32px] overflow-hidden border border-white/10 shadow-2xl">
                     <VieworaImage 
-                      variants={null}
                       fallbackUrl={currentAd.image}
                       type="featureCover"
                       alt="Reklam İzleniyor"
@@ -347,7 +344,6 @@ export default function ExplorePage() {
                   }}>
                     <div className="relative h-48 w-full">
                         <VieworaImage 
-                          variants={null}
                           fallbackUrl={ex.imageUrl || `https://picsum.photos/seed/${ex.id}/600/400`}
                           type="featureCover"
                           alt={ex.title}

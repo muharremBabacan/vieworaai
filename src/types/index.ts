@@ -181,7 +181,7 @@ export type User = {
   score_history?: { score: number; date: string }[];
   profile_index?: UserProfileIndex;
   notifications_enabled?: boolean;
-  provider: 'google' | 'email';
+  provider: 'google' | 'email' | 'emailLink';
   isSuspended?: boolean;
 };
 

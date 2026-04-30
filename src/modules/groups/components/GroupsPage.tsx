@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/lib/firebase';
-import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs, getDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, addDoc, doc, updateDoc, arrayUnion, getDocs, getDoc, setDoc, limit } from 'firebase/firestore';
 import type { Group, User, GroupPurpose } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
