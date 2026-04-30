@@ -10,7 +10,6 @@ import {
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { signInWithCustomToken, Auth } from 'firebase/auth';
 import { app, auth as firebaseAuth } from './init';
-import { useSession } from "next-auth/react";
 import type { User as UserProfile } from '@/types';
 import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,38 +31,22 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
   const firestore = useMemo(() => getFirestore(app), []);
-  const { data: session, status } = useSession();
-
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isFirebaseReady, setIsFirebaseReady] = useState(false);
+  const [user, setUser] = useState<any | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
-  const authReady = status !== "loading";
-  const user = session?.user || null;
-  
-  // 🔑 UID from NextAuth Session
-  const uid = (session as any)?.uid || null;
-
-  // 🛰️ FIREBASE AUTH BRIDGE
-  // 🛰️ FIREBASE AUTH BRIDGE
   useEffect(() => {
-    const run = async () => {
-      const firebaseToken = (session as any)?.firebaseToken;
-      if (status !== "authenticated" || !firebaseToken) return;
-      if (firebaseAuth.currentUser) {
-        setIsFirebaseReady(true);
-        return;
-      }
-      try {
-        await signInWithCustomToken(firebaseAuth, firebaseToken);
-        setIsFirebaseReady(true);
-      } catch (err: any) {
-        console.error("❌ [AuthBridge] Sync failed:", err.code);
-        setIsFirebaseReady(false);
-      }
-    };
-    run();
-  }, [session?.firebaseToken, status]);
+    setIsFirebaseReady(true);
+    const unsubscribe = firebaseAuth.onAuthStateChanged((u) => {
+      setUser(u);
+      setAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const uid = user?.uid || null;
 
   // 🔑 Global Profile Listener (Stable Manual Implementation)
   useEffect(() => {
@@ -99,13 +82,13 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
     profile,
     authReady,
     isProfileLoading,
-    isUserLoading: !authReady || (status === 'authenticated' && !isFirebaseReady),
+    isUserLoading: !authReady || !isFirebaseReady,
     firestore,
     auth: firebaseAuth,
     uid,
     isSuspended: profile?.isSuspended || false,
     isFirebaseReady,
-  }), [user, authReady, profile, isProfileLoading, isFirebaseReady, status, uid, firestore]);
+  }), [user, authReady, profile, isProfileLoading, isFirebaseReady, uid, firestore]);
 
   return (
     <AuthContext.Provider value={value}>

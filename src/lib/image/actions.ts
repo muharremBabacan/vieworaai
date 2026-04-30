@@ -110,11 +110,24 @@ export async function uploadAndProcessImage(
   }
 }
 
-export async function analyzePhotoServerAction(params: { userId: string; photoId: string; imageUrl: string; filePath: string; }) {
+export async function analyzePhotoServerAction(params: { 
+  userId: string; 
+  photoId: string; 
+  imageUrl: string; 
+  filePath: string; 
+  isGuest?: boolean;
+  onboardingResults?: any;
+}) {
   const { performAiAnalysis } = await import('./ai');
   console.log('🤖 [actions] Calling Expert AI analysis with gpt-4.1-mini...');
   const aiStart = Date.now();
-  const result = await performAiAnalysis(params.imageUrl, params.photoId, params.filePath);
+  const result = await performAiAnalysis(
+    params.imageUrl, 
+    params.photoId, 
+    params.filePath, 
+    params.isGuest, 
+    params.onboardingResults
+  );
   console.log(`✅ [actions] AI Analysis Server Action Round-trip: ${Date.now() - aiStart}ms`);
   return result;
 }

@@ -111,10 +111,11 @@ export default function OnboardingPage() {
       console.log("✅ [Onboarding] Progress saved. Redirecting to dashboard...");
       toast({ title: t('toast_success_title'), description: t('toast_success_desc') });
       
-      // Nuclear Redirect
+      // Give Firestore a moment to propagate the on‑boarded flag
       setTimeout(() => {
-        window.location.href = window.location.origin + '/dashboard';
-      }, 500);
+        router.replace('/dashboard');
+      }, 2000);
+      
     } catch (e: any) {
       console.error("Onboarding finish error:", e);
       window.alert("Kayıt Hatası: " + e.message);

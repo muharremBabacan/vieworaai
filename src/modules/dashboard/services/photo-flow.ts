@@ -88,6 +88,7 @@ export type AnalysisFlowOptions = {
   userProfile: User | null;
   locale: string;
   guestPix: number;
+  guestId?: string | null;
   currentTier: UserTier;
   uid: string | null;
 };
@@ -233,6 +234,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
             style_analysis: 'Sistem stabilizasyonu için mock data kullanıldı.'
           };
 
+          const batch = writeBatch(db);
           batch.update(dupSnap.docs[0].ref, {
             aiFeedback: analysis,
             tags: analysis.tags || [],
@@ -314,7 +316,9 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
           userId: currentUserId,
           photoId,
           imageUrl: imageUrls.analysis,
-          filePath: storagePath
+          filePath: storagePath,
+          isGuest: !user,
+          onboardingResults: userProfile?.onboarding_results
         });
         console.log('✅ [photo-flow] AI Server Action Success. Round-trip:', Date.now() - actionStart, 'ms');
 
@@ -371,7 +375,7 @@ export const executePhotoAnalysisFlow = async (options: AnalysisFlowOptions): Pr
 
       photoData.aiFeedback = analysis;
       photoData.analysisTier = currentTier;
-      photoData.tags = analysis.tags || []; // 🏷️ Propagate tags to top-level for gallery visibility
+      photoData.tags = analysis?.tags || []; // 🏷️ Propagate tags to top-level for gallery visibility
 
       if (uid) {
         console.log('[FLOW-DEBUG] STEP 7: Saving to Firestore...', { uid });

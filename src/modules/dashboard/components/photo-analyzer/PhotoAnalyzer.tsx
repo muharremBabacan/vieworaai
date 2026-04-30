@@ -115,6 +115,7 @@ export default function PhotoAnalyzer() {
         <ResultStage 
           analysisResult={analysisResult} 
           user={user} 
+          userProfile={userProfile}
           guestId={guestId}
           resetAnalyzer={reset} 
           t={t} 

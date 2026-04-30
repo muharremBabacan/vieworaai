@@ -45,7 +45,12 @@ export function usePhotoAnalyzer() {
       setGuestId(localStorage.getItem('guest_id'));
       
       const pix = localStorage.getItem('guest_pix');
-      setGuestPix(pix ? parseInt(pix, 10) : 0);
+      if (pix === null) {
+        localStorage.setItem('guest_pix', '1');
+        setGuestPix(1);
+      } else {
+        setGuestPix(parseInt(pix, 10));
+      }
 
       const last = localStorage.getItem('guest_last_analysis_at');
       if (last) setGuestLastUsed(parseInt(last, 10));
@@ -112,6 +117,10 @@ export function usePhotoAnalyzer() {
           const now = Date.now();
           localStorage.setItem('guest_last_analysis_at', now.toString());
           setGuestLastUsed(now);
+          
+          const newPix = Math.max(0, guestPix - (TIER_COSTS[userProfile?.tier || 'start'] || 1));
+          localStorage.setItem('guest_pix', newPix.toString());
+          setGuestPix(newPix);
         }
         setAnalysisResult(result.data);
         setStatus('done');

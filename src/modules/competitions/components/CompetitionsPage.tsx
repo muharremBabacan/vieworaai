@@ -289,9 +289,20 @@ function CompetitionDetailDialog({ competition, isOpen, onOpenChange, userProfil
                                             ))}
                                         </div>
                                     </ScrollArea>
-                                    <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">
-                                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Katılımı Tamamla (${COMPETITION_JOIN_COST} ${currencyName})`}
-                                    </Button>
+                                    {!userProfile ? (
+                                        <div className="space-y-4">
+                                            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                                                <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Yarışmalara Katılmak İçin Üye Olmalısın</p>
+                                                <Button onClick={() => router.push('/login')} className="w-full h-10 font-black uppercase tracking-widest text-[10px] bg-primary text-primary-foreground">
+                                                    Giriş Yap / Kayıt Ol
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Button onClick={handleConfirmJoin} disabled={!selectedPhotoId || isSubmitting} className="w-full h-10 font-bold">
+                                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Katılımı Tamamla (${COMPETITION_JOIN_COST} ${currencyName})`}
+                                        </Button>
+                                    )}
                                 </div>
                             )}
                         </div>

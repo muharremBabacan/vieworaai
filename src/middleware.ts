@@ -7,7 +7,6 @@ const intlMiddleware = createMiddleware(routing);
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = request.cookies.get("session")?.value;
 
   // 1. 🛡️ FAST PATH: Skip for static assets & internal APIs
   if (
@@ -27,13 +26,7 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
-  // 3. 🔒 PROTECTED ROUTES DEFINITION
-  const authPaths = ['/login', '/signup', '/verify-email'];
-  const protectedPaths = ['/dashboard', '/admin', '/profile', '/onboarding', '/academy'];
-  
-  const isAuthPage = authPaths.some(p => pathname.includes(p));
-  const isProtectedPage = protectedPaths.some(p => pathname.includes(p));
-
+  // 3. 🔒 INTL MIDDLEWARE ONLY (Auth blocking temporarily disabled)
   return intlMiddleware(request);
 }
 

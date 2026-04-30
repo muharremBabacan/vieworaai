@@ -220,7 +220,69 @@ export default function GroupsPage() {
     toast({ title: t('toast_copied_title'), description: t('toast_copied_desc') });
   };
 
-  const isLoading = isUserLoading || isGroupsLoading || isOwnedLoading;
+  const publicGroupsQuery = useMemoFirebase(
+    () => (firestore && !uid) ? query(collection(firestore, 'groups'), where('isGalleryPublic', '==', true), limit(12)) : null,
+    [uid, firestore]
+  );
+  const { data: publicGroups, isLoading: isPublicLoading } = useCollection<Group>(publicGroupsQuery);
+
+  const isLoading = isUserLoading || isGroupsLoading || isOwnedLoading || isPublicLoading;
+
+  if (!uid && mounted) {
+      return (
+          <div className="container mx-auto px-4 pt-6">
+              <div className="flex flex-col gap-6 mb-10">
+                  <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight truncate">Toplulukları Keşfet</h1>
+                  <p className="text-muted-foreground text-sm font-medium">Misafir olarak genel galerileri gezebilirsin. Katılmak için giriş yapmalısın.</p>
+                  <Button onClick={() => router.push('/login')} className="w-full sm:w-auto h-12 rounded-2xl font-black uppercase tracking-widest bg-primary">Giriş Yap ve Aramıza Katıl</Button>
+              </div>
+
+              {isPublicLoading ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[24px]" />)}
+                  </div>
+              ) : publicGroups && publicGroups.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {publicGroups.map(group => {
+                          const purpose = PURPOSE_CONFIG[group.purpose || 'study'];
+                          return (
+                            <Card key={group.id} className="relative flex flex-col group overflow-hidden border-border/40 bg-[#121214]/60 backdrop-blur-xl rounded-[32px] transition-all hover:border-primary/20 hover:shadow-2xl border shadow-xl">
+                                <CardHeader className="p-8 pb-4">
+                                    <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight truncate">
+                                        <span>{group.name}</span>
+                                    </CardTitle>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <Badge variant="secondary" className={cn("px-2.5 py-0.5 h-6 text-[10px] font-black uppercase tracking-wider border", purpose.color)}>
+                                             {t(purpose.labelKey)}
+                                        </Badge>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-8 pt-2 flex-grow flex flex-col space-y-6">
+                                    <p className="text-sm font-medium text-muted-foreground/80 leading-relaxed line-clamp-2 h-10 italic">
+                                        {group.description || t('no_description')}
+                                    </p>
+                                    <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                                        <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                                            <Users className="h-4 w-4 text-primary" />
+                                            <span>{group.memberIds.length} Üye</span>
+                                        </div>
+                                        <Button asChild className="rounded-2xl px-4 md:px-6 h-10 md:h-11 font-black uppercase tracking-[0.15em] text-[10px] md:text-xs bg-secondary hover:bg-secondary/80">
+                                            <Link href={`/groups/${group.id}`}>Galeriyi Gez</Link>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                          );
+                      })}
+                  </div>
+              ) : (
+                  <div className="text-center py-32 rounded-[32px] border-2 border-dashed border-border/40 bg-muted/5">
+                      <p>Henüz halka açık grup bulunmuyor.</p>
+                  </div>
+              )}
+          </div>
+      );
+  }
 
   return (
     <div className="container mx-auto px-4 pt-6">

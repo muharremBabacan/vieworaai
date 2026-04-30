@@ -7,18 +7,13 @@ import { AppHeader } from '@/core/components/app-header';
 import { BottomNav } from '@/core/components/bottom-nav';
 import { Loader2 } from 'lucide-react';
 import { useUser } from '@/lib/firebase/client-provider';
-import { useSession } from 'next-auth/react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
-  const { profile, isProfileLoading, firestore, uid } = useUser();
-  const { data: session, status } = useSession();
-
-  const user = session?.user;
-  const authReady = status !== "loading";
+  const { user, authReady, profile, isProfileLoading, firestore, uid } = useUser();
 
   useEffect(() => {
     setHasMounted(true);
@@ -28,49 +23,62 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!authReady || isProfileLoading || !hasMounted) return;
 
-    // 1. GUEST MODE
+    const isPrivateRoute = ['/dashboard', '/profile', '/academy', '/admin'].some(p => pathname.includes(p));
+    const isAuthPage = ['/login', '/signup'].some(p => pathname.includes(p));
+    const isOnboardingPage = pathname.includes('/onboarding');
+
+    // 1. GUEST MODE (Not Logged In)
     if (!user) {
-      const isPrivateRoute = ['/dashboard', '/onboarding'].some(p => pathname.includes(p));
-      if (isPrivateRoute) {
+      const isGuestMode = localStorage.getItem('viewora_guest_mode') === 'true';
+      
+      if (isGuestMode) {
+        // Guests can see Dashboard, Gallery, Competitions, etc.
+        // But NOT Profile or Admin or Academy (unless you want them to see Academy intro)
+        const isRestrictedForGuest = ['/profile', '/admin', '/academy'].some(p => pathname.includes(p));
+        if (isRestrictedForGuest) {
+          console.log("🛡️ [AuthGate] Guest on restricted route. Redirecting to /login");
+          router.replace('/login');
+        }
+        return;
+      }
+
+      if (isPrivateRoute || isOnboardingPage) {
         console.log("🛡️ [AuthGate] Guest on private route. Redirecting to /login");
         router.replace('/login');
       }
       return;
     }
 
-    // 2. PROFILE SYNC (If user exists but no doc yet)
+    // 2. LOGGED IN BUT NO PROFILE DOC YET
     if (!profile && uid) {
       const userRef = doc(firestore, 'users', uid);
       getDoc(userRef).then(async (snap) => {
         if (!snap.exists()) {
-          await setDoc(userRef, {
-            uid: uid,
-            email: user.email,
-            onboarded: false,
-            createdAt: new Date().toISOString()
-          });
+          // If no profile, we just wait for AuthService to create it.
+          // Don't auto-create here to avoid race conditions with AuthService.
         }
       });
       return;
     }
 
-    // 3. NAVIGATION LOGIC (Single Source of Truth)
-    const isOnboardingPage = pathname.includes('/onboarding');
-    const isAuthPage = ['/login', '/signup'].some(p => pathname.includes(p));
+    // 3. NAVIGATION LOGIC (Logged In & Profile Loaded)
     const isOnboarded = profile?.onboarded === true;
 
     if (!isOnboarded) {
+      // User needs onboarding
       if (!isOnboardingPage) {
         console.log("🛡️ [AuthGate] Not onboarded. Forcing /onboarding");
         router.replace('/onboarding');
       }
     } else {
+      // User is fully onboarded
       if (isOnboardingPage || isAuthPage) {
         console.log("🛡️ [AuthGate] Already onboarded. Redirecting to /dashboard");
         router.replace('/dashboard');
       }
     }
-  }, [authReady, isProfileLoading, hasMounted, user, profile, pathname, router, firestore]);
+    
+  }, [authReady, isProfileLoading, hasMounted, user, profile, pathname, router, firestore, uid]);
 
   // 🏗️ RENDER STATE CONTROL
   if (!hasMounted || !authReady) {

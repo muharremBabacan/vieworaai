@@ -174,6 +174,8 @@ export type User = {
   emailVerified?: boolean;
   lastLoginAt?: string;
   lastNotificationsViewedAt?: string;
+  last_notifications_viewed_at?: string;
+  last_free_analysis_at?: string;
   communication_style?: 'soft' | 'balanced' | 'technical';
   language?: string;
   score_history?: { score: number; date: string }[];

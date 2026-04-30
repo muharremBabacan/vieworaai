@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { signOut as nextAuthSignOut } from "next-auth/react";
 import { cn } from '@/lib/utils';
 import { useAppConfig } from '@/components/AppConfigProvider';
 import { useTranslations } from 'next-intl';
@@ -112,7 +111,7 @@ export default function SettingsPage() {
   const t = useTranslations('SettingsPage');
   const tApp = useTranslations('AppLayout');
   const tNav = useTranslations('UserNav');
-  const { user, uid } = useUser();
+  const { user, uid, auth } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
@@ -185,7 +184,10 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    await nextAuthSignOut({ callbackUrl: "/login" });
+    if (auth) {
+      await auth.signOut();
+    }
+    window.location.href = "/login";
   };
 
   if (isProfileLoading) return <div className="container mx-auto max-w-2xl p-4 py-10"><Skeleton className="h-64 w-full rounded-[32px]" /></div>;

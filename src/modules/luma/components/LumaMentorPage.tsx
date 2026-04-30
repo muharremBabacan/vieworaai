@@ -171,6 +171,7 @@ export default function LumaMentorPage() {
           communication_profile: { tone: "supportive", explanation_depth: "medium", challenge_level: 3 },
           profile_index_score: 50
         },
+        onboardingResults: userProfile.onboarding_results || {},
         language: userProfile.language || 'tr'
       });
 

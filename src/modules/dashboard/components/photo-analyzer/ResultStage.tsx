@@ -11,13 +11,14 @@ import type { User, Photo } from '@/types';
 interface ResultStageProps {
   analysisResult: Photo;
   user: { uid: string } | null;
+  userProfile: User | null;
   guestId: string | null;
   resetAnalyzer: () => void;
   t: (key: string, values?: any) => string;
   tr: (key: string, values?: any) => string;
 }
 
-export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, tr }: ResultStageProps) => {
+export const ResultStage = ({ analysisResult, user, userProfile, guestId, resetAnalyzer, t, tr }: ResultStageProps) => {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-10 duration-700">
       <header className="flex justify-between items-center">
@@ -144,6 +145,18 @@ export const ResultStage = ({ analysisResult, user, guestId, resetAnalyzer, t, t
             </div>
             <p className="text-base italic text-foreground/90 leading-relaxed font-medium">"{analysisResult.aiFeedback!.short_neutral_analysis}"</p>
           </Card>
+
+          {!user && (
+            <Card className="p-8 rounded-[40px] border-primary/40 bg-primary/10 shadow-[0_32px_64px_-16px_rgba(var(--primary),0.3)] space-y-6 text-center animate-pulse-slow">
+              <div className="space-y-2">
+                <h3 className="text-xl font-black uppercase tracking-tighter">Puanını Kaydetmek İster Misin?</h3>
+                <p className="text-xs font-medium text-muted-foreground">Şimdi üye olursan bu analizi profilinde saklayabilir ve <span className="text-primary font-bold">20 Pix Hoş Geldin Hediyesi</span> kazanabilirsin!</p>
+              </div>
+              <Button asChild className="w-full h-14 rounded-2xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-xl">
+                <a href="/login">Hemen Üye Ol ve Pix Kazan</a>
+              </Button>
+            </Card>
+          )}
         </div>
       </div>
     </div>

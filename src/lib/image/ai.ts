@@ -17,7 +17,13 @@ const PhotoAnalysisSchema = z.object({
 /**
  * Perform AI analysis on a photo using OpenAI Vision API.
  */
-export async function performAiAnalysis(imageUrl: string, photoId: string, filePath?: string): Promise<any> {
+export async function performAiAnalysis(
+  imageUrl: string, 
+  photoId: string, 
+  filePath?: string, 
+  isGuest?: boolean,
+  onboardingResults?: any
+): Promise<any> {
   if (!process.env.OPENAI_API_KEY) {
     console.error('❌ [AI-LOGIC] OPENAI_API_KEY is missing in production!');
     throw new Error('OPENAI_API_KEY_MISSING');
@@ -90,7 +96,19 @@ export async function performAiAnalysis(imageUrl: string, photoId: string, fileP
               1. Every string value must be in Turkish.
               2. Do not include hashtags in the tags array.
               3. Ensure 'technical_details' object is fully populated.
-              4. Be objective and professional.`
+              4. Be objective and professional.
+              ${isGuest ? "5. IMPORTANT: This is a GUEST user. In 'short_neutral_analysis', do NOT be generic. Mention one specific strength (like light or colors) and one area for improvement based on THIS specific photo. Use an EXTRA ENCOURAGING, nurturing tone. Convey that they have a 'hidden talent' and with just a little help from Viewora Academy to fix that specific weakness, they could easily be ready for our exhibitions and competitions. Make them feel seen and talented." : ""}
+              ${(!isGuest && onboardingResults) ? `5. USER CONTEXT: The user is a registered member.
+                 - Interest: ${onboardingResults.interest}
+                 - Device: ${onboardingResults.device_type}
+                 - Level: ${onboardingResults.technical_level}
+                 - Motivation: ${onboardingResults.motivation}
+                 
+                 In 'short_neutral_analysis', adjust your tone and technical depth. If 'technical_level' is 'beginner', be more teaching and encouraging. If 'advanced', be highly technical and result-oriented.
+                 Also, if their interest matches this photo, give them a 'High Potential' boost in the feedback.
+                 If they have low scores in something (like composition), suggest they check the Viewora Academy lessons related to ${onboardingResults.approach || 'composition'}.
+                 ` : ""}
+              `
             },
             { type: "image_url", image_url: { url: analysisUrl } }
           ],

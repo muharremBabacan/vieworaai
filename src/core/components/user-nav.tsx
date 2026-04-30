@@ -14,7 +14,6 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { LogOut, Settings, Shield, User as UserIcon, Flame, Coins, Trophy, Globe, Gem } from 'lucide-react';
 import { useUser } from '@/lib/firebase/client-provider';
-import { signOut as nextAuthSignOut } from "next-auth/react";
 import { Link } from '@/i18n/navigation';
 import { AuthService } from '@/lib/auth/auth-service';
 import { NotificationCenter } from '@/core/components/notification-popover';
@@ -26,7 +25,7 @@ export function UserNav() {
   const t = useTranslations('UserNav');
   const tApp = useTranslations('AppLayout');
   const tFallback = useTranslations('UserNavFallback');
-  const { user: authUser, profile: userProfile, authReady, isProfileLoading } = useUser();
+  const { user: authUser, profile: userProfile, authReady, isProfileLoading, auth } = useUser();
   const { currencyName } = useAppConfig();
   const [guestId, setGuestId] = useState<string | null>(null);
 
@@ -38,7 +37,10 @@ export function UserNav() {
 
   const handleSignOut = async () => {
     try {
-      await nextAuthSignOut({ callbackUrl: "/login" });
+      if (auth) {
+        await auth.signOut();
+      }
+      window.location.href = "/login";
     } catch (error) {
       console.error('Logout error:', error);
     }
