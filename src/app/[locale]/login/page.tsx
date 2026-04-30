@@ -8,6 +8,7 @@ import {
   signInWithEmailLink,
   GoogleAuthProvider,
   signInWithRedirect,
+  signInWithPopup,
   getRedirectResult
 } from 'firebase/auth';
 import { useFirebase } from '@/lib/firebase';
