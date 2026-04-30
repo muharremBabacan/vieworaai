@@ -171,26 +171,27 @@ function LoginForm() {
 
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore || isLoading) return;
+    
+    // 🛡️ PWA STANDALONE PROTECTION
+    if (isStandalone) {
+      console.log("📱 [PWA] Redirecting to browser for safe login...");
+      // For PWA, we redirect to the web-specific login page in a way that encourages browser opening
+      // or simply use redirect as standard if we believe it can work
+      const provider = new GoogleAuthProvider();
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
     setIsLoading(true);
     
     try {
       const provider = new GoogleAuthProvider();
-      // Use Redirect for better mobile/PWA compatibility
+      // On Desktop/Mobile Browser, use Redirect or Popup based on preference
+      // We will stick to Redirect for consistency as it's safer for Mobile
       await signInWithRedirect(auth, provider);
-      
-      // Sync profile & handle post-login
-      await AuthService.handlePostLogin(firestore, result.user, 'google');
-      console.log("✅ [GoogleAuth] Login successful.");
-      toast({ title: 'Başarılı', description: 'Google ile giriş yapıldı.' });
-      
-      // Let the Auth Gate handle redirection naturally, 
-      // but you can also force a push if needed.
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
-      // Ignore popup closed errors
-      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-        toast({ variant: 'destructive', title: 'Hata', description: 'Google ile giriş başarısız oldu.' });
-      }
+      toast({ variant: 'destructive', title: 'Hata', description: 'Google ile giriş başarısız oldu.' });
     } finally {
       setIsLoading(false);
     }
